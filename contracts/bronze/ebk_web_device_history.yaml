@@ -1,0 +1,190 @@
+---
+asset:
+  id: "bronze/ebk_web_device_history"
+  name: "HISTORIQUE CONNEXIONS WEB E-BANKING"
+  maturity: "bronze"
+  domain: "e-banking"
+  context: "digital_channels"
+  type: "dataset"
+  description: >
+    Dataset tracking web device history for e-banking users including
+    device type, IP address, operating system, version, location, and
+    connection timestamps.
+  version: "1.0.0"
+  owners:
+    business_owner:
+      name: "Selfcare"
+      team: "SELFCARE"
+      email: "ebanking@attijariwafa.com"
+    technical_owner:
+      name: "DATALAKE"
+      team: "DATALAKE"
+      email: "datalake@attijariwafa.com"
+  status: "active"
+  tags:
+    - "ebk"
+    - "daily"
+    - "bronze"
+    - "ingestion"
+
+contract:
+  primary_key:
+    - "NUM_ENR"
+    - "WEB_DEVICE_ID"
+    - "CONNECTION_DATE"
+  grain: "One record per device connection event per user"
+  refresh:
+    frequency: "daily"
+  sla:
+    availability: "99.5"
+    ready_by: "10:30"
+    max_delay_minutes: 60
+  schema:
+    fields:
+      - name: "TYPE_ENR"
+        type: "string"
+        description: "Type enregistrement"
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - ""
+
+      - name: "NUM_ENR"
+        type: "string"
+        description: "Num enregistrement"
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - ""
+
+      - name: "IP"
+        type: "string"
+        description: "IP address from which the connection was made"
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - ""
+
+      - name: "OS"
+        type: "string"
+        description: "Operating system of the device"
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - ""
+
+      - name: "VERSION"
+        type: "string"
+        description: "Version of the app/OS"
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - ""
+
+      - name: "LOCATION"
+        type: "string"
+        description: "Geographic location of the connection"
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - ""
+
+      - name: "CONNECTION_DATE"
+        type: "timestamp"
+        description: "Timestamp of when the connection was established"
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - ""
+        extra_properties:
+          sql_expression: >
+            FROM_UNIXTIME(UNIX_TIMESTAMP(CONNECTION_DATE,
+            'yyyyMMdd'), 'yyyy-MM-dd')
+
+      - name: "WEB_DEVICE_ID"
+        type: "string"
+        description: "Web device Id connected"
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - ""
+
+
+quality:
+  checks: []
+  on_failure:
+    action: "warn"
+    notify:
+      - "data.engineering@attijariwafa.com"
+
+security:
+  classification: "public"
+  pii:
+    contains_pii: false
+    notes: "no pii mentioned"
+  access_policies:
+    roles: []
+    row_level_filters:
+      enabled: false
+      rules: []
+    column_masking: []
+
+inputs:
+  sources:
+    - name: "ebk_web_device_history_file"
+      type: "FILE"
+      description: >
+        Daily file containing web device history from ebk
+      owner: "EBK"
+      ready_by: "10:10"
+  transformations:
+    - step: "ingest"
+      description: "ingest file"
+
+output:
+  table_name: "awb_rec.orc_ebk_web_device_history"
+  storage_format: "ORC"
+  location: >
+    hdfs://nameservice1/awb_filiale_rec/awb_ingestion/data/
+    ebk_web_device_history
+  partitioning:
+    - "date_technique"
+  retention:
+    type: "time_based"
+    value: "365 days"
+
+serving:
+  technology:
+    type: "ORC"
+    enabled: true
+    name: "ebk_web_device_history"
+    notes: ""
+
+operations:
+  airflow_dag_id: "dag_ebk_web_device_history"
+  schedule_cron: "10 10 * * *"
+  expected_runtime_minutes: 30
+  alerts_channel: "email"
+  dependencies:
+    - "file arrival"
+  retries:
+    max_retries: 1
+    backoff_minutes: 5
+  logging:
+    level: "INFO"
+    log_retention_days: 30
+
+lineage:
+  upstream:
+    - "EBK SOP FILES"
+  downstream: []
+  documentation_links: []
+
+extra_properties:
+  header_contains_date: false
+  date_position: -1
+  number_header: 1
+  number_footer: 1
+  separator: "\\x02"
+  queue: "launcher"
+  env: "rec"

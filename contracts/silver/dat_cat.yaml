@@ -1,0 +1,307 @@
+---
+asset:
+  id: "silver/dat_cat"
+  name: "DAT COMPTES À TERME"
+  maturity: "silver"
+  domain: "DAT"
+  context: "PRODUITS_EPARGNE"
+  type: "data_product"
+  description: >
+    Données silver des Dépôts À Terme type Comptes À Terme (CAT).
+    Dernière version des DAT CAT avec avances associées.
+    Couche silver nettoyée et standardisée.
+  version: "1.0.0"
+  owners:
+    business_owner:
+      name: "DAT Team"
+      team: "DAT Team"
+      email: "dat.team@attijariwafa.com"
+    technical_owner:
+      name: "DATALAKE"
+      team: "DATALAKE"
+      email: "m.mouatacim@attijariwafa.com"
+  status: "active"
+  tags:
+    - customer360
+    - dat
+    - cat
+    - epargne
+    - silver
+    - data-product
+
+contract:
+  primary_key:
+    - "numero_contrat"
+  grain: "Une ligne par DAT Compte À Terme"
+  refresh:
+    frequency: "daily"
+  sla:
+    availability: "99.0"
+    ready_by: "05:00"
+    max_delay_minutes: 60
+  
+  schema:
+    fields:
+      - name: "numero_personne_host"
+        type: "integer"
+        description: "Identifiant personne côté système host (idtfcl)"
+        required: true
+        pii_classification: "indirect"
+        business_rules:
+          - "Must exist"
+      - name: "statut"
+        type: "string"
+        description: "Statut du DAT CAT (cd_etat)"
+        required: false
+        pii_classification: "none"
+      - name: "montant_dat"
+        type: "decimal"
+        description: "Montant souscrit du DAT (mnt_sous)"
+        required: false
+        pii_classification: "none"
+      - name: "taux"
+        type: "decimal"
+        description: "Taux d'intérêt"
+        required: false
+        pii_classification: "none"
+      - name: "date_souscription"
+        type: "timestamp"
+        description: "Date de souscription (date_av)"
+        required: false
+        pii_classification: "none"
+      - name: "date_echeance"
+        type: "timestamp"
+        description: "Date d'échéance (dte_echeance)"
+        required: false
+        pii_classification: "none"
+      - name: "date_av"
+        type: "timestamp"
+        description: "Date d'avance"
+        required: false
+        pii_classification: "none"
+      - name: "mre"
+        type: "string"
+        description: "Flag résident/MRE (flag_resident)"
+        required: false
+        pii_classification: "none"
+      - name: "compte_support"
+        type: "string"
+        description: "Compte support associé (compte_pr, cast to string)"
+        required: false
+        pii_classification: "indirect"
+      - name: "numero_contrat"
+        type: "string"
+        description: "Numéro de contrat DAT CAT (no_compte)"
+        required: true
+        pii_classification: "indirect"
+        business_rules:
+          - "Must be unique"
+          - "Must exist"
+      - name: "duree"
+        type: "integer"
+        description: "Durée du DAT"
+        required: false
+        pii_classification: "none"
+      - name: "interet_net_a_servir"
+        type: "decimal"
+        description: "Intérêt net à servir (mnt_int_net)"
+        required: false
+        pii_classification: "none"
+      - name: "mnt_net_echeance"
+        type: "decimal"
+        description: "Montant net à l'échéance"
+        required: false
+        pii_classification: "none"
+      - name: "retenue_source"
+        type: "decimal"
+        description: "Retenue à la source (mnt_retenu)"
+        required: false
+        pii_classification: "none"
+      - name: "date_avance"
+        type: "timestamp"
+        description: "Date de l'avance (date_av)"
+        required: false
+        pii_classification: "none"
+      - name: "mnt_av"
+        type: "decimal"
+        description: "Montant de l'avance"
+        required: false
+        pii_classification: "none"
+      - name: "taux_av"
+        type: "decimal"
+        description: "Taux de l'avance"
+        required: false
+        pii_classification: "none"
+      - name: "family"
+        type: "string"
+        description: "Famille de produit (valeur fixe 'DAT')"
+        required: false
+        pii_classification: "none"
+        business_rules:
+          - "Always set to 'DAT'"
+      - name: "type_dat"
+        type: "string"
+        description: "Type de DAT (valeur fixe 'CAT')"
+        required: false
+        pii_classification: "none"
+        business_rules:
+          - "Always set to 'CAT'"
+
+quality:
+  checks:
+    - name: "completeness_numero_contrat"
+      type: "completeness"
+      field: "numero_contrat"
+      threshold: 1.0
+      critical: true
+    - name: "uniqueness_numero_contrat"
+      type: "uniqueness"
+      field: "numero_contrat"
+      threshold: 1.0
+      critical: true
+    - name: "completeness_numero_personne_host"
+      type: "completeness"
+      field: "numero_personne_host"
+      threshold: 1.0
+      critical: true
+    - name: "validity_family"
+      type: "validity"
+      field: "family"
+      threshold: 1.0
+      critical: true
+      description: "Vérification que family = 'DAT'"
+    - name: "validity_type_dat"
+      type: "validity"
+      field: "type_dat"
+      threshold: 1.0
+      critical: true
+      description: "Vérification que type_dat = 'CAT'"
+    - name: "freshness_check"
+      type: "freshness"
+      field: "run_date"
+      threshold: 1
+      critical: true
+
+  on_failure:
+    action: "block_publication"
+    notify:
+      - "m.mouatacim@attijariwafa.com"
+      - "dat.team@attijariwafa.com"
+
+security:
+  classification: "confidential"
+  pii:
+    contains_pii: true
+    notes: >
+      Contains indirect PII through numero_personne_host, numero_contrat and compte_support identifiers.
+  access_policies:
+    roles:
+      - name: "data_management"
+        permissions:
+          - "read"
+      - name: "data_eng"
+        permissions:
+          - "read"
+      - name: "datalake"
+        permissions:
+          - "read"
+          - "write"
+      - name: "dat_team"
+        permissions:
+          - "read"
+    row_level_filters:
+      enabled: false
+      rules: []
+    column_masking:
+      - field: "numero_personne_host"
+        policy: "mask_partial"
+      - field: "numero_contrat"
+        policy: "mask_partial"
+      - field: "compte_support"
+        policy: "mask_partial"
+
+inputs:
+  sources:
+    - name: "orc_personne_compte"
+      type: "ORC"
+      description: "Table bronze de relation personne-compte au format ORC"
+      owner: "DATALAKE"
+      ready_by: "01:00"
+    - name: "orc_compte_host"
+      type: "ORC"
+      description: "Table bronze des comptes host au format ORC"
+      owner: "DATALAKE"
+      ready_by: "01:00"
+    - name: "orc_dat_cat"
+      type: "ORC"
+      description: "Table bronze des DAT Comptes À Terme au format ORC"
+      owner: "DATALAKE"
+      ready_by: "01:00"
+    - name: "orc_dat_cat_av"
+      type: "ORC"
+      description: "Table bronze des avances DAT CAT au format ORC"
+      owner: "DATALAKE"
+      ready_by: "01:00"
+  transformations:
+    - step: "bronze_ingestion"
+      description: "Lecture des données depuis 4 tables bronze ORC: personne_compte, compte_host, dat_cat, dat_cat_av"
+    - step: "getLive_filtering"
+      description: "Application de getLive() pour récupérer la dernière version des enregistrements (avec clés spécifiques: no_compte, compte_av, numero)"
+    - step: "column_renaming"
+      description: "Renommage des colonnes: cd_etat->statut, compte_pr->compte_support (cast to string), mnt_sous->montant_dat, dte_echeance->date_echeance, flag_resident->mre, mnt_int_net->interet_net_a_servir, no_compte->numero_contrat, mnt_retenu->retenue_source, idtfcl->numero_personne_host, dte_enreg->date_av"
+    - step: "data_type_conversion"
+      description: "Conversion des types de données (ex: cast compte_pr en string)"
+    - step: "join_enrichment"
+      description: "Jointures: (1) INNER join personneCompte + datCat sur numero_compte = compte_support, (2) LEFT OUTER join + datCatAv sur no_compte = compte_cat"
+    - step: "literal_columns_addition"
+      description: "Ajout de colonnes littérales: family='DAT', type_dat='CAT'"
+    - step: "derived_columns_creation"
+      description: "Création de colonnes dérivées: date_souscription=date_av, date_avance=date_av"
+    - step: "metadata_enrichment"
+      description: "Ajout de métadonnées (run_date, version)"
+
+output:
+  table_name: "dat_cat"
+  storage_format: "ICEBERG"
+  location: "/warehouse/tablespace/managed/hive/awb_silver.db/dat_cat"
+  partitioning:
+    - "run_date"
+  retention:
+    type: "time_based"
+    value: "365d"
+
+serving:
+  technology:
+    type: "HIVE"
+    enabled: true
+    tables:
+      - name: "view_dat_cat"
+        source_table: "dat_cat"
+    notes: "Vue Hive pour les consommateurs des DAT Comptes À Terme"
+
+operations:
+  airflow_dag_id: "dp_silver_dat_cat"
+  schedule_cron: "0 4 * * *"
+  expected_runtime_minutes: 15
+  alerts_channel: "#alerts-dat-dp"
+  dependencies:
+    - "dat_cat_bronze_SUCCESS.txt"
+  retries:
+    max_retries: 2
+    backoff_minutes: 10
+  logging:
+    level: "INFO"
+    log_retention_days: 30
+
+lineage:
+  upstream:
+    - "bronze_orc_personne_compte"
+    - "bronze_orc_compte_host"
+    - "bronze_orc_dat_cat"
+    - "bronze_orc_dat_cat_av"
+  downstream:
+    - "gold_dat_product"
+    - "customer360_product"
+  documentation_links:
+    - "https://gitlab.udd.attijariwafa.net/datalake/data-product-contract"
+

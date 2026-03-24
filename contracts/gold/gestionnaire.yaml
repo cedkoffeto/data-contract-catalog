@@ -1,0 +1,307 @@
+---
+asset:
+  id: "gold/gestionnaire"
+  name: "GESTIONNAIRE"
+  maturity: "gold"
+  domain: "GESTIONNAIRE"
+  context: "RELATION_CLIENT"
+  type: "data_product"
+  description: >
+    Vue consolidée et agrégée des gestionnaires par client et par personne.
+    Contient les informations des gestionnaires (nom, prénom, agence, portefeuille, position) 
+    au format JSON pour faciliter la consommation via Oracle et autres systèmes externes.
+    Ce produit de données contient des informations personnelles identifiables (PII).
+  version: "2.0.1"
+  owners:
+    business_owner:
+      name: "GESTIONNAIRE Team"
+      team: "GESTIONNAIRE Team"
+      email: "hicham.amane@attijariwafa.com"
+    technical_owner:
+      name: "DATALAKE"
+      team: "DATALAKE"
+      email: "m.mouatacim@attijariwafa.com"
+  status: "active"
+  tags:
+    - customer360
+    - gestionnaire
+    - gold
+    - data-product
+    - aggregated
+    - json
+    - pii
+
+contract:
+  primary_key:
+    - "numero_client_host"
+    - "numero_personne_host"
+  grain: "Une ligne par client et par personne avec leurs gestionnaires agrégés au format JSON"
+  refresh:
+    frequency: "daily"
+  sla:
+    availability: "99.0"
+    ready_by: "04:00"
+    max_delay_minutes: 60
+  
+  schema:
+    fields:
+      - name: "numero_personne_host"
+        type: "integer"
+        description: "Identifiant personne côté système host"
+        required: true
+        pii_classification: "indirect"
+        business_rules:
+          - "Must exist"
+          - "Must be complete"
+      
+      - name: "numero_client_host"
+        type: "integer"
+        description: "Identifiant client côté système host"
+        required: true
+        pii_classification: "indirect"
+        business_rules:
+          - "Must exist"
+      
+      - name: "mangers"
+        type: "array<struct>"
+        description: "Liste des gestionnaires agrégés par personne avec remplacement 'NA' pour valeurs nulles"
+        required: false
+        pii_classification: "sensitive"
+        business_rules:
+          - "Array of manager objects"
+          - "Empty array returned if no managers (coalesce with empty array)"
+          - "nom_gestionnaire and prenom_gestionnaire set to 'NA' if null"
+        fields:
+          - name: "nom_gestionnaire"
+            type: "string"
+            description: "Nom du gestionnaire (défaut 'NA' si null)"
+            pii_classification: "sensitive"
+          - name: "prenom_gestionnaire"
+            type: "string"
+            description: "Prénom du gestionnaire (défaut 'NA' si null)"
+            pii_classification: "sensitive"
+          - name: "nom_complet_gestionnaire"
+            type: "string"
+            description: "Nom complet du gestionnaire (concaténation nom + prénom)"
+            pii_classification: "sensitive"
+          - name: "code_agence"
+            type: "string"
+            description: "Code de l'agence du gestionnaire"
+          - name: "libelle_agence"
+            type: "string"
+            description: "Libellé de l'agence du gestionnaire"
+          - name: "code_portefeuille"
+            type: "string"
+            description: "Code portefeuille du gestionnaire"
+          - name: "position"
+            type: "string"
+            description: "Position/type de relation du gestionnaire"
+      
+      - name: "run_date"
+        type: "date"
+        description: "Date d'exécution du traitement"
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - "Date of data product build"
+      
+      - name: "version"
+        type: "string"
+        description: "Version de la logique produit"
+        required: true
+        pii_classification: "none"
+
+quality:
+  checks:
+    - name: "completeness_numero_personne_host"
+      type: "completeness"
+      field: "numero_personne_host"
+      threshold: 1.0
+      critical: true
+    
+    - name: "completeness_numero_client_host"
+      type: "completeness"
+      field: "numero_client_host"
+      threshold: 0.95
+      critical: false
+      description: "Vérification de la complétude de numero_client_host (peut être null pour certaines personnes)"
+    
+    - name: "uniqueness_primary_key"
+      type: "uniqueness"
+      field: "numero_personne_host"
+      threshold: 1.0
+      critical: true
+    
+    - name: "size_check_warning"
+      type: "size"
+      field: "*"
+      threshold: 0
+      critical: false
+      description: "Warning check: dataset must have at least one row"
+    
+    - name: "validity_json_structure_mangers"
+      type: "validity"
+      field: "mangers"
+      threshold: 0.99
+      critical: false
+      description: "Vérification de la structure JSON des gestionnaires"
+    
+    - name: "freshness_check"
+      type: "freshness"
+      field: "run_date"
+      threshold: 1
+      critical: true
+
+  on_failure:
+    action: "block_publication"
+    notify:
+      - "m.mouatacim@attijariwafa.com"
+      - "hicham.amane@attijariwafa.com"
+
+security:
+  classification: "confidentiel"
+  pii:
+    contains_pii: true
+    notes: >
+      Ce produit de données contient des identifiants indirects (numero_client_host, numero_personne_host)
+      et des informations sensibles sur les gestionnaires (nom, prénom).
+    fields:
+      - name: "numero_client_host"
+        classification: "indirect"
+      - name: "numero_personne_host"
+        classification: "indirect"
+      - name: "mangers.nom_gestionnaire"
+        classification: "sensitive"
+      - name: "mangers.prenom_gestionnaire"
+        classification: "sensitive"
+      - name: "mangers.nom_complet_gestionnaire"
+        classification: "sensitive"
+  
+  access_policies:
+    roles:
+      - name: "data_management"
+        permissions:
+          - "read"
+      - name: "data_eng"
+        permissions:
+          - "read"
+      - name: "datalake"
+        permissions:
+          - "read"
+          - "write"
+      - name: "gestionnaire_team"
+        permissions:
+          - "read"
+      - name: "customer360_consumers"
+        permissions:
+          - "read"
+    
+    row_level_filters:
+      enabled: false
+      rules: []
+    
+    column_masking:
+      - field: "numero_client_host"
+        policy: "mask_partial"
+      - field: "numero_personne_host"
+        policy: "mask_partial"
+      - field: "mangers.nom_gestionnaire"
+        policy: "mask_partial"
+      - field: "mangers.prenom_gestionnaire"
+        policy: "mask_partial"
+      - field: "mangers.nom_complet_gestionnaire"
+        policy: "mask_partial"
+
+inputs:
+  sources:
+    - name: "client_master"
+      type: "ICEBERG"
+      description: "Table silver client master (client_personne)"
+      owner: "DATALAKE"
+      ready_by: "05:00"
+    
+    - name: "gestionnaire"
+      type: "ICEBERG"
+      description: "Table silver des gestionnaires enrichie"
+      owner: "DATALAKE"
+      ready_by: "05:00"
+  
+  transformations:
+    - step: "read_silver_sources"
+      description: "Lecture de client_master et gestionnaire depuis la couche silver"
+    
+    - step: "null_handling"
+      description: "Remplacement des valeurs nulles dans nom_gestionnaire et prenom_gestionnaire par 'NA'"
+    
+    - step: "nom_complet_generation"
+      description: "Génération de nom_complet_gestionnaire par concaténation de nom_gestionnaire + ' ' + prenom_gestionnaire"
+    
+    - step: "gestionnaire_aggregation"
+      description: >
+        Agrégation (groupBy) des gestionnaires par numero_personne_host avec collect_list 
+        d'un struct contenant: nom_gestionnaire, prenom_gestionnaire, nom_complet_gestionnaire, 
+        code_agence, libelle_agence, code_portefeuille, position
+    
+    - step: "join_with_client"
+      description: "Jointure entre client_master et gestionnaires agrégés sur numero_personne_host"
+    
+    - step: "json_struct_creation"
+      description: >
+        Création d'un struct JSON contenant: numero_client_host, numero_personne_host, 
+        gestionnaires (avec coalesce vers array vide si null)
+    
+    - step: "data_quality_validation"
+      description: >
+        Validation de la qualité avec checks Warning (hasSize > 0) et Error (isComplete numero_personne_host)
+    
+    - step: "json_data_product_transformation"
+      description: "Transformation en data product JSON avec domainName='Gestionnaire', version='2.0.1', runDate='2025-01-19'"
+    
+    - step: "metadata_enrichment"
+      description: "Ajout de métadonnées (run_date, version)"
+
+output:
+  table_name: "CUSTOMER_360_EXT_STG"
+  storage_format: "ORACLE"
+  database: "CUSTOMER360"
+  write_mode: "APPEND"
+  partitioning:
+    - "run_date"
+  retention:
+    type: "time_based"
+    value: "365d"
+
+serving:
+  technology:
+    type: "ORACLE"
+    enabled: true
+    name: "CUSTOMER360"
+    notes: >
+      Table externe Oracle CUSTOMER_360_EXT_STG pour les consommateurs avec colonnes JSON 
+      pour les gestionnaires. Optimisée pour la consommation par les applications métier 
+      et Customer360 en mode APPEND.
+
+operations:
+  airflow_dag_id: "dp_gold_gestionnaire_product"
+  schedule_cron: "0 6 * * *"
+  expected_runtime_minutes: 30
+  alerts_channel: "#alerts-gestionnaire-dp"
+  dependencies:
+    - "dp_silver_gestionnaire_SUCCESS.txt"
+    - "dp_silver_client_master_SUCCESS.txt"
+  retries:
+    max_retries: 2
+    backoff_minutes: 10
+  logging:
+    level: "INFO"
+    log_retention_days: 30
+
+lineage:
+  upstream:
+    - "silver_client_master"
+    - "silver_gestionnaire"
+  downstream:
+    - "customer360_product"
+    - "oracle_customer360_consumers"
+  documentation_links:
+    - "https://gitlab.udd.attijariwafa.net/datalake/data-product-contract"

@@ -1,0 +1,383 @@
+---
+asset:
+  id: "silver/carte"
+  name: "CARTE"
+  maturity: "silver"
+  domain: "CARTE"
+  context: "EQUIPEMENT"
+  type: "dataset"
+  description: >
+    Vue consolidée du parc de cartes monétiques, incluant les caractéristiques des contrats, 
+    les statuts d'activation, les plafonds de paiement/retrait et les indicateurs d'usage.
+  version: "1.0.0"
+  owners:
+    business_owner:
+      name: "FINANCE GROUP"
+      team: "FINANCE GROUP"
+      email: "business.team@attijariwafa.com"
+    technical_owner:
+      name: "DATALAKE"
+      team: "DATALAKE"
+      email: "m.mouatacim@attijariwafa.com"
+  status: "active"
+  tags:
+    - monétique
+    - cartes
+    - équipement
+    - customer360
+contract:
+  primary_key:
+    - "numero_contrat"
+  grain: "Une ligne par carte"
+  refresh:
+    frequency: "monthly"
+  sla:
+    availability: "99.0"
+    ready_by: "Le 05 de chaque mois a 10h"
+    max_delay_minutes: 60
+  schema:
+    fields:
+      - name: "numero_contrat"
+        type: "string"
+        description: "Identifiant unique du contrat d'adhésion au service"
+        required: true
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "numero_compte"
+        type: "string"
+        description: "Numéro de compte bancaire interne lié à la prestation"
+        required: true
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "compte_support"
+        type: "string"
+        description: "Compte technique sur lequel sont imputées les opérations de la carte"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "type_carte"
+        type: "string"
+        description: "Catégorie de la carte (ex: Visa Classic, Mastercard Gold)"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "design"
+        type: "string"
+        description: "Code visuel ou thématique graphique appliqué sur la carte"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "statu_crt"
+        type: "string"
+        description: "État actuel de la carte (Active, Bloquée, Opposition)"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "date_statut"
+        type: "string"
+        description: "Date de la dernière mise à jour du statut de la carte"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "date_souscription"
+        type: "string"
+        description: "Date de signature du contrat ou de demande de la carte"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "formule"
+        type: "string"
+        description: "Libellé de l'offre commerciale ou du bouquet de services"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "porteur"
+        type: "string"
+        description: "Nom ou identifiant du détenteur physique de la carte"
+        required: false
+        pii_classification: "sensitive"
+        business_rules: [ ]
+      - name: "cd_motif"
+        type: "string"
+        description: "Code motif lié à un événement (clôture, renouvellement, opposition)"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "date_echeance"
+        type: "string"
+        description: "Date de fin de validité de la carte (MM/YY)"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "cd_pdt_pilotage"
+        type: "string"
+        description: "Code produit utilisé pour le reporting et le contrôle de gestion"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "crt_ppl"
+        type: "string"
+        description: "Indicateur Carte Principale (O/N) pour différencier des cartes secondaires"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "design_carte"
+        type: "string"
+        description: "Description textuelle du visuel de la carte"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "autorisation_decouvert"
+        type: "string"
+        description: "Indicateur ou montant du découvert autorisé lié au compte de la carte"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "matricule_vendeur"
+        type: "string"
+        description: "Identifiant du conseiller ou de l'agent ayant réalisé la vente"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "packaged"
+        type: "int"
+        description: "Indicateur (0/1) si la carte fait partie d'un pack de services"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "cd_statut"
+        type: "string"
+        description: "Code technique du statut système"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "phase"
+        type: "string"
+        description: "Étape du cycle de vie (Fabrication, Envoi, Activée)"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "statut"
+        type: "string"
+        description: "Statut général du dossier"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "typ_carte"
+        type: "string"
+        description: "Code technique du type de carte"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "cd_formule"
+        type: "string"
+        description: "Code interne de la formule commerciale"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "tarif"
+        type: "int"
+        description: "Montant de la cotisation annuelle ou mensuelle"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "plafond_paiement"
+        type: "int"
+        description: "Limite maximale autorisée pour les paiements sur une période donnée"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "plafond_retrait"
+        type: "int"
+        description: "Limite maximale autorisée pour les retraits en DAB"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "gsm"
+        type: "int"
+        description: "Numéro de téléphone mobile associé pour les alertes/3DSecure"
+        required: false
+        pii_classification: "sensitive"
+        business_rules: [ ]
+      - name: "operateur"
+        type: "int"
+        description: "Code de l'opérateur de téléphonie mobile du client"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "email"
+        type: "string"
+        description: "Adresse électronique pour les notifications et relevés"
+        required: false
+        pii_classification: "sensitive"
+        business_rules: [ ]
+      - name: "masque_carte"
+        type: "string"
+        description: "Numéro de carte masqué (ex: 4590********1234) pour sécurité"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "cd_pdt_sys"
+        type: "string"
+        description: "Code produit dans le système d'information central"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "prd_grp"
+        type: "string"
+        description: "Code de regroupement de produits"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "product_name"
+        type: "string"
+        description: "Nom commercial complet du produit"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "num_cont"
+        type: "string"
+        description: "Abréviation du numéro de contrat"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "package_affiliation"
+        type: "string"
+        description: "Libellé du package d'affiliation lié"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "num_crt"
+        type: "string"
+        description: "Numéro de la carte (format abrégé ou technique)"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "date_dernier_paiement"
+        type: "string"
+        description: "Date de la dernière transaction de paiement effectuée"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "date_dernier_retrait"
+        type: "string"
+        description: "Date du dernier retrait effectué au guichet automatique"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "motif_souscription"
+        type: "string"
+        description: "Raison invoquée lors de l'ouverture du contrat"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "numero_personne_host"
+        type: "decimal(8,0)"
+        description: "Identifiant unique du client dans le système central (Host)"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+      - name: "cd_phs"
+        type: "string"
+        description: "Code technique de la phase du cycle de vie"
+        required: false
+        pii_classification: "none"
+        business_rules: [ ]
+
+
+quality:
+  checks:
+    - name: "completeness_person_id"
+      type: "completeness"
+      field: "person_id"
+      threshold: 1.0
+      critical: true
+    - name: "completeness_run_date"
+      type: "completeness"
+      field: "run_date"
+      threshold: 1.0
+      critical: true
+  on_failure:
+    action: "block_publication"
+    notify:
+      - "c.koffeto@attijariwafa.com"
+      - "business.team@attijariwafa.com"
+
+security:
+  classification: "public"
+  pii:
+    contains_pii: true
+    notes: "Porteur, gsm, email sont classés sensibles."
+  access_policies:
+    roles:
+      - name: "data_management"
+        permissions:
+          - "read"
+      - name: "data_eng"
+        permissions:
+          - "read"
+      - name: "datalake"
+        permissions:
+          - "read"
+          - "write"
+    row_level_filters:
+      enabled: false
+      rules: []
+    column_masking:
+      - field: "porteur"
+        policy: "mask_partial"
+      - field: "email"
+        policy: "mask_partial"
+      - field: "masque_carte"
+        policy: "mask_partial"
+
+inputs:
+  sources:
+    - name: "orc_mn_porteur"
+      type: "ORC"
+      description: "ORC table description"
+      owner: "SOP"
+      ready_by: "01:00"
+  transformations:
+    - step: "live_data_reading"
+      description: "Ingest ORC to awb_prd.carte tables"
+    - step: "joining_cleaning"
+      description: "Join, deduplicate and standardize into silver tables"
+    - step: "aggregation"
+      description: "Aggregate description"
+    - step: "Metadata enrichment"
+      description: "Standard metadata columns added"
+
+output:
+  table_name: "awb_prd.carte"
+  storage_format: "ICEBERG"
+  location: "/warehouse/tablespace/external/hive/awb_prd.db/carte"
+  partitioning:
+    - "run_date"
+  retention:
+    type: "time_based"
+    value: "365d"
+
+serving:
+
+operations:
+  airflow_dag_id: "dp_carte"
+  schedule_cron: "0 2 * * *"
+  expected_runtime_minutes: 30
+  alerts_channel: "#alerts-carte-dp"
+  dependencies:
+    - "orc_mn_porteur_SUCCESS.txt"
+  retries:
+    max_retries: 2
+    backoff_minutes: 10
+  logging:
+    level: "INFO"
+    log_retention_days: 30
+
+lineage:
+  upstream:
+    - "orc_mn_porteur"
+  downstream:
+    - "customer360"
+  documentation_links:
+    - "https://gitlab.udd.attijariwafa.net/datalake/data-product-contract"

@@ -1,0 +1,312 @@
+---
+asset:
+  id: "gold/credit_engagement"
+  name: "CRÉDIT ENGAGEMENT"
+  maturity: "gold"
+  domain: "CREDIT"
+  context: "ENGAGEMENT"
+  type: "data_product"
+  description: >
+    Schema canonique pour le calcul des Rapprochements
+    des lignes credits et calculer la table utilisation
+    pour rassembler tous les typologies de credits
+  version: "1.0.0"
+  owners:
+    business_owner:
+      name: "CREDIT ENGAGEMENT"
+      team: "CREDIT ENGAGEMENT"
+      email: "business.team@attijariwafa.com"
+    technical_owner:
+      name: "DATALAKE"
+      team: "DATALAKE"
+      email: "x.xxxxx@attijariwafa.com"
+  status: "active"
+  tags:
+    - engagement
+    - credit
+    - gold
+    - data-product
+
+contract:
+  primary_key:
+    - "numero_personne_host"
+    - "num_dossier"
+    - "dt_echea_dossier"
+    - "num_autor"
+    - "date_arrete"
+  grain: "Une ligne par client  ...."
+  refresh:
+    frequency: "daily"
+  sla:
+    availability: "99.0"
+    ready_by: "tous les jours avant 08h"
+    max_delay_minutes: 2H
+  schema:
+    fields:
+      - name: "numero_sequence"
+        type: "string"
+        description: ""
+        required: true
+        business_rules:
+          - "Must exist"
+      - name: "compte_support"
+        type: "string"
+        description: ""
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - "date of data product build"
+      - name: "date_utilisation"
+        type: "date"
+        description: ""
+        required: false
+        pii_classification: "none"
+        business_rules:
+          - ">= 0"
+      - name: "numero_autorisation"
+        type: "decimal"
+        description: ""
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - "Must exist"
+
+      - name: "montant_impaye"
+        type: "decimal"
+        description: ""
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - "Must exist"
+
+      - name: "montant_utilisation"
+        type: "decimal"
+        description: ""
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - "Must exist"
+
+      - name: "mnt_fusion"
+        type: "decimal"
+        description: ""
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - "Must exist"
+
+      - name: "montant_autorisation"
+        type: "decimal"
+        description: ""
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - "Must exist"
+      - name: "montant_depassement"
+        type: "decimal"
+        description: ""
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - "Must exist"
+
+      - name: "idtfcl"
+        type: "decimal"
+        description: ""
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - "Must exist"
+
+      - name: "numero_contrat"
+        type: "string"
+        description: ""
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - "Must exist"
+      - name: "date_echeance_autorisation"
+        type: "date"
+        description: ""
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - "Must exist"
+
+      - name: "unite_gerante"
+        type: "string"
+        description: ""
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - "Must exist"
+
+      - name: "autorisation_echue"
+        type: "string"
+        description: ""
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - "Must exist"
+
+      - name: "etat_dossier"
+        type: "string"
+        description: ""
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - "Must exist"
+
+      - name: "statut_dossier"
+        type: "string"
+        description: ""
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - "Must exist"
+
+      - name: "version"
+        type: "string"
+        description: "Version of product logic"
+        required: true
+        pii_classification: "none"
+
+quality:
+  checks:
+    - name: "completeness_person_id"
+      type: "completeness"
+      field: "numero_client_host"
+      threshold: 1.0
+      critical: true
+    - name: "completeness_run_date"
+      type: "completeness"
+      field: "run_date"
+      threshold: 1.0
+      critical: true
+    - name: "non_negative_metrics"
+      type: "rule"
+      expression: "<metric_1> >= 0"
+      critical: true
+  on_failure:
+    action: "block_publication"
+    notify:
+      - "tech.owner@attijariwafa.com"
+      - "business.team@attijariwafa.com"
+
+security:
+  classification: "confidential"
+  pii:
+    contains_pii: true
+    notes: "Describe PII elements present."
+  access_policies:
+    roles:
+      - name: "data_management"
+        permissions:
+          - "read"
+      - name: "data_eng"
+        permissions:
+          - "read"
+      - name: "datalake"
+        permissions:
+          - "read"
+          - "write"
+    row_level_filters:
+      enabled: false
+      rules:
+        - field: "vip_flag"
+          condition: "vip_flag = false"
+          description: >
+            VIP filtering is disabled; no row-level restriction applied.
+    column_masking:
+      - field: "numero_client_host"
+        policy: "mask_partial"
+
+inputs:
+  sources:
+    - name: "Eden Repository"
+      type: "DF"
+      description: "Eden data repository"
+      owner: "Data Engineer"
+      ready_by: "22h"
+    - name: "utilisation"
+      type: "ORC"
+      description: "ORC table for utilisation data"
+      owner: "EDEN"
+      ready_by: "22h"
+    - name: "dossier"
+      type: "ORC"
+      description: "ORC table for dossier data"
+      owner: "EDEN"
+      ready_by: "22h"
+    - name: "autorisation"
+      type: "ORC"
+      description: "ORC table for autorisation data"
+      owner: "EDEN"
+      ready_by: "22h"
+    - name: "catalogue"
+      type: "EDEN"
+      description: "ORC table for catalogue data"
+      owner: "EDEN"
+      ready_by: "22h"
+    - name: "impaye"
+      type: "EDEN"
+      description: "ORC table for impaye data"
+      owner: "EDEN"
+      ready_by: "22h"
+    - name: "produit_Engagement"
+      type: "EDEN"
+      description: "ORC table for produit_Engagement data"
+      owner: "EDEN"
+      ready_by: "22h"
+
+  transformations:
+    - step: "live_data_reading"
+      description: "Ingest ORC to bronze_credit tables"
+    - step: "joining_cleaning"
+      description: "Join, deduplicate and standardize into silver tables"
+    - step: "aggregation"
+      description: "Aggregate Credit data at required grain"
+    - step: "Metadata enrichment"
+      description: "Standard metadata columns added"
+
+output:
+  table_name: "CREDIT_ENGAGEMENT_product"
+  storage_format: "ICEBERG"
+  location: >
+    /warehouse/tablespace/external/hive/engagement.db/credit_engagement_product
+  partitioning:
+    - "run_date"
+  retention:
+    type: "time_based"
+    value: "365d"
+
+serving:
+  technology:
+    type: "oracle_external_table"
+    enabled: true
+    name: "ext_<DOMAIN>_product"
+    notes: "External table for Oracle consumers with JSON column."
+
+operations:
+  airflow_dag_id: "dp_credit_engagement_product"
+  schedule_cron: "0 2 * * *"
+  expected_runtime_minutes: 30
+  alerts_channel: "#alerts-credit_engagement-dp"
+  dependencies:
+    - "credit_engagement_source_SUCCESS.txt"
+  retries:
+    max_retries: 2
+    backoff_minutes: 10
+  logging:
+    level: "INFO"
+    log_retention_days: 30
+
+lineage:
+  upstream:
+    - "credit_engagement_source"
+    - "Eden_Repository"
+    - "repository1"
+  downstream:
+    - "customer360_product"
+  documentation_links:
+    - "https://gitlab.udd.attijariwafa.net/datalake/data-product-contract"

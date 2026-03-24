@@ -1,0 +1,256 @@
+---
+asset:
+  id: "silver/crm_activite"
+  name: "ACTIVITÉS CRM"
+  maturity: "silver"
+  domain: "CRM"
+  context: "RELATION_CLIENT"
+  type: "data_product"
+  description: >
+    L'ensemble des tâches, rendez-vous, appels et autres
+    interactions enregistrées dans le CRM. Une ligne par activité, dédupliquée
+    via getLive sur row_id, avec champs renommés et métadonnées de run.
+    Alimente Customer 360 et les produits gold CRM.
+  version: "1.0.0"
+  owners:
+    business_owner:
+      name: "CRM Team"
+      team: "CRM Team"
+      email: "hicham.amane@attijariwafa.com"
+    technical_owner:
+      name: "DATALAKE"
+      team: "DATALAKE"
+      email: "m.mouatacim@attijariwafa.com"
+  status: "active"
+  tags:
+    - customer360
+    - crm
+    - activities
+    - silver
+    - data-product
+
+contract:
+  primary_key:
+    - "row_id_act"
+  grain: "Une ligne par activité CRM"
+  refresh:
+    frequency: "daily"
+  sla:
+    availability: "99.0"
+    ready_by: "05:00"
+    max_delay_minutes: 60
+  
+  schema:
+    fields:
+      - name: "row_id_act"
+        type: "string"
+        description: "Identifiant technique unique de l'activité CRM (clé primaire)"
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - "Must be unique"
+          - "Must exist"
+      - name: "numero_personne_host"
+        type: "integer"
+        description: "Identifiant de la personne (client/prospect) dans le système source ; utilisé pour le chaînage avec les référentiels client"
+        required: true
+        pii_classification: "indirect"
+      - name: "nom_activite"
+        type: "string"
+        description: "Libellé ou intitulé de l'activité tel que saisi dans le CRM"
+        required: false
+        pii_classification: "none"
+      - name: "nature_activite"
+        type: "string"
+        description: "Catégorie métier de l'activité (ex. appel, rendez-vous, tâche)"
+        required: false
+        pii_classification: "none"
+      - name: "statut_activite"
+        type: "string"
+        description: "État courant de l'activité (ex. planifiée, réalisée, annulée)"
+        required: false
+        pii_classification: "none"
+      - name: "type"
+        type: "string"
+        description: "Type ou sous-type d'activité CRM (granularité complémentaire à nature_activite)"
+        required: false
+        pii_classification: "none"
+      - name: "contexte"
+        type: "string"
+        description: "Contexte métier ou code opportunité (opty_cd) associé à l'activité"
+        required: false
+        pii_classification: "none"
+      - name: "prevu_le"
+        type: "timestamp"
+        description: "Date et heure prévues pour la réalisation de l'activité"
+        required: false
+        pii_classification: "none"
+      - name: "fin_le"
+        type: "timestamp"
+        description: "Date et heure de fin effective ou planifiée de l'activité"
+        required: false
+        pii_classification: "none"
+      - name: "login_createur"
+        type: "string"
+        description: "Identifiant de connexion du collaborateur ayant créé l'activité"
+        required: false
+        pii_classification: "indirect"
+      - name: "realise_le"
+        type: "timestamp"
+        description: "Date et heure effective de réalisation de l'activité"
+        required: false
+        pii_classification: "none"
+      - name: "cree_le"
+        type: "timestamp"
+        description: "Date et heure de création de l'enregistrement dans le CRM"
+        required: false
+        pii_classification: "none"
+      - name: "entite"
+        type: "string"
+        description: "Code ou libellé de l'entité organisationnelle (réseau, direction)"
+        required: false
+        pii_classification: "none"
+      - name: "position"
+        type: "string"
+        description: "Fonction ou poste du collaborateur associé à l'activité"
+        required: false
+        pii_classification: "none"
+      - name: "agence"
+        type: "string"
+        description: "Code de l'agence du créateur de l'activité"
+        required: false
+        pii_classification: "none"
+      - name: "type_client"
+        type: "string"
+        description: "Typologie du client (ex. particulier, professionnel)"
+        required: false
+        pii_classification: "none"
+      - name: "priorite"
+        type: "string"
+        description: "Niveau de priorité attribué à l'activité"
+        required: false
+        pii_classification: "none"
+      - name: "commentaire_activite"
+        type: "string"
+        description: "Notes ou commentaires libres saisis sur l'activité"
+        required: false
+        pii_classification: "none"
+
+quality:
+  checks:
+    - name: "completeness_row_id_act"
+      type: "completeness"
+      field: "row_id_act"
+      threshold: 1.0
+      critical: true
+    - name: "uniqueness_row_id_act"
+      type: "uniqueness"
+      field: "row_id_act"
+      threshold: 1.0
+      critical: true
+    - name: "completeness_numero_personne_host"
+      type: "completeness"
+      field: "numero_personne_host"
+      threshold: 1.0
+      critical: true
+    - name: "freshness_check"
+      type: "freshness"
+      field: "run_date"
+      threshold: 1
+      critical: true
+
+  on_failure:
+    action: "block_publication"
+    notify:
+      - "m.mouatacim@attijariwafa.com"
+      - "hicham.amane@attijariwafa.com"
+
+security:
+  classification: "confidential"
+  pii:
+    contains_pii: true
+    notes: >
+      Contains indirect PII through numero_personne_host and login_createur identifiers.
+  access_policies:
+    roles:
+      - name: "data_management"
+        permissions:
+          - "read"
+      - name: "data_eng"
+        permissions:
+          - "read"
+      - name: "datalake"
+        permissions:
+          - "read"
+          - "write"
+      - name: "crm_team"
+        permissions:
+          - "read"
+    row_level_filters:
+      enabled: false
+      rules: []
+    column_masking:
+      - field: "numero_personne_host"
+        policy: "mask_partial"
+      - field: "login_createur"
+        policy: "mask_partial"
+
+inputs:
+  sources:
+    - name: "orc_activite_crm"
+      type: "ORC"
+      description: "Table bronze des activités CRM au format ORC"
+      owner: "DATALAKE"
+      ready_by: "04:00"
+  transformations:
+    - step: "bronze_ingestion"
+      description: "Lecture des données depuis la table bronze ORC"
+    - step: "getLive_filtering"
+      description: "Application de getLive() basée sur 'row_id' pour récupérer la dernière version des enregistrements"
+    - step: "column_renaming"
+      description: "Renommage: row_id -> row_id_act, opty_cd -> contexte, commentaire -> commentaire_activite"
+    - step: "metadata_enrichment"
+      description: "Ajout de métadonnées (run_date, version)"
+
+output:
+  table_name: "crm_activities"
+  storage_format: "ICEBERG"
+  location: "/warehouse/tablespace/external/hive/awb_silver.db/crm_activities"
+  partitioning:
+    - "run_date"
+  retention:
+    type: "time_based"
+    value: "365d"
+
+serving:
+  technology:
+    type: "HIVE"
+    enabled: true
+    tables:
+      - name: "view_crm_activities"
+        source_table: "crm_activities"
+    notes: "Vue Hive pour les consommateurs des activités CRM"
+
+operations:
+  airflow_dag_id: "dp_silver_crm_activities"
+  schedule_cron: "0 4 * * *"
+  expected_runtime_minutes: 15
+  alerts_channel: "#alerts-crm-dp"
+  dependencies:
+    - "crm_activities_bronze_SUCCESS.txt"
+  retries:
+    max_retries: 2
+    backoff_minutes: 10
+  logging:
+    level: "INFO"
+    log_retention_days: 30
+
+lineage:
+  upstream:
+    - "bronze_orc_activite_crm"
+  downstream:
+    - "gold_crm_product"
+    - "customer360_product"
+  documentation_links:
+    - "https://gitlab.udd.attijariwafa.net/datalake/data-product-contract"
+

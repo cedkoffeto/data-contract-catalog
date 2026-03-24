@@ -1,0 +1,592 @@
+---
+asset:
+  id: "silver/pnb_cumule"
+  name: "PNB CUMULÉ"
+  maturity: "silver"
+  domain: "PNB"
+  context: "RENTABILITE"
+  type: "data_product"
+  description: >
+    Produit net bancaire cummulé par personne augmenté par des
+    indicateurs calculé au datawarehouse
+  version: "1.0.0"
+  owners:
+    business_owner:
+      name: "FINANCE GROUP"
+      team: "FINANCE GROUP"
+      email: "business.team@attijariwafa.com"
+    technical_owner:
+      name: "DATALAKE"
+      team: "DATALAKE"
+      email: "m.mouatacim@attijariwafa.com"
+  status: "active"
+  tags:
+    - customer360
+    - pnb
+    - silver
+    - data-product
+
+contract:
+  primary_key:
+    - "numero_personne_host"
+    - "date_arrete"
+    - "code_agence"
+    - "type_de_produit"
+  grain: "Une ligne par personne par agence par mois et par type de produit"
+  refresh:
+    frequency: "monthly"
+  sla:
+    availability: "99.0"
+    ready_by: "Le 05 de chaque mois a 10h"
+    max_delay_minutes: 60
+
+  schema:
+    fields:
+      - name: "id_client"
+        type: "decimal(8,0)"
+        description: "Identifiant client (8 chiffres)"
+        required: true
+        pii_classification: "indirect"
+
+      - name: "code_agence"
+        type: "string"
+        description: "Code de l'agence commerciale"
+        required: true
+        pii_classification: "none"
+
+      - name: "type_de_produit"
+        type: "string"
+        description: "Type de produit bancaire"
+        required: true
+        pii_classification: "none"
+
+      - name: "label"
+        type: "string"
+        description: "Libellé du produit (optionnel)"
+        required: false
+        pii_classification: "none"
+
+      - name: "date_arrete"
+        type: "date"
+        description: "Date d'arrêté des indicateurs (dernier jour du mois)"
+        required: true
+        pii_classification: "none"
+
+      - name: "month"
+        type: "int"
+        description: "Mois de référence (1..12)"
+        required: false
+        pii_classification: "none"
+
+      - name: "cess_int_capitaux_cumule_a_fin_m"
+        type: "decimal(38,3)"
+        description: "Cession intérêts capitaux – cumulé fin mois (M, année N)"
+        required: false
+        pii_classification: "none"
+
+      - name: "cess_int_capitaux_cumule_a_fin_m_1"
+        type: "decimal(38,3)"
+        description: "Cession intérêts capitaux – même mois année N−1"
+        required: false
+        pii_classification: "none"
+
+      - name: "cess_int_capitaux_cumule_a_fin_y_1"
+        type: "decimal(38,3)"
+        description: "Cession intérêts capitaux – fin d’année N−1 (31/12/N−1)"
+        required: false
+        pii_classification: "none"
+
+      - name: "cession_interne_capitaux_cumule_a_fin_m"
+        type: "decimal(38,3)"
+        description: "Cession interne capitaux – cumulé fin mois (M, année N)"
+        required: false
+        pii_classification: "none"
+
+      - name: "cession_interne_capitaux_cumule_a_fin_m_1"
+        type: "decimal(38,3)"
+        description: "Cession interne capitaux – même mois année N−1"
+        required: false
+        pii_classification: "none"
+
+      - name: "cession_interne_capitaux_cumule_a_fin_y_1"
+        type: "decimal(38,3)"
+        description: "Cession interne capitaux – fin d’année N−1 (31/12/N−1)"
+        required: false
+        pii_classification: "none"
+
+      - name: "encours_moyen_credits_cumule_a_fin_m"
+        type: "decimal(38,3)"
+        description: "Encours moyen crédits – cumulé fin mois (M, année N)"
+        required: false
+        pii_classification: "none"
+
+      - name: "encours_moyen_credits_cumule_a_fin_m_1"
+        type: "decimal(38,3)"
+        description: "Encours moyen crédits – même mois année N−1"
+        required: false
+        pii_classification: "none"
+
+      - name: "encours_moyen_credits_cumule_a_fin_y_1"
+        type: "decimal(38,3)"
+        description: "Encours moyen crédits – fin d’année N−1 (31/12/N−1)"
+        required: false
+        pii_classification: "none"
+
+      - name: "encours_moyen_cumule_a_fin_m"
+        type: "decimal(38,3)"
+        description: "Encours moyen total – cumulé fin mois (M, année N)"
+        required: false
+        pii_classification: "none"
+
+      - name: "encours_moyen_cumule_a_fin_m_1"
+        type: "decimal(38,3)"
+        description: "Encours moyen total – même mois année N−1"
+        required: false
+        pii_classification: "none"
+
+      - name: "encours_moyen_cumule_a_fin_y_1"
+        type: "decimal(38,3)"
+        description: "Encours moyen total – fin d’année N−1 (31/12/N−1)"
+        required: false
+        pii_classification: "none"
+
+      - name: "encours_moyen_depots_cumule_a_fin_m"
+        type: "decimal(38,3)"
+        description: "Encours moyen dépôts – cumulé fin mois (M, année N)"
+        required: false
+        pii_classification: "none"
+
+      - name: "encours_moyen_depots_cumule_a_fin_m_1"
+        type: "decimal(38,3)"
+        description: "Encours moyen dépôts – même mois année N−1"
+        required: false
+        pii_classification: "none"
+
+      - name: "encours_moyen_depots_cumule_a_fin_y_1"
+        type: "decimal(38,3)"
+        description: "Encours moyen dépôts – fin d’année N−1 (31/12/N−1)"
+        required: false
+        pii_classification: "none"
+
+      - name: "encours_moyen_net_cumule_a_fin_m"
+        type: "decimal(38,3)"
+        description: "Encours moyen net – cumulé fin mois (M, année N)"
+        required: false
+        pii_classification: "none"
+
+      - name: "encours_moyen_net_cumule_a_fin_m_1"
+        type: "decimal(38,3)"
+        description: "Encours moyen net – même mois année N−1"
+        required: false
+        pii_classification: "none"
+
+      - name: "encours_moyen_net_cumule_a_fin_y_1"
+        type: "decimal(38,3)"
+        description: "Encours moyen net – fin d’année N−1 (31/12/N−1)"
+        required: false
+        pii_classification: "none"
+
+      - name: "int_fd_com_gar_cumule_a_fin_m"
+        type: "decimal(38,3)"
+        description: "Intérêts fonds commerciaux garantis – cumulé fin mois (M, année N)"
+        required: false
+        pii_classification: "none"
+
+      - name: "int_fd_com_gar_cumule_a_fin_m_1"
+        type: "decimal(38,3)"
+        description: "Intérêts fonds commerciaux garantis – même mois année N−1"
+        required: false
+        pii_classification: "none"
+
+      - name: "int_fd_com_gar_cumule_a_fin_y_1"
+        type: "decimal(38,3)"
+        description: "Intérêts fonds commerciaux garantis – fin d’année N−1 (31/12/N−1)"
+        required: false
+        pii_classification: "none"
+
+      - name: "interets_emplois_obligatoires_cumule_a_fin_m"
+        type: "decimal(38,3)"
+        description: "Intérêts emplois obligatoires – cumulé fin mois (M, année N)"
+        required: false
+        pii_classification: "none"
+
+      - name: "interets_emplois_obligatoires_cumule_a_fin_m_1"
+        type: "decimal(38,3)"
+        description: "Intérêts emplois obligatoires – même mois année N−1"
+        required: false
+        pii_classification: "none"
+
+      - name: "interets_emplois_obligatoires_cumule_a_fin_y_1"
+        type: "decimal(38,3)"
+        description: "Intérêts emplois obligatoires – fin d’année N−1 (31/12/N−1)"
+        required: false
+        pii_classification: "none"
+
+      - name: "marge_commissions_cumule_a_fin_m"
+        type: "decimal(38,3)"
+        description: "Marge commissions – cumulé fin mois (M, année N)"
+        required: false
+        pii_classification: "none"
+
+      - name: "marge_commissions_cumule_a_fin_m_1"
+        type: "decimal(38,3)"
+        description: "Marge commissions – même mois année N−1"
+        required: false
+        pii_classification: "none"
+
+      - name: "marge_commissions_cumule_a_fin_y_1"
+        type: "decimal(38,3)"
+        description: "Marge commissions – fin d’année N−1 (31/12/N−1)"
+        required: false
+        pii_classification: "none"
+
+      - name: "marge_interet_analytique_cumule_a_fin_m"
+        type: "decimal(38,3)"
+        description: "Marge d’intérêt analytique – cumulé fin mois (M, année N)"
+        required: false
+        pii_classification: "none"
+
+      - name: "marge_interet_analytique_cumule_a_fin_m_1"
+        type: "decimal(38,3)"
+        description: "Marge d’intérêt analytique – même mois année N−1"
+        required: false
+        pii_classification: "none"
+
+      - name: "marge_interet_analytique_cumule_a_fin_y_1"
+        type: "decimal(38,3)"
+        description: "Marge d’intérêt analytique – fin d’année N−1 (31/12/N−1)"
+        required: false
+        pii_classification: "none"
+
+      - name: "marge_interet_directe_cumule_a_fin_m"
+        type: "decimal(38,3)"
+        description: "Marge d’intérêt directe – cumulé fin mois (M, année N)"
+        required: false
+        pii_classification: "none"
+
+      - name: "marge_interet_directe_cumule_a_fin_m_1"
+        type: "decimal(38,3)"
+        description: "Marge d’intérêt directe – même mois année N−1"
+        required: false
+        pii_classification: "none"
+
+      - name: "marge_interet_directe_cumule_a_fin_y_1"
+        type: "decimal(38,3)"
+        description: "Marge d’intérêt directe – fin d’année N−1 (31/12/N−1)"
+        required: false
+        pii_classification: "none"
+
+      - name: "marge_resultat_cumule_a_fin_m"
+        type: "decimal(38,3)"
+        description: "Marge sur résultat – cumulé fin mois (M, année N)"
+        required: false
+        pii_classification: "none"
+
+      - name: "marge_resultat_cumule_a_fin_m_1"
+        type: "decimal(38,3)"
+        description: "Marge sur résultat – même mois année N−1"
+        required: false
+        pii_classification: "none"
+
+      - name: "marge_resultat_cumule_a_fin_y_1"
+        type: "decimal(38,3)"
+        description: "Marge sur résultat – fin d’année N−1 (31/12/N−1)"
+        required: false
+        pii_classification: "none"
+
+      - name: "mni_cumule_a_fin_m"
+        type: "decimal(38,3)"
+        description: "Marge nette d’intérêt (MNI) – cumulé fin mois (M, année N)"
+        required: false
+        pii_classification: "none"
+
+      - name: "mni_cumule_a_fin_m_1"
+        type: "decimal(38,3)"
+        description: "Marge nette d’intérêt (MNI) – même mois année N−1"
+        required: false
+        pii_classification: "none"
+
+      - name: "mni_cumule_a_fin_y_1"
+        type: "decimal(38,3)"
+        description: "Marge nette d’intérêt (MNI) – fin d’année N−1 (31/12/N−1)"
+        required: false
+        pii_classification: "none"
+
+      - name: "mni_credits_sains_cumule_a_fin_m"
+        type: "decimal(38,3)"
+        description: "MNI crédits sains – cumulé fin mois (M, année N)"
+        required: false
+        pii_classification: "none"
+
+      - name: "mni_credits_sains_cumule_a_fin_m_1"
+        type: "decimal(38,3)"
+        description: "MNI crédits sains – même mois année N−1"
+        required: false
+        pii_classification: "none"
+
+      - name: "mni_credits_sains_cumule_a_fin_y_1"
+        type: "decimal(38,3)"
+        description: "MNI crédits sains – fin d’année N−1 (31/12/N−1)"
+        required: false
+        pii_classification: "none"
+
+      - name: "mni_depots_cumule_a_fin_m"
+        type: "decimal(38,3)"
+        description: "MNI dépôts – cumulé fin mois (M, année N)"
+        required: false
+        pii_classification: "none"
+
+      - name: "mni_depots_cumule_a_fin_m_1"
+        type: "decimal(38,3)"
+        description: "MNI dépôts – même mois année N−1"
+        required: false
+        pii_classification: "none"
+
+      - name: "mni_depots_cumule_a_fin_y_1"
+        type: "decimal(38,3)"
+        description: "MNI dépôts – fin d’année N−1 (31/12/N−1)"
+        required: false
+        pii_classification: "none"
+
+      - name: "mni_vision_commerciale_cumule_a_fin_m"
+        type: "decimal(38,3)"
+        description: "MNI vision commerciale – cumulé fin mois (M, année N)"
+        required: false
+        pii_classification: "none"
+
+      - name: "mni_vision_commerciale_cumule_a_fin_m_1"
+        type: "decimal(38,3)"
+        description: "MNI vision commerciale – même mois année N−1"
+        required: false
+        pii_classification: "none"
+
+      - name: "mni_vision_commerciale_cumule_a_fin_y_1"
+        type: "decimal(38,3)"
+        description: "MNI vision commerciale – fin d’année N−1 (31/12/N−1)"
+        required: false
+        pii_classification: "none"
+
+      - name: "pnb_analytique_cumule_a_fin_m"
+        type: "decimal(38,3)"
+        description: "PNB analytique – cumulé fin mois (M, année N)"
+        required: false
+        pii_classification: "none"
+
+      - name: "pnb_analytique_cumule_a_fin_m_1"
+        type: "decimal(38,3)"
+        description: "PNB analytique – même mois année N−1"
+        required: false
+        pii_classification: "none"
+
+      - name: "pnb_analytique_cumule_a_fin_y_1"
+        type: "decimal(38,3)"
+        description: "PNB analytique – fin d’année N−1 (31/12/N−1)"
+        required: false
+        pii_classification: "none"
+
+      - name: "pnb_vision_commerciale_cumule_a_fin_m"
+        type: "decimal(38,3)"
+        description: "PNB vision commerciale – cumulé fin mois (M, année N)"
+        required: false
+        pii_classification: "none"
+
+      - name: "pnb_vision_commerciale_cumule_a_fin_m_1"
+        type: "decimal(38,3)"
+        description: "PNB vision commerciale – même mois année N−1"
+        required: false
+        pii_classification: "none"
+
+      - name: "pnb_vision_commerciale_cumule_a_fin_y_1"
+        type: "decimal(38,3)"
+        description: "PNB vision commerciale – fin d’année N−1 (31/12/N−1)"
+        required: false
+        pii_classification: "none"
+
+      - name: "execution_time"
+        type: "timestamp"
+        description: "Horodatage d'exécution du data product"
+        required: false
+        pii_classification: "none"
+  
+
+quality:
+  checks:
+    - name: "completeness_id_client"
+      type: "completeness"
+      field: "id_client"
+      threshold: 1.0
+      critical: true
+
+    - name: "completeness_code_agence"
+      type: "completeness"
+      field: "code_agence"
+      threshold: 1.0
+      critical: true
+
+    - name: "completeness_type_de_produit"
+      type: "completeness"
+      field: "type_de_produit"
+      threshold: 1.0
+      critical: true
+
+    - name: "completeness_date_arrete"
+      type: "completeness"
+      field: "date_arrete"
+      threshold: 1.0
+      critical: true
+
+    - name: "valid_date_arrete_last_day"
+      type: "rule"
+      expression: "date_arrete IS NOT NULL"
+      critical: true
+
+    - name: "non_negative_metrics"
+      type: "rule"
+      expression: >
+        cess_int_capitaux_cumule_a_fin_m >= 0 AND
+        cess_int_capitaux_cumule_a_fin_m_1 >= 0 AND
+        cess_int_capitaux_cumule_a_fin_y_1 >= 0 AND
+        cession_interne_capitaux_cumule_a_fin_m >= 0 AND
+        cession_interne_capitaux_cumule_a_fin_m_1 >= 0 AND
+        cession_interne_capitaux_cumule_a_fin_y_1 >= 0 AND
+        encours_moyen_credits_cumule_a_fin_m >= 0 AND
+        encours_moyen_credits_cumule_a_fin_m_1 >= 0 AND
+        encours_moyen_credits_cumule_a_fin_y_1 >= 0 AND
+        encours_moyen_cumule_a_fin_m >= 0 AND
+        encours_moyen_cumule_a_fin_m_1 >= 0 AND
+        encours_moyen_cumule_a_fin_y_1 >= 0 AND
+        encours_moyen_depots_cumule_a_fin_m >= 0 AND
+        encours_moyen_depots_cumule_a_fin_m_1 >= 0 AND
+        encours_moyen_depots_cumule_a_fin_y_1 >= 0 AND
+        encours_moyen_net_cumule_a_fin_m >= 0 AND
+        encours_moyen_net_cumule_a_fin_m_1 >= 0 AND
+        encours_moyen_net_cumule_a_fin_y_1 >= 0 AND
+        int_fd_com_gar_cumule_a_fin_m >= 0 AND
+        int_fd_com_gar_cumule_a_fin_m_1 >= 0 AND
+        int_fd_com_gar_cumule_a_fin_y_1 >= 0 AND
+        interets_emplois_obligatoires_cumule_a_fin_m >= 0 AND
+        interets_emplois_obligatoires_cumule_a_fin_m_1 >= 0 AND
+        interets_emplois_obligatoires_cumule_a_fin_y_1 >= 0 AND
+        marge_commissions_cumule_a_fin_m >= 0 AND
+        marge_commissions_cumule_a_fin_m_1 >= 0 AND
+        marge_commissions_cumule_a_fin_y_1 >= 0 AND
+        marge_interet_analytique_cumule_a_fin_m >= 0 AND
+        marge_interet_analytique_cumule_a_fin_m_1 >= 0 AND
+        marge_interet_analytique_cumule_a_fin_y_1 >= 0 AND
+        marge_interet_directe_cumule_a_fin_m >= 0 AND
+        marge_interet_directe_cumule_a_fin_m_1 >= 0 AND
+        marge_interet_directe_cumule_a_fin_y_1 >= 0 AND
+        marge_resultat_cumule_a_fin_m >= 0 AND
+        marge_resultat_cumule_a_fin_m_1 >= 0 AND
+        marge_resultat_cumule_a_fin_y_1 >= 0 AND
+        mni_cumule_a_fin_m >= 0 AND
+        mni_cumule_a_fin_m_1 >= 0 AND
+        mni_cumule_a_fin_y_1 >= 0 AND
+        mni_credits_sains_cumule_a_fin_m >= 0 AND
+        mni_credits_sains_cumule_a_fin_m_1 >= 0 AND
+        mni_credits_sains_cumule_a_fin_y_1 >= 0 AND
+        mni_depots_cumule_a_fin_m >= 0 AND
+        mni_depots_cumule_a_fin_m_1 >= 0 AND
+        mni_depots_cumule_a_fin_y_1 >= 0 AND
+        mni_vision_commerciale_cumule_a_fin_m >= 0 AND
+        mni_vision_commerciale_cumule_a_fin_m_1 >= 0 AND
+        mni_vision_commerciale_cumule_a_fin_y_1 >= 0 AND
+        pnb_analytique_cumule_a_fin_m >= 0 AND
+        pnb_analytique_cumule_a_fin_m_1 >= 0 AND
+        pnb_analytique_cumule_a_fin_y_1 >= 0 AND
+        pnb_vision_commerciale_cumule_a_fin_m >= 0 AND
+        pnb_vision_commerciale_cumule_a_fin_m_1 >= 0 AND
+        pnb_vision_commerciale_cumule_a_fin_y_1 >= 0
+      critical: true
+  on_failure:
+    action: "block_publication"
+    notify:
+      - "tech.owner@attijariwafa.com"
+      - "business.team@attijariwafa.com"
+
+security:
+  classification: "confidential"
+  pii:
+    contains_pii: true
+    notes: "Contains the client identifier (indirect PII). No nominative personal data is stored."
+  access_policies:
+    roles:
+      - name: "data_management"
+        permissions: ["read"]
+      - name: "data_eng"
+        permissions: ["read"]
+      - name: "datalake"
+        permissions: ["read", "write"]
+    row_level_filters:
+      enabled: false
+      rules: []
+    column_masking:
+      - field: None
+        policy: None
+
+inputs:
+  sources:
+    - name: "orc_pnb_client"
+      type: "ORC"
+      description: "Client repository used to enrich PNB indicators."
+      owner: "Data Engineer"
+      ready_by: "First week of the month"
+
+    - name: "orc_catalogue_produit"
+      type: "ORC"
+      description: "Operational source listing all product types and their labels."
+      owner: "SOP"
+      ready_by: "01:00"
+
+  transformations:
+    - step: "live_data_reading"
+      description: "Ingest ORC sources into bronze_<DOMAIN> tables."
+    - step: "joining_cleaning"
+      description: "Join, deduplicate, and standardize data into silver tables."
+    - step: "aggregation"
+      description: "Compute cumulative values for all PNB indicators."
+    - step: "metadata_enrichment"
+      description: "Add standard metadata columns (run_date, execution_time)."
+
+output:
+  table_name: "pnb"
+  storage_format: "ICEBERG"
+  location: >
+    /warehouse/tablespace/managed/hive/awb_silver.db/PNB_product
+  partitioning:
+    - "run_date"
+  retention:
+    type: "time_based"
+    value: "365d"
+
+serving:
+  technology:
+    type: "gold_job"
+    enabled: true
+    name: "gold_PNB_job"
+    notes: "Iceberg silver table consumed by a spark job to build the PNB gold layer."
+
+
+operations:
+  airflow_dag_id: "dp_pnb"
+  schedule_cron: "0 23 6 * *"
+  expected_runtime_minutes: 40
+  alerts_channel: "#alerts-PNB-dp"
+  dependencies:
+    - "pnb_client_SUCCESS.txt"
+  retries:
+    max_retries: 2
+    backoff_minutes: 10
+  logging:
+    level: "INFO"
+    log_retention_days: 30
+
+lineage:
+  upstream:
+    - "orc_pnb_client"
+    - "orc_catalogue_produit"
+  downstream:
+    - "customer360_product"
+  #  openlineage_job_name: "dp_<DOMAIN>_product"  # todo QUPID
+  documentation_links:
+    - "https://gitlab.udd.attijariwafa.net/datalake/data-product-contract"

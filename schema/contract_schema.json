@@ -1,0 +1,378 @@
+
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["asset", "contract"],
+  "properties": {
+    "asset": {
+      "type": "object",
+      "required": ["id", "name", "domain", "context", "type", "description", "version", "owners", "status"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[^:]+:[^:]+$",
+          "description": "Asset ID must follow format '<id>:<layer>'"
+        },
+        "name": {"type": "string", "minLength": 1},
+        "domain": {"type": "string", "minLength": 1},
+        "context": {"type": "string", "minLength": 1},
+        "type": {
+          "type": "string",
+          "enum": ["dataset", "data_product", "file"]
+        },
+        "description": {"type": "string", "minLength": 1},
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+(-.*)?$",
+          "description": "Semantic versioning (e.g., 1.0.0)"
+        },
+        "owners": {
+          "type": "object",
+          "required": ["business_owner", "technical_owner"],
+          "properties": {
+            "business_owner": {
+              "type": "object",
+              "required": ["name", "team", "email"],
+              "properties": {
+                "name": {"type": "string", "minLength": 1},
+                "team": {"type": "string", "minLength": 1},
+                "email": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"
+                }
+              }
+            },
+            "technical_owner": {
+              "type": "object",
+              "required": ["name", "team", "email"],
+              "properties": {
+                "name": {"type": "string", "minLength": 1},
+                "team": {"type": "string", "minLength": 1},
+                "email": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"
+                }
+              }
+            }
+          }
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "deprecated", "inactive"]
+        },
+        "tags": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "contract": {
+      "type": "object",
+      "required": ["primary_key", "grain", "refresh", "sla", "schema"],
+      "properties": {
+        "primary_key": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "grain": {"type": "string", "minLength": 1},
+        "refresh": {
+          "type": "object",
+          "required": ["frequency"],
+          "properties": {
+            "frequency": {
+              "type": "string",
+              "enum": ["daily", "weekly", "monthly", "event"]
+            }
+          }
+        },
+        "sla": {
+          "type": "object",
+          "required": ["availability", "ready_by", "max_delay_minutes"],
+          "properties": {
+            "availability": {"type": "string"},
+            "ready_by": {"type": "string"},
+            "max_delay_minutes": {"type": "integer", "minimum": 0}
+          }
+        },
+        "schema": {
+          "type": "object",
+          "required": ["fields"],
+          "properties": {
+            "fields": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "required": ["name", "type", "description", "required", "pii_classification"],
+                "properties": {
+                  "name": {"type": "string", "minLength": 1},
+                  "type": {
+                    "type": "string",
+                    "enum": ["string", "int", "double", "date", "timestamp", "boolean", "json"]
+                  },
+                  "description": {"type": "string", "minLength": 1},
+                  "required": {"type": "boolean"},
+                  "pii_classification": {
+                    "type": "string",
+                    "enum": ["none", "direct", "indirect", "sensitive"]
+                  },
+                  "business_rules": {
+                    "type": "array",
+                    "items": {"type": "string"}
+                  },
+                  "extra_properties": {
+                    "type": "object",
+                    "properties": {
+                      "sql_expression": {"type": "string"}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "quality": {
+      "type": "object",
+      "required": ["checks", "on_failure"],
+      "properties": {
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "type", "critical"],
+            "properties": {
+              "name": {"type": "string", "minLength": 1},
+              "type": {
+                "type": "string",
+                "enum": ["completeness", "uniqueness", "rule", "freshness", "volume"]
+              },
+              "field": {"type": "string"},
+              "threshold": {"type": "number"},
+              "expression": {"type": "string"},
+              "critical": {"type": "boolean"}
+            }
+          }
+        },
+        "on_failure": {
+          "type": "object",
+          "required": ["action", "notify"],
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": ["block_publication", "warn", "continue"]
+            },
+            "notify": {
+              "type": "array",
+              "items": {"type": "string"}
+            }
+          }
+        }
+      }
+    },
+    "security": {
+      "type": "object",
+      "required": ["classification", "pii", "access_policies"],
+      "properties": {
+        "classification": {
+          "type": "string",
+          "enum": ["public", "internal", "confidential", "restricted"]
+        },
+        "pii": {
+          "type": "object",
+          "required": ["contains_pii", "notes"],
+          "properties": {
+            "contains_pii": {"type": "boolean"},
+            "notes": {"type": "string"}
+          }
+        },
+        "access_policies": {
+          "type": "object",
+          "required": ["roles", "row_level_filters"],
+          "properties": {
+            "roles": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "permissions"],
+                "properties": {
+                  "name": {"type": "string"},
+                  "permissions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": ["read", "write", "admin"]
+                    }
+                  }
+                }
+              }
+            },
+            "row_level_filters": {
+              "type": "object",
+              "required": ["enabled", "rules"],
+              "properties": {
+                "enabled": {"type": "boolean"},
+                "rules": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["field", "condition", "description"],
+                    "properties": {
+                      "field": {"type": "string"},
+                      "condition": {"type": "string"},
+                      "description": {"type": "string"}
+                    }
+                  }
+                }
+              }
+            },
+            "column_masking": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["field", "policy"],
+                "properties": {
+                  "field": {"type": "string"},
+                  "policy": {
+                    "type": "string",
+                    "enum": ["mask_full", "mask_partial", "hash"]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "properties": {
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "type", "description", "owner", "ready_by"],
+            "properties": {
+              "name": {"type": "string"},
+              "type": {"type": "string"},
+              "description": {"type": "string"},
+              "owner": {"type": "string"},
+              "ready_by": {"type": "string"}
+            }
+          }
+        },
+        "transformations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["step", "description"],
+            "properties": {
+              "step": {"type": "string"},
+              "description": {"type": "string"}
+            }
+          }
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "required": ["table_name", "storage_format", "location", "partitioning", "retention"],
+      "properties": {
+        "table_name": {"type": "string", "minLength": 1},
+        "storage_format": {
+          "type": "string",
+          "enum": ["ICEBERG", "PARQUET", "ORC", "ORACLE"]
+        },
+        "location": {"type": "string", "minLength": 1},
+        "partitioning": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "retention": {
+          "type": "object",
+          "required": ["type", "value"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["time_based", "count_based"]
+            },
+            "value": {"type": "string"}
+          }
+        }
+      }
+    },
+    "serving": {
+      "type": "object",
+      "properties": {
+        "technology": {
+          "type": "object",
+          "required": ["type", "enabled", "name", "notes"],
+          "properties": {
+            "type": {"type": "string"},
+            "enabled": {"type": "boolean"},
+            "name": {"type": "string"},
+            "notes": {"type": "string"}
+          }
+        }
+      }
+    },
+    "operations": {
+      "type": "object",
+      "required": ["airflow_dag_id", "schedule_cron", "expected_runtime_minutes", "alerts_channel", "dependencies", "retries", "logging"],
+      "properties": {
+        "airflow_dag_id": {"type": "string", "minLength": 1},
+        "schedule_cron": {"type": "string"},
+        "expected_runtime_minutes": {"type": "integer", "minimum": 1},
+        "alerts_channel": {"type": "string"},
+        "dependencies": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "retries": {
+          "type": "object",
+          "required": ["max_retries", "backoff_minutes"],
+          "properties": {
+            "max_retries": {"type": "integer", "minimum": 0},
+            "backoff_minutes": {"type": "integer", "minimum": 0}
+          }
+        },
+        "logging": {
+          "type": "object",
+          "required": ["level", "log_retention_days"],
+          "properties": {
+            "level": {
+              "type": "string",
+              "enum": ["INFO", "WARN", "ERROR"]
+            },
+            "log_retention_days": {"type": "integer", "minimum": 0}
+          }
+        }
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "properties": {
+        "upstream": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "downstream": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "documentation_links": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "extra_properties": {
+      "type": "object",
+      "properties": {
+        "ingestion": {"type": "string"},
+        "filiale": {"type": "string"}
+      }
+    }
+  }
+}

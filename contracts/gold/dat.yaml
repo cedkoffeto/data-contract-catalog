@@ -1,0 +1,434 @@
+---
+asset:
+  id: "gold/dat"
+  name: "DAT"
+  maturity: "gold"
+  domain: "DAT"
+  context: "PRODUITS_EPARGNE"
+  type: "data_product"
+  description: >
+    Vue consolidée et agrégée des Dépôts À Terme (DAT) par client et par personne.
+    Contient les DAT BDC (Bons de Caisse) et DAT CAT (Comptes À Terme) 
+    au format JSON pour faciliter la consommation via Oracle et autres systèmes externes.
+    Ce produit de données contient des informations personnelles identifiables (PII).
+  version: "2.0.1"
+  owners:
+    business_owner:
+      name: "DAT Team"
+      team: "DAT Team"
+      email: "dat.team@attijariwafa.com"
+    technical_owner:
+      name: "DATALAKE"
+      team: "DATALAKE"
+      email: "m.mouatacim@attijariwafa.com"
+  status: "active"
+  tags:
+    - customer360
+    - dat
+    - epargne
+    - gold
+    - data-product
+    - aggregated
+    - json
+    - pii
+
+contract:
+  primary_key:
+    - "numero_client_host"
+    - "numero_personne_host"
+  grain: "Une ligne par client et par personne avec leurs DAT (BDC et CAT) agrégés au format JSON"
+  refresh:
+    frequency: "daily"
+  sla:
+    availability: "99.0"
+    ready_by: "06:00"
+    max_delay_minutes: 60
+  
+  schema:
+    fields:
+      - name: "numero_personne_host"
+        type: "integer"
+        description: "Identifiant personne côté système host"
+        required: true
+        pii_classification: "indirect"
+        business_rules:
+          - "Must exist"
+          - "Must be complete"
+      
+      - name: "numero_client_host"
+        type: "integer"
+        description: "Identifiant client côté système host"
+        required: true
+        pii_classification: "indirect"
+        business_rules:
+          - "Must exist"
+      
+      - name: "dat_bdc"
+        type: "array<struct>"
+        description: "Liste des DAT Bons de Caisse agrégés par personne"
+        required: false
+        pii_classification: "indirect"
+        business_rules:
+          - "Array of DAT BDC objects"
+          - "Empty array returned if no DAT BDC (coalesce with empty array)"
+          - "All numeric fields converted to string"
+        fields:
+          - name: "type_dat"
+            type: "string"
+            description: "Type de DAT"
+          - name: "statut"
+            type: "string"
+            description: "Statut du DAT BDC"
+          - name: "montant_dat"
+            type: "string"
+            description: "Montant souscrit du DAT (converti en string)"
+          - name: "taux"
+            type: "string"
+            description: "Taux d'intérêt (converti en string)"
+          - name: "date_souscription"
+            type: "timestamp"
+            description: "Date de souscription"
+          - name: "date_echeance"
+            type: "timestamp"
+            description: "Date d'échéance"
+          - name: "date_av"
+            type: "timestamp"
+            description: "Date d'avance"
+          - name: "mre"
+            type: "string"
+            description: "Flag résident/MRE"
+          - name: "compte_support"
+            type: "string"
+            description: "Compte support associé"
+            pii_classification: "indirect"
+          - name: "duree"
+            type: "string"
+            description: "Durée du DAT (converti en string)"
+          - name: "interet_net_a_servir"
+            type: "string"
+            description: "Intérêt net à servir (converti en string)"
+          - name: "retenue_source"
+            type: "string"
+            description: "Retenue à la source (converti en string)"
+          - name: "mnt_net_echeance"
+            type: "string"
+            description: "Montant net à l'échéance (converti en string)"
+          - name: "mnt_av"
+            type: "string"
+            description: "Montant de l'avance (converti en string)"
+          - name: "taux_av"
+            type: "string"
+            description: "Taux de l'avance (converti en string)"
+          - name: "numero_contrat"
+            type: "string"
+            description: "Numéro de contrat DAT BDC"
+            pii_classification: "indirect"
+          - name: "date_avance"
+            type: "timestamp"
+            description: "Date de l'avance"
+          - name: "family"
+            type: "string"
+            description: "Famille de produit (DAT)"
+      
+      - name: "dat_cat"
+        type: "array<struct>"
+        description: "Liste des DAT Comptes À Terme agrégés par personne"
+        required: false
+        pii_classification: "indirect"
+        business_rules:
+          - "Array of DAT CAT objects"
+          - "Empty array returned if no DAT CAT (coalesce with empty array)"
+          - "All numeric fields converted to string"
+        fields:
+          - name: "statut"
+            type: "string"
+            description: "Statut du DAT CAT"
+          - name: "montant_dat"
+            type: "string"
+            description: "Montant souscrit du DAT (converti en string)"
+          - name: "taux"
+            type: "string"
+            description: "Taux d'intérêt (converti en string)"
+          - name: "date_souscription"
+            type: "timestamp"
+            description: "Date de souscription"
+          - name: "date_echeance"
+            type: "timestamp"
+            description: "Date d'échéance"
+          - name: "date_av"
+            type: "timestamp"
+            description: "Date d'avance"
+          - name: "mre"
+            type: "string"
+            description: "Flag résident/MRE"
+          - name: "compte_support"
+            type: "string"
+            description: "Compte support associé"
+            pii_classification: "indirect"
+          - name: "numero_contrat"
+            type: "string"
+            description: "Numéro de contrat DAT CAT"
+            pii_classification: "indirect"
+          - name: "duree"
+            type: "string"
+            description: "Durée du DAT (converti en string)"
+          - name: "interet_net_a_servir"
+            type: "string"
+            description: "Intérêt net à servir (converti en string)"
+          - name: "mnt_net_echeance"
+            type: "string"
+            description: "Montant net à l'échéance (converti en string)"
+          - name: "retenue_source"
+            type: "string"
+            description: "Retenue à la source (converti en string)"
+          - name: "date_avance"
+            type: "timestamp"
+            description: "Date de l'avance"
+          - name: "mnt_av"
+            type: "string"
+            description: "Montant de l'avance (converti en string)"
+          - name: "taux_av"
+            type: "string"
+            description: "Taux de l'avance (converti en string)"
+          - name: "family"
+            type: "string"
+            description: "Famille de produit (DAT)"
+          - name: "type_dat"
+            type: "string"
+            description: "Type de DAT (CAT)"
+      
+      - name: "run_date"
+        type: "date"
+        description: "Date d'exécution du traitement"
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - "Date of data product build"
+      
+      - name: "version"
+        type: "string"
+        description: "Version de la logique produit"
+        required: true
+        pii_classification: "none"
+
+quality:
+  checks:
+    - name: "completeness_numero_personne_host"
+      type: "completeness"
+      field: "numero_personne_host"
+      threshold: 1.0
+      critical: true
+    
+    - name: "completeness_numero_client_host"
+      type: "completeness"
+      field: "numero_client_host"
+      threshold: 0.95
+      critical: false
+      description: "Vérification de la complétude de numero_client_host (peut être null pour certaines personnes)"
+    
+    - name: "uniqueness_primary_key"
+      type: "uniqueness"
+      field: "numero_personne_host"
+      threshold: 1.0
+      critical: true
+    
+    - name: "size_check_warning"
+      type: "size"
+      field: "*"
+      threshold: 0
+      critical: false
+      description: "Warning check: dataset must have at least one row"
+    
+    - name: "validity_json_structure_dat_bdc"
+      type: "validity"
+      field: "dat_bdc"
+      threshold: 0.99
+      critical: false
+      description: "Vérification de la structure JSON des DAT BDC"
+    
+    - name: "validity_json_structure_dat_cat"
+      type: "validity"
+      field: "dat_cat"
+      threshold: 0.99
+      critical: false
+      description: "Vérification de la structure JSON des DAT CAT"
+    
+    - name: "freshness_check"
+      type: "freshness"
+      field: "run_date"
+      threshold: 1
+      critical: true
+
+  on_failure:
+    action: "block_publication"
+    notify:
+      - "m.mouatacim@attijariwafa.com"
+      - "dat.team@attijariwafa.com"
+
+security:
+  classification: "confidentiel"
+  pii:
+    contains_pii: true
+    notes: >
+      Ce produit de données contient des identifiants indirects (numero_client_host, numero_personne_host,
+      compte_support, numero_contrat) pour les DAT BDC et CAT.
+    fields:
+      - name: "numero_client_host"
+        classification: "indirect"
+      - name: "numero_personne_host"
+        classification: "indirect"
+      - name: "dat_bdc.compte_support"
+        classification: "indirect"
+      - name: "dat_bdc.numero_contrat"
+        classification: "indirect"
+      - name: "dat_cat.compte_support"
+        classification: "indirect"
+      - name: "dat_cat.numero_contrat"
+        classification: "indirect"
+  
+  access_policies:
+    roles:
+      - name: "data_management"
+        permissions:
+          - "read"
+      - name: "data_eng"
+        permissions:
+          - "read"
+      - name: "datalake"
+        permissions:
+          - "read"
+          - "write"
+      - name: "dat_team"
+        permissions:
+          - "read"
+      - name: "customer360_consumers"
+        permissions:
+          - "read"
+    row_level_filters:
+      enabled: false
+      rules:
+        - field: "vip_flag"
+          condition: "vip_flag = false"
+          description: >
+            Le filtrage VIP est désactivé ; aucune restriction au niveau des lignes n'est appliquée.
+    
+    column_masking:
+      - field: "numero_client_host"
+        policy: "mask_partial"
+      - field: "numero_personne_host"
+        policy: "mask_partial"
+      - field: "dat_bdc.compte_support"
+        policy: "mask_partial"
+      - field: "dat_bdc.numero_contrat"
+        policy: "mask_partial"
+      - field: "dat_cat.compte_support"
+        policy: "mask_partial"
+      - field: "dat_cat.numero_contrat"
+        policy: "mask_partial"
+
+inputs:
+  sources:
+    - name: "client_master"
+      type: "ICEBERG"
+      description: "Table silver client master (client_personne)"
+      owner: "DATALAKE"
+      ready_by: "04:00"
+    
+    - name: "dat_bdc"
+      type: "ICEBERG"
+      description: "Table silver des DAT Bons de Caisse"
+      owner: "DATALAKE"
+      ready_by: "04:00"
+    
+    - name: "dat_cat"
+      type: "ICEBERG"
+      description: "Table silver des DAT Comptes À Terme"
+      owner: "DATALAKE"
+      ready_by: "04:00"
+  
+  transformations:
+    - step: "read_silver_sources"
+      description: "Lecture de client_master, dat_bdc et dat_cat depuis la couche silver"
+    
+    - step: "dat_bdc_aggregation"
+      description: >
+        Agrégation (groupBy) des DAT BDC par numero_personne_host avec collect_list 
+        d'un struct contenant: type_dat, statut, montant_dat, taux, date_souscription, 
+        date_echeance, date_av, mre, compte_support, duree, interet_net_a_servir, 
+        retenue_source, mnt_net_echeance, mnt_av, taux_av, numero_contrat, date_avance, family
+    
+    - step: "dat_cat_aggregation"
+      description: >
+        Agrégation (groupBy) des DAT CAT par numero_personne_host avec collect_list 
+        d'un struct contenant: statut, montant_dat, taux, date_souscription, date_echeance, 
+        date_av, mre, compte_support, numero_contrat, duree, interet_net_a_servir, 
+        mnt_net_echeance, retenue_source, date_avance, mnt_av, taux_av, family, type_dat
+    
+    - step: "join_dat_bdc_cat"
+      description: "Jointure FULL OUTER entre datBdcGrouped et datCatGrouped sur numero_personne_host"
+    
+    - step: "join_with_client"
+      description: "Jointure INNER entre le résultat précédent et client_master sur numero_personne_host"
+    
+    - step: "json_struct_creation"
+      description: >
+        Création d'un struct JSON contenant: numero_client_host, numero_personne_host, 
+        Dat_cat (avec coalesce vers array vide si null), Dat_bdc (avec coalesce vers array vide si null)
+    
+    - step: "data_quality_validation"
+      description: >
+        Validation de la qualité avec checks Warning (hasSize > 0) et Error (isComplete numero_personne_host)
+    
+    - step: "json_data_product_transformation"
+      description: "Transformation en data product JSON avec domainName='DAT', version='2.0.1', runDate='2025-01-19'"
+    
+    - step: "metadata_enrichment"
+      description: "Ajout de métadonnées (run_date, version)"
+
+output:
+  table_name: "CUSTOMER_360_EXT_STG"
+  storage_format: "ORACLE"
+  database: "CUSTOMER360"
+  write_mode: "APPEND"
+  partitioning:
+    - "run_date"
+  retention:
+    type: "time_based"
+    value: "365d"
+
+serving:
+  technology:
+    type: "ORACLE"
+    enabled: true
+    name: "CUSTOMER360"
+    notes: >
+      Table externe Oracle CUSTOMER_360_EXT_STG pour les consommateurs avec colonnes JSON 
+      pour les DAT BDC et DAT CAT. Optimisée pour la consommation par les applications métier 
+      et Customer360 en mode APPEND.
+
+operations:
+  airflow_dag_id: "dp_gold_dat_product"
+  schedule_cron: "0 6 * * *"
+  expected_runtime_minutes: 30
+  alerts_channel: "#alerts-dat-dp"
+  dependencies:
+    - "dp_silver_dat_bdc_SUCCESS.txt"
+    - "dp_silver_dat_cat_SUCCESS.txt"
+    - "dp_silver_client_master_SUCCESS.txt"
+  retries:
+    max_retries: 2
+    backoff_minutes: 10
+  logging:
+    level: "INFO"
+    log_retention_days: 30
+
+lineage:
+  upstream:
+    - "silver_client_master"
+    - "silver_dat_bdc"
+    - "silver_dat_cat"
+  downstream:
+    - "customer360_product"
+    - "oracle_customer360_consumers"
+  documentation_links:
+    - "https://gitlab.udd.attijariwafa.net/datalake/data-product-contract"

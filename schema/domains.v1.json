@@ -1,0 +1,408 @@
+
+{
+    "nom": "Banque",
+    "code": "BANQUE",
+    "type": "organisation",
+    "domaines": [
+      {
+        "nom": "Client",
+        "code": "CLIENT",
+        "type": "domaine",
+        "sousDomaines": [
+          {
+            "nom": "CRM",
+            "code": "CRM",
+            "type": "sous_domaine",
+            "sousDomaines": [
+              {
+                "nom": "Activité Compte-Rendu",
+                "code": "ActiviteCompteRendu",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Réclamations",
+                "code": "Reclamation",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Alertes",
+                "code": "Alerte",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Opportunités de Vente",
+                "code": "OV",
+                "type": "sous_domaine"
+              }
+            ]
+          },
+          {
+            "nom": "Fiche Signalétique",
+            "code": "FicheSignal",
+            "type": "sous_domaine",
+            "sousDomaines": [
+              {
+                "nom": "Actionnaire",
+                "code": "Actionnaire",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Activite",
+                "code": "Activite",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Adresse",
+                "code": "Adresse",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Attrition",
+                "code": "Attrition",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Contact",
+                "code": "Contact",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Dirigeant",
+                "code": "Dirigeant",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Identifiant",
+                "code": "Identifiant",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Interlocuteur",
+                "code": "Interlocuteur",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Modalite Alimentation",
+                "code": "ModaliteAlimentation",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Nationalite",
+                "code": "Nationalite",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Personne",
+                "code": "Personne",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "PieceIdentite",
+                "code": "PieceIdentite",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Revenu",
+                "code": "Revenu",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Revenu augumenté",
+                "code": "RevenuAugmente",
+                "type": "sous_domaine"
+              }
+            ]
+          },
+          {
+            "nom": "Gestionnaire de Compte",
+            "code": "Gestionnaire",
+            "type": "sous_domaine"
+          }
+        ]
+      },
+      {
+        "nom": "Comptes, Produits",
+        "code": "COMPTES_PRODUITS",
+        "type": "domaine",
+        "sousDomaines": [
+          {
+            "nom": "Cartes Bancaires",
+            "code": "Carte",
+            "type": "sous_domaine"
+          },
+          {
+            "nom": "Cartes Capturées",
+            "code": "CartesCapturees",
+            "type": "sous_domaine"
+          },
+          {
+            "nom": "Compte Gelé Débiteur",
+            "code": "CompteGeleDebiteur",
+            "type": "sous_domaine"
+          },
+          {
+            "nom": "Conditions d'Autorisation",
+            "code": "ConditionAutorisation",
+            "type": "sous_domaine"
+          },
+          {
+            "nom": "Conditions Préférentielles",
+            "code": "ConditionPreferentielle",
+            "type": "sous_domaine"
+          },
+          {
+            "nom": "Conditions Préférentielles Trade",
+            "code": "ConditionPreferentielleTrade",
+            "type": "sous_domaine"
+          },
+          {
+            "nom": "Cartes Conventionnées",
+            "code": "CarteConventionnee",
+            "type": "sous_domaine"
+          },
+          {
+            "nom": "Tombée Échéance",
+            "code": "TombeEcheance",
+            "type": "sous_domaine",
+            "sousDomaines": [
+              {
+                "nom": "Crédit Amortissable",
+                "code": "CreditAmortissable",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Crédit Arrêtable",
+                "code": "CreditArretable",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Obligations - Aval",
+                "code": "ObligationsAval",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Valeur LCN",
+                "code": "ValeurLcn",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Échéances Trade",
+                "code": "TombeEcheanceTrade",
+                "type": "sous_domaine"
+              }
+            ]
+          },
+          {
+            "nom": "Crédit Immobilier (Wafa Immobilier)",
+            "code": "Credit_WafaImmobilier",
+            "type": "sous_domaine"
+          },
+          {
+            "nom": "Crédit à la Consommation (Wafa Salaf)",
+            "code": "Credit_WafaSalaf",
+            "type": "sous_domaine"
+          },
+          {
+            "nom": "Eden",
+            "code": "Credit_Eden",
+            "type": "sous_domaine"
+          },
+          {
+            "nom": "DAT (Dépôt à Terme)",
+            "code": "Dat",
+            "type": "sous_domaine"
+          },
+          {
+            "nom": "Garanties",
+            "code": "Egaranties",
+            "type": "sous_domaine"
+          },
+          {
+            "nom": "Encaissement Decaissement",
+            "code": "EncaissementDecaissement",
+            "type": "sous_domaine",
+            "sousDomaines": [
+              {
+                "nom": "Encaissement Attijari Pro",
+                "code": "EncaissementAttijariPro",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Encaissement Convention",
+                "code": "EncaissementConvention",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Encaissement Transport de Fonds & Valeurs",
+                "code": "EncaissementTransportFondValeur",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Paypal",
+                "code": "Paypal",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Prélèvement de Masse",
+                "code": "PrelevementMasse",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Virement de Masse",
+                "code": "VirementMasse",
+                "type": "sous_domaine"
+              }
+            ]
+          },
+          {
+            "nom": "Escompte",
+            "code": "Escompte",
+            "type": "sous_domaine"
+          },
+          {
+            "nom": "Banque Assurance",
+            "code": "BANQUE_ASSURANCE",
+            "type": "sous_domaine",
+            "sousDomaines": [
+              {
+                "nom": "Assistance",
+                "code": "Assistance",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Prévoyance",
+                "code": "Prevoyance",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Épargne",
+                "code": "Epargne",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Pack",
+                "code": "Pack",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Contrat Mobile",
+                "code": "ContratMobile",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Dommage",
+                "code": "Dommage",
+                "type": "sous_domaine"
+              }
+            ]
+          },
+          {
+            "nom": "Structure Financière",
+            "code": "StructureFinanciere",
+            "type": "sous_domaine"
+          },
+          {
+            "nom": "Titres",
+            "code": "Titre",
+            "type": "sous_domaine"
+          },
+          {
+            "nom": "Trade Finance",
+            "code": "TradeFinance",
+            "type": "sous_domaine"
+          }
+        ]
+      },
+      {
+        "nom": "Transactions & Comportements Financiers",
+        "code": "TRANSACTIONS_COMPORTEMENTS",
+        "type": "domaine",
+        "sousDomaines": [
+          {
+            "nom": "Banque à Distance",
+            "code": "BanqueADistance",
+            "type": "sous_domaine",
+            "sousDomaines": [
+              {
+                "nom": "EBICS",
+                "code": "BadEbics",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "SDDI",
+                "code": "BadSddi",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Ebanking BAD1",
+                "code": "EbankingBAD1",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Ebanking",
+                "code": "Ebanking",
+                "type": "sous_domaine"
+              },
+              {
+                "nom": "Login EBK",
+                "code": "EventEBKLogin",
+                "type": "sous_domaine"
+              }
+            ]
+          },
+          {
+            "nom": "Impayés",
+            "code": "Impaye",
+            "type": "sous_domaine"
+          },
+          {
+            "nom": "Incidents",
+            "code": "Incident",
+            "type": "sous_domaine"
+          },
+          {
+            "nom": "Mouvements Comptables",
+            "code": "MouvementComptable",
+            "type": "sous_domaine"
+          },
+          {
+            "nom": "Opérations SDM",
+            "code": "OperationsSDM",
+            "type": "sous_domaine"
+          },
+          {
+            "nom": "Paypal (transactions)",
+            "code": "Paypal",
+            "type": "sous_domaine"
+          }
+        ]
+      },
+      {
+        "nom": "Finance & Performance",
+        "code": "FINANCE_PERFORMANCE",
+        "type": "domaine",
+        "sousDomaines": [
+          {
+            "nom": "Évolution Activité (États Financiers)",
+            "code": "EtatFinancierEvolutionActvite",
+            "type": "sous_domaine"
+          },
+          {
+            "nom": "Structure Financière (États Financiers)",
+            "code": "EtatFinancierStructureFinanciere",
+            "type": "sous_domaine"
+          },
+          {
+            "nom": "PNB Client",
+            "code": "PnbClient",
+            "type": "sous_domaine"
+          },
+          {
+            "nom": "Exports",
+            "code": "PackExport",
+            "type": "sous_domaine"
+          }
+        ]
+      }
+    ]
+  }

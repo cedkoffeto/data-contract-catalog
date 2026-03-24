@@ -1,0 +1,303 @@
+---
+asset:
+  id: "silver/fiche_signaletique"
+  name: "FICHE SIGNALÉTIQUE CLIENT"
+  maturity: "silver"
+  domain: "FICHE_SIGNAL"
+  context: "CLIENT"
+  type: "data_product"
+  description: >
+    Fiche signalétique du client avec informations de profil,
+    segmentation, corporate, adresses, contacts et documents
+    d'identité
+  version: "1.0.0"
+  owners:
+    business_owner:
+      name: "FINANCE GROUP"
+      team: "FINANCE GROUP"
+      email: "business.team@attijariwafa.com"
+    technical_owner:
+      name: "DATALAKE"
+      team: "DATALAKE"
+      email: "m.mouatacim@attijariwafa.com"
+  status: "active"
+  tags:
+    - customer360
+    - fiche_signaletique
+    - silver
+    - data-product
+
+contract:
+  primary_key:
+    - "numero_client"
+    - "numero_personne"
+  grain: "Une ligne par client par personne"
+  refresh:
+    frequency: "daily"
+  sla:
+    availability: "99.0"
+    ready_by: "Le 05 de chaque mois a 10h"
+    max_delay_minutes: 60
+  schema:
+    fields:
+      - name: "numero_client"
+        type: "int"
+        description: "Client number identifier"
+        required: true
+        pii_classification: "indirect"
+        business_rules:
+          - "Must exist"
+      - name: "numero_personne"
+        type: "int"
+        description: "Person number identifier"
+        required: true
+        pii_classification: "indirect"
+        business_rules:
+          - "Must exist"
+      - name: "raison_sociale_1"
+        type: "string"
+        description: "Primary business name"
+        required: false
+        pii_classification: "direct"
+        business_rules:
+          - "Can be null"
+      - name: "raison_sociale_2"
+        type: "string"
+        description: "Secondary business name"
+        required: false
+        pii_classification: "direct"
+        business_rules:
+          - "Can be null"
+      - name: "profil"
+        type: "json"
+        description: >
+          Profile information including civil title, client type,
+          gender, birth date, etc.
+        required: true
+        pii_classification: "direct"
+        business_rules:
+          - "Must be valid JSON object"
+      - name: "segmentation"
+        type: "json"
+        description: >
+          Segmentation information including segment, sub-segment,
+          service level, market, behavioral segment
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - "Must be valid JSON object"
+      - name: "corporate"
+        type: "json"
+        description: >
+          Corporate information including profession, sector, status,
+          employer, legal form, capital, revenue, workforce
+        required: true
+        pii_classification: "sensitive"
+        business_rules:
+          - "Must be valid JSON object"
+      - name: "addresses"
+        type: "json"
+        description: "Array of address objects"
+        required: true
+        pii_classification: "direct"
+        business_rules:
+          - "Must be valid JSON array"
+      - name: "contacts"
+        type: "json"
+        description: >
+          Array of contact objects with type, value, category, country
+        required: true
+        pii_classification: "direct"
+        business_rules:
+          - "Must be valid JSON array"
+      - name: "identityDocuments"
+        type: "json"
+        description: >
+          Array of identity document objects with number, expiry date,
+          issue place
+        required: true
+        pii_classification: "sensitive"
+        business_rules:
+          - "Must be valid JSON array"
+      - name: "nationalities"
+        type: "json"
+        description: "Array of nationality objects with country, code, type"
+        required: true
+        pii_classification: "direct"
+        business_rules:
+          - "Must be valid JSON array"
+      - name: "actionnaires"
+        type: "json"
+        description: "Array of shareholder objects"
+        required: true
+        pii_classification: "sensitive"
+        business_rules:
+          - "Must be valid JSON array"
+      - name: "dirigeants"
+        type: "json"
+        description: "Array of director/executive objects"
+        required: true
+        pii_classification: "sensitive"
+        business_rules:
+          - "Must be valid JSON array"
+      - name: "contactPersons"
+        type: "json"
+        description: "Array of contact person objects"
+        required: true
+        pii_classification: "direct"
+        business_rules:
+          - "Must be valid JSON array"
+      - name: "risque"
+        type: "json"
+        description: >
+          Risk information including rating, notation date, incidents
+        required: true
+        pii_classification: "sensitive"
+        business_rules:
+          - "Must be valid JSON object"
+      - name: "gestionnaire"
+        type: "json"
+        description: >
+          Manager information including portfolio manager, commercial
+          manager, agency code
+        required: true
+        pii_classification: "indirect"
+        business_rules:
+          - "Must be valid JSON object"
+      - name: "run_date"
+        type: "date"
+        description: "Execution date"
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - "date of data product build"
+      - name: "version"
+        type: "string"
+        description: "Version of product logic"
+        required: true
+        pii_classification: "none"
+
+quality:
+  checks:
+    - name: "completeness_numero_client"
+      type: "completeness"
+      field: "numero_client"
+      threshold: 1.0
+      critical: true
+    - name: "completeness_numero_personne"
+      type: "completeness"
+      field: "numero_personne"
+      threshold: 1.0
+      critical: true
+    - name: "completeness_run_date"
+      type: "completeness"
+      field: "run_date"
+      threshold: 1.0
+      critical: true
+    - name: "valid_json_fields"
+      type: "rule"
+      expression: >
+        profil IS NOT NULL AND segmentation IS NOT NULL
+        AND corporate IS NOT NULL
+      critical: true
+  on_failure:
+    action: "block_publication"
+    notify:
+      - "tech.owner@attijariwafa.com"
+      - "business.team@attijariwafa.com"
+
+security:
+  classification: "confidential"
+  pii:
+    contains_pii: true
+    notes: >
+      Contains direct PII: names, addresses, contacts, identity
+      documents, and sensitive corporate information.
+  access_policies:
+    roles:
+      - name: "data_management"
+        permissions:
+          - "read"
+      - name: "data_eng"
+        permissions:
+          - "read"
+      - name: "datalake"
+        permissions:
+          - "read"
+          - "write"
+    row_level_filters:
+      enabled: false
+      rules:
+        - field: "vip_flag"
+          condition: "vip_flag = false"
+          description: >
+            VIP filtering is disabled; no row-level restriction applied.
+    column_masking:
+      - field: "raison_sociale_1"
+        policy: "mask_partial"
+      - field: "raison_sociale_2"
+        policy: "mask_partial"
+
+inputs:
+  sources:
+    - name: "Repository1"
+      type: "DF"
+      description: "Repository description"
+      owner: "Data Engineer"
+      ready_by: "22h"
+    - name: "orc_source_1"
+      type: "ORC"
+      description: "ORC table description"
+      owner: "SOP"
+      ready_by: "22h"
+  transformations:
+    - step: "live_data_reading"
+      description: "Ingest ORC to bronze_FICHE_SIGNAL tables"
+    - step: "joining_cleaning"
+      description: "Join, deduplicate and standardize into silver tables"
+    - step: "aggregation"
+      description: "Aggregate description"
+    - step: "Metadata enrichment"
+      description: "Standard metadata columns added"
+
+output:
+  table_name: "FICHE_SIGNAL_product"
+  storage_format: "ICEBERG"
+  location: >
+    /warehouse/tablespace/managed/hive/<OUTPUT_SCHEMA>.db/FICHE_SIGNAL_product
+  partitioning:
+    - "run_date"
+  retention:
+    type: "time_based"
+    value: "365d"
+
+serving:
+  technology:
+    type: "oracle_external_table"
+    enabled: true
+    name: "ext_FICHE_SIGNAL_product"
+    notes: "External table for Oracle consumers with JSON column."
+
+operations:
+  airflow_dag_id: "dp_FICHE_SIGNAL_product"
+  schedule_cron: "0 2 * * *"
+  expected_runtime_minutes: 30
+  alerts_channel: "#alerts-FICHE_SIGNAL-dp"
+  dependencies:
+    - "source1_SUCCESS.txt"
+  retries:
+    max_retries: 2
+    backoff_minutes: 10
+  logging:
+    level: "INFO"
+    log_retention_days: 30
+
+lineage:
+  upstream:
+    - "orc_source_1"
+    - "orc_source_2"
+    - "repository1"
+  downstream:
+    - "customer360_product"
+  documentation_links:
+    - "https://gitlab.udd.attijariwafa.net/datalake/data-product-contract"

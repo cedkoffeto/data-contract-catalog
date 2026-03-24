@@ -1,0 +1,677 @@
+---
+asset:
+  id: "gold/crm"
+  name: "CRM"
+  maturity: "gold"
+  domain: "CRM"
+  context: "RELATION_CLIENT"
+  type: "data_product"
+  description: >
+    Vue consolidée et agrégée des données CRM par client et par personne.
+    Contient les opportunités de ventes (OVs), alertes, réclamations, activités et comptes rendus 
+    au format JSON pour faciliter la consommation via Oracle et autres systèmes externes.
+    Ce produit de données contient des informations personnelles identifiables (PII).
+  version: "1.0.0"
+  owners:
+    business_owner:
+      name: "CRM Team"
+      team: "CRM Team"
+      email: "hicham.amane@attijariwafa.com"
+    technical_owner:
+      name: "DATALAKE"
+      team: "DATALAKE"
+      email: "m.mouatacim@attijariwafa.com"
+  status: "active"
+  tags:
+    - customer360
+    - crm
+    - gold
+    - data-product
+    - aggregated
+    - json
+    - pii
+
+contract:
+  primary_key:
+    - "numero_client_host"
+    - "numero_personne_host"
+  grain: "Une ligne par client et par personne avec leurs données CRM agrégées au format JSON"
+  refresh:
+    frequency: "daily"
+  sla:
+    availability: "99.0"
+    ready_by: "06:00"
+    max_delay_minutes: 60
+  
+  schema:
+    fields:
+      - name: "numero_personne_host"
+        type: "integer"
+        description: "Identifiant personne côté système host"
+        required: true
+        pii_classification: "indirect"
+        business_rules:
+          - "Must exist"
+          - "Must be unique per row"
+      
+      - name: "numero_client_host"
+        type: "integer"
+        description: "Identifiant client côté système host"
+        required: true
+        pii_classification: "indirect"
+        business_rules:
+          - "Must exist"
+          - "Must be unique per row"
+      
+      - name: "ovs"
+        type: "array<struct>"
+        description: "Liste des opportunités de ventes (OVs) agrégées par personne"
+        required: false
+        pii_classification: "none"
+        business_rules:
+          - "Array of OV objects"
+          - "Can be empty array"
+        fields:
+          - name: "famille"
+            type: "string"
+            description: "Famille de l'opportunité"
+          - name: "sous_famille"
+            type: "string"
+            description: "Sous-famille de l'opportunité"
+          - name: "src_type_cd"
+            type: "string"
+            description: "Code du type de source"
+          - name: "date_echeance"
+            type: "timestamp"
+            description: "Date d'échéance de l'opportunité"
+          - name: "desc_text"
+            type: "string"
+            description: "Texte de description"
+          - name: "last_upd"
+            type: "string"
+            description: "Date de dernière mise à jour"
+          - name: "row_id"
+            type: "string"
+            description: "Identifiant unique de l'opportunité"
+          - name: "opty_cd"
+            type: "string"
+            description: "Code de l'opportunité"
+          - name: "descriptif"
+            type: "string"
+            description: "Descriptif de l'opportunité"
+          - name: "duree"
+            type: "decimal(10,0)"
+            description: "Durée de l'opportunité"
+          - name: "attrib_13"
+            type: "string"
+            description: "Attribut 13"
+          - name: "priority"
+            type: "string"
+            description: "Priorité de l'opportunité"
+          - name: "montant"
+            type: "decimal(10,0)"
+            description: "Montant de l'opportunité"
+          - name: "created"
+            type: "string"
+            description: "Date de création"
+          - name: "statut"
+            type: "string"
+            description: "Statut de l'opportunité"
+      
+      - name: "alerts"
+        type: "array<struct>"
+        description: "Liste des alertes CRM agrégées par personne"
+        required: false
+        pii_classification: "none"
+        business_rules:
+          - "Array of alert objects"
+          - "Can be empty array"
+        fields:
+          - name: "famille"
+            type: "string"
+            description: "Famille de l'alerte"
+          - name: "sous_famille"
+            type: "string"
+            description: "Sous-famille de l'alerte"
+          - name: "date_echeance"
+            type: "timestamp"
+            description: "Date d'échéance de l'alerte"
+          - name: "desc_text"
+            type: "string"
+            description: "Texte de description"
+          - name: "last_upd"
+            type: "string"
+            description: "Date de dernière mise à jour"
+          - name: "row_id"
+            type: "string"
+            description: "Identifiant unique de l'alerte"
+          - name: "descriptif"
+            type: "string"
+            description: "Descriptif de l'alerte"
+          - name: "duree"
+            type: "decimal(10,0)"
+            description: "Durée de l'alerte"
+          - name: "attrib_13"
+            type: "string"
+            description: "Attribut 13"
+          - name: "montant"
+            type: "decimal(10,0)"
+            description: "Montant de l'alerte"
+          - name: "created"
+            type: "string"
+            description: "Date de création"
+          - name: "statut"
+            type: "string"
+            description: "Statut de l'alerte"
+      
+      - name: "reclamations"
+        type: "array<struct>"
+        description: "Liste des réclamations agrégées par client"
+        required: false
+        pii_classification: "sensitive"
+        business_rules:
+          - "Array of reclamation objects"
+          - "Can be empty array"
+        fields:
+          - name: "date_creation"
+            type: "string"
+            description: "Date de création de la réclamation"
+          - name: "verifie_par"
+            type: "string"
+            description: "Vérifié par"
+            pii_classification: "indirect"
+          - name: "id_claim"
+            type: "string"
+            description: "Identifiant unique de la réclamation"
+          - name: "traite_par"
+            type: "string"
+            description: "Traité par"
+            pii_classification: "indirect"
+          - name: "cree_par"
+            type: "string"
+            description: "Créé par"
+            pii_classification: "indirect"
+          - name: "flag_migre"
+            type: "string"
+            description: "Indicateur de migration"
+          - name: "n_compte"
+            type: "string"
+            description: "Numéro de compte"
+            pii_classification: "indirect"
+          - name: "qualifie_par"
+            type: "string"
+            description: "Qualifié par"
+            pii_classification: "indirect"
+          - name: "commentaire_traitement"
+            type: "string"
+            description: "Commentaire de traitement"
+            pii_classification: "sensitive"
+          - name: "famille_produit"
+            type: "string"
+            description: "Famille de produit"
+          - name: "motif_rejet"
+            type: "string"
+            description: "Motif de rejet"
+          - name: "commentaire_creation"
+            type: "string"
+            description: "Commentaire à la création"
+            pii_classification: "sensitive"
+          - name: "produit"
+            type: "string"
+            description: "Produit"
+          - name: "objet"
+            type: "string"
+            description: "Objet de la réclamation"
+          - name: "statut"
+            type: "string"
+            description: "Statut de la réclamation"
+          - name: "date_cloture"
+            type: "string"
+            description: "Date de clôture"
+      
+      - name: "activities"
+        type: "array<struct>"
+        description: "Liste des activités CRM agrégées par personne (avec comptes rendus associés)"
+        required: false
+        pii_classification: "none"
+        business_rules:
+          - "Array of activity objects"
+          - "Can be empty array"
+          - "Joined with compte_rendu via LEFT OUTER JOIN"
+        fields:
+          - name: "cree_le"
+            type: "timestamp"
+            description: "Date de création"
+          - name: "entite"
+            type: "string"
+            description: "Entité"
+          - name: "priorite"
+            type: "string"
+            description: "Priorité"
+          - name: "contexte_activite"
+            type: "string"
+            description: "Contexte de l'activité"
+          - name: "type_client"
+            type: "string"
+            description: "Type de client"
+          - name: "activity_id"
+            type: "string"
+            description: "Identifiant de l'activité (row_id_act)"
+          - name: "prevu_le"
+            type: "timestamp"
+            description: "Date prévue"
+          - name: "agence"
+            type: "string"
+            description: "Agence"
+          - name: "statut_activite"
+            type: "string"
+            description: "Statut de l'activité"
+          - name: "commentaire_activite"
+            type: "string"
+            description: "Commentaire sur l'activité"
+          - name: "realise_le"
+            type: "timestamp"
+            description: "Date de réalisation"
+          - name: "nature_activite"
+            type: "string"
+            description: "Nature de l'activité"
+          - name: "nom_activite"
+            type: "string"
+            description: "Nom de l'activité"
+          - name: "position"
+            type: "string"
+            description: "Position"
+          - name: "compte_rendu"
+            type: "string"
+            description: "Libellé du compte rendu associé"
+          - name: "login_createur"
+            type: "string"
+            description: "Login du créateur"
+            pii_classification: "indirect"
+          - name: "type_activite"
+            type: "string"
+            description: "Type d'activité"
+          - name: "compte_rendu_id"
+            type: "string"
+            description: "Identifiant du compte rendu (row_id_cr)"
+          - name: "fin_le"
+            type: "timestamp"
+            description: "Date de fin"
+      
+      - name: "reports"
+        type: "array<struct>"
+        description: "Liste des comptes rendus agrégés par personne (avec activités associées)"
+        required: false
+        pii_classification: "sensitive"
+        business_rules:
+          - "Array of report objects"
+          - "Can be empty array"
+          - "Joined with activities via LEFT OUTER JOIN"
+        fields:
+          - name: "activity_id"
+            type: "string"
+            description: "Identifiant de l'activité liée (row_id_act)"
+          - name: "date_creation"
+            type: "timestamp"
+            description: "Date de création du compte rendu"
+          - name: "nature_activite_cpte"
+            type: "string"
+            description: "Nature de l'activité du compte"
+          - name: "libelle_cr"
+            type: "string"
+            description: "Libellé du compte rendu"
+          - name: "nom_activite_cpte"
+            type: "string"
+            description: "Nom de l'activité du compte"
+          - name: "cree_par"
+            type: "string"
+            description: "Créé par"
+            pii_classification: "indirect"
+          - name: "nature_entretien"
+            type: "string"
+            description: "Nature de l'entretien"
+          - name: "commentaire"
+            type: "string"
+            description: "Commentaire"
+            pii_classification: "sensitive"
+          - name: "nature_contact"
+            type: "string"
+            description: "Nature du contact"
+          - name: "date_modification"
+            type: "timestamp"
+            description: "Date de modification"
+          - name: "detail_entretien_client"
+            type: "string"
+            description: "Détail de l'entretien client"
+            pii_classification: "sensitive"
+          - name: "prevu_le"
+            type: "timestamp"
+            description: "Date prévue de l'activité associée"
+          - name: "pr_con_id"
+            type: "string"
+            description: "ID de contact principal"
+            pii_classification: "indirect"
+          - name: "status_entretien"
+            type: "string"
+            description: "Statut de l'entretien"
+          - name: "lieu_entretien"
+            type: "string"
+            description: "Lieu de l'entretien"
+          - name: "date_realisation"
+            type: "timestamp"
+            description: "Date de réalisation"
+          - name: "nature_entretien_client"
+            type: "string"
+            description: "Nature de l'entretien client"
+          - name: "nom"
+            type: "string"
+            description: "Nom"
+          - name: "date_diffusion"
+            type: "timestamp"
+            description: "Date de diffusion"
+          - name: "date_creation_activite"
+            type: "timestamp"
+            description: "Date de création de l'activité"
+          - name: "type_entretien"
+            type: "string"
+            description: "Type d'entretien"
+          - name: "type_activite"
+            type: "string"
+            description: "Type d'activité associée"
+          - name: "compte_rendu_id"
+            type: "string"
+            description: "Identifiant du compte rendu (row_id_cr)"
+          - name: "fin_le"
+            type: "timestamp"
+            description: "Date de fin de l'activité associée"
+          - name: "type_compte_rendu"
+            type: "string"
+            description: "Type de compte rendu"
+      
+      - name: "run_date"
+        type: "date"
+        description: "Date d'exécution du traitement"
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - "Date of data product build"
+      
+      - name: "version"
+        type: "string"
+        description: "Version de la logique produit"
+        required: true
+        pii_classification: "none"
+
+quality:
+  checks:
+    - name: "completeness_numero_client_host"
+      type: "completeness"
+      field: "numero_client_host"
+      threshold: 1.0
+      critical: true
+    
+    - name: "completeness_numero_personne_host"
+      type: "completeness"
+      field: "numero_personne_host"
+      threshold: 1.0
+      critical: true
+    
+    - name: "uniqueness_primary_key"
+      type: "uniqueness"
+      field: "numero_client_host,numero_personne_host"
+      threshold: 1.0
+      critical: true
+    
+    - name: "completeness_run_date"
+      type: "completeness"
+      field: "run_date"
+      threshold: 1.0
+      critical: true
+    
+    - name: "completeness_version"
+      type: "completeness"
+      field: "version"
+      threshold: 1.0
+      critical: true
+    
+    - name: "validity_json_structure_ovs"
+      type: "validity"
+      field: "ovs"
+      threshold: 0.99
+      critical: false
+      description: "Vérification de la structure JSON des OVs"
+    
+    - name: "validity_json_structure_alerts"
+      type: "validity"
+      field: "alerts"
+      threshold: 0.99
+      critical: false
+      description: "Vérification de la structure JSON des alertes"
+    
+    - name: "validity_json_structure_reclamations"
+      type: "validity"
+      field: "reclamations"
+      threshold: 0.99
+      critical: false
+      description: "Vérification de la structure JSON des réclamations"
+    
+    - name: "validity_json_structure_activities"
+      type: "validity"
+      field: "activities"
+      threshold: 0.99
+      critical: false
+      description: "Vérification de la structure JSON des activités"
+    
+    - name: "validity_json_structure_reports"
+      type: "validity"
+      field: "reports"
+      threshold: 0.99
+      critical: false
+      description: "Vérification de la structure JSON des comptes rendus"
+    
+    - name: "freshness_check"
+      type: "freshness"
+      field: "run_date"
+      threshold: 1
+      critical: true
+
+  on_failure:
+    action: "block_publication"
+    notify:
+      - "m.mouatacim@attijariwafa.com"
+      - "hicham.amane@attijariwafa.com"
+
+security:
+  classification: "confidentiel"
+  pii:
+    contains_pii: true
+    notes: >
+      Ce produit de données contient des identifiants indirects (numero_client_host, numero_personne_host)
+      et des informations sensibles dans les champs JSON (commentaires de réclamations, détails d'entretiens clients).
+    fields:
+      # PII au niveau racine
+      - name: "numero_client_host"
+        classification: "indirect"
+      - name: "numero_personne_host"
+        classification: "indirect"
+      # PII dans les réclamations
+      - name: "reclamations.verifie_par"
+        classification: "indirect"
+      - name: "reclamations.traite_par"
+        classification: "indirect"
+      - name: "reclamations.cree_par"
+        classification: "indirect"
+      - name: "reclamations.n_compte"
+        classification: "indirect"
+      - name: "reclamations.qualifie_par"
+        classification: "indirect"
+      - name: "reclamations.commentaire_traitement"
+        classification: "sensitive"
+      - name: "reclamations.commentaire_creation"
+        classification: "sensitive"
+      # PII dans les activités
+      - name: "activities.login_createur"
+        classification: "indirect"
+      # PII dans les comptes rendus
+      - name: "reports.cree_par"
+        classification: "indirect"
+      - name: "reports.commentaire"
+        classification: "sensitive"
+      - name: "reports.detail_entretien_client"
+        classification: "sensitive"
+      - name: "reports.pr_con_id"
+        classification: "indirect"
+  
+  access_policies:
+    roles:
+      - name: "data_management"
+        permissions:
+          - "read"
+      - name: "data_eng"
+        permissions:
+          - "read"
+      - name: "datalake"
+        permissions:
+          - "read"
+          - "write"
+      - name: "crm_team"
+        permissions:
+          - "read"
+      - name: "customer360_consumers"
+        permissions:
+          - "read"
+    
+    row_level_filters:
+      enabled: false
+      rules:
+        - field: "vip_flag"
+          condition: "vip_flag = false"
+          description: >
+            Le filtrage VIP est désactivé ; aucune restriction au niveau des lignes n'est appliquée.
+    
+    column_masking:
+      - field: "numero_client_host"
+        policy: "mask_partial"
+      - field: "numero_personne_host"
+        policy: "mask_partial"
+      - field: "reclamations.commentaire_creation"
+        policy: "mask_full"
+      - field: "reclamations.commentaire_traitement"
+        policy: "mask_full"
+      - field: "reclamations.description"
+        policy: "mask_full"
+      - field: "reports.commentaire"
+        policy: "mask_full"
+      - field: "reports.detail_entretien_client"
+        policy: "mask_full"
+      - field: "reports.contenu"
+        policy: "mask_full"
+
+inputs:
+  sources:
+    - name: "crm_ov"
+      type: "ICEBERG"
+      description: "Table silver des opportunités de ventes"
+      owner: "DATALAKE"
+      ready_by: "05:00"
+    
+    - name: "crm_alerte"
+      type: "ICEBERG"
+      description: "Table silver des alertes CRM"
+      owner: "DATALAKE"
+      ready_by: "05:00"
+    
+    - name: "crm_activities"
+      type: "ICEBERG"
+      description: "Table silver des activités CRM"
+      owner: "DATALAKE"
+      ready_by: "05:00"
+    
+    - name: "crm_reclamation"
+      type: "ICEBERG"
+      description: "Table silver des réclamations"
+      owner: "DATALAKE"
+      ready_by: "05:00"
+    
+    - name: "crm_comptes_rendu"
+      type: "ICEBERG"
+      description: "Table silver des comptes rendus"
+      owner: "DATALAKE"
+      ready_by: "05:00"
+    
+    - name: "client_personne"
+      type: "ICEBERG"
+      description: "Table de référence client-personne"
+      owner: "DATALAKE"
+      ready_by: "05:00"
+  
+  transformations:
+    - step: "ov_aggregation"
+      description: "Agrégation des opportunités de ventes (OVs) par numero_personne_host au format JSON"
+    
+    - step: "alert_aggregation"
+      description: "Agrégation des alertes par numero_personne_host au format JSON"
+    
+    - step: "reclamation_aggregation"
+      description: "Agrégation des réclamations par numero_client_host au format JSON"
+    
+    - step: "activity_join_and_aggregation"
+      description: "Jointure LEFT OUTER entre activités et comptes rendus (row_id_act = row_id_activite), puis agrégation par numero_personne_host"
+    
+    - step: "report_join_and_aggregation"
+      description: "Jointure LEFT OUTER entre comptes rendus et activités (row_id_activite = row_id_act), puis agrégation par numero_personne_host"
+    
+    - step: "crm_elements_join"
+      description: "Jointure de tous les éléments CRM (OVs, alertes, réclamations, activités, comptes rendus) sur la table client_personne"
+    
+    - step: "metadata_enrichment"
+      description: "Ajout de métadonnées (run_date, version)"
+
+output:
+  table_name: "CUSTOMER_360_EXT_STG"
+  storage_format: "ORACLE"
+  database: "CUSTOMER360"
+  write_mode: "APPEND"
+  partitioning:
+    - "run_date"
+  retention:
+    type: "time_based"
+    value: "365d"
+
+serving:
+  technology:
+    type: "ORACLE"
+    enabled: true
+    name: "CUSTOMER360"
+    notes: >
+      Table externe Oracle pour les consommateurs avec colonnes JSON pour 
+      OVs, alertes, réclamations, activités et comptes rendus. 
+      Optimisée pour la consommation par les applications métier et Customer360.
+
+operations:
+  airflow_dag_id: "dp_gold_crm_product"
+  schedule_cron: "0 6 * * *"
+  expected_runtime_minutes: 45
+  alerts_channel: "#alerts-crm-dp"
+  dependencies:
+    - "dp_silver_crm_SUCCESS.txt"
+  retries:
+    max_retries: 2
+    backoff_minutes: 10
+  logging:
+    level: "INFO"
+    log_retention_days: 30
+
+lineage:
+  upstream:
+    - "crm_ov"
+    - "crm_alerte"
+    - "crm_activities"
+    - "crm_reclamation"
+    - "crm_comptes_rendu"
+    - "client_personne"
+  downstream:
+    - "customer360"
+  documentation_links:
+    - "https://gitlab.udd.attijariwafa.net/datalake/data-product-contract"
+

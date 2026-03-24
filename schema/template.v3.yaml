@@ -1,0 +1,153 @@
+
+asset:
+  id: "<id>:<layer>"
+  name: "<name>"
+  domain: "<business_domain>"
+  context: "<business_context>"
+  type: "dataset | data_product | file "
+  description: >
+    <functional description of the data product / dataset / data file >
+  version: "<ver>"
+  owners:
+    business_owner:
+      name: "<business_owner_name>"
+      team: "<business_team>"
+      email: "<business_email>"
+    technical_owner:
+      name: "<technical_owner_name>"
+      team: "<technical_team>"
+      email: "<technical_email>"
+  status: "<active|deprecated|inactive>"
+  tags:
+    - "<tag_1>"
+    - "<tag_2>"
+
+contract:
+  primary_key:
+    - "<pk_field_1>"
+    - "<pk_field_2>"
+  grain: "<business grain description>"
+  refresh:
+    frequency: "<daily|weekly|monthly|event>"
+  sla:
+    availability: "<percentage>"
+    ready_by: "<business cutoff time>"
+    max_delay_minutes: <integer>
+  schema:
+    fields:
+      - name: "<field_name>"
+        type: "<string|int|double|date|timestamp|boolean|json> Type depends on asset.type"
+        description: "<field description>"
+        required: <true|false>
+        pii_classification: "<none|direct|indirect|sensitive>"
+        business_rules:
+          - "<rule description_if_exists>"
+      - name: "<metric_name>"
+        type: "<numeric_type>"
+        description: "<metric definition>"
+        required: <true|false>
+        pii_classification: "none"
+        business_rules:
+          - "<rule expression>"
+      - name: "<field_name>"
+        type: "<string|int|double|date|timestamp|boolean|json> Type depends on asset.type"
+        description: "<field description>"
+        required: <true|false>
+        pii_classification: "<none|direct|indirect|sensitive>"
+        business_rules:
+          - "<rule description_if_exists>"
+        extra_properties:
+            sql_expression: "<sql expression>"
+
+quality:
+  checks:
+    - name: "<check_name>"
+      type: "<completeness|uniqueness|rule|freshness|volume>"
+      field: "<field_name>"
+      threshold: <numeric_value>
+      critical: <true|false>
+    - name: "<rule_check_name>"
+      type: "rule"
+      expression: "<boolean_expression>"
+      critical: <true|false>
+  on_failure:
+    action: "<block_publication|warn|continue>"
+    notify:
+      - "<email_1>"
+      - "<email_2>"
+
+security:
+  classification: "<public|internal|confidential|restricted>"
+  pii:
+    contains_pii: <true|false>
+    notes: "<pii description>"
+  access_policies:
+    roles:
+      - name: "<role_name>"
+        permissions:
+          - "<read|write|admin>"
+    row_level_filters:
+      enabled: <true|false>
+      rules:
+        - field: "<field_name>"
+          condition: "<sql_condition>"
+          description: "<rule description>"
+    column_masking:
+      - field: "<column_name>"
+        policy: "<mask_full|mask_partial|hash>"
+
+inputs:
+  sources:
+    - name: "<source_name>"
+      type: "<ORC|PARQUET|ICEBERG|DF|API|FILE>"
+      description: "<source description>"
+      owner: "<source owner>"
+      ready_by: "<sla time>"
+  transformations:
+    - step: "<step_name>"
+      description: "<transformation description>"
+
+output:
+  table_name: "<output_table_name>"
+  storage_format: "<ICEBERG|PARQUET|ORC|ORACLE>"
+  location: "<hdfs_or_object_storage_path>"
+  partitioning:
+    - "<partition_column>"
+  retention:
+    type: "<time_based|count_based>"
+    value: "<duration_or_count>"
+
+serving:
+  technology:
+    type: "<ORACLE|API|SAS|ICEBERG>"
+    enabled: <true|false>
+    name: "<table_name>"
+    notes: "<serving notes>"
+
+operations:
+  airflow_dag_id: "<dag_id>"
+  schedule_cron: "<cron_expression>"
+  expected_runtime_minutes: <integer>
+  alerts_channel: "<alert_channel>"
+  dependencies:
+    - "<dependency_name>"
+  retries:
+    max_retries: <integer>
+    backoff_minutes: <integer>
+  logging:
+    level: "<INFO|WARN|ERROR>"
+    log_retention_days: <integer>
+
+lineage:
+  upstream:
+    - "<upstream_source_1>"
+    - "<upstream_source_2>"
+  downstream:
+    - "<downstream_consumer>"
+  documentation_links:
+    - "<url>"
+ 
+extra_properties:
+    ingestion:
+    filiale:
+    

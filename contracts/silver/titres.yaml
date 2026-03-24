@@ -1,0 +1,250 @@
+---
+asset:
+  id: "silver/titre"
+  name: "TITRES"
+  maturity: "silver"
+  domain: ""
+  context: "TITRES"
+  type: "data_product"
+  description: >
+    Données titres par personne et par compte titre, incluant 
+    quantités, cours, contre-valeurs, nantissements et informations
+    liées aux valeurs mobilières.
+  version: "1.0.0"
+  owners:
+    business_owner:
+      name: "FINANCE GROUP"
+      team: "FINANCE GROUP"
+      email: "business.team@attijariwafa.com"
+    technical_owner:
+      name: "DATALAKE"
+      team: "DATALAKE"
+      email: "m.mouatacim@attijariwafa.com"
+  status: "active"
+  tags:
+    - titres
+    - portefeuille
+    - valeurs-mobilieres
+    - silver
+    - data-product
+
+contract:
+  primary_key:
+    - "numero_personne_host"
+    - "compte_titre"
+  grain: "Une ligne par personne et par compte titre"
+  refresh:
+    frequency: "daily"
+  sla:
+    availability: "99.0"
+    ready_by: "07:00 daily"
+    max_delay_minutes: 60
+
+  schema:
+    fields:
+      - name: "num_enr_d"
+        type: "int"
+        description: "Numéro d’enregistrement interne"
+        required: false
+        pii_classification: "none"
+
+      - name: "numero_personne_host"
+        type: "int"
+        description: "Identifiant personne"
+        required: true
+        pii_classification: "indirect"
+
+      - name: "compte_titre"
+        type: "string"
+        description: "Compte titre associé à la personne"
+        required: true
+        pii_classification: "none"
+
+      - name: "code_valeur"
+        type: "string"
+        description: "Code de la valeur mobilière"
+        required: true
+        pii_classification: "none"
+
+      - name: "libelle_valeur"
+        type: "string"
+        description: "Libellé de la valeur mobilière"
+        required: false
+        pii_classification: "none"
+
+      - name: "type_valeur"
+        type: "string"
+        description: "Type de valeur (action, obligation, etc.)"
+        required: false
+        pii_classification: "none"
+
+      - name: "quantite"
+        type: "decimal(26,2)"
+        description: "Quantité de titres détenus"
+        required: false
+        pii_classification: "none"
+
+      - name: "cours"
+        type: "decimal(16,2)"
+        description: "Cours unitaire de la valeur"
+        required: false
+        pii_classification: "none"
+
+      - name: "contre_valeur"
+        type: "decimal(38,4)"
+        description: "Montant total (quantité * cours)"
+        required: false
+        pii_classification: "none"
+
+      - name: "quote_part"
+        type: "string"
+        description: "Quote-part éventuelle"
+        required: false
+        pii_classification: "none"
+
+      - name: "nanti"
+        type: "string"
+        description: "Indicateur de nantissement"
+        required: false
+        pii_classification: "none"
+
+      - name: "quantite_nantie"
+        type: "decimal(16,2)"
+        description: "Quantité nantie"
+        required: false
+        pii_classification: "none"
+
+      - name: "taux_nantissement"
+        type: "string"
+        description: "Taux de nantissement"
+        required: false
+        pii_classification: "none"
+
+      - name: "date_jouissance"
+        type: "timestamp"
+        description: "Date de jouissance des titres"
+        required: false
+        pii_classification: "none"
+
+      - name: "disponible"
+        type: "decimal(27,2)"
+        description: "Quantité disponible (non nantie ou non bloquée)"
+        required: false
+        pii_classification: "none"
+
+      - name: "periodicite"
+        type: "string"
+        description: "Périodicité éventuelle (dividende, coupon, etc.)"
+        required: false
+        pii_classification: "none"
+
+quality:
+  checks:
+    - name: "completeness_numero_personne_host"
+      type: "completeness"
+      field: "numero_personne_host"
+      threshold: 1.0
+      critical: true
+
+    - name: "completeness_compte_titre"
+      type: "completeness"
+      field: "compte_titre"
+      threshold: 1.0
+      critical: true
+
+    - name: "completeness_code_valeur"
+      type: "completeness"
+      field: "code_valeur"
+      threshold: 1.0
+      critical: true
+
+    - name: "non_negative_numeric_values"
+      type: "rule"
+      expression: >
+        quantite >= 0 AND
+        cours >= 0 AND
+        contre_valeur >= 0 AND
+        quantite_nantie >= 0 AND
+        disponible >= 0
+      critical: true
+
+  on_failure:
+    action: "block_publication"
+    notify:
+      - "m.mouatacim@attijariwafa.com"
+      - "business.team@attijariwafa.com"
+
+security:
+  classification: "confidential"
+  pii:
+    contains_pii: true
+    notes: "Contains the host person identifier (indirect PII). No nominative personal data is included."
+  access_policies:
+    roles:
+      - name: "data_management"
+        permissions: ["read"]
+      - name: "data_eng"
+        permissions: ["read"]
+      - name: "datalake"
+        permissions: ["read", "write"]
+    row_level_filters:
+      enabled: false
+      rules: []
+    column_masking:
+      rules: []
+
+inputs:
+  sources:
+    - name: "orc_transactions_titres"
+      type: "ORC"
+      description: "Operational source containing security transaction and portfolio information."
+      owner: "SOP"
+      ready_by: "50 22 * * MON-FRI"
+
+  transformations:
+    - step: "live_data_reading"
+      description: "Ingest ORC sources into bronze_titres tables."
+    - step: "joining_cleaning"
+      description: "Normalize, clean and deduplicate titles data."
+    - step: "aggregation"
+      description: "Compute derived metrics such as contre-valeur and available quantities."
+    - step: "metadata_enrichment"
+      description: "Add technical metadata columns (run_date, execution_time)."
+
+output:
+  table_name: "titres"
+  storage_format: "ICEBERG"
+  location: >
+    /warehouse/tablespace/managed/hive/awb_silver.db/titres
+  partitioning:
+    - "run_date"
+  retention:
+    type: "time_based"
+    value: "365d"
+
+serving:
+  technology:
+    type: "gold_job"
+    enabled: true
+    name: "gold_titres_job"
+    notes: "Spark job consuming the silver titres table to build gold portfolio aggregates."
+
+operations:
+  airflow_dag_id: "dp_titres"
+  schedule_cron: "50 22 * * MON-FRI"
+  expected_runtime_minutes: 20
+  alerts_channel: "#alerts-PNB-dp"
+  dependencies:
+    - "orc_transactions_titres_SUCCESS.txt"
+  retries:
+    max_retries: 2
+    backoff_minutes: 10
+  logging:
+    level: "INFO"
+    log_retention_days: 30
+
+lineage:
+  upstream:
+    - "orc_transactions_titres"
+  downstream:
+    - "portfolio_gold"
