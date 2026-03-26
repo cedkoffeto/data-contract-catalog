@@ -3,23 +3,36 @@ import Link from "next/link";
 
 export function Navbar() {
   return (
-    <nav className="bg-white shadow-sm">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="flex h-16 justify-between">
-          <div className="flex">
-            <div className="mr-6 flex flex-shrink-0 items-center">
-              <Link className="flex items-center gap-3" href="/">
-                <Image
-                  alt="Attijariwafa bank"
-                  className="h-10 w-10 rounded-xl"
-                  height={40}
-                  priority
-                  src="/awb-icon.png"
-                  width={40}
-                />
-                <span className="text-xl font-semibold text-gray-900">Data Contrats</span>
+    <nav className="site-nav">
+      <div className="site-nav__inner">
+        <div className="site-nav__brand-row">
+          <Link className="site-nav__brand" href="/">
+            <Image
+              alt="Attijariwafa bank"
+              className="site-nav__logo"
+              height={40}
+              priority
+              src="/awb-icon.png"
+              width={40}
+            />
+            <div className="site-nav__copy">
+              <span className="site-nav__title">Data Contracts</span>
+            </div>
+          </Link>
+
+          <div className="site-nav__actions">
+            <div className="site-nav__links">
+              <Link className="site-nav__link" href="/">
+                Catalog
+              </Link>
+              <Link className="site-nav__link" href="/docs">
+                Api
               </Link>
             </div>
+
+            <Link className="site-nav__cta" href="/editor">
+              Editor
+            </Link>
           </div>
         </div>
       </div>

@@ -25,5 +25,5 @@ export default function ContractRoutePage({ params }: { params: { slug: string }
     notFound();
   }
 
-  return <ContractPage data={page.data} yamlRaw={page.yamlRaw} />;
+  return <ContractPage data={page.data} slug={page.slug} yamlRaw={page.yamlRaw} />;
 }

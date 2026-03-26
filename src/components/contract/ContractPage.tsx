@@ -1,70 +1,72 @@
+import { ContractBody } from "@/src/components/contract/ContractBody";
 import { ContractHeader } from "@/src/components/contract/ContractHeader";
-import { InfoSection } from "@/src/components/contract/InfoSection";
-import { InputsSection } from "@/src/components/contract/InputsSection";
-import { ModelsSection } from "@/src/components/contract/ModelsSection";
-import { QualitySection } from "@/src/components/contract/QualitySection";
-import { SecuritySection } from "@/src/components/contract/SecuritySection";
-import { ServiceLevelsSection } from "@/src/components/contract/ServiceLevelsSection";
-import { ServingSection } from "@/src/components/contract/ServingSection";
+import { YamlDialogButton } from "@/src/components/contract/YamlDialogButton";
 import { PageShell } from "@/src/components/layout/PageShell";
 import type { DataContract } from "@/src/lib/types";
 
-export function ContractPage({ data, yamlRaw }: { data: DataContract; yamlRaw: string }) {
+export function ContractPage({
+  data,
+  slug,
+  yamlRaw
+}: {
+  data: DataContract;
+  slug: string;
+  yamlRaw: string;
+}) {
   const asset = data.asset ?? {};
-  const contract = data.contract ?? {};
-  const schema = contract.schema ?? {};
-  const quality = data.quality ?? {};
-  const security = data.security ?? {};
-  const serving = data.serving ?? {};
-  const output = data.output ?? {};
-  const inputs = data.inputs ?? {};
-
-  const servingEnabled = serving.technology?.enabled ?? true;
+  const qualityChecks = data.quality?.checks?.length ?? 0;
+  const fields = data.contract?.schema?.fields?.length ?? 0;
+  const sources = data.inputs?.sources?.length ?? 0;
 
   return (
     <PageShell footerVersion="">
-      <main className="pb-7">
-        <div className="mx-auto max-w-7xl pt-5 sm:px-6 lg:px-8">
-          <ContractHeader asset={asset} yamlRaw={yamlRaw} />
+      <main className="contract-page">
+        <div className="contract-page__inner">
+          <div className="contract-layout-shell">
+            <div className="contract-main-column">
+              <ContractHeader asset={asset} showActions={false} />
 
-          <div>
-            <div className="mt-6 space-y-6">
-              <InfoSection asset={asset} />
+              <section className="contract-summary-strip">
+                <article className="contract-summary-strip__card">
+                  <span className="contract-summary-strip__label">Schema fields</span>
+                  <strong>{fields}</strong>
+                </article>
+                <article className="contract-summary-strip__card">
+                  <span className="contract-summary-strip__label">Input sources</span>
+                  <strong>{sources}</strong>
+                </article>
+                <article className="contract-summary-strip__card">
+                  <span className="contract-summary-strip__label">Quality checks</span>
+                  <strong>{qualityChecks}</strong>
+                </article>
+                <article className="contract-summary-strip__card">
+                  <span className="contract-summary-strip__label">Lifecycle</span>
+                  <strong>{asset.status ?? "Draft"}</strong>
+                </article>
+              </section>
 
-              <ModelsSection
-                asset={asset}
-                fields={schema.fields ?? []}
-                primaryKey={contract.primary_key}
-                grain={contract.grain}
-              />
-
-              <InputsSection sources={inputs.sources ?? []} />
-
-              <QualitySection checks={quality.checks ?? []} onFailure={quality.on_failure} />
-
-              <SecuritySection
-                classification={security.classification}
-                containsPii={security.pii?.contains_pii}
-                piiNotes={security.pii?.notes}
-                roles={security.access_policies?.roles ?? []}
-              />
-
-              <ServiceLevelsSection
-                availability={contract.sla?.availability}
-                readyBy={contract.sla?.ready_by}
-                frequency={contract.refresh?.frequency}
-                maxDelayMinutes={contract.sla?.max_delay_minutes}
-              />
-
-              {servingEnabled ? (
-                <ServingSection
-                  tableName={output.table_name}
-                  storageFormat={output.storage_format}
-                  partitioning={output.partitioning}
-                  retention={output.retention}
-                />
-              ) : null}
+              <div className="contract-content-shell">
+                <div className="contract-content-shell__main">
+                  <ContractBody data={data} />
+                </div>
+              </div>
             </div>
+
+            <aside className="contract-side-panel">
+              <div className="contract-side-card contract-side-card--actions">
+                <h2>Workspace</h2>
+                <p>Review, edit and follow this contract from one place.</p>
+                <div className="contract-side-card__actions">
+                  <a className="catalog-primary-link" href={`/editor?contract=${slug}`}>
+                    Open editor
+                  </a>
+                  <button className="catalog-secondary-link catalog-secondary-link--button" type="button">
+                    Subscribe
+                  </button>
+                  <YamlDialogButton yamlRaw={yamlRaw} />
+                </div>
+              </div>
+            </aside>
           </div>
         </div>
       </main>

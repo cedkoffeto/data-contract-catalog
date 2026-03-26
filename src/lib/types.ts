@@ -32,6 +32,7 @@ export type ContractField = {
   business_rules?: string[];
   example?: unknown;
   fields?: ContractField[];
+  extra_properties?: Record<string, unknown>;
 };
 
 export type QualityCheck = {
@@ -88,6 +89,18 @@ export type DataContract = {
     };
     access_policies?: {
       roles?: RolePolicy[];
+      row_level_filters?: {
+        enabled?: boolean;
+        rules?: Array<{
+          field?: string;
+          condition?: string;
+          description?: string;
+        }>;
+      };
+      column_masking?: Array<{
+        field?: string;
+        policy?: string;
+      }>;
     };
   };
   serving?: {
@@ -112,6 +125,31 @@ export type DataContract = {
     sources?: SourceDependency[];
     transformations?: Array<Record<string, unknown>>;
   };
+  operations?: {
+    airflow_dag_id?: string;
+    schedule_cron?: string;
+    expected_runtime_minutes?: number;
+    alerts_channel?: string;
+    dependencies?: string[];
+    retries?: {
+      max_retries?: number;
+      backoff_minutes?: number;
+    };
+    logging?: {
+      level?: string;
+      log_retention_days?: number;
+    };
+  };
+  lineage?: {
+    upstream?: string[];
+    downstream?: string[];
+    documentation_links?: string[];
+  };
+  extra_properties?: {
+    ingestion?: string;
+    filiale?: string;
+    [key: string]: unknown;
+  };
 };
 
 export type ContractFile = {
@@ -133,4 +171,15 @@ export type CatalogCard = {
   domain: string;
   searchData: string;
   href: string;
+};
+
+export type EditorRepositoryFile = {
+  id: string;
+  name: string;
+  path: string;
+  kind: "contract" | "yaml" | "json" | "markdown";
+  content: string;
+  contractSlug?: string;
+  maturity?: string;
+  data?: DataContract;
 };

@@ -3,7 +3,7 @@ import path from "node:path";
 
 import yaml from "js-yaml";
 
-import type { CatalogCard, ContractFile, DataContract } from "@/src/lib/types";
+import type { CatalogCard, ContractFile, DataContract, EditorRepositoryFile } from "@/src/lib/types";
 
 const contractsRoot = path.join(process.cwd(), "contracts");
 
@@ -100,6 +100,28 @@ export function getCatalogCards(): CatalogCard[] {
     .sort((a, b) => a.title.localeCompare(b.title));
 }
 
+export function searchCatalogCards({
+  q = "",
+  domain = "",
+  maturity = ""
+}: {
+  q?: string;
+  domain?: string;
+  maturity?: string;
+}): CatalogCard[] {
+  const normalizedQuery = q.trim().toLowerCase();
+  const normalizedDomain = domain.trim().toLowerCase();
+  const normalizedMaturity = maturity.trim().toLowerCase();
+
+  return getCatalogCards().filter((card) => {
+    const matchesQuery = !normalizedQuery || card.searchData.includes(normalizedQuery);
+    const matchesDomain = !normalizedDomain || card.domain.trim().toLowerCase() === normalizedDomain;
+    const matchesMaturity = !normalizedMaturity || card.maturity.trim().toLowerCase() === normalizedMaturity;
+
+    return matchesQuery && matchesDomain && matchesMaturity;
+  });
+}
+
 export function getContractPageData(slug: string): {
   slug: string;
   yamlRaw: string;
@@ -115,4 +137,44 @@ export function getContractPageData(slug: string): {
     yamlRaw: contract.yamlRaw,
     data: contract.data
   };
+}
+
+export function getEditorRepositoryFiles(): EditorRepositoryFile[] {
+  const root = process.cwd();
+  const repoFiles: EditorRepositoryFile[] = [
+    {
+      id: "readme",
+      name: "README.md",
+      path: "README.md",
+      kind: "markdown",
+      content: fs.readFileSync(path.join(root, "README.md"), "utf-8")
+    },
+    {
+      id: "schema-template",
+      name: "template.v3.yaml",
+      path: "schema/template.v3.yaml",
+      kind: "yaml",
+      content: fs.readFileSync(path.join(root, "schema", "template.v3.yaml"), "utf-8")
+    },
+    {
+      id: "schema-contract",
+      name: "contract_schema.json",
+      path: "schema/contract_schema.json",
+      kind: "json",
+      content: fs.readFileSync(path.join(root, "schema", "contract_schema.json"), "utf-8")
+    }
+  ];
+
+  const contractFiles = getContracts().map((contract) => ({
+    id: contract.slug,
+    name: path.basename(contract.fullPath),
+    path: path.relative(root, contract.fullPath),
+    kind: "contract" as const,
+    content: contract.yamlRaw,
+    contractSlug: contract.slug,
+    maturity: contract.maturity,
+    data: contract.data
+  }));
+
+  return [...repoFiles, ...contractFiles];
 }

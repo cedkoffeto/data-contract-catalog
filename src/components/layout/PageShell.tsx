@@ -3,12 +3,20 @@ import type { ReactNode } from "react";
 import { Footer } from "@/src/components/layout/Footer";
 import { Navbar } from "@/src/components/layout/Navbar";
 
-export function PageShell({ children, footerVersion }: { children: ReactNode; footerVersion?: string }) {
+export function PageShell({
+  children,
+  footerVersion,
+  showFooter = true
+}: {
+  children: ReactNode;
+  footerVersion?: string;
+  showFooter?: boolean;
+}) {
   return (
-    <div className="min-h-full flex flex-col">
+    <div className="app-shell min-h-full flex flex-col">
       <Navbar />
       {children}
-      <Footer version={footerVersion} />
+      {showFooter ? <Footer version={footerVersion} /> : null}
     </div>
   );
 }
