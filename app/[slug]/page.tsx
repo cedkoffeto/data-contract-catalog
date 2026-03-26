@@ -4,12 +4,13 @@ import { notFound } from "next/navigation";
 import { ContractPage } from "@/src/components/contract/ContractPage";
 import { getContractPageData, getContracts } from "@/src/lib/contracts";
 
-export function generateStaticParams() {
-  return getContracts().map((contract) => ({ slug: contract.slug }));
+export async function generateStaticParams() {
+  const contracts = await getContracts();
+  return contracts.map((contract) => ({ slug: contract.slug }));
 }
 
-export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
-  const page = getContractPageData(params.slug);
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const page = await getContractPageData(params.slug);
   if (!page) {
     return { title: "Contrat introuvable" };
   }
@@ -19,8 +20,8 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
   };
 }
 
-export default function ContractRoutePage({ params }: { params: { slug: string } }) {
-  const page = getContractPageData(params.slug);
+export default async function ContractRoutePage({ params }: { params: { slug: string } }) {
+  const page = await getContractPageData(params.slug);
   if (!page) {
     notFound();
   }

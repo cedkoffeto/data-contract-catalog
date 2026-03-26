@@ -61,18 +61,18 @@ export function isGitLabConfigurationError(error: unknown) {
   return error instanceof GitLabConfigurationError;
 }
 
-export function getGitLabContractFilePath(slug: string) {
-  const contract = getContractBySlug(slug);
+export async function getGitLabContractFilePath(slug: string) {
+  const contract = await getContractBySlug(slug);
   if (!contract) {
     throw new Error("Contract not found");
   }
 
-  return path.relative(process.cwd(), contract.fullPath).replace(/\\/g, "/");
+  return contract.fullPath.replace(/\\/g, "/");
 }
 
 export async function getGitLabFileHistory(slug: string, limit = 10): Promise<ContractHistoryEntry[]> {
   const { api, config } = getGitLabClient();
-  const filePath = getGitLabContractFilePath(slug);
+  const filePath = await getGitLabContractFilePath(slug);
 
   const commits = (await api.Commits.all(config.projectId, {
     path: filePath,
@@ -98,7 +98,7 @@ export async function getGitLabFileHistory(slug: string, limit = 10): Promise<Co
 
 export async function getGitLabFileContent(slug: string, ref?: string) {
   const { api, config } = getGitLabClient();
-  const filePath = getGitLabContractFilePath(slug);
+  const filePath = await getGitLabContractFilePath(slug);
   const response = await api.RepositoryFiles.show(config.projectId, filePath, ref || config.ref);
   const content = response.content ?? "";
   const decodedContent =

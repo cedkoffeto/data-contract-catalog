@@ -3,9 +3,67 @@ import path from "node:path";
 
 import yaml from "js-yaml";
 
+import { Gitlab } from "@gitbeaker/rest";
+
 import type { CatalogCard, ContractFile, DataContract, EditorRepositoryFile } from "@/src/lib/types";
 
 const contractsRoot = path.join(process.cwd(), "contracts");
+
+type GitLabTreeItem = {
+  id?: string;
+  name: string;
+  path: string;
+  type: "tree" | "blob";
+};
+
+type GitLabRepositoryFile = {
+  content?: string;
+  encoding?: string;
+  file_path?: string;
+};
+
+type CachedContracts = {
+  key: string;
+  items: ContractFile[];
+  expiresAt: number;
+};
+
+let contractsCache: CachedContracts | null = null;
+const CONTRACTS_CACHE_TTL_MS = 5_000;
+
+function hasGitLabContractsConfig() {
+  return Boolean(
+    process.env.GITLAB_BASE_URL?.trim() && process.env.GITLAB_PROJECT_ID?.trim() && process.env.GITLAB_TOKEN?.trim()
+  );
+}
+
+function getCacheKey() {
+  return [
+    process.env.GITLAB_BASE_URL?.trim() || "",
+    process.env.GITLAB_PROJECT_ID?.trim() || "",
+    process.env.GITLAB_REF?.trim() || "main"
+  ].join("|");
+}
+
+function getGitLabClient() {
+  const baseUrl = process.env.GITLAB_BASE_URL?.trim();
+  const projectId = process.env.GITLAB_PROJECT_ID?.trim();
+  const token = process.env.GITLAB_TOKEN?.trim();
+  const ref = process.env.GITLAB_REF?.trim() || "main";
+
+  if (!baseUrl || !projectId || !token) {
+    return null;
+  }
+
+  return {
+    api: new Gitlab({
+      host: baseUrl.replace(/\/$/, ""),
+      token
+    }),
+    projectId,
+    ref
+  };
+}
 
 function listYamlFiles(dir: string): string[] {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -25,49 +83,102 @@ function listYamlFiles(dir: string): string[] {
   return files;
 }
 
-function readContracts(): ContractFile[] {
-  const allFiles = listYamlFiles(contractsRoot).sort();
+function buildContractsFromRecords(
+  records: Array<{ path: string; fullPath: string; yamlRaw: string }>
+): ContractFile[] {
   const stemCount = new Map<string, number>();
 
-  for (const fullPath of allFiles) {
-    const stem = path.basename(fullPath, path.extname(fullPath));
+  for (const record of records) {
+    const stem = path.basename(record.path, path.extname(record.path));
     stemCount.set(stem, (stemCount.get(stem) ?? 0) + 1);
   }
 
-  const contracts: ContractFile[] = [];
-  for (const fullPath of allFiles) {
-    const stem = path.basename(fullPath, path.extname(fullPath));
-    const maturity = path.basename(path.dirname(fullPath));
-    const isDuplicateStem = (stemCount.get(stem) ?? 0) > 1;
-    const slug = isDuplicateStem ? `${maturity}-${stem}` : stem;
-    const yamlRaw = fs.readFileSync(fullPath, "utf-8");
-    const data = (yaml.load(yamlRaw) as DataContract) ?? {};
+  return records
+    .map((record) => {
+      const stem = path.basename(record.path, path.extname(record.path));
+      const maturity = record.path.split("/")[1] ?? path.basename(path.dirname(record.path));
+      const isDuplicateStem = (stemCount.get(stem) ?? 0) > 1;
+      const slug = isDuplicateStem ? `${maturity}-${stem}` : stem;
+      const data = (yaml.load(record.yamlRaw) as DataContract) ?? {};
 
-    contracts.push({
-      slug,
-      stem,
-      maturity,
-      fullPath,
-      yamlRaw,
-      data
-    });
-  }
-
-  return contracts;
+      return {
+        slug,
+        stem,
+        maturity,
+        fullPath: record.fullPath,
+        yamlRaw: record.yamlRaw,
+        data
+      } satisfies ContractFile;
+    })
+    .sort((left, right) => left.slug.localeCompare(right.slug));
 }
 
-let cache: ContractFile[] | null = null;
+function readLocalContracts(): ContractFile[] {
+  const allFiles = listYamlFiles(contractsRoot).sort();
+  const records = allFiles.map((fullPath) => ({
+    path: path.relative(process.cwd(), fullPath).replace(/\\/g, "/"),
+    fullPath,
+    yamlRaw: fs.readFileSync(fullPath, "utf-8")
+  }));
 
-export function getContracts(): ContractFile[] {
-  if (cache) {
-    return cache;
-  }
-  cache = readContracts();
-  return cache;
+  return buildContractsFromRecords(records);
 }
 
-export function getContractBySlug(slug: string): ContractFile | undefined {
-  return getContracts().find((contract) => contract.slug === slug);
+async function readGitLabContracts(): Promise<ContractFile[]> {
+  const client = getGitLabClient();
+  if (!client) {
+    return readLocalContracts();
+  }
+
+  const tree = (await client.api.Repositories.allRepositoryTrees(client.projectId, {
+    path: "contracts",
+    recursive: true,
+    ref: client.ref,
+    perPage: 1000
+  })) as GitLabTreeItem[];
+
+  const yamlEntries = tree.filter(
+    (entry) => entry.type === "blob" && /^contracts\/.+\.(yaml|yml)$/i.test(entry.path)
+  );
+
+  const records = await Promise.all(
+    yamlEntries.map(async (entry) => {
+      const file = (await client.api.RepositoryFiles.show(client.projectId, entry.path, client.ref)) as GitLabRepositoryFile;
+      const rawContent = file.content ?? "";
+      const yamlRaw = file.encoding === "base64" ? Buffer.from(rawContent, "base64").toString("utf-8") : rawContent;
+
+      return {
+        path: entry.path,
+        fullPath: entry.path,
+        yamlRaw
+      };
+    })
+  );
+
+  return buildContractsFromRecords(records);
+}
+
+export async function getContracts(): Promise<ContractFile[]> {
+  const cacheKey = getCacheKey();
+  const now = Date.now();
+
+  if (contractsCache && contractsCache.key === cacheKey && contractsCache.expiresAt > now) {
+    return contractsCache.items;
+  }
+
+  const items = hasGitLabContractsConfig() ? await readGitLabContracts() : readLocalContracts();
+  contractsCache = {
+    key: cacheKey,
+    items,
+    expiresAt: now + CONTRACTS_CACHE_TTL_MS
+  };
+
+  return items;
+}
+
+export async function getContractBySlug(slug: string): Promise<ContractFile | undefined> {
+  const contracts = await getContracts();
+  return contracts.find((contract) => contract.slug === slug);
 }
 
 function getOwnerName(data: DataContract): string {
@@ -75,8 +186,10 @@ function getOwnerName(data: DataContract): string {
   return owners?.business_owner?.name ?? owners?.technical_owner?.name ?? "";
 }
 
-export function getCatalogCards(): CatalogCard[] {
-  return getContracts()
+export async function getCatalogCards(): Promise<CatalogCard[]> {
+  const contracts = await getContracts();
+
+  return contracts
     .map((contract) => {
       const asset = contract.data.asset ?? {};
       const title = contract.data.asset?.name ?? "Unknown";
@@ -100,7 +213,7 @@ export function getCatalogCards(): CatalogCard[] {
     .sort((a, b) => a.title.localeCompare(b.title));
 }
 
-export function searchCatalogCards({
+export async function searchCatalogCards({
   q = "",
   domain = "",
   maturity = ""
@@ -108,12 +221,13 @@ export function searchCatalogCards({
   q?: string;
   domain?: string;
   maturity?: string;
-}): CatalogCard[] {
+}): Promise<CatalogCard[]> {
   const normalizedQuery = q.trim().toLowerCase();
   const normalizedDomain = domain.trim().toLowerCase();
   const normalizedMaturity = maturity.trim().toLowerCase();
+  const cards = await getCatalogCards();
 
-  return getCatalogCards().filter((card) => {
+  return cards.filter((card) => {
     const matchesQuery = !normalizedQuery || card.searchData.includes(normalizedQuery);
     const matchesDomain = !normalizedDomain || card.domain.trim().toLowerCase() === normalizedDomain;
     const matchesMaturity = !normalizedMaturity || card.maturity.trim().toLowerCase() === normalizedMaturity;
@@ -122,12 +236,12 @@ export function searchCatalogCards({
   });
 }
 
-export function getContractPageData(slug: string): {
+export async function getContractPageData(slug: string): Promise<{
   slug: string;
   yamlRaw: string;
   data: DataContract;
-} | null {
-  const contract = getContractBySlug(slug);
+} | null> {
+  const contract = await getContractBySlug(slug);
   if (!contract) {
     return null;
   }
@@ -139,7 +253,7 @@ export function getContractPageData(slug: string): {
   };
 }
 
-export function getEditorRepositoryFiles(): EditorRepositoryFile[] {
+export async function getEditorRepositoryFiles(): Promise<EditorRepositoryFile[]> {
   const root = process.cwd();
   const repoFiles: EditorRepositoryFile[] = [
     {
@@ -165,10 +279,11 @@ export function getEditorRepositoryFiles(): EditorRepositoryFile[] {
     }
   ];
 
-  const contractFiles = getContracts().map((contract) => ({
+  const contracts = await getContracts();
+  const contractFiles = contracts.map((contract) => ({
     id: contract.slug,
     name: path.basename(contract.fullPath),
-    path: path.relative(root, contract.fullPath),
+    path: contract.fullPath,
     kind: "contract" as const,
     content: contract.yamlRaw,
     contractSlug: contract.slug,

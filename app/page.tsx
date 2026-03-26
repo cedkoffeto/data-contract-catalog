@@ -1,7 +1,7 @@
 import { CatalogPage } from "@/src/components/catalog/CatalogPage";
 import { getCatalogCards } from "@/src/lib/contracts";
 
-export default function HomePage() {
-  const cards = getCatalogCards();
+export default async function HomePage() {
+  const cards = await getCatalogCards();
   return <CatalogPage cards={cards} />;
 }

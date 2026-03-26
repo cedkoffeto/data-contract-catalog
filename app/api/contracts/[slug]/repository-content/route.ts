@@ -6,7 +6,7 @@ import { getGitLabFileContent, isGitLabConfigurationError } from "@/src/lib/gitl
 export async function GET(request: Request, context: { params: { slug: string } }) {
   const slug = context.params.slug;
 
-  if (!getContractBySlug(slug)) {
+  if (!(await getContractBySlug(slug))) {
     return NextResponse.json({ error: "Contract not found" }, { status: 404 });
   }
 

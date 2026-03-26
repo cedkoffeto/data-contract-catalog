@@ -2,14 +2,16 @@ import { NextResponse } from "next/server";
 
 import { searchCatalogCards } from "@/src/lib/contracts";
 
-export function GET(request: Request) {
+export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
 
-  const items = searchCatalogCards({
+  const cards = await searchCatalogCards({
     q: searchParams.get("q") ?? "",
     domain: searchParams.get("domain") ?? "",
     maturity: searchParams.get("maturity") ?? ""
-  }).map((card) => ({
+  });
+
+  const items = cards.map((card) => ({
     slug: card.slug,
     title: card.title,
     version: card.version,

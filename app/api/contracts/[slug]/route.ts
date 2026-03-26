@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 
 import { getContractBySlug } from "@/src/lib/contracts";
 
-export function GET(_: Request, { params }: { params: { slug: string } }) {
-  const contract = getContractBySlug(params.slug);
+export async function GET(_: Request, { params }: { params: { slug: string } }) {
+  const contract = await getContractBySlug(params.slug);
 
   if (!contract) {
     return NextResponse.json({ error: "Contract not found" }, { status: 404 });

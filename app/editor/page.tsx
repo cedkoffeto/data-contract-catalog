@@ -8,14 +8,14 @@ export const metadata: Metadata = {
   title: "Contract workspace"
 };
 
-export default function ContractEditorRoutePage({
+export default async function ContractEditorRoutePage({
   searchParams
 }: {
   searchParams?: { contract?: string | string[] };
 }) {
-  const schema = getEditorSchema();
+  const schema = await getEditorSchema();
   const draft = createNewContractDraft();
-  const repositoryFiles = getEditorRepositoryFiles();
+  const repositoryFiles = await getEditorRepositoryFiles();
   const contractParam = Array.isArray(searchParams?.contract) ? searchParams?.contract[0] : searchParams?.contract;
 
   return (

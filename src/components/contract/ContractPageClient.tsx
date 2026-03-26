@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 
 import yaml from "js-yaml";
 
@@ -44,6 +44,8 @@ export function ContractPageClient({
   } | null>(null);
   const [loadingHistoryId, setLoadingHistoryId] = useState<string | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
+  const historyDialogRef = useRef<HTMLDialogElement>(null);
+  const historyDialogId = useId().replace(/:/g, "");
 
   const displayedData = activeVersion?.data ?? data;
   const displayedYamlRaw = activeVersion?.yamlRaw ?? yamlRaw;
@@ -52,7 +54,7 @@ export function ContractPageClient({
   const fields = displayedData.contract?.schema?.fields?.length ?? 0;
   const sources = displayedData.inputs?.sources?.length ?? 0;
 
-  const historyItems = useMemo(() => historyEntries.slice(0, 8), [historyEntries]);
+  const historyItems = useMemo(() => historyEntries.slice(0, 6), [historyEntries]);
 
   async function handleOpenHistory(entry: ContractHistoryEntry) {
     setLoadingHistoryId(entry.id);
@@ -142,7 +144,18 @@ export function ContractPageClient({
             </div>
 
             <div className="contract-side-card contract-side-card--history">
-              <h2>History</h2>
+              <div className="contract-side-card__header">
+                <h2>History</h2>
+                {historyEntries.length > 6 ? (
+                  <button
+                    className="contract-side-card__link"
+                    onClick={() => historyDialogRef.current?.showModal()}
+                    type="button"
+                  >
+                    View more
+                  </button>
+                ) : null}
+              </div>
               {historyError ? <p className="contract-side-card__muted">{historyError}</p> : null}
               {historyItems.length > 0 ? (
                 <div className="contract-side-history-list">
@@ -181,6 +194,62 @@ export function ContractPageClient({
           </aside>
         </div>
       </div>
+
+      <dialog ref={historyDialogRef} className="yaml-sheet yaml-sheet--history" aria-labelledby={`history-sheet-title-${historyDialogId}`}>
+        <form method="dialog" className="yaml-sheet__backdrop">
+          <button className="yaml-sheet__scrim" aria-label="Close history panel" />
+        </form>
+
+        <div className="yaml-sheet__panel yaml-sheet__panel--history">
+          <div className="yaml-sheet__header">
+            <div>
+              <p className="yaml-sheet__eyebrow">Contract activity</p>
+              <h3 id={`history-sheet-title-${historyDialogId}`}>History</h3>
+            </div>
+
+            <div className="yaml-sheet__header-actions">
+              <button className="editor-soft-button" onClick={() => historyDialogRef.current?.close()} type="button">
+                Close
+              </button>
+            </div>
+          </div>
+
+          <div className="yaml-sheet__body yaml-sheet__body--history">
+            <div className="contract-side-history-list">
+              {historyEntries.map((entry) => (
+                <article
+                  key={entry.id}
+                  className={activeVersion?.entry.id === entry.id ? "contract-side-history-row is-active" : "contract-side-history-row"}
+                >
+                  <div className="contract-side-history-row__header">
+                    <strong>{entry.title}</strong>
+                    <button
+                      aria-label="Open this version"
+                      className="contract-side-history-row__eye"
+                      disabled={loadingHistoryId === entry.id}
+                      onClick={() => {
+                        void handleOpenHistory(entry);
+                        historyDialogRef.current?.close();
+                      }}
+                      title="Open this version"
+                      type="button"
+                    >
+                      <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path d="M10 3.5c4.08 0 7.47 2.9 8.23 6.75-.76 3.85-4.15 6.75-8.23 6.75s-7.47-2.9-8.23-6.75C2.53 6.4 5.92 3.5 10 3.5zm0 2C7.22 5.5 4.82 7.35 3.9 10c.92 2.65 3.32 4.5 6.1 4.5s5.18-1.85 6.1-4.5c-.92-2.65-3.32-4.5-6.1-4.5zm0 1.75A2.75 2.75 0 1110 12.75 2.75 2.75 0 0110 7.25z" />
+                      </svg>
+                    </button>
+                  </div>
+                  <span className="contract-side-history-row__meta">
+                    {entry.shortId} {formatHistoryMeta(entry.authoredDate) ? `· ${formatHistoryMeta(entry.authoredDate)}` : ""}
+                  </span>
+                  <span className="contract-side-history-row__meta">{entry.authorName}</span>
+                  {entry.description ? <p>{entry.description}</p> : null}
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
+      </dialog>
     </main>
   );
 }

@@ -49,7 +49,7 @@ function stripNestedRequired(schema: RJSFSchema, isRoot = true): void {
   }
 }
 
-function collectFieldTypes(): string[] {
+async function collectFieldTypes(): Promise<string[]> {
   const types = new Set<string>();
 
   function visit(fields: Array<Record<string, unknown>> = []) {
@@ -66,7 +66,7 @@ function collectFieldTypes(): string[] {
     }
   }
 
-  for (const contract of getContracts()) {
+  for (const contract of await getContracts()) {
     const fields = contract.data.contract?.schema?.fields as Array<Record<string, unknown>> | undefined;
     visit(fields ?? []);
   }
@@ -74,14 +74,14 @@ function collectFieldTypes(): string[] {
   return [...types].sort();
 }
 
-export function getEditorSchema(): RJSFSchema {
+export async function getEditorSchema(): Promise<RJSFSchema> {
   if (editorSchemaCache) {
     return editorSchemaCache;
   }
 
   const baseSchema = JSON.parse(fs.readFileSync(schemaPath, "utf-8")) as RJSFSchema;
   const schema = cloneSchema(baseSchema);
-  const fieldTypes = collectFieldTypes();
+  const fieldTypes = await collectFieldTypes();
 
   schema.properties = schema.properties ?? {};
 

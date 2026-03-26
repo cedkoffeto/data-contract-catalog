@@ -20,8 +20,9 @@ function toErrorLogPayload(error: unknown) {
 
 export async function GET(_request: Request, context: { params: { slug: string } }) {
   const slug = context.params.slug;
+  const contract = await getContractBySlug(slug);
 
-  if (!getContractBySlug(slug)) {
+  if (!contract) {
     return NextResponse.json({ error: "Contract not found" }, { status: 404 });
   }
 
@@ -34,11 +35,11 @@ export async function GET(_request: Request, context: { params: { slug: string }
     });
     return NextResponse.json({ items });
   } catch (error) {
-    const filePath = getContractBySlug(slug)?.fullPath;
+    const filePath = contract.fullPath;
     let contractPath: string | null = null;
 
     try {
-      contractPath = getGitLabContractFilePath(slug);
+      contractPath = await getGitLabContractFilePath(slug);
     } catch {
       contractPath = null;
     }

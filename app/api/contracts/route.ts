@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 
 import { getCatalogCards } from "@/src/lib/contracts";
 
-export function GET() {
-  const items = getCatalogCards().map((card) => ({
+export async function GET() {
+  const cards = await getCatalogCards();
+  const items = cards.map((card) => ({
     slug: card.slug,
     title: card.title,
     version: card.version,
