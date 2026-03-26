@@ -173,6 +173,16 @@ export type CatalogCard = {
   href: string;
 };
 
+export type ContractHistoryEntry = {
+  id: string;
+  shortId: string;
+  title: string;
+  description: string;
+  authoredDate: string;
+  authorName: string;
+  filePath: string;
+};
+
 export type EditorRepositoryFile = {
   id: string;
   name: string;

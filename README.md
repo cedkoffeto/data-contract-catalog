@@ -7,6 +7,8 @@ Next.js migration of the data contract catalog with a fully React, componentized
 - `/` : catalog
 - `/:slug` : contract detail
 - `/api/contracts` : contracts JSON
+- `/api/contracts/:slug/history` : GitLab-backed file history
+- `/api/contracts/:slug/repository-content?ref=<sha>` : GitLab-backed file content
 - `/api/healthz` : health check
 - `/api/openapi` : OpenAPI JSON
 - `/docs` : Swagger UI docs
@@ -39,6 +41,22 @@ cd data-product-contract-nextjs
 npm install
 npm run dev
 ```
+
+If you want repository-backed contract history and file lookup, configure the GitLab app token in your environment before starting the app:
+
+```bash
+GITLAB_BASE_URL=https://gitlab.example.com
+GITLAB_PROJECT_ID=my-group/data-contracts
+GITLAB_REPOSITORY_URL=https://gitlab.example.com/my-group/data-contracts
+GITLAB_TOKEN=glpat-xxxxxxxxxxxxxxxx
+GITLAB_REF=main
+```
+
+Notes:
+
+- `GITLAB_TOKEN` is an app-level token used server-side only.
+- `GITLAB_PROJECT_ID` can be either the numeric project id or the `group/project` path.
+- `GITLAB_REF` is optional and defaults to `main`.
 
 Then open:
 

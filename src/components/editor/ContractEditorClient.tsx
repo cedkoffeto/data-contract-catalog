@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, type ReactNode, useMemo, useState } from "react";
+import { Fragment, type ReactNode, useEffect, useMemo, useState } from "react";
 
 import type { IChangeEvent } from "@rjsf/core";
 import { yaml as yamlLanguage } from "@codemirror/lang-yaml";
@@ -79,7 +79,32 @@ type HistoryEntry = {
   description: string;
   meta: string;
   author: string;
-  versionContent: string;
+  ref: string;
+};
+
+type HistoryState = {
+  items: HistoryEntry[];
+  status: "idle" | "loading" | "ready" | "error";
+  error: string | null;
+};
+
+type RepositoryHistoryResponse = {
+  items: Array<{
+    id: string;
+    shortId: string;
+    title: string;
+    description: string;
+    authoredDate: string;
+    authorName: string;
+    filePath: string;
+  }>;
+};
+
+type RepositoryContentResponse = {
+  filePath: string;
+  ref: string;
+  repositoryUrl: string;
+  content: string;
 };
 
 type FileTreeNode = {
@@ -465,43 +490,6 @@ function createDraftDocument(initialData: DataContract, sequence: number): Works
   };
 }
 
-function makeHistoryEntries(file: WorkspaceDocument): HistoryEntry[] {
-  const currentContent = file.content || file.originalContent || "";
-  const compactContent = currentContent.trimEnd();
-  const headerBlock = compactContent.split("\n").slice(0, 10);
-  const versionOne = `${headerBlock.join("\n")}\nstatus: draft\nowners:\n  business_owner:\n    name: Data Governance`;
-  const versionTwo = `${headerBlock.join("\n")}\nstatus: review\nquality:\n  checks:\n    - name: freshness_check\n      type: freshness`;
-
-  return [
-    {
-      id: "head",
-      title: file.isDirty ? "Refine contract in workspace" : "Sync contract with repository baseline",
-      description: file.isDirty
-        ? "Working copy updated in the editor with local changes pending review."
-        : "Latest repository content loaded and aligned with the current contract view.",
-      meta: "HEAD",
-      author: "Current workspace",
-      versionContent: currentContent
-    },
-    {
-      id: "schema-review",
-      title: `Review ${file.name} structure`,
-      description: "Schema and field organization reviewed before publication to downstream consumers.",
-      meta: "2 hours ago",
-      author: "Data governance",
-      versionContent: versionOne
-    },
-    {
-      id: "consumer-update",
-      title: "Prepare consumer-facing update",
-      description: "Subscription-ready release note for teams tracking contract changes.",
-      meta: "Yesterday",
-      author: "Platform team",
-      versionContent: versionTwo
-    }
-  ];
-}
-
 function createUnifiedDiff(base: string, next: string): string {
   const left = base.split("\n");
   const right = next.split("\n");
@@ -528,6 +516,25 @@ function createUnifiedDiff(base: string, next: string): string {
   }
 
   return lines.join("\n");
+}
+
+function formatHistoryMeta(value: string) {
+  if (!value) {
+    return "Repository";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("en", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
 }
 
 function FolderIcon() {
@@ -564,6 +571,13 @@ export function ContractEditorClient({
   const [workspaceMessage, setWorkspaceMessage] = useState("Ready");
   const [selectedHistoryEntryId, setSelectedHistoryEntryId] = useState<string | null>(null);
   const [mainViewMode, setMainViewMode] = useState<"current" | "history" | "compare">("current");
+  const [historyBySlug, setHistoryBySlug] = useState<Record<string, HistoryState>>({});
+  const [historyVersionCache, setHistoryVersionCache] = useState<Record<string, string>>({});
+  const [historyReloadToken, setHistoryReloadToken] = useState(0);
+  const [historyActionState, setHistoryActionState] = useState<{ entryId: string | null; mode: "history" | "compare" | null }>({
+    entryId: null,
+    mode: null
+  });
   const [isExplorerOpen, setIsExplorerOpen] = useState(true);
   const [isPreviewOpen, setIsPreviewOpen] = useState(true);
   const [isBottomPanelOpen, setIsBottomPanelOpen] = useState(false);
@@ -588,7 +602,7 @@ export function ContractEditorClient({
 
   const selectedDocument =
     documents.find((document) => document.id === selectedDocumentId) ??
-    documents.find((document) => document.id === "draft-contract")!;
+    documents.find((document) => document.id === "draft-contract-1")!;
 
   const selectedIndex = documents.findIndex((document) => document.id === selectedDocument.id);
   const selectedData = selectedDocument.data ?? initialData;
@@ -633,20 +647,29 @@ export function ContractEditorClient({
 
   const validationErrors = (validationResult?.errors ?? []) as RJSFValidationError[];
   const validationIssueCount = yamlValidationState.parseError ? 1 : validationErrors.length;
-  const historyEntries = useMemo(() => makeHistoryEntries(selectedDocument), [selectedDocument]);
+  const historyEntries = useMemo(() => {
+    if (!isContractDocument || selectedDocument.isDraft || !selectedDocument.contractSlug) {
+      return [];
+    }
+
+    return historyBySlug[selectedDocument.contractSlug]?.items ?? [];
+  }, [historyBySlug, isContractDocument, selectedDocument.contractSlug, selectedDocument.isDraft]);
   const selectedHistoryEntry = historyEntries.find((entry) => entry.id === selectedHistoryEntryId) ?? null;
+  const selectedHistoryContent = selectedHistoryEntry ? historyVersionCache[`${selectedDocument.contractSlug ?? selectedDocument.id}:${selectedHistoryEntry.ref}`] : null;
   const filename = selectedDocument.name.replace(/\.(yaml|yml|json|md)$/i, "") || "contract";
   const displayedYaml = useMemo(() => {
-    if (mainViewMode === "history" && selectedHistoryEntry) {
-      return selectedHistoryEntry.versionContent;
+    if (mainViewMode === "history" && selectedHistoryContent) {
+      return selectedHistoryContent;
     }
-    if (mainViewMode === "compare" && selectedHistoryEntry) {
-      return createUnifiedDiff(selectedHistoryEntry.versionContent, selectedDocument.content);
+    if (mainViewMode === "compare" && selectedHistoryContent) {
+      return createUnifiedDiff(selectedHistoryContent, selectedDocument.content);
     }
     return selectedDocument.content;
-  }, [mainViewMode, selectedDocument.content, selectedHistoryEntry]);
-  const isHistoryYamlView = mainViewMode === "history" && !!selectedHistoryEntry;
-  const isCompareYamlView = mainViewMode === "compare" && !!selectedHistoryEntry;
+  }, [mainViewMode, selectedDocument.content, selectedHistoryContent]);
+  const isHistoryYamlView = mainViewMode === "history" && !!selectedHistoryEntry && !!selectedHistoryContent;
+  const isCompareYamlView = mainViewMode === "compare" && !!selectedHistoryEntry && !!selectedHistoryContent;
+  const activeHistoryState = selectedDocument.contractSlug ? historyBySlug[selectedDocument.contractSlug] : undefined;
+  const activeHistoryStatus = activeHistoryState?.status ?? "idle";
   const validationIssueLines = useMemo(() => {
     if (!isContractDocument || activeTab !== "yaml" || isHistoryYamlView || isCompareYamlView) {
       return [];
@@ -746,6 +769,172 @@ export function ContractEditorClient({
     [visibleContractsByMaturity]
   );
 
+  useEffect(() => {
+    if (!isContractDocument || selectedDocument.isDraft || !selectedDocument.contractSlug) {
+      return;
+    }
+
+    if (activeHistoryStatus !== "idle") {
+      return;
+    }
+
+    let isCancelled = false;
+    const slug = selectedDocument.contractSlug;
+
+    setHistoryBySlug((current) => ({
+      ...current,
+      [slug]: {
+        items: current[slug]?.items ?? [],
+        status: "loading",
+        error: null
+      }
+    }));
+
+    console.info("[editor.history] Fetching contract history", {
+      slug,
+      selectedDocumentId: selectedDocument.id,
+      path: selectedDocument.path
+    });
+
+    void fetch(`/api/contracts/${slug}/history`, { cache: "no-store" })
+      .then(async (response) => {
+        const payload = (await response.json()) as RepositoryHistoryResponse | { error?: string };
+        console.info("[editor.history] History API response", {
+          slug,
+          ok: response.ok,
+          status: response.status,
+          payload
+        });
+
+        if (!response.ok) {
+          throw new Error("error" in payload && payload.error ? payload.error : "Unable to load repository history");
+        }
+
+        if (isCancelled) {
+          return;
+        }
+
+        const mappedItems = payload.items.map((entry) => ({
+          id: entry.id,
+          ref: entry.id,
+          title: entry.title,
+          description: entry.description,
+          meta: `${entry.shortId} · ${formatHistoryMeta(entry.authoredDate)}`,
+          author: entry.authorName
+        }));
+
+        console.info("[editor.history] Mapped history items", {
+          slug,
+          count: mappedItems.length,
+          firstItem: mappedItems[0] ?? null
+        });
+
+        setHistoryBySlug((current) => ({
+          ...current,
+          [slug]: {
+            items: mappedItems,
+            status: "ready",
+            error: null
+          }
+        }));
+      })
+      .catch((error: unknown) => {
+        if (isCancelled) {
+          return;
+        }
+
+        console.error("[editor.history] Failed to load history", {
+          slug,
+          error
+        });
+
+        setHistoryBySlug((current) => ({
+          ...current,
+          [slug]: {
+            items: [],
+            status: "error",
+            error: error instanceof Error ? error.message : "Unable to load repository history"
+          }
+        }));
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [historyReloadToken, isContractDocument, selectedDocument.contractSlug, selectedDocument.id, selectedDocument.isDraft, selectedDocument.path]);
+
+  useEffect(() => {
+    if (!isContractDocument || activeBottomTab !== "history") {
+      return;
+    }
+
+    console.info("[editor.history] Render state", {
+      selectedDocumentId: selectedDocument.id,
+      slug: selectedDocument.contractSlug ?? null,
+      isDraft: !!selectedDocument.isDraft,
+      activeBottomTab,
+      isBottomPanelOpen,
+      activeHistoryStatus,
+      historyEntriesCount: historyEntries.length,
+      selectedHistoryEntryId,
+      firstEntry: historyEntries[0] ?? null
+    });
+  }, [
+    activeBottomTab,
+    activeHistoryStatus,
+    historyEntries,
+    isBottomPanelOpen,
+    isContractDocument,
+    selectedDocument.contractSlug,
+    selectedDocument.id,
+    selectedDocument.isDraft,
+    selectedHistoryEntryId
+  ]);
+
+  async function loadHistoryVersion(entry: HistoryEntry) {
+    if (!selectedDocument.contractSlug) {
+      return null;
+    }
+
+    const cacheKey = `${selectedDocument.contractSlug}:${entry.ref}`;
+    if (historyVersionCache[cacheKey]) {
+      return historyVersionCache[cacheKey];
+    }
+
+    const response = await fetch(
+      `/api/contracts/${selectedDocument.contractSlug}/repository-content?ref=${encodeURIComponent(entry.ref)}`,
+      { cache: "no-store" }
+    );
+    const payload = (await response.json()) as RepositoryContentResponse | { error?: string };
+
+    if (!response.ok) {
+      throw new Error("error" in payload && payload.error ? payload.error : "Unable to load repository file");
+    }
+
+    setHistoryVersionCache((current) => ({
+      ...current,
+      [cacheKey]: payload.content
+    }));
+
+    return payload.content;
+  }
+
+  async function openHistoryEntry(entry: HistoryEntry, mode: "history" | "compare") {
+    setHistoryActionState({ entryId: entry.id, mode });
+
+    try {
+      await loadHistoryVersion(entry);
+      setSelectedHistoryEntryId(entry.id);
+      setMainViewMode(mode);
+      setActiveTab("yaml");
+      setWorkspaceMessage(mode === "compare" ? "Repository diff opened" : "Repository version opened");
+    } catch (error) {
+      setWorkspaceMessage(error instanceof Error ? error.message : "Unable to load repository version");
+    } finally {
+      setHistoryActionState({ entryId: null, mode: null });
+    }
+  }
+
   function renderFileNodes(tree: FileTreeNode, keyPrefix: string): ReactNode {
     const folderEntries = Array.from(tree.folders.entries()).sort(([left], [right]) => left.localeCompare(right));
     const fileEntries = [...tree.files].sort((left, right) => left.name.localeCompare(right.name));
@@ -797,6 +986,8 @@ export function ContractEditorClient({
 
   function selectDocument(id: string) {
     setSelectedDocumentId(id);
+    setSelectedHistoryEntryId(null);
+    setMainViewMode("current");
     setWorkspaceMessage("File opened");
   }
 
@@ -959,6 +1150,24 @@ export function ContractEditorClient({
   }
 
   function openBottomPanel(tab: BottomTab) {
+    if (
+      tab === "history" &&
+      isContractDocument &&
+      !selectedDocument.isDraft &&
+      selectedDocument.contractSlug &&
+      activeHistoryStatus === "error"
+    ) {
+      setHistoryBySlug((current) => ({
+        ...current,
+        [selectedDocument.contractSlug!]: {
+          items: current[selectedDocument.contractSlug!]?.items ?? [],
+          status: "idle",
+          error: null
+        }
+      }));
+      setHistoryReloadToken((current) => current + 1);
+    }
+
     setActiveBottomTab(tab);
     setIsBottomPanelOpen(true);
   }
@@ -1362,79 +1571,98 @@ export function ContractEditorClient({
                         <div className="editor-panel-grid editor-panel-grid--single">
                           <article className="editor-info-card editor-history-card">
                             <h3>History</h3>
-                            <div className="editor-history-list">
-                              {historyEntries.map((entry) => (
-                                <article
-                                  key={entry.id}
-                                  className={
-                                    mainViewMode === "history" && selectedHistoryEntryId === entry.id
-                                      ? "editor-history-row is-open"
-                                      : selectedHistoryEntryId === entry.id
-                                        ? "editor-history-row is-selected"
-                                        : "editor-history-row"
-                                  }
-                                  onClick={() => {
-                                    setSelectedHistoryEntryId(entry.id);
-                                    setMainViewMode("history");
-                                    setActiveTab("yaml");
-                                  }}
-                                  onKeyDown={(event) => {
-                                    if (event.key === "Enter" || event.key === " ") {
-                                      event.preventDefault();
-                                      setSelectedHistoryEntryId(entry.id);
-                                      setMainViewMode("history");
-                                      setActiveTab("yaml");
-                                    }
-                                  }}
-                                  role="button"
-                                  tabIndex={0}
-                                >
-                                  <div className="editor-history-row__main">
-                                    <div className="editor-history-row__header">
-                                      <strong>{entry.title}</strong>
-                                      <em>{entry.meta}</em>
-                                    </div>
-                                    <span className="editor-history-row__author">{entry.author}</span>
-                                    <p>{entry.description}</p>
-                                  </div>
-
-                                  <div className="editor-history-row__actions">
-                                    <button
-                                      aria-label="Open version"
-                                      className="editor-icon-button"
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        setSelectedHistoryEntryId(entry.id);
-                                        setMainViewMode("history");
-                                        setActiveTab("yaml");
-                                      }}
-                                      type="button"
-                                    >
-                                      <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                        <path d="M10 3.5c4.08 0 7.47 2.9 8.23 6.75-.76 3.85-4.15 6.75-8.23 6.75s-7.47-2.9-8.23-6.75C2.53 6.4 5.92 3.5 10 3.5zm0 2C7.22 5.5 4.82 7.35 3.9 10c.92 2.65 3.32 4.5 6.1 4.5s5.18-1.85 6.1-4.5c-.92-2.65-3.32-4.5-6.1-4.5zm0 1.75A2.75 2.75 0 1110 12.75 2.75 2.75 0 0110 7.25z" />
-                                      </svg>
-                                      <span className="editor-icon-tooltip">Open version</span>
-                                    </button>
-                                    <button
-                                      aria-label="Compare with current"
-                                      className="editor-icon-button"
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        setSelectedHistoryEntryId(entry.id);
-                                        setMainViewMode("compare");
-                                        setActiveTab("yaml");
-                                      }}
-                                      type="button"
-                                    >
-                                      <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                        <path d="M6.5 3.75a.75.75 0 01.75.75v8.19l1.97-1.97a.75.75 0 111.06 1.06l-3.25 3.25a.75.75 0 01-1.06 0l-3.25-3.25a.75.75 0 111.06-1.06l1.97 1.97V4.5a.75.75 0 01.75-.75zm7 12.5a.75.75 0 01-.75-.75V7.31l-1.97 1.97a.75.75 0 11-1.06-1.06l3.25-3.25a.75.75 0 011.06 0l3.25 3.25a.75.75 0 11-1.06 1.06l-1.97-1.97v8.19a.75.75 0 01-.75.75z" />
-                                      </svg>
-                                      <span className="editor-icon-tooltip">Compare with current</span>
-                                    </button>
-                                  </div>
-                                </article>
-                              ))}
+                            <div className="editor-history-debug">
+                              <span>Status: {activeHistoryStatus}</span>
+                              <span>Items: {historyEntries.length}</span>
                             </div>
+                            {selectedDocument.isDraft ? (
+                              <div className="editor-placeholder editor-placeholder--history">
+                                <h3>No repository history for drafts.</h3>
+                                <p>Save this contract into the repository to start tracking commit history.</p>
+                              </div>
+                            ) : activeHistoryState?.status === "loading" ? (
+                              <div className="editor-placeholder editor-placeholder--history">
+                                <h3>Loading repository history...</h3>
+                              </div>
+                            ) : activeHistoryState?.status === "error" ? (
+                              <div className="editor-placeholder editor-placeholder--history">
+                                <h3>Repository history unavailable.</h3>
+                                <p>{activeHistoryState.error}</p>
+                              </div>
+                            ) : historyEntries.length === 0 ? (
+                              <div className="editor-placeholder editor-placeholder--history">
+                                <h3>No history for this contract yet.</h3>
+                              </div>
+                            ) : (
+                              <div className="editor-history-list" data-count={historyEntries.length}>
+                                {historyEntries.map((entry) => {
+                                  const isLoadingEntry = historyActionState.entryId === entry.id;
+                                  return (
+                                    <article
+                                      key={entry.id}
+                                      className={
+                                        mainViewMode === "history" && selectedHistoryEntryId === entry.id
+                                          ? "editor-history-row is-open"
+                                          : selectedHistoryEntryId === entry.id
+                                            ? "editor-history-row is-selected"
+                                            : "editor-history-row"
+                                      }
+                                      onClick={() => void openHistoryEntry(entry, "history")}
+                                      onKeyDown={(event) => {
+                                        if (event.key === "Enter" || event.key === " ") {
+                                          event.preventDefault();
+                                          void openHistoryEntry(entry, "history");
+                                        }
+                                      }}
+                                      role="button"
+                                      tabIndex={0}
+                                    >
+                                      <div className="editor-history-row__main">
+                                        <div className="editor-history-row__header">
+                                          <strong>{entry.title}</strong>
+                                          <em>{entry.meta}</em>
+                                        </div>
+                                        <span className="editor-history-row__author">{entry.author}</span>
+                                        {entry.description ? <p>{entry.description}</p> : null}
+                                      </div>
+
+                                      <div className="editor-history-row__actions">
+                                        <button
+                                          aria-label="Open version"
+                                          className="editor-icon-button"
+                                          disabled={isLoadingEntry}
+                                          onClick={(event) => {
+                                            event.stopPropagation();
+                                            void openHistoryEntry(entry, "history");
+                                          }}
+                                          type="button"
+                                        >
+                                          <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                            <path d="M10 3.5c4.08 0 7.47 2.9 8.23 6.75-.76 3.85-4.15 6.75-8.23 6.75s-7.47-2.9-8.23-6.75C2.53 6.4 5.92 3.5 10 3.5zm0 2C7.22 5.5 4.82 7.35 3.9 10c.92 2.65 3.32 4.5 6.1 4.5s5.18-1.85 6.1-4.5c-.92-2.65-3.32-4.5-6.1-4.5zm0 1.75A2.75 2.75 0 1110 12.75 2.75 2.75 0 0110 7.25z" />
+                                          </svg>
+                                          <span className="editor-icon-tooltip">Open version</span>
+                                        </button>
+                                        <button
+                                          aria-label="Compare with current"
+                                          className="editor-icon-button"
+                                          disabled={isLoadingEntry}
+                                          onClick={(event) => {
+                                            event.stopPropagation();
+                                            void openHistoryEntry(entry, "compare");
+                                          }}
+                                          type="button"
+                                        >
+                                          <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                            <path d="M6.5 3.75a.75.75 0 01.75.75v8.19l1.97-1.97a.75.75 0 111.06 1.06l-3.25 3.25a.75.75 0 01-1.06 0l-3.25-3.25a.75.75 0 111.06-1.06l1.97 1.97V4.5a.75.75 0 01.75-.75zm7 12.5a.75.75 0 01-.75-.75V7.31l-1.97 1.97a.75.75 0 11-1.06-1.06l3.25-3.25a.75.75 0 011.06 0l3.25 3.25a.75.75 0 11-1.06 1.06l-1.97-1.97v8.19a.75.75 0 01-.75.75z" />
+                                          </svg>
+                                          <span className="editor-icon-tooltip">Compare with current</span>
+                                        </button>
+                                      </div>
+                                    </article>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </article>
                         </div>
                       ) : null}
