@@ -22,6 +22,13 @@ type GitLabRepositoryFile = {
   file_path?: string;
 };
 
+type RepositoryFolderFile = {
+  name: string;
+  path: string;
+  content: string;
+  kind: EditorRepositoryFile["kind"];
+};
+
 type CachedContracts = {
   key: string;
   items: ContractFile[];
@@ -65,7 +72,112 @@ function getGitLabClient() {
   };
 }
 
+async function readGitLabTextFile(filePath: string): Promise<string | null> {
+  const client = getGitLabClient();
+  if (!client) {
+    return null;
+  }
+
+  try {
+    const file = (await client.api.RepositoryFiles.show(client.projectId, filePath, client.ref)) as GitLabRepositoryFile;
+    const rawContent = file.content ?? "";
+    return file.encoding === "base64" ? Buffer.from(rawContent, "base64").toString("utf-8") : rawContent;
+  } catch {
+    return null;
+  }
+}
+
+function readLocalTextFile(filePath: string): string | null {
+  const fullPath = path.join(process.cwd(), filePath);
+  if (!fs.existsSync(fullPath)) {
+    return null;
+  }
+
+  return fs.readFileSync(fullPath, "utf-8");
+}
+
+function getEditorFileKind(filePath: string): EditorRepositoryFile["kind"] {
+  if (/\.(md|mdx)$/i.test(filePath)) {
+    return "markdown";
+  }
+
+  if (/\.json$/i.test(filePath)) {
+    return "json";
+  }
+
+  return "yaml";
+}
+
+export async function getRepositoryTextFile(filePath: string, fallback = ""): Promise<string> {
+  const gitContent = await readGitLabTextFile(filePath);
+  if (gitContent !== null) {
+    return gitContent;
+  }
+
+  const localContent = readLocalTextFile(filePath);
+  if (localContent !== null) {
+    return localContent;
+  }
+
+  return fallback;
+}
+
+export async function getRepositoryFolderFiles(folderPath: string): Promise<RepositoryFolderFile[]> {
+  const client = getGitLabClient();
+
+  if (client) {
+    try {
+      const tree = (await client.api.Repositories.allRepositoryTrees(client.projectId, {
+        path: folderPath,
+        recursive: true,
+        ref: client.ref,
+        perPage: 1000
+      })) as GitLabTreeItem[];
+
+      const files = tree.filter((entry) => entry.type === "blob");
+      const records = await Promise.all(
+        files.map(async (entry) => {
+          const content = await getRepositoryTextFile(entry.path, "");
+          return {
+            name: entry.name,
+            path: entry.path,
+            content,
+            kind: getEditorFileKind(entry.path)
+          } satisfies RepositoryFolderFile;
+        })
+      );
+
+      if (records.length > 0) {
+        return records.sort((left, right) => left.path.localeCompare(right.path));
+      }
+    } catch {
+      // Fall through to local folder lookup.
+    }
+  }
+
+  const localFolderPath = path.join(process.cwd(), folderPath);
+  if (!fs.existsSync(localFolderPath)) {
+    return [];
+  }
+
+  const localFiles = listRepositoryTextFiles(localFolderPath).sort();
+
+  return localFiles.map((fullPath) => {
+    const relativePath = path.relative(process.cwd(), fullPath).replace(/\\/g, "/");
+    return {
+      name: path.basename(fullPath),
+      path: relativePath,
+      content: fs.readFileSync(fullPath, "utf-8"),
+      kind: getEditorFileKind(relativePath)
+    } satisfies RepositoryFolderFile;
+  });
+}
+
 function listYamlFiles(dir: string): string[] {
+  if (!fs.existsSync(dir)) {
+    return [];
+  }
+
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   const files: string[] = [];
 
@@ -76,6 +188,28 @@ function listYamlFiles(dir: string): string[] {
       continue;
     }
     if (entry.isFile() && (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) {
+      files.push(fullPath);
+    }
+  }
+
+  return files;
+}
+
+function listRepositoryTextFiles(dir: string): string[] {
+  if (!fs.existsSync(dir)) {
+    return [];
+  }
+
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  const files: string[] = [];
+
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...listRepositoryTextFiles(fullPath));
+      continue;
+    }
+    if (entry.isFile() && /\.(yaml|yml|json|md|mdx)$/i.test(entry.name)) {
       files.push(fullPath);
     }
   }
@@ -206,7 +340,7 @@ export async function getCatalogCards(): Promise<CatalogCard[]> {
         description,
         maturity,
         domain,
-        searchData: `${title} ${version} ${owner} ${description} ${maturity} ${domain}`.toLowerCase(),
+        searchData: `${title} ${version} ${owner} ${description} ${maturity} ${domain} ${contract.fullPath} ${contract.yamlRaw}`.toLowerCase(),
         href: `/${contract.slug}`
       } satisfies CatalogCard;
     })
@@ -254,30 +388,15 @@ export async function getContractPageData(slug: string): Promise<{
 }
 
 export async function getEditorRepositoryFiles(): Promise<EditorRepositoryFile[]> {
-  const root = process.cwd();
-  const repoFiles: EditorRepositoryFile[] = [
-    {
-      id: "readme",
-      name: "README.md",
-      path: "README.md",
-      kind: "markdown",
-      content: fs.readFileSync(path.join(root, "README.md"), "utf-8")
-    },
-    {
-      id: "schema-template",
-      name: "template.v3.yaml",
-      path: "schema/template.v3.yaml",
-      kind: "yaml",
-      content: fs.readFileSync(path.join(root, "schema", "template.v3.yaml"), "utf-8")
-    },
-    {
-      id: "schema-contract",
-      name: "contract_schema.json",
-      path: "schema/contract_schema.json",
-      kind: "json",
-      content: fs.readFileSync(path.join(root, "schema", "contract_schema.json"), "utf-8")
-    }
-  ];
+  const schemaFiles = await getRepositoryFolderFiles("schema");
+  const docsFiles = await getRepositoryFolderFiles("docs");
+  const repoFiles: EditorRepositoryFile[] = [...schemaFiles, ...docsFiles].map((file) => ({
+    id: file.path.replace(/[/.]/g, "-"),
+    name: file.name,
+    path: file.path,
+    kind: file.kind,
+    content: file.content
+  }));
 
   const contracts = await getContracts();
   const contractFiles = contracts.map((contract) => ({

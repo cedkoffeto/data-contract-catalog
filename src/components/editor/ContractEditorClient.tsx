@@ -721,7 +721,7 @@ export function ContractEditorClient({
   const visibleDocsDocuments = useMemo(
     () =>
       documents.filter((document) => {
-        if (document.path !== "README.md") {
+        if (!document.path.startsWith("docs/")) {
           return false;
         }
 

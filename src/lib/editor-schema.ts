@@ -1,14 +1,65 @@
-import fs from "node:fs";
-import path from "node:path";
-
 import type { RJSFSchema } from "@rjsf/utils";
 
-import { getContracts } from "@/src/lib/contracts";
+import { getContracts, getRepositoryFolderFiles } from "@/src/lib/contracts";
 import type { DataContract } from "@/src/lib/types";
 
-const schemaPath = path.join(process.cwd(), "schema", "contract_schema.json");
-
 let editorSchemaCache: RJSFSchema | null = null;
+
+const FALLBACK_EDITOR_SCHEMA: RJSFSchema = {
+  type: "object",
+  properties: {
+    asset: {
+      type: "object",
+      properties: {
+        id: { type: "string" },
+        name: { type: "string" },
+        maturity: { type: "string" },
+        domain: { type: "string" },
+        context: { type: "string" },
+        type: { type: "string" },
+        description: { type: "string" },
+        version: { type: "string" }
+      }
+    },
+    contract: {
+      type: "object",
+      properties: {
+        schema: {
+          type: "object",
+          properties: {
+            fields: {
+              type: "array",
+              items: {
+                type: "object",
+                additionalProperties: true
+              }
+            }
+          }
+        }
+      }
+    },
+    quality: {
+      type: "object",
+      properties: {
+        checks: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              type: { type: "string" }
+            }
+          }
+        }
+      }
+    },
+    security: {
+      type: "object",
+      properties: {
+        classification: { type: "string" }
+      }
+    }
+  }
+};
 
 function cloneSchema<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
@@ -79,7 +130,10 @@ export async function getEditorSchema(): Promise<RJSFSchema> {
     return editorSchemaCache;
   }
 
-  const baseSchema = JSON.parse(fs.readFileSync(schemaPath, "utf-8")) as RJSFSchema;
+  const schemaFiles = await getRepositoryFolderFiles("schema");
+  const preferredSchemaFile = schemaFiles.find((file) => file.kind === "json");
+  const baseSchemaSource = preferredSchemaFile?.content ?? JSON.stringify(FALLBACK_EDITOR_SCHEMA);
+  const baseSchema = JSON.parse(baseSchemaSource) as RJSFSchema;
   const schema = cloneSchema(baseSchema);
   const fieldTypes = await collectFieldTypes();
 
