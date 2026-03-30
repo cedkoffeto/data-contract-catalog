@@ -76,8 +76,7 @@ export async function getGitLabFileHistory(slug: string, limit = 10): Promise<Co
 
   const commits = (await api.Commits.all(config.projectId, {
     path: filePath,
-    follow: true,
-    ref_name: config.ref,
+    refName: config.ref,
     perPage: Math.max(limit, 50)
   })) as GitLabCommitResponse[];
 

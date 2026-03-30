@@ -810,6 +810,10 @@ export function ContractEditorClient({
           throw new Error("error" in payload && payload.error ? payload.error : "Unable to load repository history");
         }
 
+        if (!("items" in payload) || !Array.isArray(payload.items)) {
+          throw new Error("History API returned an unexpected payload");
+        }
+
         if (isCancelled) {
           return;
         }
@@ -909,6 +913,10 @@ export function ContractEditorClient({
 
     if (!response.ok) {
       throw new Error("error" in payload && payload.error ? payload.error : "Unable to load repository file");
+    }
+
+    if (!("content" in payload) || typeof payload.content !== "string") {
+      throw new Error("Repository content API returned an unexpected payload");
     }
 
     setHistoryVersionCache((current) => ({
@@ -1756,7 +1764,7 @@ export function ContractEditorClient({
               <div className="editor-preview-pane__body">
                 {isContractDocument ? (
                   <div className="editor-preview-sheet">
-                    <ContractHeader asset={selectedData.asset ?? {}} showActions={false} yamlRaw={selectedDocument.content} />
+                    <ContractHeader asset={selectedData.asset ?? {}} showActions={false} />
                     <ContractBody data={selectedData} />
                   </div>
                 ) : (
