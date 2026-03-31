@@ -75,11 +75,51 @@ function getGitLabClient() {
 
 function toGitLabErrorMessage(error: unknown) {
   if (error instanceof Error) {
+    const cause =
+      error.cause && typeof error.cause === "object"
+        ? {
+            description:
+              "description" in error.cause && typeof error.cause.description === "string"
+                ? error.cause.description
+                : undefined,
+            request:
+              "request" in error.cause && error.cause.request && typeof error.cause.request === "object"
+                ? {
+                    method:
+                      "method" in error.cause.request && typeof error.cause.request.method === "string"
+                        ? error.cause.request.method
+                        : undefined,
+                    url:
+                      "url" in error.cause.request && typeof error.cause.request.url === "string"
+                        ? error.cause.request.url
+                        : undefined
+                  }
+                : undefined,
+            response:
+              "response" in error.cause && error.cause.response && typeof error.cause.response === "object"
+                ? {
+                    status:
+                      "status" in error.cause.response && typeof error.cause.response.status === "number"
+                        ? error.cause.response.status
+                        : undefined,
+                    statusText:
+                      "statusText" in error.cause.response && typeof error.cause.response.statusText === "string"
+                        ? error.cause.response.statusText
+                        : undefined,
+                    url:
+                      "url" in error.cause.response && typeof error.cause.response.url === "string"
+                        ? error.cause.response.url
+                        : undefined
+                  }
+                : undefined
+          }
+        : error.cause;
+
     return {
       name: error.name,
       message: error.message,
       stack: error.stack,
-      cause: error.cause
+      cause
     };
   }
 

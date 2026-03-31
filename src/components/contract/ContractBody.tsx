@@ -24,7 +24,11 @@ export function ContractBody({ data }: { data: DataContract }) {
 
       <ModelsSection asset={asset} fields={schema.fields ?? []} grain={contract.grain} primaryKey={contract.primary_key} />
 
-      <InputsSection sources={inputs.sources ?? []} />
+      <InputsSection
+        outputName={output.table_name ?? asset.name}
+        sources={inputs.sources ?? []}
+        transformations={inputs.transformations ?? []}
+      />
 
       <QualitySection checks={quality.checks ?? []} onFailure={quality.on_failure} />
 

@@ -31,16 +31,16 @@ export function ModelsSection({
       <div className="mt-3 flow-root">
         <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
           <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-              <table className="min-w-full divide-y divide-gray-300">
-                <thead className="bg-gray-50">
+            <div className="contract-models-shell">
+              <table className="contract-models-table">
+                <thead className="contract-models-table__head">
                   <tr>
-                    <th scope="colgroup" colSpan={3} className="py-2 pl-4 pr-3 text-left font-semibold text-gray-900 sm:pl-6">
+                    <th scope="colgroup" colSpan={3} className="contract-models-table__title">
                       <span>{asset.name ?? "default"}</span>
-                      <span className="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
+                      <span className="contract-models-pill">
                         table
                       </span>
-                      {grain ? <div className="text-sm font-medium text-gray-500">{grain}</div> : null}
+                      {grain ? <div className="contract-models-table__grain">{grain}</div> : null}
                     </th>
                   </tr>
                 </thead>
@@ -48,9 +48,9 @@ export function ModelsSection({
                 <ModelFieldsTable fields={fields} />
 
                 {primaryKeyValue ? (
-                  <tfoot className="divide-y divide-gray-200 bg-white">
-                    <tr className="bg-gray-50">
-                      <th scope="colgroup" colSpan={3} className="py-2 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
+                  <tfoot className="contract-models-table__foot">
+                    <tr>
+                      <th scope="colgroup" colSpan={3} className="contract-models-table__primary-key">
                         <span>Clé primaire : {primaryKeyValue}</span>
                       </th>
                     </tr>

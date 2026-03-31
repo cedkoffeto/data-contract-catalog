@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useMemo, useState } from "react";
 
 import type { ContractField } from "@/src/lib/types";
@@ -81,64 +82,72 @@ export function ModelFieldsTable({ fields }: { fields: ContractField[] }) {
     <tbody className="divide-y divide-gray-200 bg-white">
       {rows.filter(isVisible).map((row) => {
         const isExpanded = expanded.has(row.id);
-        const piiClass = ["direct", "sensitive"].includes(row.piiClassification) ? "yellow" : "blue";
+        const piiClassName =
+          ["direct", "sensitive"].includes(row.piiClassification)
+            ? "contract-models-pill contract-models-pill--pii-alert"
+            : "contract-models-pill contract-models-pill--pii";
 
         return (
-          <tr key={row.id} className="hover:bg-gray-50 transition-colors duration-150">
-            <td className="whitespace-nowrap py-3 pr-3 text-sm font-medium text-gray-900" style={{ paddingLeft: `${1 + row.depth * 1.5}rem` }}>
-              <div className="flex items-center">
-                {row.depth > 0 ? <span className="mr-2 text-gray-300">↳</span> : null}
+          <tr
+            key={row.id}
+            className={row.depth > 0 ? "contract-models-row contract-models-row--nested" : "contract-models-row"}
+          >
+            <td className="contract-models-cell contract-models-cell--field">
+              <div className="contract-models-field" style={{ "--field-depth": row.depth } as CSSProperties}>
+                <div className="contract-models-field__tree" aria-hidden="true">
+                  {Array.from({ length: row.depth }).map((_, index) => (
+                    <span className="contract-models-field__guide" key={`${row.id}-guide-${index}`} />
+                  ))}
+                </div>
                 {row.hasChildren ? (
                   <button
+                    aria-expanded={isExpanded}
+                    aria-label={isExpanded ? `Collapse ${row.name}` : `Expand ${row.name}`}
+                    className="contract-models-toggle"
                     onClick={() => toggle(row.id)}
                     type="button"
-                    style={{ marginRight: "4px", padding: "2px", borderRadius: "4px" }}
-                    className="inline-flex cursor-pointer items-center border-none bg-transparent transition-transform duration-200 hover:bg-gray-100 focus:outline-none"
                   >
                     <svg
-                      style={{ width: "12px", height: "12px", color: "#9ca3af", transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s" }}
+                      className={isExpanded ? "contract-models-toggle__chevron is-open" : "contract-models-toggle__chevron"}
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                      <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
                     </svg>
                   </button>
-                ) : row.depth > 0 ? (
-                  <span style={{ display: "inline-block", width: "16px", marginRight: "4px" }} />
                 ) : null}
-                <span>{row.name}</span>
+                {!row.hasChildren ? <span className="contract-models-field__leaf" aria-hidden="true" /> : null}
+                <span className="contract-models-field__name">{row.name}</span>
               </div>
             </td>
 
-            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-500">
-              <span className="font-mono text-xs text-gray-500">{row.type}</span>
+            <td className="contract-models-cell contract-models-cell--type">
+              <span className="contract-models-type">{row.type}</span>
             </td>
 
-            <td className="px-3 py-3 text-sm text-gray-500">
+            <td className="contract-models-cell contract-models-cell--details">
               <div>{row.description}</div>
 
               {row.businessRules.length > 0 ? (
-                <div className="mt-1 text-xs text-gray-500">Rules: {row.businessRules.join(", ")}</div>
+                <div className="contract-models-details__meta">Rules: {row.businessRules.join(", ")}</div>
               ) : null}
 
               {row.example !== undefined && row.example !== null && row.example !== "" ? (
-                <div className="mt-1 italic">
+                <div className="contract-models-details__meta contract-models-details__meta--example">
                   Exemple : <span className="font-mono">{String(row.example)}</span>
                 </div>
               ) : null}
 
-              <div>
+              <div className="contract-models-details__pills">
                 {row.required ? (
-                  <span className="mr-1 mt-1 inline-flex items-center rounded-md bg-gray-50 px-1 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
+                  <span className="contract-models-pill">
                     requis
                   </span>
                 ) : null}
 
                 {row.piiClassification ? (
-                  <span
-                    className={`mr-1 mt-1 inline-flex items-center rounded-md bg-${piiClass}-50 px-1 py-1 text-xs font-medium text-${piiClass}-600 ring-1 ring-inset ring-${piiClass}-500/10`}
-                  >
+                  <span className={piiClassName}>
                     PII : {row.piiClassification}
                   </span>
                 ) : null}
