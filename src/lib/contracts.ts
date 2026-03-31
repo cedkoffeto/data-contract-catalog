@@ -5,6 +5,7 @@ import yaml from "js-yaml";
 
 import { Gitlab } from "@gitbeaker/rest";
 
+import { getGitSourceRef } from "@/src/lib/git-source";
 import type { CatalogCard, ContractFile, DataContract, EditorRepositoryFile } from "@/src/lib/types";
 
 const contractsRoot = path.join(process.cwd(), "contracts");
@@ -48,7 +49,7 @@ function getCacheKey() {
   return [
     process.env.GITLAB_BASE_URL?.trim() || "",
     process.env.GITLAB_PROJECT_ID?.trim() || "",
-    process.env.GITLAB_REF?.trim() || "main"
+    getGitSourceRef()
   ].join("|");
 }
 
@@ -56,7 +57,7 @@ function getGitLabClient() {
   const baseUrl = process.env.GITLAB_BASE_URL?.trim();
   const projectId = process.env.GITLAB_PROJECT_ID?.trim();
   const token = process.env.GITLAB_TOKEN?.trim();
-  const ref = process.env.GITLAB_REF?.trim() || "main";
+  const ref = getGitSourceRef();
 
   if (!baseUrl || !projectId || !token) {
     return null;
@@ -72,6 +73,19 @@ function getGitLabClient() {
   };
 }
 
+function toGitLabErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      cause: error.cause
+    };
+  }
+
+  return { value: error };
+}
+
 async function readGitLabTextFile(filePath: string): Promise<string | null> {
   const client = getGitLabClient();
   if (!client) {
@@ -79,10 +93,28 @@ async function readGitLabTextFile(filePath: string): Promise<string | null> {
   }
 
   try {
+    console.info("[gitlab.file] Request", {
+      projectId: client.projectId,
+      ref: client.ref,
+      path: filePath
+    });
     const file = (await client.api.RepositoryFiles.show(client.projectId, filePath, client.ref)) as GitLabRepositoryFile;
     const rawContent = file.content ?? "";
-    return file.encoding === "base64" ? Buffer.from(rawContent, "base64").toString("utf-8") : rawContent;
-  } catch {
+    const content = file.encoding === "base64" ? Buffer.from(rawContent, "base64").toString("utf-8") : rawContent;
+    console.info("[gitlab.file] Success", {
+      projectId: client.projectId,
+      ref: client.ref,
+      path: filePath,
+      size: content.length
+    });
+    return content;
+  } catch (error) {
+    console.error("[gitlab.file] Failed", {
+      projectId: client.projectId,
+      ref: client.ref,
+      path: filePath,
+      ...toGitLabErrorMessage(error)
+    });
     return null;
   }
 }
@@ -127,12 +159,23 @@ export async function getRepositoryFolderFiles(folderPath: string): Promise<Repo
 
   if (client) {
     try {
+      console.info("[gitlab.tree] Request", {
+        projectId: client.projectId,
+        ref: client.ref,
+        path: folderPath
+      });
       const tree = (await client.api.Repositories.allRepositoryTrees(client.projectId, {
         path: folderPath,
         recursive: true,
         ref: client.ref,
         perPage: 1000
       })) as GitLabTreeItem[];
+      console.info("[gitlab.tree] Success", {
+        projectId: client.projectId,
+        ref: client.ref,
+        path: folderPath,
+        count: tree.length
+      });
 
       const files = tree.filter((entry) => entry.type === "blob");
       const records = await Promise.all(
@@ -150,7 +193,13 @@ export async function getRepositoryFolderFiles(folderPath: string): Promise<Repo
       if (records.length > 0) {
         return records.sort((left, right) => left.path.localeCompare(right.path));
       }
-    } catch {
+    } catch (error) {
+      console.error("[gitlab.tree] Failed", {
+        projectId: client.projectId,
+        ref: client.ref,
+        path: folderPath,
+        ...toGitLabErrorMessage(error)
+      });
       // Fall through to local folder lookup.
     }
   }
@@ -264,12 +313,23 @@ async function readGitLabContracts(): Promise<ContractFile[]> {
     return readLocalContracts();
   }
 
+  console.info("[gitlab.contracts] Request", {
+    projectId: client.projectId,
+    ref: client.ref,
+    path: "contracts"
+  });
+
   const tree = (await client.api.Repositories.allRepositoryTrees(client.projectId, {
     path: "contracts",
     recursive: true,
     ref: client.ref,
     perPage: 1000
   })) as GitLabTreeItem[];
+  console.info("[gitlab.contracts] Tree success", {
+    projectId: client.projectId,
+    ref: client.ref,
+    count: tree.length
+  });
 
   const yamlEntries = tree.filter(
     (entry) => entry.type === "blob" && /^contracts\/.+\.(yaml|yml)$/i.test(entry.path)
@@ -289,7 +349,14 @@ async function readGitLabContracts(): Promise<ContractFile[]> {
     })
   );
 
-  return buildContractsFromRecords(records);
+  const contracts = buildContractsFromRecords(records);
+  console.info("[gitlab.contracts] Parsed contracts", {
+    projectId: client.projectId,
+    ref: client.ref,
+    count: contracts.length
+  });
+
+  return contracts;
 }
 
 export async function getContracts(): Promise<ContractFile[]> {

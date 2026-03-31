@@ -2,12 +2,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { ContractPage } from "@/src/components/contract/ContractPage";
-import { getContractPageData, getContracts } from "@/src/lib/contracts";
+import { getContractPageData } from "@/src/lib/contracts";
 
-export async function generateStaticParams() {
-  const contracts = await getContracts();
-  return contracts.map((contract) => ({ slug: contract.slug }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const page = await getContractPageData(params.slug);
