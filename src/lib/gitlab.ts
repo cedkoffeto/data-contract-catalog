@@ -29,11 +29,36 @@ class GitLabConfigurationError extends Error {
 
 function toGitLabErrorMessage(error: unknown) {
   if (error instanceof Error) {
+    const cause = error.cause as
+      | {
+          description?: string;
+          request?: { url?: string; method?: string };
+          response?: { status?: number; statusText?: string; url?: string };
+        }
+      | undefined;
+
     return {
       name: error.name,
       message: error.message,
       stack: error.stack,
-      cause: error.cause
+      cause: cause
+        ? {
+            description: cause.description,
+            request: cause.request
+              ? {
+                  method: cause.request.method,
+                  url: cause.request.url
+                }
+              : undefined,
+            response: cause.response
+              ? {
+                  status: cause.response.status,
+                  statusText: cause.response.statusText,
+                  url: cause.response.url
+                }
+              : undefined
+          }
+        : undefined
     };
   }
 
