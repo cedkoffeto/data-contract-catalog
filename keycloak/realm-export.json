@@ -1,0 +1,68 @@
+{
+  "realm": "data-contracts",
+  "enabled": true,
+  "displayName": "Data Contracts",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "clients": [
+    {
+      "clientId": "data-contract-hub",
+      "name": "Data Contract Hub",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "local-dev-secret",
+      "redirectUris": [
+        "http://localhost:3000/api/auth/callback/keycloak",
+        "http://localhost:3002/api/auth/callback/keycloak"
+      ],
+      "webOrigins": [
+        "http://localhost:3000",
+        "http://localhost:3002"
+      ],
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": true,
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:3000/login##http://localhost:3002/login"
+      },
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "contract.user",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Contract",
+      "lastName": "User",
+      "email": "contract.user@example.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ]
+    }
+  ]
+}

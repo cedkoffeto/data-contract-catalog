@@ -2,8 +2,14 @@ import { NextResponse } from "next/server";
 
 import { getContractBySlug } from "@/src/lib/contracts";
 import { getGitLabFileContent, isGitLabConfigurationError } from "@/src/lib/gitlab";
+import { requireApiAuth } from "@/src/lib/require-auth";
 
 export async function GET(request: Request, context: { params: { slug: string } }) {
+  const unauthorized = await requireApiAuth();
+  if (unauthorized) {
+    return unauthorized;
+  }
+
   const slug = context.params.slug;
 
   if (!(await getContractBySlug(slug))) {

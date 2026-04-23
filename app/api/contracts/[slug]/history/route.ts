@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getContractBySlug } from "@/src/lib/contracts";
 import { getGitLabContractFilePath, getGitLabFileHistory, isGitLabConfigurationError } from "@/src/lib/gitlab";
+import { requireApiAuth } from "@/src/lib/require-auth";
 
 function toErrorLogPayload(error: unknown) {
   if (error instanceof Error) {
@@ -19,6 +20,11 @@ function toErrorLogPayload(error: unknown) {
 }
 
 export async function GET(_request: Request, context: { params: { slug: string } }) {
+  const unauthorized = await requireApiAuth();
+  if (unauthorized) {
+    return unauthorized;
+  }
+
   const slug = context.params.slug;
   const contract = await getContractBySlug(slug);
 

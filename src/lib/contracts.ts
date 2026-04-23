@@ -38,6 +38,7 @@ type CachedContracts = {
 
 let contractsCache: CachedContracts | null = null;
 const CONTRACTS_CACHE_TTL_MS = 5_000;
+const GITLAB_TREE_PAGE_SIZE = 1000;
 
 function hasGitLabContractsConfig() {
   return Boolean(
@@ -180,6 +181,43 @@ function getEditorFileKind(filePath: string): EditorRepositoryFile["kind"] {
   return "yaml";
 }
 
+async function readGitLabTree(
+  projectId: string,
+  ref: string,
+  folderPath: string
+): Promise<GitLabTreeItem[]> {
+  const client = getGitLabClient();
+  if (!client) {
+    return [];
+  }
+
+  const items: GitLabTreeItem[] = [];
+  let page = 1;
+
+  while (true) {
+    const batch = (await client.api.Repositories.allRepositoryTrees(
+      projectId,
+      {
+        path: folderPath,
+        recursive: true,
+        ref,
+        perPage: GITLAB_TREE_PAGE_SIZE,
+        page
+      } as never
+    )) as GitLabTreeItem[];
+
+    items.push(...batch);
+
+    if (batch.length < GITLAB_TREE_PAGE_SIZE) {
+      break;
+    }
+
+    page += 1;
+  }
+
+  return items;
+}
+
 export async function getRepositoryTextFile(filePath: string, fallback = ""): Promise<string> {
   const gitContent = await readGitLabTextFile(filePath);
   if (gitContent !== null) {
@@ -204,12 +242,7 @@ export async function getRepositoryFolderFiles(folderPath: string): Promise<Repo
         ref: client.ref,
         path: folderPath
       });
-      const tree = (await client.api.Repositories.allRepositoryTrees(client.projectId, {
-        path: folderPath,
-        recursive: true,
-        ref: client.ref,
-        perPage: 1000
-      })) as GitLabTreeItem[];
+      const tree = await readGitLabTree(client.projectId, client.ref, folderPath);
       console.info("[gitlab.tree] Success", {
         projectId: client.projectId,
         ref: client.ref,
@@ -359,12 +392,7 @@ async function readGitLabContracts(): Promise<ContractFile[]> {
     path: "contracts"
   });
 
-  const tree = (await client.api.Repositories.allRepositoryTrees(client.projectId, {
-    path: "contracts",
-    recursive: true,
-    ref: client.ref,
-    perPage: 1000
-  })) as GitLabTreeItem[];
+  const tree = await readGitLabTree(client.projectId, client.ref, "contracts");
   console.info("[gitlab.contracts] Tree success", {
     projectId: client.projectId,
     ref: client.ref,

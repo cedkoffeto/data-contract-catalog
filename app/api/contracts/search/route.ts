@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 
 import { searchCatalogCards } from "@/src/lib/contracts";
+import { requireApiAuth } from "@/src/lib/require-auth";
 
 export async function GET(request: Request) {
+  const unauthorized = await requireApiAuth();
+  if (unauthorized) {
+    return unauthorized;
+  }
+
   const { searchParams } = new URL(request.url);
 
   const cards = await searchCatalogCards({

@@ -2,6 +2,58 @@
 
 Next.js migration of the data contract catalog with a fully React, componentized architecture.
 
+## Authentication
+
+The platform is protected with Keycloak via NextAuth.
+The default login page uses a local username/password form and validates credentials against Keycloak with the confidential client secret on the server.
+
+Required environment variables:
+
+```bash
+NEXTAUTH_URL=http://localhost:3000
+AUTH_SECRET=replace-with-a-long-random-secret
+AUTH_KEYCLOAK_ID=data-contract-hub
+AUTH_KEYCLOAK_SECRET=local-dev-secret
+AUTH_KEYCLOAK_ISSUER=http://localhost:8080/realms/data-contracts
+```
+
+Keycloak callback URL:
+
+```bash
+http://localhost:3000/api/auth/callback/keycloak
+```
+
+In production, replace the host with your deployed URL.
+
+For the local username/password form, keep `Direct Access Grants` enabled on the Keycloak client.
+
+For a local Keycloak instance:
+
+```bash
+docker compose up
+```
+
+If you already started Keycloak before changing the realm or hostname config, recreate the local volume so the realm is imported again:
+
+```bash
+docker compose down -v
+docker compose up
+```
+
+Then open the app on `http://localhost:3000`. The local realm contains:
+
+```text
+user: contract.user
+password: password
+```
+
+Keycloak admin console:
+
+```text
+http://localhost:8080
+admin / admin
+```
+
 ## Endpoints (clean URLs)
 
 - `/` : catalog

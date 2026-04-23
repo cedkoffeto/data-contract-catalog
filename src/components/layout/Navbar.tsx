@@ -1,7 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
 
-export function Navbar() {
+import { auth } from "@/src/auth";
+import { UserMenu } from "@/src/components/layout/UserMenu";
+
+export async function Navbar() {
+  const session = await auth();
+  const displayName = session?.user?.name || session?.user?.email || "Connected user";
+
   return (
     <nav className="site-nav">
       <div className="site-nav__inner">
@@ -33,6 +39,8 @@ export function Navbar() {
             <Link className="site-nav__cta" href="/editor">
               Editor
             </Link>
+
+            {session ? <UserMenu email={session.user?.email} image={session.user?.image} name={displayName} /> : null}
           </div>
         </div>
       </div>

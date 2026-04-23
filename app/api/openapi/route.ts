@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 
 import { generateOpenApiDocument } from "@/src/lib/openapi";
+import { requireApiAuth } from "@/src/lib/require-auth";
 
-export function GET(request: Request) {
+export async function GET(request: Request) {
+  const unauthorized = await requireApiAuth();
+  if (unauthorized) {
+    return unauthorized;
+  }
+
   const url = new URL(request.url);
   const baseUrl = `${url.protocol}//${url.host}`;
   const spec = generateOpenApiDocument(baseUrl);
