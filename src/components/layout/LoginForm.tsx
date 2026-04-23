@@ -50,14 +50,6 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
       <button className="login-form__submit" disabled={isSubmitting} type="submit">
         {isSubmitting ? "Connexion..." : "Se connecter"}
       </button>
-
-      <button
-        className="login-form__secondary"
-        onClick={() => void signIn("keycloak", { callbackUrl, redirect: true })}
-        type="button"
-      >
-        Utiliser la page Keycloak
-      </button>
     </form>
   );
 }
