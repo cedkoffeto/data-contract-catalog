@@ -21,13 +21,13 @@ export default function LoginPage({
         <div className="login-card__brand">
           <Image alt="Attijariwafa bank" className="login-card__logo" height={48} priority src="/awb-icon.png" width={48} />
           <div>
-            <p className="login-card__eyebrow">Secure workspace</p>
-            <h1>Authentification</h1>
+            <p className="login-card__eyebrow">Data Contract Hub</p>
+            <h1>Bienvenue</h1>
           </div>
         </div>
 
         <p className="login-card__copy">
-          Connecte-toi avec ton compte Keycloak pour acceder a la plateforme.
+          Connecte-toi pour acceder au catalogue des contrats, a l’editeur et a la documentation API.
         </p>
 
         <div className="login-card__form">
