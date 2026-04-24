@@ -30,28 +30,12 @@ type RepositoryFolderFile = {
   kind: EditorRepositoryFile["kind"];
 };
 
-type CachedContracts = {
-  key: string;
-  items: ContractFile[];
-  expiresAt: number;
-};
-
-let contractsCache: CachedContracts | null = null;
-const CONTRACTS_CACHE_TTL_MS = 5_000;
 const GITLAB_TREE_PAGE_SIZE = 1000;
 
 function hasGitLabContractsConfig() {
   return Boolean(
     process.env.GITLAB_BASE_URL?.trim() && process.env.GITLAB_PROJECT_ID?.trim() && process.env.GITLAB_TOKEN?.trim()
   );
-}
-
-function getCacheKey() {
-  return [
-    process.env.GITLAB_BASE_URL?.trim() || "",
-    process.env.GITLAB_PROJECT_ID?.trim() || "",
-    getGitSourceRef()
-  ].join("|");
 }
 
 function getGitLabClient() {
@@ -428,21 +412,7 @@ async function readGitLabContracts(): Promise<ContractFile[]> {
 }
 
 export async function getContracts(): Promise<ContractFile[]> {
-  const cacheKey = getCacheKey();
-  const now = Date.now();
-
-  if (contractsCache && contractsCache.key === cacheKey && contractsCache.expiresAt > now) {
-    return contractsCache.items;
-  }
-
-  const items = hasGitLabContractsConfig() ? await readGitLabContracts() : readLocalContracts();
-  contractsCache = {
-    key: cacheKey,
-    items,
-    expiresAt: now + CONTRACTS_CACHE_TTL_MS
-  };
-
-  return items;
+  return hasGitLabContractsConfig() ? readGitLabContracts() : readLocalContracts();
 }
 
 export async function getContractBySlug(slug: string): Promise<ContractFile | undefined> {
