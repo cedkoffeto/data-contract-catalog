@@ -16,6 +16,14 @@ type GitLabCommitResponse = {
   author_name?: string;
 };
 
+type GitLabCommitDiffResponse = {
+  new_path: string;
+  old_path: string;
+  new_file: boolean;
+  renamed_file: boolean;
+  deleted_file: boolean;
+};
+
 export function toPublicContractPath(filePath: string) {
   return filePath.replace(/^contracts\//, "");
 }
@@ -161,6 +169,42 @@ export async function getGitLabFileHistory(slug: string, limit = 10): Promise<Co
   }
 }
 
+async function readRepositoryFileAtRef(projectId: string, filePath: string, ref: string, api: InstanceType<typeof Gitlab>) {
+  const response = await api.RepositoryFiles.show(projectId, filePath, ref);
+  const content = response.content ?? "";
+  return response.encoding === "base64" ? Buffer.from(content, "base64").toString("utf-8") : content;
+}
+
+async function resolveHistoricalFilePath(
+  api: InstanceType<typeof Gitlab>,
+  projectId: string,
+  currentPath: string,
+  ref: string
+) {
+  const diff = (await api.Commits.showDiff(projectId, ref, { perPage: 100 })) as GitLabCommitDiffResponse[];
+  const currentName = path.basename(currentPath);
+  const candidatePaths = new Set<string>();
+
+  for (const entry of diff) {
+    const touchesCurrentPath = entry.new_path === currentPath || entry.old_path === currentPath;
+    const touchesCurrentName = path.basename(entry.new_path) === currentName || path.basename(entry.old_path) === currentName;
+
+    if (!touchesCurrentPath && !touchesCurrentName) {
+      continue;
+    }
+
+    if (entry.new_path) {
+      candidatePaths.add(entry.new_path);
+    }
+
+    if (entry.old_path) {
+      candidatePaths.add(entry.old_path);
+    }
+  }
+
+  return Array.from(candidatePaths);
+}
+
 export async function getGitLabFileContent(slug: string, ref?: string) {
   const { api, config } = getGitLabClient();
   const filePath = await getGitLabContractFilePath(slug);
@@ -174,10 +218,7 @@ export async function getGitLabFileContent(slug: string, ref?: string) {
   });
 
   try {
-    const response = await api.RepositoryFiles.show(config.projectId, filePath, resolvedRef);
-    const content = response.content ?? "";
-    const decodedContent =
-      response.encoding === "base64" ? Buffer.from(content, "base64").toString("utf-8") : content;
+    const decodedContent = await readRepositoryFileAtRef(config.projectId, filePath, resolvedRef, api);
 
     console.info("[gitlab.content] Success", {
       slug,
@@ -194,6 +235,51 @@ export async function getGitLabFileContent(slug: string, ref?: string) {
       content: decodedContent
     };
   } catch (error) {
+    if (ref) {
+      try {
+        const candidatePaths = await resolveHistoricalFilePath(api, config.projectId, filePath, resolvedRef);
+
+        console.info("[gitlab.content] Historical path fallback", {
+          slug,
+          projectId: config.projectId,
+          ref: resolvedRef,
+          currentPath: filePath,
+          candidatePaths
+        });
+
+        for (const candidatePath of candidatePaths) {
+          try {
+            const decodedContent = await readRepositoryFileAtRef(config.projectId, candidatePath, resolvedRef, api);
+
+            console.info("[gitlab.content] Historical path success", {
+              slug,
+              projectId: config.projectId,
+              ref: resolvedRef,
+              path: candidatePath,
+              size: decodedContent.length
+            });
+
+            return {
+              filePath: toPublicContractPath(candidatePath),
+              ref: resolvedRef,
+              repositoryUrl: config.repositoryUrl,
+              content: decodedContent
+            };
+          } catch {
+            // Try next candidate.
+          }
+        }
+      } catch (fallbackError) {
+        console.error("[gitlab.content] Historical path resolution failed", {
+          slug,
+          projectId: config.projectId,
+          ref: resolvedRef,
+          path: filePath,
+          ...toGitLabErrorMessage(fallbackError)
+        });
+      }
+    }
+
     console.error("[gitlab.content] Failed", {
       slug,
       projectId: config.projectId,
