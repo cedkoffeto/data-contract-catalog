@@ -19,13 +19,13 @@ function toErrorLogPayload(error: unknown) {
   };
 }
 
-export async function GET(_request: Request, context: { params: { slug: string } }) {
+export async function GET(_request: Request, context: { params: Promise<{ slug: string }> }) {
   const unauthorized = await requireApiAuth();
   if (unauthorized) {
     return unauthorized;
   }
 
-  const slug = context.params.slug;
+  const { slug } = await context.params;
   const contract = await getContractBySlug(slug);
 
   if (!contract) {

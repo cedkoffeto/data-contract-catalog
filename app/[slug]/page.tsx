@@ -6,19 +6,21 @@ import { getContractPageData } from "@/src/lib/contracts";
 
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const page = await getContractPageData(params.slug);
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const page = await getContractPageData(slug);
   if (!page) {
     return { title: "Contrat introuvable" };
   }
 
   return {
-    title: `Contrat de données ${page.data.asset?.name ?? params.slug}`
+    title: `Contrat de données ${page.data.asset?.name ?? slug}`
   };
 }
 
-export default async function ContractRoutePage({ params }: { params: { slug: string } }) {
-  const page = await getContractPageData(params.slug);
+export default async function ContractRoutePage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const page = await getContractPageData(slug);
   if (!page) {
     notFound();
   }

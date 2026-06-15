@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { requireApiAuth } from "@/src/lib/require-auth";
 import { getCatalogCards } from "@/src/lib/contracts";
+import { filterCatalogCards, getSessionPermissions } from "@/src/lib/catalog-filter";
 
 export async function GET() {
   const unauthorized = await requireApiAuth();
@@ -9,8 +10,11 @@ export async function GET() {
     return unauthorized;
   }
 
+  const { permissions } = await getSessionPermissions();
+
   const cards = await getCatalogCards();
-  const items = cards.map((card) => ({
+  const filtered = filterCatalogCards(cards, permissions);
+  const items = filtered.map((card) => ({
     slug: card.slug,
     title: card.title,
     version: card.version,

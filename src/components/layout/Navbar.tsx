@@ -2,11 +2,16 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { auth } from "@/src/auth";
+import { AdminMenu } from "@/src/components/layout/AdminMenu";
 import { UserMenu } from "@/src/components/layout/UserMenu";
+import { getUserPermissions } from "@/src/lib/rbac";
 
 export async function Navbar() {
   const session = await auth();
   const displayName = session?.user?.name || session?.user?.email || "Connected user";
+
+  const permissions = session?.user?.name ? await getUserPermissions(session.user.name) : [];
+  const isAdmin = permissions.includes("admin");
 
   return (
     <nav className="site-nav">
@@ -34,6 +39,7 @@ export async function Navbar() {
               <Link className="site-nav__link" href="/docs">
                 Api
               </Link>
+              {isAdmin && <AdminMenu />}
             </div>
 
             <Link className="site-nav__cta" href="/editor">

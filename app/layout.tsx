@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Manrope } from "next/font/google";
 
+import { ensureStartup } from "@/src/lib/startup";
 import "./globals.css";
+
+ensureStartup();
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -21,7 +24,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html className="h-full" lang="en">
+    <html className="h-full" lang="en" style={{ overflowY: "scroll" }}>
       <body className={`${manrope.variable} ${ibmPlexMono.variable} app-body h-full`}>{children}</body>
     </html>
   );

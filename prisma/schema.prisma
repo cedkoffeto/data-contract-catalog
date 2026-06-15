@@ -1,0 +1,73 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  name        String     @id
+  permissions String     @default("[]")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt      @map("updated_at")
+
+  assignments UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  userId     String   @map("user_id")
+  roleName   String   @map("role_name")
+  assignedBy String   @map("assigned_by")
+  assignedAt DateTime @default(now()) @map("assigned_at")
+
+  role Role @relation(fields: [roleName], references: [name], onDelete: Restrict)
+
+  @@id([userId, roleName])
+  @@index([userId])
+  @@map("user_roles")
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  action     String
+  actorId    String   @map("actor_id")
+  targetType String   @map("target_type")
+  targetId   String   @map("target_id")
+  details    String   @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([actorId])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+  @@map("audit_log")
+}
+
+model Subscription {
+  userId       String   @map("user_id")
+  contractSlug String   @map("contract_slug")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@id([userId, contractSlug])
+  @@index([userId])
+  @@index([contractSlug])
+  @@map("subscriptions")
+}
+
+model Notification {
+  id           Int      @id @default(autoincrement())
+  userId       String   @map("user_id")
+  contractSlug String   @map("contract_slug")
+  type         String   @default("info")
+  title        String
+  message      String   @default("")
+  isRead       Boolean  @default(false) @map("is_read")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}

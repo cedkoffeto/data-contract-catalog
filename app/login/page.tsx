@@ -2,17 +2,18 @@ import Image from "next/image";
 
 import { LoginForm } from "@/src/components/layout/LoginForm";
 
-export default function LoginPage({
+export default async function LoginPage({
   searchParams
 }: {
-  searchParams?: { callbackUrl?: string };
+  searchParams?: Promise<{ callbackUrl?: string }>;
 }) {
+  const resolved = await searchParams;
   const callbackUrl =
-    typeof searchParams?.callbackUrl === "string" &&
-    searchParams.callbackUrl.startsWith("/") &&
-    !searchParams.callbackUrl.startsWith("/api/auth") &&
-    !searchParams.callbackUrl.startsWith("/realms/")
-      ? searchParams.callbackUrl
+    typeof resolved?.callbackUrl === "string" &&
+    resolved.callbackUrl.startsWith("/") &&
+    !resolved.callbackUrl.startsWith("/api/auth") &&
+    !resolved.callbackUrl.startsWith("/realms/")
+      ? resolved.callbackUrl
       : "/";
 
   return (

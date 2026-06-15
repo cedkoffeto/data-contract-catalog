@@ -4,13 +4,13 @@ import { getContractBySlug } from "@/src/lib/contracts";
 import { getGitLabFileContent, isGitLabConfigurationError } from "@/src/lib/gitlab";
 import { requireApiAuth } from "@/src/lib/require-auth";
 
-export async function GET(request: Request, context: { params: { slug: string } }) {
+export async function GET(request: Request, context: { params: Promise<{ slug: string }> }) {
   const unauthorized = await requireApiAuth();
   if (unauthorized) {
     return unauthorized;
   }
 
-  const slug = context.params.slug;
+  const { slug } = await context.params;
 
   if (!(await getContractBySlug(slug))) {
     return NextResponse.json({ error: "Contract not found" }, { status: 404 });

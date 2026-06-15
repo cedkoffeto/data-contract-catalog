@@ -2,12 +2,15 @@ import { NextResponse } from "next/server";
 
 import { searchCatalogCards } from "@/src/lib/contracts";
 import { requireApiAuth } from "@/src/lib/require-auth";
+import { filterCatalogCards, getSessionPermissions } from "@/src/lib/catalog-filter";
 
 export async function GET(request: Request) {
   const unauthorized = await requireApiAuth();
   if (unauthorized) {
     return unauthorized;
   }
+
+  const { permissions } = await getSessionPermissions();
 
   const { searchParams } = new URL(request.url);
 
@@ -17,7 +20,8 @@ export async function GET(request: Request) {
     maturity: searchParams.get("maturity") ?? ""
   });
 
-  const items = cards.map((card) => ({
+  const filtered = filterCatalogCards(cards, permissions);
+  const items = filtered.map((card) => ({
     slug: card.slug,
     title: card.title,
     version: card.version,

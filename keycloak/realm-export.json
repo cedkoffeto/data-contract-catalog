@@ -63,6 +63,66 @@
           "temporary": false
         }
       ]
+    },
+    {
+      "username": "admin.user",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Admin",
+      "lastName": "User",
+      "email": "admin.user@example.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "editor.user",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Editor",
+      "lastName": "User",
+      "email": "editor.user@example.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "reader.user",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Reader",
+      "lastName": "User",
+      "email": "reader.user@example.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "data_owner.user",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Data Owner",
+      "lastName": "User",
+      "email": "data_owner.user@example.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ]
     }
   ]
 }
