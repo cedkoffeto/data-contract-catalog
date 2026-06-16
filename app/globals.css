@@ -1824,6 +1824,10 @@ a {
   width: min(34rem, 100vw);
 }
 
+.yaml-sheet__panel--subscribe {
+  width: min(28rem, 100vw);
+}
+
 .yaml-sheet__header {
   display: flex;
   align-items: flex-start;
@@ -2948,4 +2952,55 @@ a {
   .catalog-card {
     padding: 0.85rem;
   }
+}
+
+.subscribe-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.subscribe-legend {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ui-text-soft);
+  margin-bottom: 0.75rem;
+  padding: 0;
+}
+
+.subscribe-option {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem 0.6rem;
+  padding: 0.75rem 0.85rem;
+  margin-bottom: 0.4rem;
+  border-radius: var(--ui-radius);
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+
+.subscribe-option:hover {
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.1);
+}
+
+.subscribe-option__radio {
+  accent-color: var(--ui-primary);
+}
+
+.subscribe-option__label {
+  font-size: 0.88rem;
+  font-weight: 650;
+  color: var(--ui-text);
+}
+
+.subscribe-option__desc {
+  width: 100%;
+  font-size: 0.78rem;
+  color: var(--ui-text-soft);
+  padding-left: calc(0.6rem + 16px);
 }

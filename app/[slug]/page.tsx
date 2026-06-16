@@ -45,7 +45,7 @@ export default async function ContractRoutePage({ params }: { params: Promise<{ 
     return <Forbidden message="Authentification requise" />;
   }
 
-  return <ContractPage data={page.data} slug={page.slug} yamlRaw={page.yamlRaw} />;
+  return <ContractPage data={page.data} slug={page.slug} yamlRaw={page.yamlRaw} userId={userId} />;
 }
 
 function Forbidden({ message }: { message?: string }) {

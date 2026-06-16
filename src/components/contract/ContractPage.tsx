@@ -6,17 +6,19 @@ import type { DataContract } from "@/src/lib/types";
 export async function ContractPage({
   data,
   slug,
-  yamlRaw
+  yamlRaw,
+  userId
 }: {
   data: DataContract;
   slug: string;
   yamlRaw: string;
+  userId?: string;
 }) {
   const historyEntries = await getGitLabFileHistory(slug, 20).catch(() => []);
 
   return (
     <PageShell footerVersion="">
-      <ContractPageClient data={data} historyEntries={historyEntries} slug={slug} yamlRaw={yamlRaw} />
+      <ContractPageClient data={data} historyEntries={historyEntries} slug={slug} yamlRaw={yamlRaw} userId={userId} />
     </PageShell>
   );
 }

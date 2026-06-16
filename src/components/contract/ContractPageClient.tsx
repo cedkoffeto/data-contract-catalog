@@ -1,13 +1,15 @@
 "use client";
 
-import { useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 import yaml from "js-yaml";
 
 import { ContractBody } from "@/src/components/contract/ContractBody";
 import { ContractHeader } from "@/src/components/contract/ContractHeader";
+import { SubscribeModal } from "@/src/components/contract/SubscribeModal";
 import { YamlDialogButton } from "@/src/components/contract/YamlDialogButton";
 import type { ContractHistoryEntry, DataContract } from "@/src/lib/types";
+import type { NotificationChannel, Subscription } from "@/src/lib/subscriptions";
 
 function formatHistoryMeta(value: string) {
   if (!value) {
@@ -30,12 +32,14 @@ export function ContractPageClient({
   data,
   historyEntries,
   slug,
-  yamlRaw
+  yamlRaw,
+  userId
 }: {
   data: DataContract;
   historyEntries: ContractHistoryEntry[];
   slug: string;
   yamlRaw: string;
+  userId?: string;
 }) {
   const [activeVersion, setActiveVersion] = useState<{
     entry: ContractHistoryEntry;
@@ -46,6 +50,24 @@ export function ContractPageClient({
   const [historyError, setHistoryError] = useState<string | null>(null);
   const historyDialogRef = useRef<HTMLDialogElement>(null);
   const historyDialogId = useId().replace(/:/g, "");
+
+  const [currentChannel, setCurrentChannel] = useState<NotificationChannel | null>(null);
+  const [loadingSubscription, setLoadingSubscription] = useState(true);
+
+  useEffect(() => {
+    if (!userId) {
+      setLoadingSubscription(false);
+      return;
+    }
+
+    fetch(`/api/contracts/${slug}/subscription`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { subscription?: Subscription | null } | null) => {
+        setCurrentChannel(data?.subscription?.channel ?? null);
+      })
+      .catch(() => setCurrentChannel(null))
+      .finally(() => setLoadingSubscription(false));
+  }, [slug, userId]);
 
   const displayedData = activeVersion?.data ?? data;
   const displayedYamlRaw = activeVersion?.yamlRaw ?? yamlRaw;
@@ -136,9 +158,19 @@ export function ContractPageClient({
                 <a className="catalog-primary-link" href={`/editor?contract=${slug}`}>
                   Open editor
                 </a>
-                <button className="catalog-secondary-link catalog-secondary-link--button" type="button">
-                  Subscribe
-                </button>
+                {userId ? (
+                  <SubscribeModal
+                    slug={slug}
+                    currentChannel={loadingSubscription ? null : currentChannel}
+                    onSubscribed={(channel) => setCurrentChannel(channel)}
+                    onUnsubscribed={() => setCurrentChannel(null)}
+                    onClose={() => {}}
+                  />
+                ) : (
+                  <button className="catalog-secondary-link catalog-secondary-link--button" disabled type="button">
+                    Subscribe
+                  </button>
+                )}
                 <YamlDialogButton yamlRaw={displayedYamlRaw} />
               </div>
             </div>

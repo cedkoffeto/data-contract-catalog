@@ -24,7 +24,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   try {
     const body = await request.json();
-    const { permissionId, domainScope, contextScope, force } = body;
+    const { permissionId, domainScope, contextScope, dataContractScope, force } = body;
 
     if (!permissionId) {
       return NextResponse.json({ error: "permissionId is required" }, { status: 400 });
@@ -41,6 +41,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       permissionId,
       domainScope: domainScope ?? null,
       contextScope: contextScope ?? null,
+      dataContractScope: dataContractScope ?? null,
       excludeId: policyId,
     });
 
@@ -52,16 +53,17 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           permissionId,
           domainScope: domainScope ?? null,
           contextScope: contextScope ?? null,
+          dataContractScope: dataContractScope ?? null,
           actorId: session!.user!.email!,
         });
         return NextResponse.json(policy);
       }
 
-      let affectedPolicies: Array<{ id: number; domain_scope: string | null; context_scope: string | null; permission_name: string }> = [];
+      let affectedPolicies: Array<{ id: number; domain_scope: string | null; context_scope: string | null; data_contract_scope: string | null; permission_name: string }> = [];
       if (conflict.type === "broader") {
         const ids = await findNarrowerPolicies(
           current.user_id, current.group_id,
-          domainScope ?? null, contextScope ?? null,
+          domainScope ?? null, contextScope ?? null, dataContractScope ?? null,
           conflict.existing.id,
         );
         for (const id of ids) {
@@ -80,6 +82,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           permissionName: (await listPermissions()).find((p) => p.id === permissionId)?.name ?? "unknown",
           domainScope: domainScope ?? null,
           contextScope: contextScope ?? null,
+          dataContractScope: dataContractScope ?? null,
         },
       }, { status: 409 });
     }
@@ -89,6 +92,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       permissionId,
       domainScope: domainScope ?? null,
       contextScope: contextScope ?? null,
+      dataContractScope: dataContractScope ?? null,
       actorId: session!.user!.email!,
     });
 

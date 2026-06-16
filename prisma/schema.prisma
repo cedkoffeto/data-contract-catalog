@@ -26,6 +26,7 @@ model AuditLog {
 model Subscription {
   userId       String   @map("user_id")
   contractSlug String   @map("contract_slug")
+  channel      String   @default("in_app")
   createdAt    DateTime @default(now()) @map("created_at")
 
   @@id([userId, contractSlug])
@@ -80,14 +81,15 @@ model UserGroup {
 }
 
 model AccessPolicy {
-  id            Int      @id @default(autoincrement())
-  userId        String?  @map("user_id")
-  groupId       Int?     @map("group_id")
-  permissionId  Int      @map("permission_id")
-  domainScope   String?  @map("domain_scope")
-  contextScope  String?  @map("context_scope")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id                Int      @id @default(autoincrement())
+  userId            String?  @map("user_id")
+  groupId           Int?     @map("group_id")
+  permissionId      Int      @map("permission_id")
+  domainScope       String?  @map("domain_scope")
+  contextScope      String?  @map("context_scope")
+  dataContractScope String?  @map("data_contract_scope")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
   permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
   group      Group?     @relation(fields: [groupId], references: [id], onDelete: Cascade)
@@ -97,6 +99,7 @@ model AccessPolicy {
   @@index([permissionId])
   @@index([domainScope])
   @@index([contextScope])
-  @@index([domainScope, contextScope, permissionId])
+  @@index([dataContractScope])
+  @@index([domainScope, contextScope, dataContractScope, permissionId])
   @@map("access_policies")
 }

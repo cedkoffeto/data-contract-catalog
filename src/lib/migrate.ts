@@ -120,6 +120,7 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
         permission_id INTEGER NOT NULL,
         domain_scope TEXT,
         context_scope TEXT,
+        data_contract_scope TEXT,
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE,
@@ -127,11 +128,11 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
       );
 
       CREATE UNIQUE INDEX IF NOT EXISTS idx_access_policies_user_scope
-        ON access_policies(user_id, COALESCE(domain_scope,''), COALESCE(context_scope,''))
+        ON access_policies(user_id, COALESCE(domain_scope,''), COALESCE(context_scope,''), COALESCE(data_contract_scope,''))
         WHERE user_id IS NOT NULL;
 
       CREATE UNIQUE INDEX IF NOT EXISTS idx_access_policies_group_scope
-        ON access_policies(group_id, COALESCE(domain_scope,''), COALESCE(context_scope,''))
+        ON access_policies(group_id, COALESCE(domain_scope,''), COALESCE(context_scope,''), COALESCE(data_contract_scope,''))
         WHERE group_id IS NOT NULL;
 
       CREATE INDEX IF NOT EXISTS idx_user_group_user_id ON user_group(user_id);
@@ -141,7 +142,7 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
       CREATE INDEX IF NOT EXISTS idx_access_policies_permission_id ON access_policies(permission_id);
       CREATE INDEX IF NOT EXISTS idx_access_policies_domain_scope ON access_policies(domain_scope);
       CREATE INDEX IF NOT EXISTS idx_access_policies_context_scope ON access_policies(context_scope);
-      CREATE INDEX IF NOT EXISTS idx_access_policies_lookup ON access_policies(domain_scope, context_scope, permission_id);
+      CREATE INDEX IF NOT EXISTS idx_access_policies_data_contract_scope ON access_policies(data_contract_scope);
 
       CREATE TABLE IF NOT EXISTS audit_log (
         id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -160,6 +161,7 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
       CREATE TABLE IF NOT EXISTS subscriptions (
         user_id TEXT NOT NULL,
         contract_slug TEXT NOT NULL,
+        channel TEXT NOT NULL DEFAULT 'in_app',
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (user_id, contract_slug)
       );

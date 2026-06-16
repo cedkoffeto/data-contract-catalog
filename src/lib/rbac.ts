@@ -26,8 +26,9 @@ export async function getUserPermissions(userId: string): Promise<Permission[]> 
          SELECT ug.group_id FROM user_group ug WHERE ug.user_id = ?
        )
      )
-     AND ap.domain_scope IS NULL
-     AND ap.context_scope IS NULL`,
+      AND ap.domain_scope IS NULL
+      AND ap.context_scope IS NULL
+      AND ap.data_contract_scope IS NULL`,
     [userId, userId],
   );
 

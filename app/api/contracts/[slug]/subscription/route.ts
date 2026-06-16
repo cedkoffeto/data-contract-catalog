@@ -1,0 +1,55 @@
+import { NextResponse } from "next/server";
+
+import { auth } from "@/src/auth";
+import { requireApiAuth } from "@/src/lib/require-auth";
+import { getSubscription, subscribe, unsubscribe } from "@/src/lib/subscriptions";
+
+export async function GET(_: Request, { params }: { params: Promise<{ slug: string }> }) {
+  try {
+    const unauthorized = await requireApiAuth();
+    if (unauthorized) return unauthorized;
+
+    const { slug } = await params;
+    const session = await auth();
+    const userId = session?.user?.name;
+    if (!userId) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+
+    const subscription = await getSubscription(userId, slug);
+    return NextResponse.json({ subscription });
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : "Internal server error" }, { status: 500 });
+  }
+}
+
+export async function POST(req: Request, { params }: { params: Promise<{ slug: string }> }) {
+  try {
+    const unauthorized = await requireApiAuth();
+    if (unauthorized) return unauthorized;
+
+    const { slug } = await params;
+    const session = await auth();
+    const userId = session?.user?.name;
+    if (!userId) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+
+    const body = (await req.json()) as { channel?: string } | null;
+    const channel = body?.channel;
+
+    if (!channel) {
+      await unsubscribe({ userId, contractSlug: slug, actorId: userId });
+      return NextResponse.json({ subscription: null });
+    }
+
+    if (channel !== "in_app" && channel !== "email" && channel !== "both") {
+      return NextResponse.json({ error: "Invalid channel" }, { status: 400 });
+    }
+
+    const subscription = await subscribe({ userId, contractSlug: slug, channel, actorId: userId });
+    return NextResponse.json({ subscription });
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : "Internal server error" }, { status: 500 });
+  }
+}

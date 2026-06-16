@@ -22,6 +22,7 @@ export async function getSessionPermissions(): Promise<{
 type PolicyRow = {
   domain_scope: string | null;
   context_scope: string | null;
+  data_contract_scope: string | null;
 };
 
 /**
@@ -54,7 +55,7 @@ export async function filterCatalogCards(
   if (isFreshInstall) return cards;
 
   const hasGlobalAccess = policies.some(
-    (p) => p.domain_scope === null && p.context_scope === null,
+    (p) => p.domain_scope === null && p.context_scope === null && p.data_contract_scope === null,
   );
   if (hasGlobalAccess) return cards;
 
@@ -65,10 +66,12 @@ export async function filterCatalogCards(
     return policies.some((p) => {
       const pd = p.domain_scope?.toLowerCase() ?? null;
       const pc = p.context_scope?.toLowerCase() ?? null;
+      const pdc = p.data_contract_scope?.toLowerCase() ?? null;
 
-      if (pd === null && pc === null) return true;
-      if (pd === domain && pc === null) return true;
-      if (pd === domain && pc === context) return true;
+      if (pd === null && pc === null && pdc === null) return true;
+      if (pd === domain && pc === null && pdc === null) return true;
+      if (pd === domain && pc === context && pdc === null) return true;
+      if (pd === domain && pc === context && pdc === card.slug) return true;
 
       return false;
     });
@@ -104,7 +107,7 @@ export async function getAccessibleSlugs(
   if (isFreshInstall) return new Set(cards.map((c) => c.slug));
 
   const hasGlobalAccess = policies.some(
-    (p) => p.domain_scope === null && p.context_scope === null,
+    (p) => p.domain_scope === null && p.context_scope === null && p.data_contract_scope === null,
   );
   if (hasGlobalAccess) return new Set(cards.map((c) => c.slug));
 
@@ -116,10 +119,12 @@ export async function getAccessibleSlugs(
     const match = policies.some((p) => {
       const pd = p.domain_scope?.toLowerCase() ?? null;
       const pc = p.context_scope?.toLowerCase() ?? null;
+      const pdc = p.data_contract_scope?.toLowerCase() ?? null;
 
-      if (pd === null && pc === null) return true;
-      if (pd === domain && pc === null) return true;
-      if (pd === domain && pc === context) return true;
+      if (pd === null && pc === null && pdc === null) return true;
+      if (pd === domain && pc === null && pdc === null) return true;
+      if (pd === domain && pc === context && pdc === null) return true;
+      if (pd === domain && pc === context && pdc === card.slug) return true;
 
       return false;
     });

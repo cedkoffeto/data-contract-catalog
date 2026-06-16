@@ -15,6 +15,7 @@ type Policy = {
   permission_name: string;
   domain_scope: string | null;
   context_scope: string | null;
+  data_contract_scope: string | null;
 };
 
 type Permission = {
@@ -184,6 +185,35 @@ function PencilIcon() {
   );
 }
 
+function DataContractDatalist({
+  domain,
+  context,
+  id,
+}: {
+  domain: string;
+  context: string;
+  id: string;
+}) {
+  const [items, setItems] = useState<{ slug: string; title: string }[]>([]);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (domain) params.set("domain", domain);
+    if (context) params.set("context", context);
+    const url = `/api/admin/contracts${params.toString() ? "?" + params.toString() : ""}`;
+    fetch(url)
+      .then((r) => r.json())
+      .then((data) => setItems(data.items ?? []))
+      .catch(() => {});
+  }, [domain, context]);
+
+  return (
+    <datalist id={id}>
+      {items.map((s) => <option key={s.slug} value={s.slug}>{s.title}</option>)}
+    </datalist>
+  );
+}
+
 export default function PoliciesPage() {
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
@@ -200,8 +230,8 @@ export default function PoliciesPage() {
     message: string;
     mode: "create" | "edit";
     type: string;
-    affectedPolicies?: Array<{ id: number; domain_scope: string | null; context_scope: string | null; permission_name: string }>;
-    newPolicy?: { assignTo: string; permissionName: string; domainScope: string | null; contextScope: string | null } | null;
+    affectedPolicies?: Array<{ id: number; domain_scope: string | null; context_scope: string | null; data_contract_scope: string | null; permission_name: string }>;
+    newPolicy?: { assignTo: string; permissionName: string; domainScope: string | null; contextScope: string | null; dataContractScope?: string | null } | null;
   } | null>(null);
 
   const [newUserId, setNewUserId] = useState("");
@@ -209,6 +239,7 @@ export default function PoliciesPage() {
   const [newPermissionId, setNewPermissionId] = useState("");
   const [newDomainScope, setNewDomainScope] = useState("");
   const [newContextScope, setNewContextScope] = useState("");
+  const [newDataContractScope, setNewDataContractScope] = useState("");
 
   const [assignMode, setAssignMode] = useState<"user" | "group">("user");
   const [allUsers, setAllUsers] = useState<string[]>([]);
@@ -267,6 +298,7 @@ export default function PoliciesPage() {
       permissionId,
       domainScope: newDomainScope.trim() || null,
       contextScope: newContextScope.trim() || null,
+      dataContractScope: newDataContractScope.trim() || null,
     };
 
     if (assignMode === "user") {
@@ -311,6 +343,7 @@ export default function PoliciesPage() {
     setNewPermissionId("");
     setNewDomainScope("");
     setNewContextScope("");
+    setNewDataContractScope("");
     setToast({ message: "Policy created" });
     await fetchData();
   }
@@ -329,6 +362,7 @@ export default function PoliciesPage() {
       permissionId,
       domainScope: newDomainScope.trim() || null,
       contextScope: newContextScope.trim() || null,
+      dataContractScope: newDataContractScope.trim() || null,
     };
 
     const res = await fetch(`/api/admin/policies/${editTarget.id}`, {
@@ -418,7 +452,8 @@ export default function PoliciesPage() {
       setNewPermissionId("");
       setNewDomainScope("");
       setNewContextScope("");
-    } else {
+      setNewDataContractScope("");
+    } else if (dialog.mode === "edit") {
       setEditTarget(null);
     }
 
@@ -434,11 +469,13 @@ export default function PoliciesPage() {
     setNewPermissionId(String(p.permission_id));
     setNewDomainScope(p.domain_scope ?? "");
     setNewContextScope(p.context_scope ?? "");
+    setNewDataContractScope(p.data_contract_scope ?? "");
   }
 
-  const formatScope = (domain: string | null, context: string | null) => {
-    if (domain === null && context === null) return "All domains & contexts";
-    if (context === null) return `Domain: ${domain}`;
+  const formatScope = (domain: string | null, context: string | null, dataContract?: string | null) => {
+    if (domain === null && context === null && !dataContract) return "All domains & contexts";
+    if (context === null && !dataContract) return `Domain: ${domain}`;
+    if (dataContract) return `${domain} / ${context} / ${dataContract}`;
     return `${domain} / ${context}`;
   };
 
@@ -446,7 +483,7 @@ export default function PoliciesPage() {
 
   const filteredPolicies = policies.filter((p) => {
     const groupName = p.group_name ?? groupMap.get(p.group_id ?? -1) ?? "";
-    return [String(p.id), p.user_id ?? "", String(p.group_id ?? ""), groupName, p.permission_name, p.domain_scope ?? "", p.context_scope ?? ""]
+    return [String(p.id), p.user_id ?? "", String(p.group_id ?? ""), groupName, p.permission_name, p.domain_scope ?? "", p.context_scope ?? "", p.data_contract_scope ?? ""]
       .some((v) => v.toLowerCase().includes(search.toLowerCase()));
   });
 
@@ -550,6 +587,25 @@ export default function PoliciesPage() {
             onContextChange={setNewContextScope}
           />
 
+          <div style={{ minWidth: "200px" }}>
+            <label className="mb-1 block text-xs font-medium text-gray-500">
+              Data Contract <span className="text-gray-400">(empty = all in context)</span>
+            </label>
+            <input
+              className="w-full rounded-md border bg-white px-3 py-2 text-sm text-gray-900"
+              style={{ borderColor: "#d1d5db" }}
+              value={newDataContractScope}
+              onChange={(e) => setNewDataContractScope(e.target.value)}
+              placeholder="e.g. credit_engagement"
+              list="dc-list"
+            />
+            <DataContractDatalist
+              domain={newDomainScope}
+              context={newContextScope}
+              id="dc-list"
+            />
+          </div>
+
           {editTarget ? (
             <div className="flex gap-2">
               <Button
@@ -572,6 +628,7 @@ export default function PoliciesPage() {
                   setNewPermissionId("");
                   setNewDomainScope("");
                   setNewContextScope("");
+                  setNewDataContractScope("");
                   setAssignMode("user");
                 }}
                 className="rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
@@ -595,7 +652,7 @@ export default function PoliciesPage() {
           )}
         </div>
         <p className="mt-3 text-xs text-gray-400">
-          Scope inheritance: empty/empty = global access, domain only = domain-wide, domain+context = context-specific.
+          Scope inheritance: empty/empty/empty = global access, domain only = domain-wide, domain+context = context-wide, domain+context+data contract = contract-specific.
         </p>
       </div>
 
@@ -667,7 +724,7 @@ export default function PoliciesPage() {
                         </span>
                       </td>
                       <td className="whitespace-nowrap px-6 py-4 text-gray-600">
-                        <code className="text-xs">{formatScope(p.domain_scope, p.context_scope)}</code>
+                        <code className="text-xs">{formatScope(p.domain_scope, p.context_scope, p.data_contract_scope)}</code>
                       </td>
                       <td className="whitespace-nowrap px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -753,6 +810,7 @@ export default function PoliciesPage() {
                       <td className="py-1 text-xs">
                         {conflictDialog.newPolicy.domainScope ?? "all domains"}
                         {conflictDialog.newPolicy.contextScope ? ` / ${conflictDialog.newPolicy.contextScope}` : ""}
+                        {conflictDialog.newPolicy.dataContractScope ? ` / ${conflictDialog.newPolicy.dataContractScope}` : ""}
                       </td>
                     </tr>
                   </tbody>
@@ -795,6 +853,7 @@ export default function PoliciesPage() {
                         <td className="py-1 text-xs">
                           {p.domain_scope ?? "all domains"}
                           {p.context_scope ? ` / ${p.context_scope}` : ""}
+                          {p.data_contract_scope ? ` / ${p.data_contract_scope}` : ""}
                         </td>
                       </tr>
                     ))}
@@ -859,7 +918,7 @@ export default function PoliciesPage() {
                         {p.permission_name}
                       </span>
                       <span className="font-mono text-xs text-gray-500">
-                        {p.domain_scope ?? "all domains"}{p.context_scope ? ` / ${p.context_scope}` : ""}
+                        {p.domain_scope ?? "all domains"}{p.context_scope ? ` / ${p.context_scope}` : ""}{p.data_contract_scope ? ` / ${p.data_contract_scope}` : ""}
                       </span>
                     </div>
                   ))}

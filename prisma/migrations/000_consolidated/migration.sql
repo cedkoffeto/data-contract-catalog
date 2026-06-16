@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS "access_policies" (
     "permission_id" INTEGER NOT NULL,
     "domain_scope" TEXT,
     "context_scope" TEXT,
+    "data_contract_scope" TEXT,
     "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "access_policies_permission_id_fkey" FOREIGN KEY ("permission_id") REFERENCES "permissions" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
@@ -70,7 +71,8 @@ CREATE INDEX IF NOT EXISTS "access_policies_group_id_idx" ON "access_policies"("
 CREATE INDEX IF NOT EXISTS "access_policies_permission_id_idx" ON "access_policies"("permission_id");
 CREATE INDEX IF NOT EXISTS "access_policies_domain_scope_idx" ON "access_policies"("domain_scope");
 CREATE INDEX IF NOT EXISTS "access_policies_context_scope_idx" ON "access_policies"("context_scope");
-CREATE INDEX IF NOT EXISTS "access_policies_lookup_idx" ON "access_policies"("domain_scope", "context_scope", "permission_id");
+CREATE INDEX IF NOT EXISTS "access_policies_data_contract_scope_idx" ON "access_policies"("data_contract_scope");
+CREATE INDEX IF NOT EXISTS "access_policies_lookup_idx" ON "access_policies"("domain_scope", "context_scope", "data_contract_scope", "permission_id");
 
 -- Audit log
 CREATE TABLE IF NOT EXISTS "audit_log" (
@@ -91,6 +93,7 @@ CREATE INDEX IF NOT EXISTS "audit_log_created_at_idx" ON "audit_log"("created_at
 CREATE TABLE IF NOT EXISTS "subscriptions" (
     "user_id" TEXT NOT NULL,
     "contract_slug" TEXT NOT NULL,
+    "channel" TEXT NOT NULL DEFAULT 'in_app',
     "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY ("user_id", "contract_slug")
 );

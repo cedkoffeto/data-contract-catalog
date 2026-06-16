@@ -30,11 +30,12 @@ const PERMISSION_RANK: Record<PermissionName, number> = {
 
 /**
  * Returns the set of effective permission names for a user on a specific
- * (domain, context) contract, following the inheritance rules:
+ * (domain, context, dataContract) contract, following the inheritance rules:
  *
- *   Level 1 (Global)    : domain_scope IS NULL AND context_scope IS NULL
- *   Level 2 (Domain)    : domain_scope = target domain AND context_scope IS NULL
- *   Level 3 (Context)   : domain_scope = target domain AND context_scope = target context
+ *   Level 1 (Global)        : all three IS NULL
+ *   Level 2 (Domain)        : domain_scope = target, context IS NULL, data_contract IS NULL
+ *   Level 3 (Context)       : domain_scope + context_scope match, data_contract IS NULL
+ *   Level 4 (Data Contract) : all three match
  *
  * Results are deduplicated and, if admin is present, returned as [ 'admin' ].
  */
@@ -42,6 +43,7 @@ export async function getEffectivePermissions(
   userId: string,
   domain: string,
   context: string,
+  dataContract?: string,
 ): Promise<PermissionName[]> {
   const rows = await query<AccessPolicyRow>(
     `SELECT DISTINCT p.name AS permission_name
@@ -54,11 +56,14 @@ export async function getEffectivePermissions(
        )
      )
      AND (
-       (ap.domain_scope IS NULL AND ap.context_scope IS NULL)               -- Level 1: Global
-       OR (ap.domain_scope = ? AND ap.context_scope IS NULL)                -- Level 2: Domain-wide
-       OR (ap.domain_scope = ? AND ap.context_scope = ?)                    -- Level 3: Context-specific
+       (ap.domain_scope IS NULL AND ap.context_scope IS NULL AND ap.data_contract_scope IS NULL)               -- Level 1: Global
+       OR (ap.domain_scope = ? AND ap.context_scope IS NULL AND ap.data_contract_scope IS NULL)                -- Level 2: Domain-wide
+       OR (ap.domain_scope = ? AND ap.context_scope = ? AND ap.data_contract_scope IS NULL)                    -- Level 3: Context-specific
+       ${dataContract ? "OR (ap.domain_scope = ? AND ap.context_scope = ? AND ap.data_contract_scope = ?)" : ""}  -- Level 4: Contract-specific
      )`,
-    [userId, userId, domain, domain, context],
+    dataContract
+      ? [userId, userId, domain, domain, context, domain, context, dataContract]
+      : [userId, userId, domain, domain, context],
   );
 
   const names = rows.map((r) => r.permission_name as PermissionName);
@@ -81,8 +86,9 @@ export async function authorize(
   domain: string,
   context: string,
   requiredAction: "read" | "write" | "admin",
+  dataContract?: string,
 ): Promise<boolean> {
-  const effective = await getEffectivePermissions(userId, domain, context);
+  const effective = await getEffectivePermissions(userId, domain, context, dataContract);
 
   if (effective.includes("admin")) return true;
 
@@ -107,27 +113,32 @@ type ScopeRelation = "same" | "broader" | "narrower" | "disjoint";
 function computeScopeRelation(
   newDomain: string | null,
   newContext: string | null,
+  newDataContract: string | null,
   existingDomain: string | null,
   existingContext: string | null,
+  existingDataContract: string | null,
 ): ScopeRelation {
-  if (newDomain === existingDomain && newContext === existingContext) return "same";
+  if (newDomain === existingDomain && newContext === existingContext && newDataContract === existingDataContract) return "same";
 
   const newCoversExisting =
     (newDomain === null || newDomain === existingDomain) &&
-    (newContext === null || newContext === existingContext);
+    (newContext === null || newContext === existingContext) &&
+    (newDataContract === null || newDataContract === existingDataContract);
 
   const existingCoversNew =
     (existingDomain === null || existingDomain === newDomain) &&
-    (existingContext === null || existingContext === newContext);
+    (existingContext === null || existingContext === newContext) &&
+    (existingDataContract === null || existingDataContract === newDataContract);
 
   if (newCoversExisting) return "broader";
   if (existingCoversNew) return "narrower";
   return "disjoint";
 }
 
-function formatScope(domain: string | null, context: string | null): string {
-  if (domain === null && context === null) return "all domains & contexts";
-  if (context === null) return `domain: ${domain}`;
+function formatScope(domain: string | null, context: string | null, dataContract?: string | null): string {
+  if (domain === null && context === null && !dataContract) return "all domains & contexts";
+  if (context === null && !dataContract) return `domain: ${domain}`;
+  if (dataContract) return `${domain} / ${context} / ${dataContract}`;
   return `${domain} / ${context}`;
 }
 
@@ -167,14 +178,15 @@ export async function checkPolicyConflicts(params: {
   permissionId: number;
   domainScope: string | null;
   contextScope: string | null;
+  dataContractScope?: string | null;
   excludeId?: number;
 }): Promise<ConflictInfo | null> {
-  const { userId, groupId, permissionId, domainScope, contextScope, excludeId } = params;
+  const { userId, groupId, permissionId, domainScope, contextScope, dataContractScope, excludeId } = params;
 
   const existing = await query<AccessPolicyRecord>(
     `SELECT ap.id, ap.user_id, ap.group_id, NULL AS group_name,
             ap.permission_id, p.name AS permission_name,
-            ap.domain_scope, ap.context_scope
+            ap.domain_scope, ap.context_scope, ap.data_contract_scope
      FROM access_policies ap
      JOIN permissions p ON p.id = ap.permission_id
      WHERE (ap.user_id = ? OR ap.group_id = ?)
@@ -188,13 +200,15 @@ export async function checkPolicyConflicts(params: {
 
   const newDomain = domainScope ?? null;
   const newContext = contextScope ?? null;
+  const newDataContract = dataContractScope ?? null;
   const newRank = await getPermissionRank(permissionId);
 
   for (const policy of existing) {
     const scopeRel = computeScopeRelation(
-      newDomain, newContext,
+      newDomain, newContext, newDataContract,
       policy.domain_scope ?? null,
       policy.context_scope ?? null,
+      policy.data_contract_scope ?? null,
     );
 
     const existingRank = PERMISSION_RANK[policy.permission_name as PermissionName] ?? 0;
@@ -226,13 +240,13 @@ export async function checkPolicyConflicts(params: {
     } else if (scopeRel === "broader") {
       return {
         type: "broader",
-        message: `This policy covers a wider scope (${formatScope(newDomain, newContext)}) than the existing ${policy.permission_name} policy on ${formatScope(policy.domain_scope, policy.context_scope)}. The existing policy will be extended.`,
+        message: `This policy covers a wider scope (${formatScope(newDomain, newContext, newDataContract)}) than the existing ${policy.permission_name} policy on ${formatScope(policy.domain_scope, policy.context_scope, policy.data_contract_scope)}. The existing policy will be extended.`,
         existing: policy,
       };
     } else if (scopeRel === "narrower") {
       return {
         type: "narrower",
-        message: `A broader policy (${policy.permission_name}) already exists on ${formatScope(policy.domain_scope, policy.context_scope)} which already covers this narrower scope.`,
+        message: `A broader policy (${policy.permission_name}) already exists on ${formatScope(policy.domain_scope, policy.context_scope, policy.data_contract_scope)} which already covers this narrower scope.`,
         existing: policy,
       };
     }
@@ -251,10 +265,11 @@ export async function findNarrowerPolicies(
   groupId: number | null,
   domainScope: string | null,
   contextScope: string | null,
+  dataContractScope: string | null,
   excludeId: number,
 ): Promise<number[]> {
-  const rows = await query<{ id: number; domain_scope: string | null; context_scope: string | null }>(
-    `SELECT id, domain_scope, context_scope
+  const rows = await query<{ id: number; domain_scope: string | null; context_scope: string | null; data_contract_scope: string | null }>(
+    `SELECT id, domain_scope, context_scope, data_contract_scope
      FROM access_policies
      WHERE (user_id = ? OR group_id = ?)
        AND id != ?`,
@@ -263,13 +278,15 @@ export async function findNarrowerPolicies(
 
   const newDomain = domainScope ?? null;
   const newContext = contextScope ?? null;
+  const newDataContract = dataContractScope ?? null;
   const narrower: number[] = [];
 
   for (const row of rows) {
     const rel = computeScopeRelation(
-      newDomain, newContext,
+      newDomain, newContext, newDataContract,
       row.domain_scope ?? null,
       row.context_scope ?? null,
+      row.data_contract_scope ?? null,
     );
     if (rel === "broader") {
       narrower.push(row.id);
@@ -296,13 +313,14 @@ export type AccessPolicyRecord = {
   permission_name: string;
   domain_scope: string | null;
   context_scope: string | null;
+  data_contract_scope: string | null;
 };
 
 export async function listAccessPolicies(): Promise<AccessPolicyRecord[]> {
   return query<AccessPolicyRecord>(
     `SELECT ap.id, ap.user_id, ap.group_id, g.name AS group_name,
             ap.permission_id, p.name AS permission_name,
-            ap.domain_scope, ap.context_scope
+            ap.domain_scope, ap.context_scope, ap.data_contract_scope
      FROM access_policies ap
      JOIN permissions p ON p.id = ap.permission_id
      LEFT JOIN groups g ON g.id = ap.group_id
@@ -313,7 +331,7 @@ export async function listAccessPolicies(): Promise<AccessPolicyRecord[]> {
 export async function getAccessPolicy(id: number): Promise<AccessPolicyRecord | null> {
   const rows = await query<AccessPolicyRecord>(
     `SELECT ap.id, ap.user_id, ap.group_id, ap.permission_id, p.name AS permission_name,
-            ap.domain_scope, ap.context_scope
+            ap.domain_scope, ap.context_scope, ap.data_contract_scope
      FROM access_policies ap
      JOIN permissions p ON p.id = ap.permission_id
      WHERE ap.id = ?`,
@@ -332,10 +350,11 @@ export async function createAccessPolicy(params: {
   permissionId: number;
   domainScope: string | null;
   contextScope: string | null;
+  dataContractScope?: string | null;
   actorId: string;
   force?: boolean;
 }): Promise<AccessPolicyRecord> {
-  const { userId, groupId, permissionId, domainScope, contextScope, actorId, force } = params;
+  const { userId, groupId, permissionId, domainScope, contextScope, dataContractScope, actorId, force } = params;
 
   if ((userId === null) === (groupId === null)) {
     throw new Error("Exactly one of userId or groupId must be provided");
@@ -343,12 +362,12 @@ export async function createAccessPolicy(params: {
 
   if (force) {
     const conflict = await checkPolicyConflicts({
-      userId, groupId, permissionId, domainScope, contextScope,
+      userId, groupId, permissionId, domainScope, contextScope, dataContractScope,
     });
     if (conflict?.type === "overlap" || conflict?.type === "broader") {
       if (conflict.type === "broader") {
         const narrowerIds = await findNarrowerPolicies(
-          userId, groupId, domainScope ?? null, contextScope ?? null, conflict.existing.id,
+          userId, groupId, domainScope ?? null, contextScope ?? null, dataContractScope ?? null, conflict.existing.id,
         );
         for (const id of narrowerIds) {
           await execute("DELETE FROM access_policies WHERE id = ?", [id]);
@@ -366,15 +385,16 @@ export async function createAccessPolicy(params: {
         permissionId,
         domainScope: domainScope ?? null,
         contextScope: contextScope ?? null,
+        dataContractScope: dataContractScope ?? null,
         actorId,
       });
     }
   }
 
   const result = await execute(
-    `INSERT INTO access_policies (user_id, group_id, permission_id, domain_scope, context_scope)
-     VALUES (?, ?, ?, ?, ?)`,
-    [userId ?? null, groupId ?? null, permissionId, domainScope ?? null, contextScope ?? null],
+    `INSERT INTO access_policies (user_id, group_id, permission_id, domain_scope, context_scope, data_contract_scope)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [userId ?? null, groupId ?? null, permissionId, domainScope ?? null, contextScope ?? null, dataContractScope ?? null],
   );
 
   const rows = await query<{ id: number }>(
@@ -387,7 +407,7 @@ export async function createAccessPolicy(params: {
     actorId,
     targetType: "policy",
     targetId: String(newId),
-    details: { userId, groupId, permissionId, domainScope, contextScope },
+    details: { userId, groupId, permissionId, domainScope, contextScope, dataContractScope },
   });
 
   return (await getAccessPolicy(newId))!;
@@ -398,15 +418,16 @@ export async function updateAccessPolicy(params: {
   permissionId: number;
   domainScope: string | null;
   contextScope: string | null;
+  dataContractScope?: string | null;
   actorId: string;
 }): Promise<AccessPolicyRecord> {
-  const { id, permissionId, domainScope, contextScope, actorId } = params;
+  const { id, permissionId, domainScope, contextScope, dataContractScope, actorId } = params;
 
   await execute(
     `UPDATE access_policies
-     SET permission_id = ?, domain_scope = ?, context_scope = ?, updated_at = CURRENT_TIMESTAMP
+     SET permission_id = ?, domain_scope = ?, context_scope = ?, data_contract_scope = ?, updated_at = CURRENT_TIMESTAMP
      WHERE id = ?`,
-    [permissionId, domainScope, contextScope, id],
+    [permissionId, domainScope, contextScope, dataContractScope ?? null, id],
   );
 
   await writeAuditLog({
@@ -414,7 +435,7 @@ export async function updateAccessPolicy(params: {
     actorId,
     targetType: "policy",
     targetId: String(id),
-    details: { permissionId, domainScope, contextScope },
+    details: { permissionId, domainScope, contextScope, dataContractScope },
   });
 
   return (await getAccessPolicy(id))!;
@@ -533,7 +554,7 @@ export async function getEffectivePoliciesForUser(userId: string): Promise<Acces
   return query<AccessPolicyRecord>(
     `SELECT ap.id, ap.user_id, ap.group_id, g.name AS group_name,
             ap.permission_id, p.name AS permission_name,
-            ap.domain_scope, ap.context_scope
+            ap.domain_scope, ap.context_scope, ap.data_contract_scope
      FROM access_policies ap
      JOIN permissions p ON p.id = ap.permission_id
      LEFT JOIN groups g ON g.id = ap.group_id

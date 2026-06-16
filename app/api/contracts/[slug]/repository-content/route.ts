@@ -30,7 +30,7 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
   const contractCtx = contract.data.asset?.context ?? "";
   const globalPermissions = await getUserPermissions(userId);
   if (!globalPermissions.includes("admin")) {
-    const allowed = await authorize(userId, contractDomain, contractCtx, "read");
+    const allowed = await authorize(userId, contractDomain, contractCtx, "read", slug);
     if (!allowed) {
       return NextResponse.json({ error: "Forbidden: insufficient permissions on this contract" }, { status: 403 });
     }

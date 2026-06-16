@@ -26,7 +26,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { userId, groupId, permissionId, domainScope, contextScope, force } = body;
+    const { userId, groupId, permissionId, domainScope, contextScope, dataContractScope, force } = body;
 
     if (!userId && !groupId) {
       return NextResponse.json({ error: "Either userId or groupId is required" }, { status: 400 });
@@ -44,6 +44,7 @@ export async function POST(request: Request) {
       permissionId,
       domainScope: domainScope ?? null,
       contextScope: contextScope ?? null,
+      dataContractScope: dataContractScope ?? null,
     });
 
     if (conflict) {
@@ -54,17 +55,18 @@ export async function POST(request: Request) {
           permissionId,
           domainScope: domainScope ?? null,
           contextScope: contextScope ?? null,
+          dataContractScope: dataContractScope ?? null,
           actorId: session!.user!.email!,
           force: true,
         });
         return NextResponse.json(policy, { status: 200 });
       }
 
-      let affectedPolicies: Array<{ id: number; domain_scope: string | null; context_scope: string | null; permission_name: string }> = [];
+      let affectedPolicies: Array<{ id: number; domain_scope: string | null; context_scope: string | null; data_contract_scope: string | null; permission_name: string }> = [];
       if (conflict.type === "broader") {
         const ids = await findNarrowerPolicies(
           userId ?? null, groupId ?? null,
-          domainScope ?? null, contextScope ?? null,
+          domainScope ?? null, contextScope ?? null, dataContractScope ?? null,
           conflict.existing.id,
         );
         for (const id of ids) {
@@ -83,6 +85,7 @@ export async function POST(request: Request) {
           permissionName: (await listPermissions()).find((p) => p.id === permissionId)?.name ?? "unknown",
           domainScope: domainScope ?? null,
           contextScope: contextScope ?? null,
+          dataContractScope: dataContractScope ?? null,
         },
       }, { status: 409 });
     }
@@ -93,6 +96,7 @@ export async function POST(request: Request) {
       permissionId,
       domainScope: domainScope ?? null,
       contextScope: contextScope ?? null,
+      dataContractScope: dataContractScope ?? null,
       actorId: session!.user!.email!,
     });
 
