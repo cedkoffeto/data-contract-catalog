@@ -3,7 +3,7 @@ import path from "node:path";
 
 import initSqlJs, { type SqlValue } from "sql.js";
 
-const DB_PATH = path.join(process.cwd(), "prisma", "data", "rbac.db");
+const DB_PATH = process.env.DB_PATH ?? path.join(process.cwd(), "prisma", "data", "rbac.db");
 
 let _SQL: Awaited<ReturnType<typeof initSqlJs>> | null = null;
 
@@ -93,6 +93,26 @@ export async function transaction(fn: TransactionFn): Promise<void> {
   } catch (error) {
     db.run("ROLLBACK");
     throw error;
+  } finally {
+    db.close();
+  }
+}
+
+export async function migrate(
+  sql: string,
+  params?: SqlValue[],
+): Promise<{ changes: number }> {
+  const SQL = await getSqlModule();
+  let buffer: Buffer;
+  try { buffer = fs.readFileSync(DB_PATH); } catch { buffer = Buffer.alloc(0); }
+  const db = new SQL.Database(buffer);
+
+  try {
+    db.run(sql, params);
+    const changes = db.getRowsModified();
+    const data = db.export();
+    fs.writeFileSync(DB_PATH, Buffer.from(data));
+    return { changes };
   } finally {
     db.close();
   }

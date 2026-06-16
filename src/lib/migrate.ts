@@ -1,5 +1,4 @@
-import { query } from "@/src/lib/db";
-import { migrate } from "@/src/lib/db-migrate";
+import { migrate, query } from "@/src/lib/db";
 
 export type PermissionLevel = "admin" | "editor" | "reader";
 
@@ -91,7 +90,7 @@ async function seedDefaultPolicies() {
 
 const MIGRATIONS: Array<{ id: string; sql: string }> = [
   {
-    id: "001_fine_grained_access",
+    id: "001_full_schema",
     sql: `
       CREATE TABLE IF NOT EXISTS permissions (
         id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -127,6 +126,14 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
         FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE
       );
 
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_access_policies_user_scope
+        ON access_policies(user_id, COALESCE(domain_scope,''), COALESCE(context_scope,''))
+        WHERE user_id IS NOT NULL;
+
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_access_policies_group_scope
+        ON access_policies(group_id, COALESCE(domain_scope,''), COALESCE(context_scope,''))
+        WHERE group_id IS NOT NULL;
+
       CREATE INDEX IF NOT EXISTS idx_user_group_user_id ON user_group(user_id);
       CREATE INDEX IF NOT EXISTS idx_user_group_group_id ON user_group(group_id);
       CREATE INDEX IF NOT EXISTS idx_access_policies_user_id ON access_policies(user_id);
@@ -135,11 +142,7 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
       CREATE INDEX IF NOT EXISTS idx_access_policies_domain_scope ON access_policies(domain_scope);
       CREATE INDEX IF NOT EXISTS idx_access_policies_context_scope ON access_policies(context_scope);
       CREATE INDEX IF NOT EXISTS idx_access_policies_lookup ON access_policies(domain_scope, context_scope, permission_id);
-    `,
-  },
-  {
-    id: "002_missing_tables",
-    sql: `
+
       CREATE TABLE IF NOT EXISTS audit_log (
         id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
         action TEXT NOT NULL,

@@ -28,6 +28,8 @@ export default function GroupsPage() {
   const [addTarget, setAddTarget] = useState<Group | null>(null);
   const [addUserIds, setAddUserIds] = useState<string[]>([]);
   const [membersPopoverGroup, setMembersPopoverGroup] = useState<Group | null>(null);
+  const [membersFilter, setMembersFilter] = useState("");
+  const [removeMemberTarget, setRemoveMemberTarget] = useState<{ group: Group; userId: string } | null>(null);
   const [search, setSearch] = useState("");
 
   const fetchGroups = useCallback(async () => {
@@ -48,6 +50,21 @@ export default function GroupsPage() {
   useEffect(() => {
     fetchGroups();
   }, [fetchGroups]);
+
+  useEffect(() => {
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        if (removeMemberTarget) {
+          setRemoveMemberTarget(null);
+        } else if (membersPopoverGroup) {
+          setMembersPopoverGroup(null);
+          setMembersFilter("");
+        }
+      }
+    }
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [removeMemberTarget, membersPopoverGroup]);
 
   async function handleCreate() {
     if (!newName.trim()) return;
@@ -83,6 +100,26 @@ export default function GroupsPage() {
     }
 
     setToast({ message: `Group "${group.name}" deleted` });
+    await fetchGroups();
+  }
+
+  async function handleRemoveMember(group: Group, userId: string) {
+    setRemoveMemberTarget(null);
+    setError("");
+
+    const res = await fetch(`/api/admin/groups/${group.id}/members`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      setError(data.error ?? "Failed to remove member");
+      return;
+    }
+
+    setToast({ message: `Removed ${userId} from "${group.name}"` });
     await fetchGroups();
   }
 
@@ -168,13 +205,22 @@ export default function GroupsPage() {
               style={{ borderColor: "#d1d5db" }}
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && newName.trim() && newName === newName.trim()) {
+                  handleCreate();
+                }
+              }}
               placeholder="e.g. data_engineering"
             />
           </div>
           <Button
             onClick={handleCreate}
-            disabled={!newName.trim()}
-            style={{ backgroundColor: "var(--ui-primary)", color: "#fff" }}
+            disabled={!newName.trim() || newName !== newName.trim()}
+            style={{
+              backgroundColor: newName.trim() && newName === newName.trim() ? "var(--ui-primary)" : "#d1d5db",
+              color: newName.trim() && newName === newName.trim() ? "#fff" : "#6b7280",
+              cursor: newName.trim() && newName === newName.trim() ? "pointer" : "not-allowed",
+            }}
             className="border-0 font-bold"
           >
             Create
@@ -260,8 +306,7 @@ export default function GroupsPage() {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => setAddTarget(group)}
-                            className="rounded-md px-3 py-1.5 text-sm font-bold"
-                            style={{ backgroundColor: "var(--ui-primary)", color: "#fff" }}
+                            className="editor-soft-button"
                           >
                             Manage
                           </button>
@@ -303,54 +348,84 @@ export default function GroupsPage() {
 
       {membersPopoverGroup && (
         <div
-          className="fixed inset-0 z-50"
-          onClick={() => setMembersPopoverGroup(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
+          onClick={() => { setMembersPopoverGroup(null); setMembersFilter(""); }}
         >
           <div
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-96 rounded-lg border bg-white shadow-xl"
+            className="flex max-h-[60vh] flex-col rounded-lg bg-white shadow-xl"
+            style={{ width: "min(50vw, 600px)" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
               <div>
                 <h3 className="text-sm font-semibold text-gray-900">
                   Members of &ldquo;{membersPopoverGroup.name}&rdquo;
                 </h3>
-                <p className="mt-0.5 text-xs text-gray-400">
-                  {getMembers(membersPopoverGroup.id).length} total
+                <p className="text-[11px] text-gray-400">
+                  {getMembers(membersPopoverGroup.id).length} member{getMembers(membersPopoverGroup.id).length !== 1 ? "s" : ""}
                 </p>
               </div>
               <button
-                onClick={() => setMembersPopoverGroup(null)}
-                className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                onClick={() => { setMembersPopoverGroup(null); setMembersFilter(""); }}
+                className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
               >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
-            <div className="max-h-72 overflow-y-auto px-5 py-3">
-              {getMembers(membersPopoverGroup.id).length === 0 ? (
-                <div className="py-6 text-center text-sm text-gray-400">No members</div>
-              ) : (
-                <div className="space-y-1">
-                  {getMembers(membersPopoverGroup.id).map((m) => (
-                    <div
-                      key={m.user_id}
-                      className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                    >
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-xs font-medium text-gray-500">
-                        {m.user_id.charAt(0).toUpperCase()}
-                      </div>
-                      <span className="font-mono">{m.user_id}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+
+            <div className="border-b border-gray-100 px-4 py-2">
+              <input
+                className="w-full rounded border bg-white px-2 py-1.5 text-xs text-gray-900"
+                style={{ borderColor: "#d1d5db" }}
+                value={membersFilter}
+                onChange={(e) => setMembersFilter(e.target.value)}
+                placeholder="Filter members…"
+                autoFocus
+              />
             </div>
-            <div className="flex justify-end border-t border-gray-100 px-5 py-3">
+
+            <div className="flex-1 overflow-y-auto px-4 py-2">
+              {(() => {
+                const filtered = membersFilter
+                  ? getMembers(membersPopoverGroup.id).filter((m) =>
+                      m.user_id.toLowerCase().includes(membersFilter.toLowerCase()),
+                    )
+                  : getMembers(membersPopoverGroup.id);
+                return filtered.length === 0 ? (
+                  <div className="py-8 text-center text-sm text-gray-400">
+                    {membersFilter ? "No members match your filter" : "No members"}
+                  </div>
+                ) : (
+                  <div className="space-y-0.5">
+                    {filtered.map((m) => (
+                      <div
+                        key={m.user_id}
+                        className="flex items-center gap-2 rounded px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
+                      >
+                        <span className="flex-1 font-mono truncate">{m.user_id}</span>
+                        <button
+                          onClick={() => setRemoveMemberTarget({ group: membersPopoverGroup, userId: m.user_id })}
+                          className="rounded p-0.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                          title="Remove member"
+                        >
+                          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div className="flex justify-end border-t border-gray-100 px-4 py-2">
               <button
-                onClick={() => setMembersPopoverGroup(null)}
-                className="rounded-md px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
+                onClick={() => { setMembersPopoverGroup(null); setMembersFilter(""); }}
+                className="rounded px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
               >
                 Close
               </button>
@@ -358,6 +433,15 @@ export default function GroupsPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={removeMemberTarget !== null}
+        title="Remove member?"
+        message={`Remove "${removeMemberTarget?.userId}" from "${removeMemberTarget?.group.name}"?`}
+        confirmLabel="Remove"
+        onConfirm={() => removeMemberTarget && handleRemoveMember(removeMemberTarget.group, removeMemberTarget.userId)}
+        onCancel={() => setRemoveMemberTarget(null)}
+      />
 
       {toast && (
         <Toast

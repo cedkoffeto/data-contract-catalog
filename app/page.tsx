@@ -1,6 +1,6 @@
 import { CatalogPage } from "@/src/components/catalog/CatalogPage";
 import { getCatalogCards } from "@/src/lib/contracts";
-import { filterCatalogCards } from "@/src/lib/catalog-filter";
+import { getAccessibleSlugs } from "@/src/lib/catalog-filter";
 import { getUserPermissions } from "@/src/lib/rbac";
 import { auth } from "@/src/auth";
 
@@ -10,6 +10,14 @@ export default async function HomePage() {
   const permissions = userId ? await getUserPermissions(userId) : [];
 
   const cards = await getCatalogCards();
-  const filtered = userId ? await filterCatalogCards(userId, cards, permissions) : [];
-  return <CatalogPage cards={filtered} />;
+  if (!userId) {
+    return <CatalogPage cards={[]} />;
+  }
+
+  const accessible = await getAccessibleSlugs(userId, permissions, cards);
+  const annotated = cards.map((card) => ({
+    ...card,
+    accessible: accessible.has(card.slug),
+  }));
+  return <CatalogPage cards={annotated} />;
 }

@@ -8,7 +8,7 @@ import { Gitlab } from "@gitbeaker/rest";
 import { getGitSourceRef } from "@/src/lib/git-source";
 import type { CatalogCard, ContractFile, DataContract, EditorRepositoryFile } from "@/src/lib/types";
 
-const contractsRoot = path.join(process.cwd(), "contracts");
+const contractsRoot = process.env.CONTRACTS_PATH ?? path.join(process.cwd(), "contracts");
 
 type GitLabTreeItem = {
   id?: string;
@@ -447,6 +447,7 @@ export async function getCatalogCards(): Promise<CatalogCard[]> {
         maturity,
         domain,
         context,
+        accessible: true,
         searchData: `${title} ${version} ${owner} ${description} ${maturity} ${domain} ${context} ${contract.fullPath} ${contract.yamlRaw}`.toLowerCase(),
         href: `/${contract.slug}`
       } satisfies CatalogCard;

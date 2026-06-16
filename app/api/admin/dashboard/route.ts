@@ -20,8 +20,9 @@ export async function GET() {
     actor_id: string;
     target_type: string;
     target_id: string;
+    details: string;
     created_at: string;
-  }>("SELECT id, action, actor_id, target_type, target_id, created_at FROM audit_log ORDER BY id DESC");
+  }>("SELECT id, action, actor_id, target_type, target_id, details, created_at FROM audit_log ORDER BY id DESC");
 
   return NextResponse.json({
     groupCount: groupCountResult?.c ?? 0,

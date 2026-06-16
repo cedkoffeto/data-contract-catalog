@@ -906,6 +906,14 @@ a {
   box-shadow: 0 18px 34px rgba(15, 23, 42, 0.08);
 }
 
+.catalog-card--disabled {
+  opacity: 0.45;
+  filter: grayscale(0.6);
+  cursor: default;
+  pointer-events: none;
+  user-select: none;
+}
+
 .catalog-card__header,
 .catalog-card__footer,
 .contract-hero__facts,
@@ -999,9 +1007,16 @@ a {
 }
 
 .catalog-card__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   font-size: 0.76rem;
   font-weight: 700;
   color: var(--ui-primary);
+}
+
+.catalog-card__link--disabled {
+  color: var(--ui-text-soft);
 }
 
 .contract-hero {

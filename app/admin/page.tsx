@@ -25,6 +25,7 @@ type AuditLog = {
   actor_id: string;
   target_type: string;
   target_id: string;
+  details: string;
   created_at: string;
 };
 
@@ -62,7 +63,7 @@ export default function AdminDashboard() {
   }, [fetchData]);
 
   const filtered = logs.filter((log) =>
-    [log.created_at, log.action, log.actor_id, log.target_type, log.target_id].some((v) =>
+    [log.created_at, log.action, log.actor_id, log.target_type, log.target_id, log.details].some((v) =>
       String(v ?? "").toLowerCase().includes(search.toLowerCase())
     )
   );
@@ -111,8 +112,8 @@ export default function AdminDashboard() {
           <table className="min-w-full divide-y divide-gray-200 bg-white text-sm">
             <thead className="bg-gray-50">
               <tr>
-                {(["created_at", "action", "actor_id", "target_id"] as const).map((key) => {
-                  const labels: Record<string, string> = { created_at: "Date", action: "Action", actor_id: "Actor", target_id: "Target" };
+                {(["created_at", "action", "actor_id", "target_id", "details"] as const).map((key) => {
+                  const labels: Record<string, string> = { created_at: "Date", action: "Action", actor_id: "Actor", target_id: "Target", details: "Details" };
                   return (
                     <th
                       key={key}
@@ -139,11 +140,14 @@ export default function AdminDashboard() {
                   <td className="whitespace-nowrap px-6 py-4 text-gray-600">
                     <span className="text-gray-400">{log.target_type}:</span> {log.target_id}
                   </td>
+                  <td className="max-w-[200px] truncate px-6 py-4 font-mono text-xs text-gray-500">
+                    {log.details && log.details !== "{}" ? log.details : "—"}
+                  </td>
                 </tr>
               ))}
               {paginated.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-gray-400">
+                  <td colSpan={5} className="px-6 py-8 text-center text-gray-400">
                     No audit entries yet
                   </td>
                 </tr>

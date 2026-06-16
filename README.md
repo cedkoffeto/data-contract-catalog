@@ -14,7 +14,7 @@ Le projet remplace une ancienne version plus statique par une application React/
 - une API interne documentee via OpenAPI
 - un editeur de contrat capable de travailler a partir des schemas du repository
 
-Point important: il n'y a pas de base de donnees applicative dans ce projet. Les data contracts vivent dans le repository, localement ou via GitLab API selon la configuration.
+Note: les data contracts vivent dans le repository (localement ou via GitLab API). Une base SQLite legere (prisma/data/rbac.db) est utilisee pour la gestion des droits d'acces (RBAC) et les notifications, via sql.js.
 
 ## Lecture rapide pour un nouveau dev
 
@@ -26,13 +26,13 @@ Si tu onboardes sur le projet, voici l'ordre conseille:
 4. Se connecter avec l'utilisateur de demo.
 5. Parcourir les pages `/`, `/:slug`, `/editor`, `/docs`.
 6. Lire ensuite les fichiers d'entree:
-   - [app/layout.tsx](/Users/ceko/workspace/awb/migration-datacontract/data-product-contract-nextjs/app/layout.tsx)
-   - [app/page.tsx](/Users/ceko/workspace/awb/migration-datacontract/data-product-contract-nextjs/app/page.tsx)
-   - [app/editor/page.tsx](/Users/ceko/workspace/awb/migration-datacontract/data-product-contract-nextjs/app/editor/page.tsx)
-   - [src/auth.ts](/Users/ceko/workspace/awb/migration-datacontract/data-product-contract-nextjs/src/auth.ts)
-   - [src/lib/contracts.ts](/Users/ceko/workspace/awb/migration-datacontract/data-product-contract-nextjs/src/lib/contracts.ts)
-   - [src/lib/gitlab.ts](/Users/ceko/workspace/awb/migration-datacontract/data-product-contract-nextjs/src/lib/gitlab.ts)
-   - [src/lib/editor-schema.ts](/Users/ceko/workspace/awb/migration-datacontract/data-product-contract-nextjs/src/lib/editor-schema.ts)
+   - [app/layout.tsx](app/layout.tsx)
+   - [app/page.tsx](app/page.tsx)
+   - [app/editor/page.tsx](app/editor/page.tsx)
+   - [src/auth.ts](src/auth.ts)
+   - [src/lib/contracts.ts](src/lib/contracts.ts)
+   - [src/lib/gitlab.ts](src/lib/gitlab.ts)
+   - [src/lib/editor-schema.ts](src/lib/editor-schema.ts)
 
 ## Stack technique
 
@@ -70,7 +70,6 @@ Si tu onboardes sur le projet, voici l'ordre conseille:
 
 - `zod`
 - `@asteasolutions/zod-to-openapi`
-- `@scalar/nextjs-api-reference`
 
 ### UI, composants et edition
 
@@ -116,7 +115,6 @@ Si tu onboardes sur le projet, voici l'ordre conseille:
 
 - `zod`
 - `@asteasolutions/zod-to-openapi`
-- `@scalar/nextjs-api-reference`
 
 ## Approche produit et technique
 
@@ -124,11 +122,11 @@ Si tu onboardes sur le projet, voici l'ordre conseille:
 
 L'application est repository-based:
 
-- pas de base de donnees applicative
 - les contrats sont des fichiers YAML versionnes
 - les schemas sont des fichiers du repository
 - l'historique d'un contrat vient du Git history GitLab
 - le contenu d'une version historique est relu via GitLab API a partir d'un `ref`
+- une base SQLite (prisma/data/rbac.db) gere les droits d'acces et notifications
 
 ### Pourquoi cette approche
 
@@ -192,9 +190,9 @@ public/                              # Assets statiques
 ### Catalogue
 
 - route: `/`
-- point d'entree: [app/page.tsx](/Users/ceko/workspace/awb/migration-datacontract/data-product-contract-nextjs/app/page.tsx)
+- point d'entree: [app/page.tsx](app/page.tsx)
 - composants principaux:
-  - [src/components/catalog/CatalogPage.tsx](/Users/ceko/workspace/awb/migration-datacontract/data-product-contract-nextjs/src/components/catalog/CatalogPage.tsx)
+  - [src/components/catalog/CatalogPage.tsx](src/components/catalog/CatalogPage.tsx)
   - `CatalogClient`
   - `CatalogCard`
 
@@ -219,8 +217,8 @@ Responsabilite:
 ### Workspace editeur
 
 - route: `/editor`
-- point d'entree: [app/editor/page.tsx](/Users/ceko/workspace/awb/migration-datacontract/data-product-contract-nextjs/app/editor/page.tsx)
-- composant cle: [src/components/editor/ContractEditorClient.tsx](/Users/ceko/workspace/awb/migration-datacontract/data-product-contract-nextjs/src/components/editor/ContractEditorClient.tsx)
+- point d'entree: [app/editor/page.tsx](app/editor/page.tsx)
+- composant cle: [src/components/editor/ContractEditorClient.tsx](src/components/editor/ContractEditorClient.tsx)
 
 Responsabilite:
 
@@ -280,9 +278,9 @@ L'application est protegee par middleware et session NextAuth.
 
 Pieces importantes:
 
-- [src/auth.ts](/Users/ceko/workspace/awb/migration-datacontract/data-product-contract-nextjs/src/auth.ts)
-- [middleware.ts](/Users/ceko/workspace/awb/migration-datacontract/data-product-contract-nextjs/middleware.ts)
-- [src/lib/require-auth.ts](/Users/ceko/workspace/awb/migration-datacontract/data-product-contract-nextjs/src/lib/require-auth.ts)
+- [src/auth.ts](src/auth.ts)
+- [middleware.ts](middleware.ts)
+- [src/lib/require-auth.ts](src/lib/require-auth.ts)
 
 Fonctionnement:
 
@@ -406,7 +404,7 @@ npm run typecheck
 
 ## Comment les contrats sont charges
 
-Le chargement passe principalement par [src/lib/contracts.ts](/Users/ceko/workspace/awb/migration-datacontract/data-product-contract-nextjs/src/lib/contracts.ts).
+Le chargement passe principalement par [src/lib/contracts.ts](src/lib/contracts.ts).
 
 Flux simplifie:
 
@@ -525,7 +523,7 @@ Si tu dois retenir l'essentiel:
 - c'est une app `Next.js + React + TypeScript`
 - l'auth passe par `NextAuth + Keycloak`
 - les data contracts sont des fichiers YAML versionnes
-- il n'y a pas de base de donnees applicative
+- une base SQLite legere (RBAC + notifications) via sql.js
 - GitLab sert de backend de repository pour l'historique et la lecture a une revision
 - l'editeur est base sur `RJSF + CodeMirror`
 - l'API est documentee par `Zod -> OpenAPI -> Scalar`

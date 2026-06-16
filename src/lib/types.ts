@@ -172,6 +172,7 @@ export type CatalogCard = {
   context: string;
   searchData: string;
   href: string;
+  accessible: boolean;
 };
 
 export type ContractHistoryEntry = {

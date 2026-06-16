@@ -35,14 +35,22 @@ type Scope = {
 function UserAutocomplete({
   value,
   onChange,
+  validUsers,
 }: {
   value: string;
   onChange: (v: string) => void;
+  validUsers: string[];
 }) {
   const [query, setQuery] = useState(value);
   const [users, setUsers] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const userEdit = useRef(false);
+
+  useEffect(() => {
+    if (!userEdit.current) setQuery(value);
+    userEdit.current = false;
+  }, [value]);
 
   useEffect(() => {
     const ctrl = new AbortController();
@@ -63,12 +71,25 @@ function UserAutocomplete({
 
   return (
     <div ref={ref} className="relative" style={{ minWidth: "200px" }}>
-      <label className="mb-1 block text-xs font-medium text-gray-500">User ID</label>
+      <label className="mb-1 block text-xs font-medium text-gray-500" title="Required field">
+        User ID <span className="text-red-500">*</span>
+      </label>
       <input
         className="w-full rounded-md border bg-white px-3 py-2 text-sm text-gray-900"
-        style={{ borderColor: "#d1d5db" }}
+        style={{
+          borderColor: value && validUsers.includes(value) ? "#22c55e" : value && !validUsers.includes(value) ? "#ef4444" : "#d1d5db",
+        }}
         value={query}
-        onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+        onChange={(e) => {
+          userEdit.current = true;
+          setQuery(e.target.value);
+          setOpen(true);
+          if (!e.target.value || !validUsers.includes(e.target.value)) {
+            onChange("");
+          } else {
+            onChange(e.target.value);
+          }
+        }}
         onFocus={() => setOpen(true)}
         placeholder="Search users..."
       />
@@ -78,7 +99,7 @@ function UserAutocomplete({
             <button
               key={u}
               type="button"
-              onClick={() => { onChange(u); setQuery(u); setOpen(false); }}
+              onClick={() => { userEdit.current = true; onChange(u); setQuery(u); setOpen(false); }}
               className="flex w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
               style={{ fontWeight: u === value ? "600" : "400" }}
             >
@@ -147,6 +168,22 @@ function ScopeInput({
   );
 }
 
+function EyeIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path d="M10 3.5c4.08 0 7.47 2.9 8.23 6.75-.76 3.85-4.15 6.75-8.23 6.75s-7.47-2.9-8.23-6.75C2.53 6.4 5.92 3.5 10 3.5zm0 2C7.22 5.5 4.82 7.35 3.9 10c.92 2.65 3.32 4.5 6.1 4.5s5.18-1.85 6.1-4.5c-.92-2.65-3.32-4.5-6.1-4.5zm0 1.75A2.75 2.75 0 1110 12.75 2.75 2.75 0 0110 7.25z" />
+    </svg>
+  );
+}
+
+function PencilIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path d="M13.586 2.586a2 2 0 012.828 0l.828.828a2 2 0 010 2.828l-9.172 9.172a2 2 0 01-1.068.566l-3.11.518a1 1 0 01-1.112-1.112l.518-3.11a2 2 0 01.566-1.068l9.172-9.172zM15.414 4.414a.5.5 0 00-.707 0l-1.06 1.06 1.768 1.768 1.06-1.06a.5.5 0 000-.707l-.828-.828z" />
+    </svg>
+  );
+}
+
 export default function PoliciesPage() {
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
@@ -158,6 +195,14 @@ export default function PoliciesPage() {
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
   const [editTarget, setEditTarget] = useState<Policy | null>(null);
   const [search, setSearch] = useState("");
+  const [conflictDialog, setConflictDialog] = useState<{
+    body: Record<string, unknown>;
+    message: string;
+    mode: "create" | "edit";
+    type: string;
+    affectedPolicies?: Array<{ id: number; domain_scope: string | null; context_scope: string | null; permission_name: string }>;
+    newPolicy?: { assignTo: string; permissionName: string; domainScope: string | null; contextScope: string | null } | null;
+  } | null>(null);
 
   const [newUserId, setNewUserId] = useState("");
   const [newGroupId, setNewGroupId] = useState("");
@@ -166,19 +211,28 @@ export default function PoliciesPage() {
   const [newContextScope, setNewContextScope] = useState("");
 
   const [assignMode, setAssignMode] = useState<"user" | "group">("user");
+  const [allUsers, setAllUsers] = useState<string[]>([]);
+  const [formKey, setFormKey] = useState(0);
+  const [viewUserPolicies, setViewUserPolicies] = useState<{
+    userId: string;
+    policies: Policy[];
+    loading: boolean;
+  } | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
-      const [pRes, permRes, gRes, sRes] = await Promise.all([
+      const [pRes, permRes, gRes, sRes, uRes] = await Promise.all([
         fetch("/api/admin/policies"),
         fetch("/api/admin/permissions"),
         fetch("/api/admin/groups"),
         fetch("/api/admin/scopes"),
+        fetch("/api/admin/users/search?q="),
       ]);
       setPolicies((await pRes.json()).items ?? []);
       setPermissions((await permRes.json()).items ?? []);
       setGroups((await gRes.json()).items ?? []);
       setScopes((await sRes.json()).items ?? []);
+      setAllUsers((await uRes.json()).items ?? []);
     } catch {
       setError("Failed to load data");
     } finally {
@@ -189,6 +243,16 @@ export default function PoliciesPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === "Escape" && viewUserPolicies) {
+        setViewUserPolicies(null);
+      }
+    }
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [viewUserPolicies]);
 
   async function handleCreate() {
     setError("");
@@ -226,6 +290,16 @@ export default function PoliciesPage() {
       body: JSON.stringify(body),
     });
 
+    if (res.status === 409) {
+      const data = await res.json();
+      if (data.conflict?.type === "overlap" || data.conflict?.type === "broader") {
+        setConflictDialog({ body, message: data.conflict.message, mode: "create", type: data.conflict.type, affectedPolicies: data.affectedPolicies ?? [], newPolicy: data.newPolicy ?? null });
+      } else {
+        setError(data.conflict?.message ?? "A conflicting policy already exists.");
+      }
+      return;
+    }
+
     if (!res.ok) {
       const data = await res.json();
       setError(data.error ?? "Failed to create policy");
@@ -251,15 +325,27 @@ export default function PoliciesPage() {
       return;
     }
 
+    const body: Record<string, unknown> = {
+      permissionId,
+      domainScope: newDomainScope.trim() || null,
+      contextScope: newContextScope.trim() || null,
+    };
+
     const res = await fetch(`/api/admin/policies/${editTarget.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        permissionId,
-        domainScope: newDomainScope.trim() || null,
-        contextScope: newContextScope.trim() || null,
-      }),
+      body: JSON.stringify(body),
     });
+
+    if (res.status === 409) {
+      const data = await res.json();
+      if (data.conflict?.type === "overlap" || data.conflict?.type === "broader") {
+        setConflictDialog({ body, message: data.conflict.message, mode: "edit", type: data.conflict.type, affectedPolicies: data.affectedPolicies ?? [], newPolicy: data.newPolicy ?? null });
+      } else {
+        setError(data.conflict?.message ?? "A conflicting policy already exists.");
+      }
+      return;
+    }
 
     if (!res.ok) {
       const data = await res.json();
@@ -288,8 +374,63 @@ export default function PoliciesPage() {
     await fetchData();
   }
 
+  async function handleViewUser(userId: string) {
+    setViewUserPolicies({ userId, policies: [], loading: true });
+    try {
+      const res = await fetch(`/api/admin/policies/effective?userId=${encodeURIComponent(userId)}`);
+      if (!res.ok) throw new Error("Failed to fetch");
+      const data = await res.json();
+      setViewUserPolicies({ userId, policies: data.items, loading: false });
+    } catch {
+      setViewUserPolicies(null);
+      setError("Failed to load user policies");
+    }
+  }
+
+  async function handleConflictConfirm() {
+    const dialog = conflictDialog;
+    if (!dialog) return;
+    setConflictDialog(null);
+
+    const body = { ...dialog.body, force: true };
+
+    const url = dialog.mode === "edit" && editTarget
+      ? `/api/admin/policies/${editTarget.id}`
+      : "/api/admin/policies";
+
+    const method = dialog.mode === "edit" ? "PATCH" : "POST";
+
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      setError(data.error ?? "Failed to apply policy");
+      return;
+    }
+
+    if (dialog.mode === "create") {
+      setNewUserId("");
+      setNewGroupId("");
+      setNewPermissionId("");
+      setNewDomainScope("");
+      setNewContextScope("");
+    } else {
+      setEditTarget(null);
+    }
+
+    setToast({ message: "Policy applied" });
+    await fetchData();
+  }
+
   function openEdit(p: Policy) {
     setEditTarget(p);
+    setAssignMode(p.user_id ? "user" : "group");
+    setNewUserId(p.user_id ?? "");
+    setNewGroupId(String(p.group_id ?? ""));
     setNewPermissionId(String(p.permission_id));
     setNewDomainScope(p.domain_scope ?? "");
     setNewContextScope(p.context_scope ?? "");
@@ -317,6 +458,14 @@ export default function PoliciesPage() {
       </div>
     );
   }
+
+  const isCreateDisabled = assignMode === "user"
+    ? !allUsers.includes(newUserId) || !newPermissionId
+    : !newGroupId || !newPermissionId;
+
+  const isSaveDisabled = assignMode === "user"
+    ? !allUsers.includes(newUserId) || !newPermissionId
+    : !newGroupId || !newPermissionId;
 
   return (
     <div className="space-y-6">
@@ -356,13 +505,15 @@ export default function PoliciesPage() {
 
         <div className="flex flex-wrap items-end gap-3">
           {assignMode === "user" ? (
-            <UserAutocomplete value={newUserId} onChange={setNewUserId} />
+            <UserAutocomplete value={newUserId} onChange={setNewUserId} validUsers={allUsers} />
           ) : (
             <div style={{ minWidth: "200px" }}>
-              <label className="mb-1 block text-xs font-medium text-gray-500">Group</label>
+              <label className="mb-1 block text-xs font-medium text-gray-500" title="Required field">
+                Group <span className="text-red-500">*</span>
+              </label>
               <select
                 className="w-full rounded-md border bg-white px-3 py-2 text-sm text-gray-900"
-                style={{ borderColor: "#d1d5db" }}
+                style={{ borderColor: newGroupId ? "#22c55e" : "#ef4444" }}
                 value={newGroupId}
                 onChange={(e) => setNewGroupId(e.target.value)}
               >
@@ -375,10 +526,12 @@ export default function PoliciesPage() {
           )}
 
           <div style={{ minWidth: "140px" }}>
-            <label className="mb-1 block text-xs font-medium text-gray-500">Permission</label>
+            <label className="mb-1 block text-xs font-medium text-gray-500" title="Required field">
+              Permission <span className="text-red-500">*</span>
+            </label>
             <select
               className="w-full rounded-md border bg-white px-3 py-2 text-sm text-gray-900"
-              style={{ borderColor: "#d1d5db" }}
+              style={{ borderColor: newPermissionId ? "#22c55e" : "#ef4444" }}
               value={newPermissionId}
               onChange={(e) => setNewPermissionId(e.target.value)}
             >
@@ -401,13 +554,26 @@ export default function PoliciesPage() {
             <div className="flex gap-2">
               <Button
                 onClick={handleEdit}
-                style={{ backgroundColor: "var(--ui-primary)", color: "#fff" }}
+                disabled={isSaveDisabled}
+                style={{
+                  backgroundColor: isSaveDisabled ? "#d1d5db" : "var(--ui-primary)",
+                  color: isSaveDisabled ? "#6b7280" : "#fff",
+                  cursor: isSaveDisabled ? "not-allowed" : "pointer",
+                }}
                 className="border-0 font-bold"
               >
                 Save
               </Button>
               <button
-                onClick={() => setEditTarget(null)}
+                onClick={() => {
+                  setEditTarget(null);
+                  setNewUserId("");
+                  setNewGroupId("");
+                  setNewPermissionId("");
+                  setNewDomainScope("");
+                  setNewContextScope("");
+                  setAssignMode("user");
+                }}
                 className="rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
               >
                 Cancel
@@ -416,7 +582,12 @@ export default function PoliciesPage() {
           ) : (
             <Button
               onClick={handleCreate}
-              style={{ backgroundColor: "var(--ui-primary)", color: "#fff" }}
+              disabled={isCreateDisabled}
+              style={{
+                backgroundColor: isCreateDisabled ? "#d1d5db" : "var(--ui-primary)",
+                color: isCreateDisabled ? "#6b7280" : "#fff",
+                cursor: isCreateDisabled ? "not-allowed" : "pointer",
+              }}
               className="border-0 font-bold"
             >
               Create
@@ -500,11 +671,21 @@ export default function PoliciesPage() {
                       </td>
                       <td className="whitespace-nowrap px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          {p.user_id && (
+                            <button
+                              onClick={() => handleViewUser(p.user_id!)}
+                              className="editor-soft-button"
+                            >
+                              <EyeIcon />
+                              <span className="ml-1.5">View</span>
+                            </button>
+                          )}
                           <button
                             onClick={() => openEdit(p)}
-                            className="rounded-md px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100"
+                            className="editor-soft-button"
                           >
-                            Edit
+                            <PencilIcon />
+                            <span className="ml-1.5">Edit</span>
                           </button>
                           <button
                             onClick={() => setDeleteTarget(p.id)}
@@ -532,6 +713,171 @@ export default function PoliciesPage() {
         onConfirm={() => deleteTarget && handleDelete(deleteTarget)}
         onCancel={() => setDeleteTarget(null)}
       />
+
+      {conflictDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setConflictDialog(null)} />
+          <div className="relative z-10 rounded-lg bg-white p-6 shadow-xl" style={{ width: "min(70vw, 850px)" }}>
+            <h3 className="text-base font-semibold text-gray-900">Conflicting policy</h3>
+            <p className="mt-2 text-sm text-gray-600">{conflictDialog.message}</p>
+
+            {conflictDialog.newPolicy && (
+              <div className="mt-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">New policy</p>
+                <table className="mt-1 w-full text-sm" style={{ tableLayout: "fixed" }}>
+                  <colgroup>
+                    <col className="w-[35%]" />
+                    <col className="w-[25%]" />
+                    <col className="w-[40%]" />
+                  </colgroup>
+                  <thead>
+                    <tr className="border-b border-gray-100 text-left text-xs text-gray-400">
+                      <th className="py-1 pr-4">Target</th>
+                      <th className="py-1 pr-4">Permission</th>
+                      <th className="py-1">Scope</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="text-gray-700">
+                      <td className="py-1 pr-4 font-mono text-xs">{conflictDialog.newPolicy.assignTo}</td>
+                      <td className="py-1 pr-4">
+                        <span className="rounded-md px-2 py-0.5 text-xs font-medium"
+                          style={{
+                            background: conflictDialog.newPolicy.permissionName === "admin" ? "#fef2f2" : conflictDialog.newPolicy.permissionName === "editor" ? "#fff7ed" : "#f0f9ff",
+                            color: conflictDialog.newPolicy.permissionName === "admin" ? "#dc2626" : conflictDialog.newPolicy.permissionName === "editor" ? "#f97316" : "#2563eb",
+                          }}
+                        >
+                          {conflictDialog.newPolicy.permissionName}
+                        </span>
+                      </td>
+                      <td className="py-1 text-xs">
+                        {conflictDialog.newPolicy.domainScope ?? "all domains"}
+                        {conflictDialog.newPolicy.contextScope ? ` / ${conflictDialog.newPolicy.contextScope}` : ""}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {conflictDialog.affectedPolicies && conflictDialog.affectedPolicies.length > 0 && (
+              <div className="mt-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  Existing policies affected ({conflictDialog.affectedPolicies.length})
+                </p>
+                <table className="mt-1 w-full text-sm" style={{ tableLayout: "fixed" }}>
+                  <colgroup>
+                    <col className="w-[35%]" />
+                    <col className="w-[25%]" />
+                    <col className="w-[40%]" />
+                  </colgroup>
+                  <thead>
+                    <tr className="border-b border-gray-100 text-left text-xs text-gray-400">
+                      <th className="py-1 pr-4">Target</th>
+                      <th className="py-1 pr-4">Permission</th>
+                      <th className="py-1">Scope</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {conflictDialog.affectedPolicies.map((p) => (
+                      <tr key={p.id} className="text-gray-700">
+                        <td className="py-1 pr-4 font-mono text-xs text-gray-500">{conflictDialog.newPolicy?.assignTo ?? ""}</td>
+                        <td className="py-1 pr-4">
+                          <span className="rounded-md px-2 py-0.5 text-xs font-medium"
+                            style={{
+                              background: p.permission_name === "admin" ? "#fef2f2" : p.permission_name === "editor" ? "#fff7ed" : "#f0f9ff",
+                              color: p.permission_name === "admin" ? "#dc2626" : p.permission_name === "editor" ? "#f97316" : "#2563eb",
+                            }}
+                          >
+                            {p.permission_name}
+                          </span>
+                        </td>
+                        <td className="py-1 text-xs">
+                          {p.domain_scope ?? "all domains"}
+                          {p.context_scope ? ` / ${p.context_scope}` : ""}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => setConflictDialog(null)}
+                className="rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConflictConfirm}
+                className="rounded-md px-4 py-2 text-sm font-bold text-white"
+                style={{ backgroundColor: "#dc2626" }}
+              >
+                {conflictDialog.type === "broader" ? "Extend policy" : "Apply anyway"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewUserPolicies && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setViewUserPolicies(null)} />
+          <div className="relative z-10 rounded-lg bg-white p-6 shadow-xl" style={{ width: "min(70vw, 480px)" }}>
+            <h3 className="text-base font-semibold text-gray-900">
+              Policies for user: <span className="font-mono text-sm">{viewUserPolicies.userId}</span>
+            </h3>
+
+            <p className="mt-1 text-xs text-gray-400">
+              {viewUserPolicies.policies.length} polic{viewUserPolicies.policies.length !== 1 ? "ies" : "y"}
+            </p>
+
+            {viewUserPolicies.loading ? (
+              <p className="mt-4 text-sm text-gray-500">Loading...</p>
+            ) : viewUserPolicies.policies.length === 0 ? (
+              <p className="mt-4 text-sm text-gray-500">No policies found for this user.</p>
+            ) : (
+              <div className="mt-3 max-h-72 overflow-y-auto">
+                <div className="space-y-1">
+                  {viewUserPolicies.policies.map((p) => (
+                    <div
+                      key={p.id}
+                      className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
+                        {p.user_id ? "direct" : `group`}
+                      </span>
+                      <span
+                        className="rounded-md px-1.5 py-0.5 text-[10px] font-medium"
+                        style={{
+                          background: p.permission_name === "admin" ? "#fef2f2" : p.permission_name === "editor" ? "#fff7ed" : "#f0f9ff",
+                          color: p.permission_name === "admin" ? "#dc2626" : p.permission_name === "editor" ? "#f97316" : "#2563eb",
+                        }}
+                      >
+                        {p.permission_name}
+                      </span>
+                      <span className="font-mono text-xs text-gray-500">
+                        {p.domain_scope ?? "all domains"}{p.context_scope ? ` / ${p.context_scope}` : ""}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="mt-5 flex justify-end">
+              <button
+                onClick={() => setViewUserPolicies(null)}
+                className="rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {toast && (
         <Toast

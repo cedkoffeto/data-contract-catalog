@@ -99,6 +99,187 @@ export async function authorize(
 }
 
 // ---------------------------------------------------------------------------
+// Scope relation helpers
+// ---------------------------------------------------------------------------
+
+type ScopeRelation = "same" | "broader" | "narrower" | "disjoint";
+
+function computeScopeRelation(
+  newDomain: string | null,
+  newContext: string | null,
+  existingDomain: string | null,
+  existingContext: string | null,
+): ScopeRelation {
+  if (newDomain === existingDomain && newContext === existingContext) return "same";
+
+  const newCoversExisting =
+    (newDomain === null || newDomain === existingDomain) &&
+    (newContext === null || newContext === existingContext);
+
+  const existingCoversNew =
+    (existingDomain === null || existingDomain === newDomain) &&
+    (existingContext === null || existingContext === newContext);
+
+  if (newCoversExisting) return "broader";
+  if (existingCoversNew) return "narrower";
+  return "disjoint";
+}
+
+function formatScope(domain: string | null, context: string | null): string {
+  if (domain === null && context === null) return "all domains & contexts";
+  if (context === null) return `domain: ${domain}`;
+  return `${domain} / ${context}`;
+}
+
+// ---------------------------------------------------------------------------
+// Conflict detection
+// ---------------------------------------------------------------------------
+
+export type ConflictInfo = {
+  type: "duplicate" | "weaker" | "overlap" | "broader" | "narrower";
+  message: string;
+  existing: AccessPolicyRecord;
+};
+
+const PERMISSION_NAMES: Record<number, PermissionName> = {};
+
+async function getPermissionRank(id: number): Promise<number> {
+  if (!PERMISSION_NAMES[id]) {
+    const rows = await query<{ name: string }>("SELECT name FROM permissions WHERE id = ?", [id]);
+    PERMISSION_NAMES[id] = rows[0]?.name as PermissionName;
+  }
+  return PERMISSION_RANK[PERMISSION_NAMES[id]] ?? 0;
+}
+
+/**
+ * Returns a list of existing policies that conflict with the proposed one.
+ *
+ * Scope comparison (new vs existing):
+ *   - same scope + same permission  → duplicate   → refuse
+ *   - same scope + new weaker       → weaker      → refuse
+ *   - same scope + new stronger     → overlap     → confirm → update old
+ *   - new broader scope             → broader     → confirm → extend old
+ *   - new narrower scope            → narrower    → refuse
+ */
+export async function checkPolicyConflicts(params: {
+  userId: string | null;
+  groupId: number | null;
+  permissionId: number;
+  domainScope: string | null;
+  contextScope: string | null;
+  excludeId?: number;
+}): Promise<ConflictInfo | null> {
+  const { userId, groupId, permissionId, domainScope, contextScope, excludeId } = params;
+
+  const existing = await query<AccessPolicyRecord>(
+    `SELECT ap.id, ap.user_id, ap.group_id, NULL AS group_name,
+            ap.permission_id, p.name AS permission_name,
+            ap.domain_scope, ap.context_scope
+     FROM access_policies ap
+     JOIN permissions p ON p.id = ap.permission_id
+     WHERE (ap.user_id = ? OR ap.group_id = ?)
+       ${excludeId ? "AND ap.id != ?" : ""}`,
+    excludeId
+      ? [userId, groupId, excludeId]
+      : [userId, groupId],
+  );
+
+  if (existing.length === 0) return null;
+
+  const newDomain = domainScope ?? null;
+  const newContext = contextScope ?? null;
+  const newRank = await getPermissionRank(permissionId);
+
+  for (const policy of existing) {
+    const scopeRel = computeScopeRelation(
+      newDomain, newContext,
+      policy.domain_scope ?? null,
+      policy.context_scope ?? null,
+    );
+
+    const existingRank = PERMISSION_RANK[policy.permission_name as PermissionName] ?? 0;
+
+    if (scopeRel === "same") {
+      if (policy.permission_id === permissionId) {
+        return {
+          type: "duplicate",
+          message: `An identical policy (${policy.permission_name}) already exists on this scope.`,
+          existing: policy,
+        };
+      }
+
+      if (existingRank > newRank) {
+        return {
+          type: "weaker",
+          message: `This policy would be weaker than the existing ${policy.permission_name} policy on the same scope and would have no effect.`,
+          existing: policy,
+        };
+      }
+
+      if (existingRank < newRank) {
+        return {
+          type: "overlap",
+          message: `A weaker policy (${policy.permission_name}) already exists on this scope. It will be upgraded to ${PERMISSION_NAMES[permissionId]}.`,
+          existing: policy,
+        };
+      }
+    } else if (scopeRel === "broader") {
+      return {
+        type: "broader",
+        message: `This policy covers a wider scope (${formatScope(newDomain, newContext)}) than the existing ${policy.permission_name} policy on ${formatScope(policy.domain_scope, policy.context_scope)}. The existing policy will be extended.`,
+        existing: policy,
+      };
+    } else if (scopeRel === "narrower") {
+      return {
+        type: "narrower",
+        message: `A broader policy (${policy.permission_name}) already exists on ${formatScope(policy.domain_scope, policy.context_scope)} which already covers this narrower scope.`,
+        existing: policy,
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Returns IDs of all policies for a user/group that have a narrower scope
+ * than the given (domain, context). Used to clean up redundant policies
+ * when a broader policy replaces them.
+ */
+export async function findNarrowerPolicies(
+  userId: string | null,
+  groupId: number | null,
+  domainScope: string | null,
+  contextScope: string | null,
+  excludeId: number,
+): Promise<number[]> {
+  const rows = await query<{ id: number; domain_scope: string | null; context_scope: string | null }>(
+    `SELECT id, domain_scope, context_scope
+     FROM access_policies
+     WHERE (user_id = ? OR group_id = ?)
+       AND id != ?`,
+    [userId, groupId, excludeId],
+  );
+
+  const newDomain = domainScope ?? null;
+  const newContext = contextScope ?? null;
+  const narrower: number[] = [];
+
+  for (const row of rows) {
+    const rel = computeScopeRelation(
+      newDomain, newContext,
+      row.domain_scope ?? null,
+      row.context_scope ?? null,
+    );
+    if (rel === "broader") {
+      narrower.push(row.id);
+    }
+  }
+
+  return narrower;
+}
+
+// ---------------------------------------------------------------------------
 // CRUD helpers for access_policies
 // ---------------------------------------------------------------------------
 
@@ -152,11 +333,42 @@ export async function createAccessPolicy(params: {
   domainScope: string | null;
   contextScope: string | null;
   actorId: string;
+  force?: boolean;
 }): Promise<AccessPolicyRecord> {
-  const { userId, groupId, permissionId, domainScope, contextScope, actorId } = params;
+  const { userId, groupId, permissionId, domainScope, contextScope, actorId, force } = params;
 
   if ((userId === null) === (groupId === null)) {
     throw new Error("Exactly one of userId or groupId must be provided");
+  }
+
+  if (force) {
+    const conflict = await checkPolicyConflicts({
+      userId, groupId, permissionId, domainScope, contextScope,
+    });
+    if (conflict?.type === "overlap" || conflict?.type === "broader") {
+      if (conflict.type === "broader") {
+        const narrowerIds = await findNarrowerPolicies(
+          userId, groupId, domainScope ?? null, contextScope ?? null, conflict.existing.id,
+        );
+        for (const id of narrowerIds) {
+          await execute("DELETE FROM access_policies WHERE id = ?", [id]);
+          await writeAuditLog({
+            action: "policy.delete",
+            actorId,
+            targetType: "policy",
+            targetId: String(id),
+            details: { replacedBy: `broader policy #${conflict.existing.id}` },
+          });
+        }
+      }
+      return await updateAccessPolicy({
+        id: conflict.existing.id,
+        permissionId,
+        domainScope: domainScope ?? null,
+        contextScope: contextScope ?? null,
+        actorId,
+      });
+    }
   }
 
   const result = await execute(
@@ -314,5 +526,22 @@ export async function listAllGroupMemberships(): Promise<
      FROM user_group ug
      JOIN groups g ON g.id = ug.group_id
      ORDER BY g.name, ug.user_id`,
+  );
+}
+
+export async function getEffectivePoliciesForUser(userId: string): Promise<AccessPolicyRecord[]> {
+  return query<AccessPolicyRecord>(
+    `SELECT ap.id, ap.user_id, ap.group_id, g.name AS group_name,
+            ap.permission_id, p.name AS permission_name,
+            ap.domain_scope, ap.context_scope
+     FROM access_policies ap
+     JOIN permissions p ON p.id = ap.permission_id
+     LEFT JOIN groups g ON g.id = ap.group_id
+     WHERE ap.user_id = ?
+        OR ap.group_id IN (
+          SELECT ug.group_id FROM user_group ug WHERE ug.user_id = ?
+        )
+     ORDER BY ap.id`,
+    [userId, userId],
   );
 }
