@@ -437,6 +437,7 @@ export async function getCatalogCards(): Promise<CatalogCard[]> {
       const description = contract.data.asset?.description ?? "";
       const maturity = (asset.maturity ?? contract.maturity ?? "").toString().trim();
       const domain = (asset.domain ?? "").toString().trim();
+      const context = (asset.context ?? "").toString().trim();
       return {
         slug: contract.slug,
         title,
@@ -445,11 +446,30 @@ export async function getCatalogCards(): Promise<CatalogCard[]> {
         description,
         maturity,
         domain,
-        searchData: `${title} ${version} ${owner} ${description} ${maturity} ${domain} ${contract.fullPath} ${contract.yamlRaw}`.toLowerCase(),
+        context,
+        searchData: `${title} ${version} ${owner} ${description} ${maturity} ${domain} ${context} ${contract.fullPath} ${contract.yamlRaw}`.toLowerCase(),
         href: `/${contract.slug}`
       } satisfies CatalogCard;
     })
     .sort((a, b) => a.title.localeCompare(b.title));
+}
+
+export async function getDistinctScopes(): Promise<{ domain: string; context: string }[]> {
+  const contracts = await getContracts();
+  const seen = new Set<string>();
+  const scopes: { domain: string; context: string }[] = [];
+
+  for (const c of contracts) {
+    const domain = (c.data.asset?.domain ?? "").toString().trim();
+    const context = (c.data.asset?.context ?? "").toString().trim();
+    if (!domain && !context) continue;
+    const key = `${domain}||${context}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    scopes.push({ domain, context });
+  }
+
+  return scopes.sort((a, b) => a.domain.localeCompare(b.domain) || a.context.localeCompare(b.context));
 }
 
 export async function searchCatalogCards({

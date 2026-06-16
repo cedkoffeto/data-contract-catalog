@@ -1,6 +1,7 @@
 import { getServerSession, type NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import KeycloakProvider from "next-auth/providers/keycloak";
+import { getUserPermissions } from "@/src/lib/rbac";
 
 type KeycloakTokenResponse = {
   access_token?: string;
@@ -135,11 +136,28 @@ export const authOptions: NextAuthOptions = {
         token.preferredUsername = user.name;
       }
 
+      // Enrich JWT with global role-based permissions on login/refresh
+      const userId = token.preferredUsername as string | undefined;
+      if (userId && !token.permissions) {
+        try {
+          const perms = await getUserPermissions(userId);
+          token.permissions = perms;
+        } catch (error) {
+          console.error("[auth.jwt] Failed to fetch permissions:", error);
+          token.permissions = [];
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
       if (session.user && typeof token.preferredUsername === "string") {
         session.user.name = token.preferredUsername;
+      }
+
+      // Attach global permissions to the session for client-side use
+      if (session.user && Array.isArray(token.permissions)) {
+        (session.user as Record<string, unknown>).permissions = token.permissions;
       }
 
       return session;

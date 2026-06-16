@@ -1,17 +1,19 @@
 import { execute } from "@/src/lib/db";
 
 export type AuditAction =
-  | "role.create"
-  | "role.update"
-  | "role.delete"
-  | "user.assign"
-  | "user.revoke"
   | "subscription.subscribe"
   | "subscription.unsubscribe"
   | "contract.create"
-  | "contract.update";
+  | "contract.update"
+  | "policy.create"
+  | "policy.update"
+  | "policy.delete"
+  | "group.create"
+  | "group.delete"
+  | "group.add_member"
+  | "group.remove_member";
 
-export type AuditTargetType = "role" | "user" | "contract";
+export type AuditTargetType = "user" | "contract" | "policy" | "group";
 
 export async function writeAuditLog(params: {
   action: AuditAction;

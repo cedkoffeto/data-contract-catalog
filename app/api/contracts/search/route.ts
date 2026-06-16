@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 
+import { auth } from "@/src/auth";
 import { searchCatalogCards } from "@/src/lib/contracts";
 import { requireApiAuth } from "@/src/lib/require-auth";
-import { filterCatalogCards, getSessionPermissions } from "@/src/lib/catalog-filter";
+import { filterCatalogCards } from "@/src/lib/catalog-filter";
+import { getUserPermissions } from "@/src/lib/rbac";
 
 export async function GET(request: Request) {
   const unauthorized = await requireApiAuth();
@@ -10,7 +12,13 @@ export async function GET(request: Request) {
     return unauthorized;
   }
 
-  const { permissions } = await getSessionPermissions();
+  const session = await auth();
+  const userId = session?.user?.name;
+  if (!userId) {
+    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+  }
+
+  const permissions = await getUserPermissions(userId);
 
   const { searchParams } = new URL(request.url);
 
@@ -20,7 +28,7 @@ export async function GET(request: Request) {
     maturity: searchParams.get("maturity") ?? ""
   });
 
-  const filtered = filterCatalogCards(cards, permissions);
+  const filtered = await filterCatalogCards(userId, cards, permissions);
   const items = filtered.map((card) => ({
     slug: card.slug,
     title: card.title,

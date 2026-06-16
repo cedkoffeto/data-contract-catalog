@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { requireAdmin } from "@/src/lib/require-admin";
-import { searchUsers } from "@/src/lib/rbac";
+import { searchAllUsers } from "@/src/lib/rbac";
 
 export async function GET(request: Request) {
   const unauthorized = await requireAdmin();
@@ -9,7 +9,6 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q") ?? "";
-
-  const users = await searchUsers(q);
+  const users = await searchAllUsers(q);
   return NextResponse.json({ items: users });
 }

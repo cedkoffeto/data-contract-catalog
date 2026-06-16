@@ -1,4 +1,4 @@
-import { syncRolesFromYaml } from "@/src/lib/rbac-sync";
+import { runMigrations } from "@/src/lib/migrate";
 
 let started = false;
 
@@ -6,7 +6,12 @@ export function ensureStartup() {
   if (started) return;
   started = true;
 
-  syncRolesFromYaml().catch((error) => {
-    console.error("[startup] Failed to sync roles:", error);
-  });
+  (async () => {
+    try {
+      await runMigrations();
+      console.info("[startup] Initialization complete");
+    } catch (error) {
+      console.error("[startup] Initialization failed:", error);
+    }
+  })();
 }

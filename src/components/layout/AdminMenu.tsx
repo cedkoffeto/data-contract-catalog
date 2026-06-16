@@ -22,8 +22,8 @@ export function AdminMenu() {
 
   const links = [
     { href: "/admin", label: "Dashboard" },
-    { href: "/admin/roles", label: "Roles" },
-    { href: "/admin/users", label: "Users" },
+    { href: "/admin/groups", label: "Groups" },
+    { href: "/admin/policies", label: "Policies" },
   ];
 
   return (

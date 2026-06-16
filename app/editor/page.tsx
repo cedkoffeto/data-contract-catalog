@@ -11,12 +11,13 @@ export const metadata: Metadata = {
 export default async function ContractEditorRoutePage({
   searchParams
 }: {
-  searchParams?: { contract?: string | string[] };
+  searchParams?: Promise<{ contract?: string | string[] }>;
 }) {
   const schema = await getEditorSchema();
   const draft = createNewContractDraft();
   const repositoryFiles = await getEditorRepositoryFiles();
-  const contractParam = Array.isArray(searchParams?.contract) ? searchParams?.contract[0] : searchParams?.contract;
+  const resolved = await searchParams;
+  const contractParam = Array.isArray(resolved?.contract) ? resolved?.contract[0] : resolved?.contract;
 
   return (
     <ContractEditorPage

@@ -1,6 +1,6 @@
 # Nouvelles fonctionnalités — Data Contract Catalog
 
-> Mise à jour : Juin 2026 — Branch `feat/add_rbac`
+> Mise à jour : Juin 2026
 
 ---
 
@@ -12,45 +12,57 @@
 
 ---
 
-## EPIC 01 : Gestion des rôles et des accès (RBAC)
+## EPIC 01 : Gestion des accès (RBAC)
 
-### ✅ RBAC-01 · Créer et gérer des rôles
+### ✅ RBAC-01 · Access policies (remplace l'ancien système de rôles)
 
 **Statut : ✅ Implémenté**
 
+L'ancien système basé sur `roles` + `user_roles` a été remplacé par un système plus simple et plus flexible basé sur les `access_policies`.
+
 **Fichiers :**
-- `rbac/roles.yaml` — Définition des rôles (versionné dans Git)
-- `prisma/schema.prisma` — Table `roles`
-- `src/lib/rbac.ts` — CRUD complet
-- `app/api/admin/roles/route.ts` — API REST
-- `app/api/admin/roles/[name]/route.ts` — API REST
-- `app/admin/roles/page.tsx` — Interface admin
+- `prisma/schema.prisma` — Table `access_policies`
+- `src/lib/rbac.ts` — `getUserPermissions()` lit les policies globales
+- `src/lib/catalog-filter.ts` — `filterCatalogCards()` applique le filtrage domaine/contexte
+- `src/lib/access-control.ts` — CRUD des policies
+- `app/api/admin/policies/route.ts` — API REST
+- `app/admin/policies/page.tsx` — Interface admin
 
 **Fonctionnalités :**
-- Créer un rôle avec un nom et une liste de permissions (`read`, `write`, `admin`)
-- Modifier les permissions d'un rôle (toggle)
-- Supprimer un rôle (bloqué si des utilisateurs y sont assignés)
-- 4 rôles pré-définis : `admin`, `editor`, `reader`, `data_owner`
+- **Permissions globales** (`domain_scope = NULL`, `context_scope = NULL`) : `admin`, `editor`, `reader`
+- **Permissions par domaine** (ex: domaine `CRM` uniquement)
+- **Permissions par domaine + contexte** (ex: domaine `CRM`, contexte `RELATION_CLIENT`)
+- Les utilisateurs avec `admin` global voient tout
+- Les utilisateurs avec `reader` global voient tout le catalogue
+- Les utilisateurs avec permissions limitées (scope) ne voient que les contracts correspondant à leur scope
+
+**Seed automatique au démarrage :**
+- Si aucune `access_policy` n'existe en base, les utilisateurs Keycloak connus sont seedés avec leurs permissions par défaut :
+  - `admin.user` → `admin` (global)
+  - `editor.user` → `editor` (global)
+  - `contract.user`, `reader.user`, `data_owner.user`, `de1`-`de5` → `reader` (global)
 
 ---
 
-### ✅ RBAC-02 · Assigner des rôles à un utilisateur
+### ✅ RBAC-02 · Groupes d'utilisateurs
 
 **Statut : ✅ Implémenté**
 
 **Fichiers :**
-- `prisma/schema.prisma` — Table `user_roles`
-- `src/lib/rbac.ts` — Assignation / révocation
-- `app/api/admin/users/[id]/roles/route.ts` — API REST
-- `app/api/admin/users/assignments/route.ts` — API REST
-- `app/admin/users/page.tsx` — Interface admin
+- `prisma/schema.prisma` — Tables `groups`, `user_group`
+- `src/lib/access-control.ts` — CRUD des groupes et membres
+- `app/api/admin/groups/route.ts` — API REST
+- `app/api/admin/groups/[id]/members/route.ts` — API REST
+- `app/api/admin/groups/memberships/route.ts` — API REST
+- `app/admin/groups/page.tsx` — Interface admin
 
 **Fonctionnalités :**
-- Assigner un rôle à un utilisateur (par email ou ID Keycloak)
-- Un utilisateur peut avoir plusieurs rôles
-- Révoquer un rôle
-- Rechercher des assignations par utilisateur
-- Liste complète de toutes les assignations
+- Créer un groupe (ex: `data_engineering`)
+- Ajouter/retirer des membres d'un groupe (modal avec liste à cocher de tous les utilisateurs connus)
+- Supprimer un groupe avec confirmation
+- Tableau listant les groupes, leurs membres, et les actions
+- Popover "+N more" pour voir tous les membres d'un groupe
+- Les policies peuvent être assignées à un groupe (via scope ou global)
 
 ---
 
@@ -61,13 +73,13 @@
 **Fichiers :**
 - `src/lib/catalog-filter.ts` — Logique de filtrage
 - `app/page.tsx` — Filtrage appliqué au catalogue
-- `app/api/contracts/route.ts` — Filtrage API
-- `app/api/contracts/search/route.ts` — Filtrage API
 
 **Fonctionnalités :**
-- Les contrats marqués `confidential` ou `restricted` sont masqués pour les rôles sans permission `write`
-- Les utilisateurs avec permission `admin` voient tout
-- Les utilisateurs avec permission `read` uniquement ne voient que les contrats `public` / `internal`
+- Filtrage par **domaine** et **contexte** du contract
+- Un utilisateur voit un contract s'il a une policy correspondant à son (domaine, contexte)
+- Héritage : policy `(null, null)` → tous les contracts ; `(CRM, null)` → tous les contracts CRM ; `(CRM, RELATION_CLIENT)` → ce contexte seulement
+- Les utilisateurs avec permission `admin` globale voient tout
+- Safety net : si aucune policy n'existe dans le système (base vierge), tous les contracts sont visibles
 
 ---
 
@@ -77,17 +89,17 @@
 
 **Fichiers :**
 - `src/lib/audit.ts` — Helper d'écriture
-- `prisma/schema.prisma` — Table `audit_log`
-- `app/admin/page.tsx` — Affichage des 10 dernières entrées
+- `app/admin/page.tsx` — Dashboard avec audit log
 
 **Actions tracées :**
 | Action | Description |
 |---|---|
-| `role.create` | Création d'un rôle |
-| `role.update` | Modification des permissions |
-| `role.delete` | Suppression d'un rôle |
-| `user.assign` | Assignation d'un rôle à un utilisateur |
-| `user.revoke` | Révocation d'un rôle |
+| `policy.create` | Création d'une access policy |
+| `policy.delete` | Suppression d'une access policy |
+| `group.create` | Création d'un groupe |
+| `group.delete` | Suppression d'un groupe |
+| `group.add_member` | Ajout d'un membre à un groupe |
+| `group.remove_member` | Retrait d'un membre d'un groupe |
 
 ---
 
@@ -167,22 +179,29 @@ Tables déjà créées dans le schéma (`subscriptions`, `notifications`), UI à
 - ORM : Schéma défini dans `prisma/schema.prisma` (source de vérité)
 - Migration initiale : `prisma/migrations/20260615141647_init/`
 
-### ✅ Synchronisation rôles YAML → DB
+### ✅ Migration automatique des anciens rôles
 
 **Statut : ✅ Implémenté**
 
-- Fichier source : `rbac/roles.yaml` (versionné dans Git)
-- Sync au démarrage via `src/lib/startup.ts` → `src/lib/rbac-sync.ts`
-- Les rôles YAML sont la source de vérité pour la *définition* des rôles
-- Les assignations sont en DB uniquement
+- Au démarrage, si les tables `roles` / `user_roles` existent et contiennent des données, une migration crée les `access_policies` correspondantes
+- Les permissions `admin`, `write`, `read` sont mappées depuis l'ancien format JSON vers les nouvelles permissions `admin`, `editor`, `reader`
+- La migration ne s'exécute qu'une fois (détecte si des policies existent déjà)
+
+### ✅ Seed automatique des access policies
+
+**Statut : ✅ Implémenté**
+
+- Si aucune `access_policy` n'existe en base, les utilisateurs Keycloak connus sont seedés automatiquement au démarrage
+- Défini dans `src/lib/migrate.ts` → `seedDefaultPolicies()`
+- Sources des utilisateurs : `keycloak/realm-export.json` (10 utilisateurs)
 
 ### ✅ Interface Admin
 
 **Statut : ✅ Implémenté**
 
-- `/admin` — Dashboard (stats, audit log)
-- `/admin/roles` — Gestion des rôles
-- `/admin/users` — Assignation des rôles aux utilisateurs
+- `/admin` — Dashboard (stats groups/memberships/policies, audit log)
+- `/admin/groups` — Gestion des groupes et membres
+- `/admin/policies` — Gestion des access policies
 
 ---
 
@@ -212,79 +231,50 @@ curl -s -X POST -H "Authorization: Bearer $ADMIN_TOKEN" \
   http://localhost:8080/admin/realms/data-contracts/users
 ```
 
-### Assigner un rôle à un utilisateur
+### Créer une access policy (global)
 
 **Via l'interface admin :**
-1. Va sur `/admin/users`
-2. Saisis l'email ou l'ID Keycloak de l'utilisateur
-3. Sélectionne un rôle dans la liste
-4. Clique "Assign"
-5. Pour révoquer, clique "Revoke" sur la ligne correspondante
-
-**En CLI :**
-```bash
-node -e "
-const initSqlJs = require('sql.js');
-const fs = require('fs');
-(async () => {
-  const SQL = await initSqlJs({
-    locateFile: (f) => require('path').join(process.cwd(), 'node_modules', 'sql.js', 'dist', f)
-  });
-  const db = new SQL.Database(fs.readFileSync('prisma/data/rbac.db'));
-  db.run('INSERT OR IGNORE INTO user_roles (user_id, role_name, assigned_by) VALUES (?, ?, ?)', 
-    ['mon.user@example.com', 'editor', 'admin']);
-  fs.writeFileSync('prisma/data/rbac.db', Buffer.from(db.export()));
-  console.log('OK');
-})();
-"
-```
-
-### Créer un rôle personnalisé
-
-**Via l'interface admin :**
-1. Va sur `/admin/roles`
-2. Saisis le nom du rôle
-3. Coche les permissions souhaitées
-4. Clique "Create"
+1. Va sur `/admin/policies`
+2. Sélectionne "For a user" ou "For a group"
+3. Saisis l'ID utilisateur ou le groupe
+4. Choisis la permission (`admin`, `editor`, `reader`)
+5. Laisse Domain et Context vides pour un accès global
+6. Clique "Create"
 
 **Via l'API :**
 ```bash
-curl -X POST http://localhost:3000/api/admin/roles \
+curl -X POST http://localhost:3000/api/admin/policies \
   -H "Content-Type: application/json" \
-  -d '{"name": "viewer", "permissions": ["read"]}'
+  -d '{"userId": "mon.user", "permissionId": 3, "domainScope": null, "contextScope": null}'
 ```
 
-### Modifier les rôles par défaut
+### Créer une access policy (scope domaine/contexte)
 
-1. Édite `rbac/roles.yaml`
-2. Commit et push (la sync se fait automatiquement au redémarrage)
+Pour limiter l'accès à un domaine spécifique :
+```bash
+curl -X POST http://localhost:3000/api/admin/policies \
+  -H "Content-Type: application/json" \
+  -d '{"userId": "mon.user", "permissionId": 3, "domainScope": "CRM", "contextScope": null}'
+```
 
-### Réinitialiser la base RBAC
+### Créer un groupe et ajouter des membres
+
+1. Va sur `/admin/groups`
+2. Saisis le nom du groupe et clique "Create"
+3. Clique "Manage" sur le groupe
+4. Coche les utilisateurs dans la liste et clique "Save"
+
+### Assigner une policy à un groupe
 
 ```bash
-rm -f prisma/data/rbac.db
-npx prisma migrate dev --name init
-node -e "
-const initSqlJs = require('sql.js');
-const fs = require('fs');
-(async () => {
-  const SQL = await initSqlJs({
-    locateFile: (f) => require('path').join(process.cwd(), 'node_modules', 'sql.js', 'dist', f)
-  });
-  const db = new SQL.Database(fs.readFileSync('prisma/data/rbac.db'));
-  db.run('INSERT OR IGNORE INTO roles (name, permissions) VALUES (\"admin\", \"[\\\"read\\\",\\\"write\\\",\\\"admin\\\"]\")');
-  db.run('INSERT OR IGNORE INTO roles (name, permissions) VALUES (\"editor\", \"[\\\"read\\\",\\\"write\\\"]\")');
-  db.run('INSERT OR IGNORE INTO roles (name, permissions) VALUES (\"reader\", \"[\\\"read\\\"]\")');
-  db.run('INSERT OR IGNORE INTO roles (name, permissions) VALUES (\"data_owner\", \"[\\\"read\\\",\\\"write\\\"]\")');
-  fs.writeFileSync('prisma/data/rbac.db', Buffer.from(db.export()));
-  console.log('OK');
-})();
-"
+curl -X POST http://localhost:3000/api/admin/policies \
+  -H "Content-Type: application/json" \
+  -d '{"groupId": 1, "permissionId": 3, "domainScope": null, "contextScope": null}'
 ```
 
 ### Seed des utilisateurs Keycloak
 
-Les 5 utilisateurs sont définis dans `scripts/seed-keycloak.mjs`. Pour les créer/réinitialiser :
+Les 10 utilisateurs sont définis dans `keycloak/realm-export.json`. Pour les créer/réinitialiser :
 
 ```bash
 # Démarrage rapide (Keycloak + seed automatique)
@@ -306,15 +296,17 @@ node scripts/seed-keycloak.mjs
 | `npm run dc:up` | `docker compose up -d` + seed automatique |
 | `npm run dc:reset` | `docker compose down -v` + `up -d` + seed (reset complet) |
 
-### Assigner les rôles RBAC
+### Réinitialiser la base RBAC
 
-Les rôles RBAC sont assignés dans la base locale via l'interface admin :
-1. Va sur `/admin/roles` (connecté en tant qu'admin) pour voir/créer les rôles
-2. Va sur `/admin/users` pour assigner les utilisateurs aux rôles
+```bash
+rm -f prisma/data/rbac.db
+# Au prochain démarrage, les migrations et le seed s'exécutent automatiquement
+npm run dev
+```
 
-**Attention :** les utilisateurs Keycloak et les rôles RBAC sont deux choses distinctes.
+**Attention :** les utilisateurs Keycloak et les access policies sont deux choses distinctes.
 - Keycloak gère **l'authentification** (qui peut se connecter)
-- La base RBAC locale gère **les permissions** (ce que chaque utilisateur a le droit de faire)
+- La base locale gère **les permissions** (ce que chaque utilisateur a le droit de faire)
 
 ---
 
@@ -329,23 +321,31 @@ Les rôles RBAC sont assignés dans la base locale via l'interface admin :
                               ┌──────────▼──────────┐
                               │  NextAuth.js (JWT)   │
                               │  src/auth.ts          │
+                              │  enrichit token avec  │
+                              │  getUserPermissions() │
                               └──────────┬──────────┘
                                          │
                     ┌────────────────────┼────────────────────┐
                     │                    │                    │
          ┌──────────▼──────────┐  ┌──────▼──────┐  ┌────────▼────────┐
          │  API Routes         │  │  Pages      │  │  Middleware     │
-         │  app/api/admin/*    │  │  /admin/*   │  │  require-admin  │
-         │  app/api/contracts/*│  │  /          │  │  catalog-filter │
-         └──────────┬──────────┘  └──────┬──────┘  └────────┬────────┘
-                    │                    │                    │
+         │  /api/admin/policies│  │  /admin/*   │  │  require-admin  │
+         │  /api/admin/groups  │  │  /          │  │  catalog-filter │
+         │  /api/admin/*       │  │  /editor    │  └────────────────┘
+         └──────────┬──────────┘  └──────┬──────┘
+                    │                    │
                     └────────────────────┼────────────────────┘
                                          │
                               ┌──────────▼──────────┐
                               │  Business Logic       │
                               │  src/lib/rbac.ts      │
-                              │  src/lib/audit.ts     │
+                              │   → getUserPermissions│
                               │  src/lib/catalog-filter│
+                              │   → filterCatalogCards│
+                              │  src/lib/access-control│
+                              │   → CRUD policies/    │
+                              │     groups/members    │
+                              │  src/lib/audit.ts     │
                               └──────────┬──────────┘
                                          │
                               ┌──────────▼──────────┐
@@ -357,11 +357,188 @@ Les rôles RBAC sont assignés dans la base locale via l'interface admin :
                               ┌──────────▼──────────┐
                               │  SQLite Database      │
                               │  prisma/data/rbac.db  │
+                              │                       │
+                              │  Tables :             │
+                              │  - permissions        │
+                              │  - access_policies    │
+                              │  - groups             │
+                              │  - user_group         │
+                              │  - audit_log          │
+                              │  - subscriptions      │
+                              │  - notifications      │
                               └─────────────────────┘
 ```
 
-Source de vérité définitions rôles :
+## Schéma de la base de données
+
+### Diagramme relationnel (Mermaid)
+
+```mermaid
+erDiagram
+    permissions {
+        int id PK
+        string name UK
+    }
+
+    access_policies {
+        int id PK
+        string user_id FK "nullable"
+        int group_id FK "nullable"
+        int permission_id FK
+        string domain_scope "nullable"
+        string context_scope "nullable"
+        datetime created_at
+        datetime updated_at
+    }
+
+    groups {
+        int id PK
+        string name UK
+    }
+
+    user_group {
+        string user_id PK
+        int group_id PK FK
+    }
+
+    audit_log {
+        int id PK
+        string action
+        string actor_id
+        string target_type
+        string target_id
+        string details
+        datetime created_at
+    }
+
+    subscriptions {
+        string user_id PK
+        string contract_slug PK
+        datetime created_at
+    }
+
+    notifications {
+        int id PK
+        string user_id
+        string contract_slug
+        string type
+        string title
+        string message
+        int is_read
+        datetime created_at
+    }
+
+    permissions ||--o{ access_policies : "permission_id"
+    groups ||--o{ access_policies : "group_id"
+    groups ||--o{ user_group : "group_id"
 ```
-rbac/roles.yaml  ──(sync au startup)──>  SQLite (roles)
-Keycloak                                 SQLite (user_roles, audit_log)
+
+### Détail des tables
+
+#### `permissions`
+| Colonne | Type | Contrainte | Description |
+|---------|------|-----------|-------------|
+| `id` | INTEGER | PK, AUTOINCREMENT | Identifiant |
+| `name` | TEXT | UNIQUE, NOT NULL | `admin`, `editor`, ou `reader` |
+
+Valeurs seedées au démarrage : `admin`(1), `editor`(2), `reader`(3).
+
+---
+
+#### `access_policies`
+| Colonne | Type | Contrainte | Description |
+|---------|------|-----------|-------------|
+| `id` | INTEGER | PK, AUTOINCREMENT | Identifiant |
+| `user_id` | TEXT | NULLABLE | Utilisateur cible (si policy individuelle) |
+| `group_id` | INTEGER | NULLABLE, FK → `groups.id` | Groupe cible (si policy de groupe) |
+| `permission_id` | INTEGER | NOT NULL, FK → `permissions.id` | Niveau de permission |
+| `domain_scope` | TEXT | NULLABLE | Domaine limité (ex: `CRM`), NULL = tous |
+| `context_scope` | TEXT | NULLABLE | Contexte limité (ex: `RELATION_CLIENT`), NULL = tous |
+| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Date de création |
+| `updated_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Date de modification |
+
+**Règles de scope :**
+- `domain_scope = NULL, context_scope = NULL` → accès global
+- `domain_scope = 'CRM', context_scope = NULL` → accès à tout le domaine CRM
+- `domain_scope = 'CRM', context_scope = 'RELATION_CLIENT'` → accès à ce contexte seulement
+
+Une policy doit cibler **soit** un `user_id`, **soit** un `group_id` (pas les deux).
+
+---
+
+#### `groups`
+| Colonne | Type | Contrainte | Description |
+|---------|------|-----------|-------------|
+| `id` | INTEGER | PK, AUTOINCREMENT | Identifiant |
+| `name` | TEXT | UNIQUE, NOT NULL | Nom du groupe (ex: `data_engineering`) |
+
+---
+
+#### `user_group`
+| Colonne | Type | Contrainte | Description |
+|---------|------|-----------|-------------|
+| `user_id` | TEXT | PK, NOT NULL | ID de l'utilisateur Keycloak |
+| `group_id` | INTEGER | PK, FK → `groups.id` ON DELETE CASCADE | Référence au groupe |
+
+Table d'association many-to-many entre utilisateurs et groupes.
+
+---
+
+#### `audit_log`
+| Colonne | Type | Contrainte | Description |
+|---------|------|-----------|-------------|
+| `id` | INTEGER | PK, AUTOINCREMENT | Identifiant |
+| `action` | TEXT | NOT NULL | Type d'action (ex: `policy.create`) |
+| `actor_id` | TEXT | NOT NULL | Utilisateur ayant effectué l'action |
+| `target_type` | TEXT | NOT NULL | Type de cible (`policy`, `group`) |
+| `target_id` | TEXT | NOT NULL | Identifiant de la cible |
+| `details` | TEXT | DEFAULT '{}' | Métadonnées JSON |
+| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Date de l'action |
+
+Index : `(actor_id)`, `(target_type, target_id)`, `(created_at)`.
+
+---
+
+#### `subscriptions`
+| Colonne | Type | Contrainte | Description |
+|---------|------|-----------|-------------|
+| `user_id` | TEXT | PK, NOT NULL | Utilisateur abonné |
+| `contract_slug` | TEXT | PK, NOT NULL | Contrat auquel il est abonné |
+| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Date d'abonnement |
+
+---
+
+#### `notifications`
+| Colonne | Type | Contrainte | Description |
+|---------|------|-----------|-------------|
+| `id` | INTEGER | PK, AUTOINCREMENT | Identifiant |
+| `user_id` | TEXT | NOT NULL | Destinataire |
+| `contract_slug` | TEXT | NOT NULL | Contrat concerné |
+| `type` | TEXT | DEFAULT 'info' | Type de notification |
+| `title` | TEXT | NOT NULL | Titre |
+| `message` | TEXT | DEFAULT '' | Corps du message |
+| `is_read` | INTEGER | DEFAULT 0 | 0 = non lu, 1 = lu |
+| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Date d'envoi |
+
+Index : `(user_id, is_read)`.
+
+---
+
+### Flux d'accès
+
+```
+Utilisateur se connecte
+       │
+       ▼
+  auth() → JWT token enrichi avec getUserPermissions()
+       │
+       ├── Page d'accueil : filterCatalogCards(userId, cards, permissions)
+       │     ├── admin ? → toutes les cartes
+       │     ├── aucune policy en base ? → toutes les cartes (safety net)
+       │     ├── global reader/writer → toutes les cartes
+       │     └── policies scoped → filtre par (domaine, contexte)
+       │
+       ├── Pages admin : permissions.includes("admin") ? → accès
+       │
+       └── Éditeur : permissions.includes("write") || "admin" → accès
 ```

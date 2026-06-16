@@ -4,11 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 
 function ActionBadge({ action }: { action: string }) {
   const colors: Record<string, string> = {
-    "role.create": "bg-blue-50 text-blue-800",
-    "role.update": "bg-yellow-50 text-yellow-800",
-    "role.delete": "bg-red-50 text-red-800",
-    "user.assign": "bg-green-50 text-green-700",
-    "user.revoke": "bg-purple-50 text-purple-800",
+    "policy.create": "bg-indigo-50 text-indigo-700",
+    "policy.delete": "bg-pink-50 text-pink-800",
+    "group.create": "bg-teal-50 text-teal-700",
+    "group.delete": "bg-orange-50 text-orange-800",
+    "group.add_member": "bg-cyan-50 text-cyan-700",
+    "group.remove_member": "bg-rose-50 text-rose-800",
   };
   const cls = colors[action] ?? "bg-gray-100 text-gray-700";
   return (
@@ -28,9 +29,9 @@ type AuditLog = {
 };
 
 export default function AdminDashboard() {
-  const [roleCount, setRoleCount] = useState(0);
-  const [userCount, setUserCount] = useState(0);
-  const [assignCount, setAssignCount] = useState(0);
+  const [groupCount, setGroupCount] = useState(0);
+  const [memberCount, setMemberCount] = useState(0);
+  const [policyCount, setPolicyCount] = useState(0);
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [sortKey, setSortKey] = useState("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -50,9 +51,9 @@ export default function AdminDashboard() {
   const fetchData = useCallback(async () => {
     const res = await fetch("/api/admin/dashboard");
     const data = await res.json();
-    setRoleCount(data.roleCount ?? 0);
-    setUserCount(data.userCount ?? 0);
-    setAssignCount(data.assignCount ?? 0);
+    setGroupCount(data.groupCount ?? 0);
+    setMemberCount(data.memberCount ?? 0);
+    setPolicyCount(data.policyCount ?? 0);
     setLogs(data.recentLogs ?? []);
   }, []);
 
@@ -81,16 +82,16 @@ export default function AdminDashboard() {
     <div className="space-y-6">
       <div className="flex gap-3">
         <div className="flex-1 rounded-lg border bg-white p-4">
-          <p className="text-sm text-gray-500">Roles</p>
-          <p className="text-2xl font-bold text-gray-900">{roleCount}</p>
+          <p className="text-sm text-gray-500">Groups</p>
+          <p className="text-2xl font-bold text-gray-900">{groupCount}</p>
         </div>
         <div className="flex-1 rounded-lg border bg-white p-4">
-          <p className="text-sm text-gray-500">Users with roles</p>
-          <p className="text-2xl font-bold text-gray-900">{userCount}</p>
+          <p className="text-sm text-gray-500">Group memberships</p>
+          <p className="text-2xl font-bold text-gray-900">{memberCount}</p>
         </div>
         <div className="flex-1 rounded-lg border bg-white p-4">
-          <p className="text-sm text-gray-500">Total assignments</p>
-          <p className="text-2xl font-bold text-gray-900">{assignCount}</p>
+          <p className="text-sm text-gray-500">Access policies</p>
+          <p className="text-2xl font-bold text-gray-900">{policyCount}</p>
         </div>
       </div>
 

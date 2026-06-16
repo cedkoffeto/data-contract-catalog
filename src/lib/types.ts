@@ -169,6 +169,7 @@ export type CatalogCard = {
   description: string;
   maturity: string;
   domain: string;
+  context: string;
   searchData: string;
   href: string;
 };

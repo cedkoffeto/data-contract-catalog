@@ -1,0 +1,318 @@
+import { query, execute } from "@/src/lib/db";
+import { writeAuditLog } from "@/src/lib/audit";
+
+export type PermissionName = "admin" | "editor" | "reader";
+
+type AccessPolicyRow = {
+  permission_name: string;
+};
+
+type PermissionRow = {
+  id: number;
+  name: string;
+};
+
+/**
+ * Maps application actions to required permission levels.
+ * Hierarchy: admin > editor > reader
+ */
+const ACTION_HIERARCHY: Record<string, PermissionName> = {
+  admin: "admin",
+  write: "editor",
+  read: "reader",
+} as const;
+
+const PERMISSION_RANK: Record<PermissionName, number> = {
+  admin: 3,
+  editor: 2,
+  reader: 1,
+};
+
+/**
+ * Returns the set of effective permission names for a user on a specific
+ * (domain, context) contract, following the inheritance rules:
+ *
+ *   Level 1 (Global)    : domain_scope IS NULL AND context_scope IS NULL
+ *   Level 2 (Domain)    : domain_scope = target domain AND context_scope IS NULL
+ *   Level 3 (Context)   : domain_scope = target domain AND context_scope = target context
+ *
+ * Results are deduplicated and, if admin is present, returned as [ 'admin' ].
+ */
+export async function getEffectivePermissions(
+  userId: string,
+  domain: string,
+  context: string,
+): Promise<PermissionName[]> {
+  const rows = await query<AccessPolicyRow>(
+    `SELECT DISTINCT p.name AS permission_name
+     FROM access_policies ap
+     JOIN permissions p ON p.id = ap.permission_id
+     WHERE (
+       ap.user_id = ?
+       OR ap.group_id IN (
+         SELECT ug.group_id FROM user_group ug WHERE ug.user_id = ?
+       )
+     )
+     AND (
+       (ap.domain_scope IS NULL AND ap.context_scope IS NULL)               -- Level 1: Global
+       OR (ap.domain_scope = ? AND ap.context_scope IS NULL)                -- Level 2: Domain-wide
+       OR (ap.domain_scope = ? AND ap.context_scope = ?)                    -- Level 3: Context-specific
+     )`,
+    [userId, userId, domain, domain, context],
+  );
+
+  const names = rows.map((r) => r.permission_name as PermissionName);
+
+  if (names.includes("admin")) return ["admin"];
+
+  return names;
+}
+
+/**
+ * Checks whether a user has the required action level on a given contract.
+ *
+ * Hierarchy:
+ *   - 'admin'  can do everything
+ *   - 'editor' can read + write
+ *   - 'reader' can only read
+ */
+export async function authorize(
+  userId: string,
+  domain: string,
+  context: string,
+  requiredAction: "read" | "write" | "admin",
+): Promise<boolean> {
+  const effective = await getEffectivePermissions(userId, domain, context);
+
+  if (effective.includes("admin")) return true;
+
+  const minRequired = ACTION_HIERARCHY[requiredAction];
+  const requiredRank = PERMISSION_RANK[minRequired];
+
+  for (const perm of effective) {
+    if (PERMISSION_RANK[perm] >= requiredRank) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// ---------------------------------------------------------------------------
+// CRUD helpers for access_policies
+// ---------------------------------------------------------------------------
+
+export async function listPermissions(): Promise<PermissionRow[]> {
+  return query<PermissionRow>("SELECT id, name FROM permissions ORDER BY id");
+}
+
+export type AccessPolicyRecord = {
+  id: number;
+  user_id: string | null;
+  group_id: number | null;
+  group_name: string | null;
+  permission_id: number;
+  permission_name: string;
+  domain_scope: string | null;
+  context_scope: string | null;
+};
+
+export async function listAccessPolicies(): Promise<AccessPolicyRecord[]> {
+  return query<AccessPolicyRecord>(
+    `SELECT ap.id, ap.user_id, ap.group_id, g.name AS group_name,
+            ap.permission_id, p.name AS permission_name,
+            ap.domain_scope, ap.context_scope
+     FROM access_policies ap
+     JOIN permissions p ON p.id = ap.permission_id
+     LEFT JOIN groups g ON g.id = ap.group_id
+     ORDER BY ap.id`,
+  );
+}
+
+export async function getAccessPolicy(id: number): Promise<AccessPolicyRecord | null> {
+  const rows = await query<AccessPolicyRecord>(
+    `SELECT ap.id, ap.user_id, ap.group_id, ap.permission_id, p.name AS permission_name,
+            ap.domain_scope, ap.context_scope
+     FROM access_policies ap
+     JOIN permissions p ON p.id = ap.permission_id
+     WHERE ap.id = ?`,
+    [id],
+  );
+  return rows[0] ?? null;
+}
+
+/**
+ * Creates a new fine-grained access policy.
+ * Either `userId` or `groupId` must be provided (but not both).
+ */
+export async function createAccessPolicy(params: {
+  userId: string | null;
+  groupId: number | null;
+  permissionId: number;
+  domainScope: string | null;
+  contextScope: string | null;
+  actorId: string;
+}): Promise<AccessPolicyRecord> {
+  const { userId, groupId, permissionId, domainScope, contextScope, actorId } = params;
+
+  if ((userId === null) === (groupId === null)) {
+    throw new Error("Exactly one of userId or groupId must be provided");
+  }
+
+  const result = await execute(
+    `INSERT INTO access_policies (user_id, group_id, permission_id, domain_scope, context_scope)
+     VALUES (?, ?, ?, ?, ?)`,
+    [userId ?? null, groupId ?? null, permissionId, domainScope ?? null, contextScope ?? null],
+  );
+
+  const rows = await query<{ id: number }>(
+    "SELECT MAX(id) AS id FROM access_policies",
+  );
+  const newId = rows[0]?.id ?? 0;
+
+  await writeAuditLog({
+    action: "policy.create",
+    actorId,
+    targetType: "policy",
+    targetId: String(newId),
+    details: { userId, groupId, permissionId, domainScope, contextScope },
+  });
+
+  return (await getAccessPolicy(newId))!;
+}
+
+export async function updateAccessPolicy(params: {
+  id: number;
+  permissionId: number;
+  domainScope: string | null;
+  contextScope: string | null;
+  actorId: string;
+}): Promise<AccessPolicyRecord> {
+  const { id, permissionId, domainScope, contextScope, actorId } = params;
+
+  await execute(
+    `UPDATE access_policies
+     SET permission_id = ?, domain_scope = ?, context_scope = ?, updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [permissionId, domainScope, contextScope, id],
+  );
+
+  await writeAuditLog({
+    action: "policy.update",
+    actorId,
+    targetType: "policy",
+    targetId: String(id),
+    details: { permissionId, domainScope, contextScope },
+  });
+
+  return (await getAccessPolicy(id))!;
+}
+
+export async function deleteAccessPolicy(params: {
+  id: number;
+  actorId: string;
+}): Promise<void> {
+  await execute("DELETE FROM access_policies WHERE id = ?", [params.id]);
+
+  await writeAuditLog({
+    action: "policy.delete",
+    actorId: params.actorId,
+    targetType: "policy",
+    targetId: String(params.id),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Group helpers
+// ---------------------------------------------------------------------------
+
+export async function listGroups(): Promise<{ id: number; name: string }[]> {
+  return query<{ id: number; name: string }>("SELECT id, name FROM groups ORDER BY name");
+}
+
+export async function createGroup(params: { name: string; actorId: string }): Promise<{ id: number; name: string }> {
+  await execute("INSERT INTO groups (name) VALUES (?)", [params.name]);
+
+  const rows = await query<{ id: number; name: string }>(
+    "SELECT id, name FROM groups WHERE name = ?",
+    [params.name],
+  );
+
+  await writeAuditLog({
+    action: "group.create",
+    actorId: params.actorId,
+    targetType: "group",
+    targetId: params.name,
+  });
+
+  return rows[0]!;
+}
+
+export async function deleteGroup(params: { id: number; actorId: string }): Promise<void> {
+  const group = await query<{ name: string }>("SELECT name FROM groups WHERE id = ?", [params.id]);
+  await execute("DELETE FROM groups WHERE id = ?", [params.id]);
+
+  await writeAuditLog({
+    action: "group.delete",
+    actorId: params.actorId,
+    targetType: "group",
+    targetId: group[0]?.name ?? String(params.id),
+  });
+}
+
+export async function addUserToGroup(params: {
+  userId: string;
+  groupId: number;
+  actorId: string;
+}): Promise<void> {
+  await execute("INSERT OR IGNORE INTO user_group (user_id, group_id) VALUES (?, ?)", [
+    params.userId,
+    params.groupId,
+  ]);
+
+  await writeAuditLog({
+    action: "group.add_member",
+    actorId: params.actorId,
+    targetType: "group",
+    targetId: String(params.groupId),
+    details: { userId: params.userId },
+  });
+}
+
+export async function removeUserFromGroup(params: {
+  userId: string;
+  groupId: number;
+  actorId: string;
+}): Promise<void> {
+  await execute("DELETE FROM user_group WHERE user_id = ? AND group_id = ?", [
+    params.userId,
+    params.groupId,
+  ]);
+
+  await writeAuditLog({
+    action: "group.remove_member",
+    actorId: params.actorId,
+    targetType: "group",
+    targetId: String(params.groupId),
+    details: { userId: params.userId },
+  });
+}
+
+export async function listGroupMembers(groupId: number): Promise<string[]> {
+  const rows = await query<{ user_id: string }>(
+    "SELECT user_id FROM user_group WHERE group_id = ? ORDER BY user_id",
+    [groupId],
+  );
+  return rows.map((r) => r.user_id);
+}
+
+export async function listAllGroupMemberships(): Promise<
+  Array<{ group_id: number; group_name: string; user_id: string }>
+> {
+  return query<{ group_id: number; group_name: string; user_id: string }>(
+    `SELECT ug.group_id, g.name AS group_name, ug.user_id
+     FROM user_group ug
+     JOIN groups g ON g.id = ug.group_id
+     ORDER BY g.name, ug.user_id`,
+  );
+}

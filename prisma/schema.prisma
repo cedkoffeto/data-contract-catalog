@@ -8,30 +8,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Role {
-  name        String     @id
-  permissions String     @default("[]")
-  createdAt   DateTime   @default(now()) @map("created_at")
-  updatedAt   DateTime   @updatedAt      @map("updated_at")
-
-  assignments UserRole[]
-
-  @@map("roles")
-}
-
-model UserRole {
-  userId     String   @map("user_id")
-  roleName   String   @map("role_name")
-  assignedBy String   @map("assigned_by")
-  assignedAt DateTime @default(now()) @map("assigned_at")
-
-  role Role @relation(fields: [roleName], references: [name], onDelete: Restrict)
-
-  @@id([userId, roleName])
-  @@index([userId])
-  @@map("user_roles")
-}
-
 model AuditLog {
   id         Int      @id @default(autoincrement())
   action     String
@@ -70,4 +46,57 @@ model Notification {
 
   @@index([userId, isRead])
   @@map("notifications")
+}
+
+model Permission {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+
+  policies AccessPolicy[]
+
+  @@map("permissions")
+}
+
+model Group {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+
+  members     UserGroup[]
+  policies    AccessPolicy[]
+
+  @@map("groups")
+}
+
+model UserGroup {
+  userId  String @map("user_id")
+  groupId Int    @map("group_id")
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@id([userId, groupId])
+  @@index([userId])
+  @@index([groupId])
+  @@map("user_group")
+}
+
+model AccessPolicy {
+  id            Int      @id @default(autoincrement())
+  userId        String?  @map("user_id")
+  groupId       Int?     @map("group_id")
+  permissionId  Int      @map("permission_id")
+  domainScope   String?  @map("domain_scope")
+  contextScope  String?  @map("context_scope")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  group      Group?     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([groupId])
+  @@index([permissionId])
+  @@index([domainScope])
+  @@index([contextScope])
+  @@index([domainScope, contextScope, permissionId])
+  @@map("access_policies")
 }
