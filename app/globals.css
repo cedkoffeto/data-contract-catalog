@@ -3318,7 +3318,33 @@ a:has(> .kpi-card) {
 }
 
 .yaml-sheet__panel--commit {
-  width: min(34rem, 100vw);
+  width: min(56rem, 100vw);
+}
+
+.yaml-sheet__panel--commit .yaml-sheet__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.yaml-sheet__body--commit {
+  padding: 1rem;
+  gap: 0.75rem;
+}
+
+.yaml-sheet__body--commit .diff-view {
+  flex: 1;
+  min-height: 0;
+}
+
+.commit-modal__diff {
+  margin-bottom: 1rem;
+  border: 1px solid var(--ui-subtle);
+  border-radius: var(--ui-radius);
+  overflow: hidden;
+  max-height: 24rem;
+  overflow-y: auto;
 }
 
 .commit-modal__label {
@@ -3343,7 +3369,7 @@ a:has(> .kpi-card) {
   line-height: 1.5;
   color: var(--ui-text);
   resize: vertical;
-  min-height: 7rem;
+  min-height: 5rem;
 }
 
 .commit-modal__textarea:focus {
@@ -3353,9 +3379,20 @@ a:has(> .kpi-card) {
 }
 
 .commit-modal__error {
-  margin: 0 0 0.75rem;
+  margin: 0;
   font-size: 0.82rem;
   color: #dc2626;
+}
+
+.commit-modal__no-diff {
+  margin: 0;
+  padding: 0.75rem;
+  font-size: 0.82rem;
+  color: var(--ui-text-soft);
+  text-align: center;
+  border: 1px solid var(--ui-subtle);
+  border-radius: var(--ui-radius);
+  background: var(--ui-bg-soft);
 }
 
 .contract-side-card__header-actions {
@@ -3368,6 +3405,8 @@ a:has(> .kpi-card) {
 
 .yaml-sheet--diff .yaml-sheet__panel {
   width: min(56rem, 100vw);
+  resize: horizontal;
+  overflow: auto;
 }
 
 .yaml-sheet__body--diff {
@@ -3588,11 +3627,63 @@ a:has(> .kpi-card) {
 .diff-unified__content {
   padding: 0 0.5rem;
   white-space: pre;
+  max-width: 120ch;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .diff-unified__content pre {
   margin: 0;
   font-family: inherit;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.diff-unified__row--modified .diff-unified__content {
+  padding: 0;
+}
+
+.diff-inline-lines {
+  width: 100%;
+}
+
+.diff-inline-line {
+  width: 100%;
+  padding: 0 0.5rem;
+}
+
+.diff-inline-pre {
+  margin: 0;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.diff-inline-line--old {
+  background: rgba(220, 38, 38, 0.15);
+}
+
+.diff-inline-line--new {
+  background: rgba(22, 163, 74, 0.15);
+}
+
+.diff-inline {
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.diff-inline--removed {
+  background: rgba(220, 38, 38, 0.40);
+}
+
+.diff-inline--added {
+  background: rgba(22, 163, 74, 0.40);
+}
+
+.diff-side-by-side__content--modified {
+  padding: 0;
 }
 
 /* --- Side-by-side diff --- */
@@ -3643,11 +3734,16 @@ a:has(> .kpi-card) {
   white-space: pre;
   vertical-align: top;
   min-width: 20rem;
+  max-width: 120ch;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .diff-side-by-side__content pre {
   margin: 0;
   font-family: inherit;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .diff-side-by-side__content--left {

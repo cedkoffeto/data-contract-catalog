@@ -451,6 +451,11 @@ async function readGitLabContracts(): Promise<ContractFile[]> {
     count: contracts.length
   });
 
+  if (contracts.length === 0) {
+    console.warn("[gitlab.contracts] All file fetches failed, falling back to local contracts");
+    return readLocalContracts();
+  }
+
   return contracts;
 }
 

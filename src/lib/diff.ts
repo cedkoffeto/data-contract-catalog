@@ -1,14 +1,16 @@
 import { diffLines as diffLinesLCS, diffWords } from "diff";
 
 export type DiffChange = {
-  type: "added" | "removed" | "unchanged";
-  value: string;
+  type: "added" | "removed" | "unchanged" | "modified";
+  value?: string;
+  oldValue?: string;
+  newValue?: string;
   lineNumberLeft?: number;
   lineNumberRight?: number;
 };
 
 export type SideBySideLine = {
-  type: "added" | "removed" | "unchanged" | "empty";
+  type: "added" | "removed" | "unchanged" | "empty" | "modified";
   left: { text: string; lineNumber: number | null } | null;
   right: { text: string; lineNumber: number | null } | null;
 };
@@ -30,15 +32,34 @@ export function createUnifiedDiff(base: string, next: string): DiffChange[] {
   const changes = diffLinesLCS(base, next);
   const result: DiffChange[] = [];
 
-  for (const change of changes) {
+  for (let i = 0; i < changes.length; i++) {
+    const change = changes[i];
     const lines = change.value.replace(/\n$/, "").split("\n");
-    if (change.added) {
+
+    if (change.removed && !change.added) {
+      const nextChange = changes[i + 1];
+      if (nextChange && nextChange.added && !nextChange.removed) {
+        const nextLines = nextChange.value.replace(/\n$/, "").split("\n");
+        const pairCount = Math.min(lines.length, nextLines.length);
+
+        for (let j = 0; j < pairCount; j++) {
+          result.push({ type: "modified", oldValue: lines[j], newValue: nextLines[j] });
+        }
+        for (let j = pairCount; j < lines.length; j++) {
+          result.push({ type: "removed", value: lines[j] });
+        }
+        for (let j = pairCount; j < nextLines.length; j++) {
+          result.push({ type: "added", value: nextLines[j] });
+        }
+        i++;
+      } else {
+        for (const line of lines) {
+          result.push({ type: "removed", value: line });
+        }
+      }
+    } else if (change.added && !change.removed) {
       for (const line of lines) {
         result.push({ type: "added", value: line });
-      }
-    } else if (change.removed) {
-      for (const line of lines) {
-        result.push({ type: "removed", value: line });
       }
     } else {
       for (const line of lines) {
@@ -80,10 +101,53 @@ export function createSideBySideDiff(base: string, next: string): SideBySideLine
   let leftLine = 1;
   let rightLine = 1;
 
-  for (const change of changes) {
+  for (let i = 0; i < changes.length; i++) {
+    const change = changes[i];
     const lines = change.value.replace(/\n$/, "").split("\n");
 
-    if (change.added) {
+    if (change.removed && !change.added) {
+      const nextChange = changes[i + 1];
+      if (nextChange && nextChange.added && !nextChange.removed) {
+        const nextLines = nextChange.value.replace(/\n$/, "").split("\n");
+        const pairCount = Math.min(lines.length, nextLines.length);
+
+        for (let j = 0; j < pairCount; j++) {
+          result.push({
+            type: "modified",
+            left: { text: lines[j], lineNumber: leftLine },
+            right: { text: nextLines[j], lineNumber: rightLine }
+          });
+          leftLine += 1;
+          rightLine += 1;
+        }
+        for (let j = pairCount; j < lines.length; j++) {
+          result.push({
+            type: "removed",
+            left: { text: lines[j], lineNumber: leftLine },
+            right: null
+          });
+          leftLine += 1;
+        }
+        for (let j = pairCount; j < nextLines.length; j++) {
+          result.push({
+            type: "added",
+            left: null,
+            right: { text: nextLines[j], lineNumber: rightLine }
+          });
+          rightLine += 1;
+        }
+        i++;
+      } else {
+        for (const line of lines) {
+          result.push({
+            type: "removed",
+            left: { text: line, lineNumber: leftLine },
+            right: null
+          });
+          leftLine += 1;
+        }
+      }
+    } else if (change.added && !change.removed) {
       for (const line of lines) {
         result.push({
           type: "added",
@@ -91,15 +155,6 @@ export function createSideBySideDiff(base: string, next: string): SideBySideLine
           right: { text: line, lineNumber: rightLine }
         });
         rightLine += 1;
-      }
-    } else if (change.removed) {
-      for (const line of lines) {
-        result.push({
-          type: "removed",
-          left: { text: line, lineNumber: leftLine },
-          right: null
-        });
-        leftLine += 1;
       }
     } else {
       for (const line of lines) {
@@ -188,6 +243,55 @@ export function createStructuralDiff(base: Record<string, unknown>, next: Record
   }
 
   return changes.sort((a, b) => a.path.localeCompare(b.path));
+}
+
+export type WordDiffSegment = {
+  text: string;
+  type: "same" | "removed" | "added";
+};
+
+export function computeWordDiff(oldText: string, newText: string): [WordDiffSegment[], WordDiffSegment[]] {
+  const changes = diffWords(oldText, newText);
+  const oldSegments: WordDiffSegment[] = [];
+  const newSegments: WordDiffSegment[] = [];
+
+  for (const change of changes) {
+    if (change.removed && !change.added) {
+      oldSegments.push({ text: change.value, type: "removed" });
+    } else if (change.added && !change.removed) {
+      newSegments.push({ text: change.value, type: "added" });
+    } else {
+      oldSegments.push({ text: change.value, type: "same" });
+      newSegments.push({ text: change.value, type: "same" });
+    }
+  }
+
+  return [oldSegments, newSegments];
+}
+
+export function createRawDiff(base: string, next: string): { sign: string; text: string }[] {
+  const changes = diffLinesLCS(base, next);
+  const entries: { sign: string; text: string }[] = [];
+
+  for (const change of changes) {
+    const lines = change.value.replace(/\n$/, "").split("\n");
+
+    if (change.added && !change.removed) {
+      for (const line of lines) {
+        entries.push({ sign: "+", text: line });
+      }
+    } else if (change.removed && !change.added) {
+      for (const line of lines) {
+        entries.push({ sign: "-", text: line });
+      }
+    } else {
+      for (const line of lines) {
+        entries.push({ sign: " ", text: line });
+      }
+    }
+  }
+
+  return entries;
 }
 
 export function computeDiff(base: string, next: string, baseData?: Record<string, unknown>, nextData?: Record<string, unknown>): DiffResult {

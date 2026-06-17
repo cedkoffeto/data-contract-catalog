@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import type { DiffResult, SideBySideLine } from "@/src/lib/diff";
+import type { DiffResult, SideBySideLine, WordDiffSegment } from "@/src/lib/diff";
+import { computeWordDiff } from "@/src/lib/diff";
 
 import { DiffSideBySide } from "./DiffSideBySide";
 import { DiffStructural } from "./DiffStructural";
@@ -168,6 +169,29 @@ function DiffUnified({
   activeHunk: HunkRange | null;
   activeHunkIndex: number;
 }) {
+  const wordDiffCache = useMemo(() => {
+    const cache = new Map<string, [WordDiffSegment[], WordDiffSegment[]]>();
+    for (const change of changes) {
+      if (change.type === "modified" && change.oldValue !== undefined && change.newValue !== undefined) {
+        const key = `${change.oldValue}\0${change.newValue}`;
+        if (!cache.has(key)) {
+          cache.set(key, computeWordDiff(change.oldValue, change.newValue));
+        }
+      }
+    }
+    return cache;
+  }, [changes]);
+
+  function renderInline(segments: WordDiffSegment[], highlightType: "removed" | "added") {
+    return segments.map((seg, i) =>
+      seg.type === "same" ? (
+        <span key={i}>{seg.text}</span>
+      ) : seg.type === highlightType ? (
+        <span key={i} className={`diff-inline diff-inline--${seg.type}`}>{seg.text}</span>
+      ) : null
+    );
+  }
+
   return (
     <div className="diff-unified">
       {changes.length === 0 ? (
@@ -177,6 +201,7 @@ function DiffUnified({
           <tbody>
             {changes.map((change, index) => {
               const isHunkActive = activeHunk ? index >= activeHunk[0] && index <= activeHunk[1] : false;
+              const rowClass = change.type === "modified" ? "modified" : change.type;
               return (
                 <tr
                   key={index}
@@ -184,10 +209,25 @@ function DiffUnified({
                   className={`diff-unified__row diff-unified__row--${change.type}${isHunkActive ? " diff-unified__row--active" : ""}`}
                 >
                   <td className="diff-unified__line-num">
-                    {change.type === "unchanged" ? "" : change.type === "added" ? "+" : "-"}
+                    {change.type === "added" ? "+" : change.type === "removed" ? "-" : change.type === "modified" ? "~" : ""}
                   </td>
                   <td className="diff-unified__content">
-                    <pre>{change.value}</pre>
+                    {change.type === "modified" && change.oldValue !== undefined && change.newValue !== undefined ? (
+                      <div className="diff-inline-lines">
+                        <div className="diff-inline-line diff-inline-line--old">
+                          <pre className="diff-inline-pre">
+                            {renderInline(wordDiffCache.get(`${change.oldValue}\0${change.newValue}`)?.[0] ?? [], "removed")}
+                          </pre>
+                        </div>
+                        <div className="diff-inline-line diff-inline-line--new">
+                          <pre className="diff-inline-pre">
+                            {renderInline(wordDiffCache.get(`${change.oldValue}\0${change.newValue}`)?.[1] ?? [], "added")}
+                          </pre>
+                        </div>
+                      </div>
+                    ) : (
+                      <pre>{change.value}</pre>
+                    )}
                   </td>
                 </tr>
               );

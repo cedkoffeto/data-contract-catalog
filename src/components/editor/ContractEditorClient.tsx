@@ -18,7 +18,8 @@ import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { CommitModal } from "@/src/components/editor/CommitModal";
 import { ContractBody } from "@/src/components/contract/ContractBody";
 import { ContractHeader } from "@/src/components/contract/ContractHeader";
-import { createUnifiedDiffText } from "@/src/lib/diff";
+import { computeDiff, createUnifiedDiffText } from "@/src/lib/diff";
+import type { DiffResult } from "@/src/lib/diff";
 import type { DataContract, EditorRepositoryFile } from "@/src/lib/types";
 
 const uiSchema: UiSchema = {
@@ -548,7 +549,7 @@ export function ContractEditorClient({
   const [historyBySlug, setHistoryBySlug] = useState<Record<string, HistoryState>>({});
   const [historyVersionCache, setHistoryVersionCache] = useState<Record<string, string>>({});
   const [historyReloadToken, setHistoryReloadToken] = useState(0);
-  const [commitModal, setCommitModal] = useState<{ contractSlug: string; contractName: string } | null>(null);
+  const [commitModal, setCommitModal] = useState<{ contractSlug: string; contractName: string; diff: DiffResult } | null>(null);
   const [historyActionState, setHistoryActionState] = useState<{ entryId: string | null; mode: "history" | "compare" | null }>({
     entryId: null,
     mode: null
@@ -1081,12 +1082,19 @@ export function ContractEditorClient({
     setWorkspaceMessage("Form changes synchronized to YAML");
   }
 
-  async function handleSubmitContract() {
+  function handleSubmitContract() {
     if (!isContractDocument || !selectedDocument.contractSlug) {
       return;
     }
 
-    setCommitModal({ contractSlug: selectedDocument.contractSlug, contractName: selectedDocument.name });
+    const originalData = (yaml.load(selectedDocument.originalContent) as DataContract | null) ?? {};
+    const diff = computeDiff(
+      selectedDocument.originalContent,
+      selectedDocument.content,
+      originalData as Record<string, unknown>,
+      selectedDocument.data as unknown as Record<string, unknown>
+    );
+    setCommitModal({ contractSlug: selectedDocument.contractSlug, contractName: selectedDocument.name, diff });
   }
 
   async function handleCommitConfirm(message: string) {
@@ -1798,6 +1806,7 @@ export function ContractEditorClient({
     {commitModal ? (
       <CommitModal
         contractName={commitModal.contractName}
+        diff={commitModal.diff}
         defaultMessage={`feat: update ${commitModal.contractName}`}
         onClose={() => setCommitModal(null)}
         onConfirm={handleCommitConfirm}

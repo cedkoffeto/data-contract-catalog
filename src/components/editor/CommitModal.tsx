@@ -1,26 +1,34 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useId, useRef, useState } from "react";
+
+import { DiffView } from "@/src/components/contract/diff/DiffView";
+import type { DiffResult } from "@/src/lib/diff";
 
 export function CommitModal({
   defaultMessage,
   contractName,
+  diff,
   onConfirm,
   onClose,
 }: {
   defaultMessage: string;
   contractName: string;
+  diff: DiffResult;
   onConfirm: (message: string) => Promise<void>;
   onClose: () => void;
 }) {
   const id = useId().replace(/:/g, "");
-  const dialogRef = useRef<HTMLDialogElement>(null);
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
   const [message, setMessage] = useState(defaultMessage);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    dialogRef.current?.showModal();
+  const dialogRefCallback = useCallback((node: HTMLDialogElement | null) => {
+    dialogRef.current = node;
+    if (node && !node.open) {
+      node.showModal();
+    }
   }, []);
 
   function generateMessage() {
@@ -40,6 +48,10 @@ Update data contract ${contractName} - ${date}`);
   function handleClose() {
     if (saving) return;
     dialogRef.current?.close();
+  }
+
+  function handleDialogClose() {
+    if (saving) return;
     onClose();
   }
 
@@ -58,8 +70,10 @@ Update data contract ${contractName} - ${date}`);
     }
   }
 
+  const hasChanges = diff.unified.some((c) => c.type !== "unchanged");
+
   return (
-    <dialog ref={dialogRef} className="yaml-sheet" aria-labelledby={`commit-sheet-title-${id}`}>
+    <dialog ref={dialogRefCallback} className="yaml-sheet yaml-sheet--commit" aria-labelledby={`commit-sheet-title-${id}`} onClose={handleDialogClose}>
       <form method="dialog" className="yaml-sheet__backdrop">
         <button className="yaml-sheet__scrim" aria-label="Close" onClick={handleClose} />
       </form>
@@ -84,8 +98,18 @@ Update data contract ${contractName} - ${date}`);
           </div>
         </div>
 
-        <div className="yaml-sheet__body">
+        <div className="yaml-sheet__body yaml-sheet__body--commit">
           {error ? <p className="commit-modal__error" role="alert">{error}</p> : null}
+
+          {hasChanges ? (
+            <DiffView
+              diff={diff}
+              fromLabel="Current version"
+              toLabel="Your changes"
+            />
+          ) : (
+            <div className="commit-modal__no-diff">No changes detected — the content is identical to the current version.</div>
+          )}
 
           <label className="commit-modal__label" htmlFor={`commit-msg-${id}`}>
             Commit message
@@ -95,7 +119,7 @@ Update data contract ${contractName} - ${date}`);
             id={`commit-msg-${id}`}
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Describe your changes..."
-            rows={6}
+            rows={4}
             value={message}
           />
         </div>
