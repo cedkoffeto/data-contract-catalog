@@ -88,25 +88,30 @@ export default function AdminDashboard() {
   const paginated = sorted.slice(safePage * pageSize, (safePage + 1) * pageSize);
 
   const cards = data ? [
-    { label: "Contracts", value: data.contractsCount, color: "bg-blue-50 text-blue-700" },
-    { label: "Policies", value: data.policyCount, color: "bg-red-50 text-red-700" },
-    { label: "Groups", value: data.groupCount, color: "bg-amber-50 text-amber-700" },
-    { label: "Users", value: data.userCount, color: "bg-green-50 text-green-700" },
-    { label: "Notifications", value: data.notificationsCount, color: "bg-purple-50 text-purple-700" },
-    { label: "Unread", value: data.unreadNotificationsCount, color: "bg-pink-50 text-pink-700" },
-    { label: "Subscriptions", value: data.subscriptionsCount, color: "bg-indigo-50 text-indigo-700" },
-    { label: "Memberships", value: data.memberCount, color: "bg-gray-50 text-gray-700" },
+    { label: "Contracts", value: data.contractsCount, accent: "border-l-blue-500", icon: "M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" },
+    { label: "Policies", value: data.policyCount, accent: "border-l-red-500", icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" },
+    { label: "Groups", value: data.groupCount, accent: "border-l-amber-500", icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" },
+    { label: "Users", value: data.userCount, accent: "border-l-green-500", icon: "M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" },
+    { label: "Notifications", value: data.notificationsCount, accent: "border-l-purple-500", icon: "M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" },
+    { label: "Unread", value: data.unreadNotificationsCount, accent: "border-l-pink-500", icon: "M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" },
+    { label: "Subscriptions", value: data.subscriptionsCount, accent: "border-l-indigo-500", icon: "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6m-4 5H8m0 4h8m-8-8h2" },
+    { label: "Memberships", value: data.memberCount, accent: "border-l-gray-500", icon: "M17 14v6m-3-3h6M6 10h2a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2zm10 0h2a2 2 0 002-2V6a2 2 0 00-2-2h-2a2 2 0 00-2 2v2a2 2 0 002 2zM6 20h2a2 2 0 002-2v-2a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2z" },
   ] : [];
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {cards.map((c) => (
-          <div key={c.label} className="rounded-lg border bg-white p-5">
-            <p className="text-xs font-medium uppercase tracking-wider text-gray-500">{c.label}</p>
-            <p className={`mt-1 inline-block rounded-md px-2 py-0.5 text-2xl font-bold ${c.color}`}>
-              {c.value}
-            </p>
+          <div key={c.label} className={`rounded-lg border bg-white border-l-4 ${c.accent} p-4`}>
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wider text-gray-400">{c.label}</p>
+                <p className="mt-1 text-3xl font-bold text-gray-900">{c.value}</p>
+              </div>
+              <svg className="h-8 w-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d={c.icon} />
+              </svg>
+            </div>
           </div>
         ))}
       </div>
