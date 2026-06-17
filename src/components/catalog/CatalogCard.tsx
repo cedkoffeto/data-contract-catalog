@@ -30,8 +30,12 @@ function LockIcon() {
 export function CatalogCard({ card }: { card: CatalogCardType }) {
   if (!card.accessible) {
     return (
-      <li className="catalog-card-listing" data-search={card.searchData}>
-        <div className="catalog-card catalog-card--disabled">
+      <li className="catalog-card-listing" data-accessible="false" data-search={card.searchData}>
+        <div
+          aria-disabled="true"
+          className="catalog-card catalog-card--disabled"
+          title="Vous n'êtes pas autorisé à consulter ce contrat de données."
+        >
           <div className="catalog-card__header">
             <div className="catalog-card__meta">
               <span className="catalog-card__badge">{humanize(card.maturity)}</span>
@@ -62,7 +66,7 @@ export function CatalogCard({ card }: { card: CatalogCardType }) {
   }
 
   return (
-    <li className="catalog-card-listing" data-search={card.searchData}>
+    <li className="catalog-card-listing" data-accessible="true" data-search={card.searchData}>
       <Link className="catalog-card" href={card.href}>
         <div className="catalog-card__header">
           <div className="catalog-card__meta">

@@ -1213,17 +1213,31 @@ a:has(> .kpi-card) {
     box-shadow 160ms ease;
 }
 
-.catalog-card:hover {
+.catalog-card:not(.catalog-card--disabled):hover {
   transform: translateY(-2px);
   box-shadow: 0 18px 34px rgba(15, 23, 42, 0.08);
 }
 
 .catalog-card--disabled {
-  opacity: 0.45;
-  filter: grayscale(0.6);
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  box-shadow: none;
+  color: #6b7280;
+  opacity: 0.62;
+  filter: grayscale(0.85);
   cursor: default;
   pointer-events: none;
   user-select: none;
+}
+
+.catalog-card--disabled .catalog-card__badge {
+  background: #e5e7eb;
+  color: #6b7280;
+}
+
+.catalog-card--disabled .catalog-card__badge--subtle {
+  background: #e5e7eb;
+  color: #6b7280;
 }
 
 .catalog-card__header,

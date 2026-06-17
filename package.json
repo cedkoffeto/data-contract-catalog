@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "seed:kc": "node scripts/seed-keycloak.mjs",
     "dc:up": "docker compose up -d && node scripts/seed-keycloak.mjs",
     "dc:reset": "docker compose down -v && docker compose up -d && sleep 5 && node scripts/seed-keycloak.mjs"
@@ -39,6 +41,13 @@
     "@types/react-dom": "^18.3.0",
     "@types/sql.js": "^1.4.11",
     "prisma": "^6.19.3",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "vitest": "^3.2.4"
+  },
+  "allowScripts": {
+    "@prisma/engines@6.19.3": true,
+    "esbuild@0.27.7": true,
+    "prisma@6.19.3": true,
+    "sharp@0.34.5": true
   }
 }
