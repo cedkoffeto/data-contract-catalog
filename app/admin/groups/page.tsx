@@ -20,6 +20,7 @@ type Membership = {
 export default function GroupsPage() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [memberships, setMemberships] = useState<Membership[]>([]);
+  const [allUsers, setAllUsers] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [newName, setNewName] = useState("");
@@ -34,12 +35,14 @@ export default function GroupsPage() {
 
   const fetchGroups = useCallback(async () => {
     try {
-      const [gRes, mRes] = await Promise.all([
+      const [gRes, mRes, uRes] = await Promise.all([
         fetch("/api/admin/groups"),
         fetch("/api/admin/groups/memberships"),
+        fetch("/api/admin/users/search?q="),
       ]);
       setGroups((await gRes.json()).items ?? []);
       setMemberships((await mRes.json()).items ?? []);
+      setAllUsers((await uRes.json()).items ?? []);
     } catch {
       setError("Failed to load groups");
     } finally {
@@ -197,8 +200,8 @@ export default function GroupsPage() {
 
       <div className="rounded-lg border bg-white p-6">
         <h2 className="mb-4 text-base font-semibold text-gray-900">Create new group</h2>
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div style={{ minWidth: "250px" }}>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex-1" style={{ minWidth: "400px" }}>
             <label className="mb-1 block text-xs font-medium text-gray-500">Group name</label>
             <input
               className="w-full rounded-md border bg-white px-3 py-2 text-sm text-gray-900"
@@ -305,7 +308,14 @@ export default function GroupsPage() {
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() => setAddTarget(group)}
+                            onClick={() => {
+                              setAddTarget(group);
+                              setAddUserIds(
+                                allUsers.filter((u) =>
+                                  memberships.some((m) => m.group_id === group.id && m.user_id === u),
+                                ),
+                              );
+                            }}
                             className="editor-soft-button"
                           >
                             Manage
@@ -339,6 +349,7 @@ export default function GroupsPage() {
 
       {addTarget && <MemberManagerModal
         groupName={addTarget.name}
+        allUsers={allUsers}
         currentMembers={memberships.filter((m) => m.group_id === addTarget.id).map((m) => m.user_id)}
         selected={addUserIds}
         onSelect={setAddUserIds}
@@ -456,6 +467,7 @@ export default function GroupsPage() {
 
 function MemberManagerModal({
   groupName,
+  allUsers,
   currentMembers,
   selected,
   onSelect,
@@ -463,27 +475,14 @@ function MemberManagerModal({
   onClose,
 }: {
   groupName: string;
+  allUsers: string[];
   currentMembers: string[];
   selected: string[];
   onSelect: (ids: string[]) => void;
   onSave: () => void;
   onClose: () => void;
 }) {
-  const [allUsers, setAllUsers] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-
-  useEffect(() => {
-    fetch("/api/admin/users/search?q=")
-      .then((r) => r.json())
-      .then((data) => {
-        const all = (data.items ?? []) as string[];
-        setAllUsers(all);
-        onSelect(all.filter((u) => currentMembers.includes(u)));
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
 
   const filtered = search
     ? allUsers.filter((u) => u.toLowerCase().includes(search.toLowerCase()))
@@ -515,15 +514,15 @@ function MemberManagerModal({
       onClick={onClose}
     >
       <div
-        className="flex max-h-[80vh] w-3/4 max-w-[50vw] flex-col rounded-lg bg-white shadow-xl"
+        className="flex max-h-[800px] min-h-[700px] w-11/12 max-w-[75vw] flex-col rounded-lg bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
           <div>
-            <h3 className="text-base font-semibold text-gray-900">
+            <h3 className="text-sm font-semibold text-gray-900">
               Manage members of &ldquo;{groupName}&rdquo;
             </h3>
-            <p className="mt-0.5 text-xs text-gray-400">
+            <p className="text-[11px] text-gray-400">
               {currentMembers.length} current member{currentMembers.length !== 1 ? "s" : ""}
               {added.length > 0 && ` · ${added.length} to add`}
               {removed.length > 0 && ` · ${removed.length} to remove`}
@@ -531,40 +530,38 @@ function MemberManagerModal({
           </div>
         </div>
 
-        <div className="flex items-center gap-3 border-b border-gray-100 px-6 py-3">
+        <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-2">
           <input
-            className="flex-1 rounded-md border bg-white px-3 py-2 text-sm text-gray-900"
+            className="flex-1 rounded border bg-white px-2 py-1.5 text-xs text-gray-900"
             style={{ borderColor: "#d1d5db" }}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Filter users…"
             autoFocus
           />
-          <span className="text-xs text-gray-400">
+          <span className="text-[11px] text-gray-400">
             {selected.length} selected
           </span>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-3">
-          {loading ? (
-            <div className="py-8 text-center text-sm text-gray-400">Loading users…</div>
-          ) : filtered.length === 0 ? (
-            <div className="py-8 text-center text-sm text-gray-400">
+        <div className="flex-1 overflow-y-auto px-4 py-2">
+          {filtered.length === 0 ? (
+            <div className="py-6 text-center text-sm text-gray-400">
               {search ? "No users match your filter" : "No users available"}
             </div>
           ) : (
-            <div className="space-y-1">
+            <div className="space-y-px">
               {filtered.map((userId) => {
                 const isSelected = selected.includes(userId);
                 const isCurrent = currentMembers.includes(userId);
                 return (
                   <label
                     key={userId}
-                    className="flex cursor-pointer items-center gap-3 rounded-md px-3 py-2 hover:bg-gray-50"
+                    className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-gray-50"
                   >
                     <input
                       type="checkbox"
-                      className="h-4 w-4 rounded border-gray-300"
+                      className="h-3.5 w-3.5 rounded border-gray-300"
                       checked={isSelected}
                       onChange={() => toggleUser(userId)}
                     />
@@ -596,32 +593,32 @@ function MemberManagerModal({
           )}
         </div>
 
-        <div className="flex items-center justify-between border-t border-gray-100 px-6 py-4">
-          <div className="flex gap-2">
+        <div className="flex items-center justify-between border-t border-gray-100 px-4 py-2">
+          <div className="flex gap-1.5">
             <button
               onClick={selectAll}
-              className="rounded-md px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100"
+              className="rounded px-2 py-1 text-[11px] font-medium text-gray-600 hover:bg-gray-100"
             >
               Select all
             </button>
             <button
               onClick={deselectAll}
-              className="rounded-md px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100"
+              className="rounded px-2 py-1 text-[11px] font-medium text-gray-600 hover:bg-gray-100"
             >
               Deselect all
             </button>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             <button
               onClick={onClose}
-              className="rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
+              className="rounded px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
             >
               Cancel
             </button>
             <button
               onClick={onSave}
               disabled={added.length === 0 && removed.length === 0}
-              className="rounded-md px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
+              className="rounded px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
               style={{ backgroundColor: "var(--ui-primary)" }}
             >
               {added.length > 0 || removed.length > 0

@@ -19,7 +19,6 @@ export async function getAdminUserIds(): Promise<string[]> {
   const rows = await query<{ user_id: string }>(
     `SELECT DISTINCT user_id FROM access_policies
      WHERE permission_id = (SELECT id FROM permissions WHERE name = 'admin')
-       AND domain_scope IS NULL AND context_scope IS NULL AND data_contract_scope IS NULL
        AND user_id IS NOT NULL
 
      UNION
@@ -27,8 +26,7 @@ export async function getAdminUserIds(): Promise<string[]> {
      SELECT DISTINCT ug.user_id
      FROM access_policies ap
      JOIN user_group ug ON ug.group_id = ap.group_id
-     WHERE ap.permission_id = (SELECT id FROM permissions WHERE name = 'admin')
-       AND ap.domain_scope IS NULL AND ap.context_scope IS NULL AND ap.data_contract_scope IS NULL`,
+     WHERE ap.permission_id = (SELECT id FROM permissions WHERE name = 'admin')`,
   );
   return rows.map((r) => r.user_id);
 }
