@@ -165,6 +165,23 @@ function getEditorFileKind(filePath: string): EditorRepositoryFile["kind"] {
   return "yaml";
 }
 
+const RETRY_MAX = 2;
+const RETRY_DELAY_MS = 1500;
+
+async function retryOnTimeout<T>(fn: () => Promise<T>): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (attempt < RETRY_MAX && error instanceof TypeError && (error as Error).message === "fetch failed") {
+        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+        continue;
+      }
+      throw error;
+    }
+  }
+}
+
 async function readGitLabTree(
   projectId: string,
   ref: string,
@@ -178,25 +195,36 @@ async function readGitLabTree(
   const items: GitLabTreeItem[] = [];
   let page = 1;
 
-  while (true) {
-    const batch = (await client.api.Repositories.allRepositoryTrees(
-      projectId,
-      {
-        path: folderPath,
-        recursive: true,
-        ref,
-        perPage: GITLAB_TREE_PAGE_SIZE,
-        page
-      } as never
-    )) as GitLabTreeItem[];
+  try {
+    while (true) {
+      const batch = (await retryOnTimeout(() =>
+        client.api.Repositories.allRepositoryTrees(
+          projectId,
+          {
+            path: folderPath,
+            recursive: true,
+            ref,
+            perPage: GITLAB_TREE_PAGE_SIZE,
+            page
+          } as never
+        )
+      )) as GitLabTreeItem[];
 
-    items.push(...batch);
+      items.push(...batch);
 
-    if (batch.length < GITLAB_TREE_PAGE_SIZE) {
-      break;
+      if (batch.length < GITLAB_TREE_PAGE_SIZE) {
+        break;
+      }
+
+      page += 1;
     }
-
-    page += 1;
+  } catch (error) {
+    console.error("[gitlab.tree] Failed", {
+      projectId,
+      ref,
+      path: folderPath,
+      ...toGitLabErrorMessage(error)
+    });
   }
 
   return items;
@@ -327,30 +355,35 @@ function buildContractsFromRecords(
   records: Array<{ path: string; fullPath: string; yamlRaw: string }>
 ): ContractFile[] {
   const stemCount = new Map<string, number>();
+  const slugCount = new Map<string, number>();
 
   for (const record of records) {
     const stem = path.basename(record.path, path.extname(record.path));
     stemCount.set(stem, (stemCount.get(stem) ?? 0) + 1);
   }
 
-  return records
-    .map((record) => {
-      const stem = path.basename(record.path, path.extname(record.path));
-      const maturity = record.path.split("/")[1] ?? path.basename(path.dirname(record.path));
-      const isDuplicateStem = (stemCount.get(stem) ?? 0) > 1;
-      const slug = isDuplicateStem ? `${maturity}-${stem}` : stem;
-      const data = (yaml.load(record.yamlRaw) as DataContract) ?? {};
+  const contracts = records.map((record) => {
+    const stem = path.basename(record.path, path.extname(record.path));
+    const maturity = record.path.split("/")[1] ?? path.basename(path.dirname(record.path));
+    const isDuplicateStem = (stemCount.get(stem) ?? 0) > 1;
+    const slug = isDuplicateStem ? `${maturity}-${stem}` : stem;
+    const data = (yaml.load(record.yamlRaw) as DataContract) ?? {};
 
-      return {
-        slug,
-        stem,
-        maturity,
-        fullPath: record.fullPath,
-        yamlRaw: record.yamlRaw,
-        data
-      } satisfies ContractFile;
-    })
-    .sort((left, right) => left.slug.localeCompare(right.slug));
+    slugCount.set(slug, (slugCount.get(slug) ?? 0) + 1);
+
+    return { slug, stem, maturity, fullPath: record.fullPath, yamlRaw: record.yamlRaw, data } satisfies ContractFile;
+  });
+
+  const seen = new Map<string, number>();
+
+  return contracts.map((contract) => {
+    const count = slugCount.get(contract.slug) ?? 1;
+    if (count === 1) return contract;
+
+    const idx = (seen.get(contract.slug) ?? 0) + 1;
+    seen.set(contract.slug, idx);
+    return idx === 1 ? contract : { ...contract, slug: `${contract.slug}-${idx}` };
+  }).sort((left, right) => left.slug.localeCompare(right.slug));
 }
 
 function readLocalContracts(): ContractFile[] {
@@ -377,6 +410,12 @@ async function readGitLabContracts(): Promise<ContractFile[]> {
   });
 
   const tree = await readGitLabTree(client.projectId, client.ref, "contracts");
+
+  if (tree.length === 0) {
+    console.warn("[gitlab.contracts] Tree empty, falling back to local contracts");
+    return readLocalContracts();
+  }
+
   console.info("[gitlab.contracts] Tree success", {
     projectId: client.projectId,
     ref: client.ref,
@@ -387,19 +426,23 @@ async function readGitLabContracts(): Promise<ContractFile[]> {
     (entry) => entry.type === "blob" && /^contracts\/.+\.(yaml|yml)$/i.test(entry.path)
   );
 
-  const records = await Promise.all(
-    yamlEntries.map(async (entry) => {
-      const file = (await client.api.RepositoryFiles.show(client.projectId, entry.path, client.ref)) as GitLabRepositoryFile;
-      const rawContent = file.content ?? "";
-      const yamlRaw = file.encoding === "base64" ? Buffer.from(rawContent, "base64").toString("utf-8") : rawContent;
+  const records = (
+    await Promise.allSettled(
+      yamlEntries.map(async (entry) => {
+        const file = (await client.api.RepositoryFiles.show(client.projectId, entry.path, client.ref)) as GitLabRepositoryFile;
+        const rawContent = file.content ?? "";
+        const yamlRaw = file.encoding === "base64" ? Buffer.from(rawContent, "base64").toString("utf-8") : rawContent;
 
-      return {
-        path: entry.path,
-        fullPath: entry.path,
-        yamlRaw
-      };
-    })
-  );
+        return {
+          path: entry.path,
+          fullPath: entry.path,
+          yamlRaw
+        };
+      })
+    )
+  )
+    .filter((r): r is PromiseFulfilledResult<{ path: string; fullPath: string; yamlRaw: string }> => r.status === "fulfilled")
+    .map((r) => r.value);
 
   const contracts = buildContractsFromRecords(records);
   console.info("[gitlab.contracts] Parsed contracts", {

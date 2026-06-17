@@ -92,7 +92,7 @@ function getGitLabConfig() {
   };
 }
 
-function getGitLabClient() {
+export function getGitLabClient() {
   const config = getGitLabConfig();
 
   return {

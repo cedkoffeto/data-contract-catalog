@@ -15,6 +15,7 @@ import CodeMirror from "@uiw/react-codemirror";
 import yaml from "js-yaml";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 
+import { CommitModal } from "@/src/components/editor/CommitModal";
 import { ContractBody } from "@/src/components/contract/ContractBody";
 import { ContractHeader } from "@/src/components/contract/ContractHeader";
 import type { DataContract, EditorRepositoryFile } from "@/src/lib/types";
@@ -574,6 +575,7 @@ export function ContractEditorClient({
   const [historyBySlug, setHistoryBySlug] = useState<Record<string, HistoryState>>({});
   const [historyVersionCache, setHistoryVersionCache] = useState<Record<string, string>>({});
   const [historyReloadToken, setHistoryReloadToken] = useState(0);
+  const [commitModal, setCommitModal] = useState<{ contractSlug: string; contractName: string } | null>(null);
   const [historyActionState, setHistoryActionState] = useState<{ entryId: string | null; mode: "history" | "compare" | null }>({
     entryId: null,
     mode: null
@@ -1106,6 +1108,40 @@ export function ContractEditorClient({
     setWorkspaceMessage("Form changes synchronized to YAML");
   }
 
+  async function handleSubmitContract() {
+    if (!isContractDocument || !selectedDocument.contractSlug) {
+      return;
+    }
+
+    setCommitModal({ contractSlug: selectedDocument.contractSlug, contractName: selectedDocument.name });
+  }
+
+  async function handleCommitConfirm(message: string) {
+    if (!commitModal) return;
+
+    setWorkspaceMessage("Submitting...");
+
+    const res = await fetch(`/api/contracts/${commitModal.contractSlug}/submit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: selectedDocument.content, commitMessage: message }),
+    });
+
+    const payload = (await res.json()) as { error?: string };
+
+    if (!res.ok) {
+      throw new Error(payload.error ?? "Submission failed");
+    }
+
+    updateDocument((document) => ({
+      ...document,
+      originalContent: document.content,
+      isDirty: false,
+    }));
+
+    setWorkspaceMessage("Contract submitted successfully");
+  }
+
   async function handleCopy() {
     try {
       await navigator.clipboard.writeText(selectedDocument.content);
@@ -1190,11 +1226,12 @@ export function ContractEditorClient({
   }
 
   return (
-    <PanelGroup
-      key={`explorer-${isExplorerOpen}-preview-${isPreviewOpen}`}
-      className="editor-workbench"
-      direction="horizontal"
-    >
+    <>
+      <PanelGroup
+        key={`explorer-${isExplorerOpen}-preview-${isPreviewOpen}`}
+        className="editor-workbench"
+        direction="horizontal"
+      >
       {isExplorerOpen ? (
         <>
           <Panel className="editor-panel" defaultSize={18} id="explorer" minSize={12}>
@@ -1725,7 +1762,7 @@ export function ContractEditorClient({
                   <button className="editor-soft-button" onClick={applyYamlDraft} type="button">
                     Apply YAML
                   </button>
-                  <button className="editor-primary-button" onClick={() => setWorkspaceMessage("Submission flow ready")} type="button">
+                  <button className="editor-primary-button" onClick={handleSubmitContract} type="button">
                     Submit contract
                   </button>
                 </>
@@ -1784,5 +1821,15 @@ export function ContractEditorClient({
         </>
       ) : null}
     </PanelGroup>
+
+    {commitModal ? (
+      <CommitModal
+        contractName={commitModal.contractName}
+        defaultMessage={`feat: update ${commitModal.contractName}`}
+        onClose={() => setCommitModal(null)}
+        onConfirm={handleCommitConfirm}
+      />
+    ) : null}
+    </>
   );
 }

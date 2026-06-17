@@ -347,6 +347,263 @@ a {
   background: rgba(254, 226, 226, 0.55);
 }
 
+.notification-bell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ui-text-soft);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.notification-bell:hover,
+.notification-bell.is-open {
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--ui-text);
+}
+
+.notification-bell__icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.notification-bell__badge {
+  position: absolute;
+  top: -2px;
+  right: -4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.notification-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 70;
+  width: 22rem;
+  max-height: 24rem;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--ui-radius-lg);
+  background: #fff;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.12), 0 1px 4px rgba(15, 23, 42, 0.06);
+}
+
+.notification-dropdown__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.7rem 0.85rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.notification-dropdown__title {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.notification-dropdown__mark-read {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--ui-primary);
+  font-size: 0.72rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.notification-dropdown__mark-read:hover {
+  text-decoration: underline;
+}
+
+.notification-dropdown__body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.notification-dropdown__empty {
+  padding: 2rem 0.85rem;
+  margin: 0;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--ui-text-soft);
+}
+
+.notification-dropdown__item {
+  display: block;
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border: 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.06);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.notification-dropdown__item:hover {
+  background: rgba(15, 23, 42, 0.03);
+}
+
+.notification-dropdown__item.is-unread {
+  background: rgba(249, 115, 22, 0.04);
+}
+
+.notification-dropdown__item.is-unread:hover {
+  background: rgba(249, 115, 22, 0.08);
+}
+
+.notification-dropdown__item-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.notification-dropdown__item-title {
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: var(--ui-text);
+}
+
+.is-unread .notification-dropdown__item-title {
+  font-weight: 750;
+}
+
+.notification-dropdown__item-time {
+  font-size: 0.66rem;
+  color: var(--ui-text-soft);
+  white-space: nowrap;
+}
+
+.notification-dropdown__item-msg {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  color: var(--ui-text-soft);
+  line-height: 1.4;
+}
+
+.notification-dropdown--with-subs {
+  width: 24rem;
+}
+
+.notification-dropdown__footer {
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+  padding: 0.4rem 0.6rem;
+}
+
+.notification-dropdown__footer-btn {
+  display: block;
+  width: 100%;
+  padding: 0.45rem 0.5rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ui-primary);
+  font-size: 0.78rem;
+  font-weight: 650;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.1s;
+}
+
+.notification-dropdown__footer-btn:hover {
+  background: rgba(249, 115, 22, 0.06);
+}
+
+.notification-dropdown__item--sub-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.85rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.06);
+  transition: background 0.1s;
+}
+
+.notification-dropdown__item--sub-row:hover {
+  background: rgba(15, 23, 42, 0.03);
+}
+
+.notification-dropdown__item-link {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.notification-dropdown__item-sub {
+  font-size: 0.68rem;
+  color: var(--ui-text-soft);
+}
+
+.notification-dropdown__toggle {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  border: 0;
+  background: none;
+  padding: 2px;
+  cursor: pointer;
+}
+
+.notification-dropdown__toggle:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.notification-dropdown__toggle-track {
+  position: relative;
+  display: inline-block;
+  width: 2rem;
+  height: 1.15rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.3);
+  transition: background 0.15s;
+}
+
+.is-on .notification-dropdown__toggle-track {
+  background: var(--ui-primary);
+}
+
+.notification-dropdown__toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: calc(1.15rem - 4px);
+  height: calc(1.15rem - 4px);
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  transition: transform 0.15s;
+}
+
+.is-on .notification-dropdown__toggle-thumb {
+  transform: translateX(calc(2rem - 1.15rem));
+}
+
 .editor-primary-button {
   background: rgba(249, 115, 22, 0.12);
   color: var(--ui-primary);
@@ -3003,4 +3260,45 @@ a {
   font-size: 0.78rem;
   color: var(--ui-text-soft);
   padding-left: calc(0.6rem + 16px);
+}
+
+.yaml-sheet__panel--commit {
+  width: min(34rem, 100vw);
+}
+
+.commit-modal__label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ui-text-soft);
+  margin-bottom: 0.5rem;
+}
+
+.commit-modal__textarea {
+  display: block;
+  width: 100%;
+  padding: 0.65rem;
+  border: 1px solid var(--ui-subtle);
+  border-radius: var(--ui-radius);
+  background: #fff;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--ui-text);
+  resize: vertical;
+  min-height: 7rem;
+}
+
+.commit-modal__textarea:focus {
+  outline: none;
+  border-color: var(--ui-primary);
+  box-shadow: 0 0 0 2px var(--ui-primary-soft);
+}
+
+.commit-modal__error {
+  margin: 0 0 0.75rem;
+  font-size: 0.82rem;
+  color: #dc2626;
 }

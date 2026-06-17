@@ -38,7 +38,7 @@ export async function filterCatalogCards(
   if (permissions.includes("admin")) return cards;
 
   const policies = await query<PolicyRow>(
-    `SELECT DISTINCT ap.domain_scope, ap.context_scope
+    `SELECT DISTINCT ap.domain_scope, ap.context_scope, ap.data_contract_scope
      FROM access_policies ap
      JOIN permissions p ON p.id = ap.permission_id
      WHERE (
@@ -90,7 +90,7 @@ export async function getAccessibleSlugs(
   if (permissions.includes("admin")) return new Set(cards.map((c) => c.slug));
 
   const policies = await query<PolicyRow>(
-    `SELECT DISTINCT ap.domain_scope, ap.context_scope
+    `SELECT DISTINCT ap.domain_scope, ap.context_scope, ap.data_contract_scope
      FROM access_policies ap
      JOIN permissions p ON p.id = ap.permission_id
      WHERE (

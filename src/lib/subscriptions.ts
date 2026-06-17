@@ -68,3 +68,10 @@ export async function getUserSubscriptions(userId: string): Promise<Subscription
     [userId],
   );
 }
+
+export async function getSubscribers(contractSlug: string): Promise<Subscription[]> {
+  return query<Subscription>(
+    "SELECT user_id, contract_slug, channel, created_at FROM subscriptions WHERE contract_slug = ?",
+    [contractSlug],
+  );
+}

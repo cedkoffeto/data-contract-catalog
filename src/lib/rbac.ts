@@ -15,6 +15,51 @@ export function canAdmin(userPermissions: Permission[]): boolean {
   return userPermissions.includes("admin");
 }
 
+export async function getAdminUserIds(): Promise<string[]> {
+  const rows = await query<{ user_id: string }>(
+    `SELECT DISTINCT user_id FROM access_policies
+     WHERE permission_id = (SELECT id FROM permissions WHERE name = 'admin')
+       AND domain_scope IS NULL AND context_scope IS NULL AND data_contract_scope IS NULL
+       AND user_id IS NOT NULL
+
+     UNION
+
+     SELECT DISTINCT ug.user_id
+     FROM access_policies ap
+     JOIN user_group ug ON ug.group_id = ap.group_id
+     WHERE ap.permission_id = (SELECT id FROM permissions WHERE name = 'admin')
+       AND ap.domain_scope IS NULL AND ap.context_scope IS NULL AND ap.data_contract_scope IS NULL`,
+  );
+  return rows.map((r) => r.user_id);
+}
+
+export async function getUserIdsWithScopeAccess(domain: string, context: string): Promise<string[]> {
+  const rows = await query<{ user_id: string }>(
+    `SELECT DISTINCT user_id FROM access_policies
+     WHERE permission_id != (SELECT id FROM permissions WHERE name = 'admin')
+       AND user_id IS NOT NULL
+       AND (
+         (domain_scope IS NULL AND context_scope IS NULL)
+         OR (domain_scope = ? AND context_scope IS NULL)
+         OR (domain_scope = ? AND context_scope = ?)
+       )
+
+     UNION
+
+     SELECT DISTINCT ug.user_id
+     FROM access_policies ap
+     JOIN user_group ug ON ug.group_id = ap.group_id
+     WHERE ap.permission_id != (SELECT id FROM permissions WHERE name = 'admin')
+       AND (
+         (ap.domain_scope IS NULL AND ap.context_scope IS NULL)
+         OR (ap.domain_scope = ? AND ap.context_scope IS NULL)
+         OR (ap.domain_scope = ? AND ap.context_scope = ?)
+       )`,
+    [domain, domain, context, domain, domain, context],
+  );
+  return rows.map((r) => r.user_id);
+}
+
 export async function getUserPermissions(userId: string): Promise<Permission[]> {
   const rows = await query<{ permission_name: string }>(
     `SELECT DISTINCT p.name AS permission_name
