@@ -7,5 +7,11 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Environment
+.env
+
+# Build artifacts
+*.tsbuildinfo
+
 # Prisma / SQLite
 prisma/data/
