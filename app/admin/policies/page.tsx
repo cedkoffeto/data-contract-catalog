@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button } from "@/src/components/ui/Button";
 import { ConfirmDialog } from "@/src/components/ui/ConfirmDialog";
@@ -117,12 +117,14 @@ function ScopeInput({
   domain,
   context,
   scopes,
+  disabled,
   onDomainChange,
   onContextChange,
 }: {
   domain: string;
   context: string;
   scopes: Scope[];
+  disabled?: boolean;
   onDomainChange: (v: string) => void;
   onContextChange: (v: string) => void;
 }) {
@@ -138,12 +140,13 @@ function ScopeInput({
           Domain <span className="text-gray-400">(empty = all)</span>
         </label>
         <input
-          className="w-full rounded-md border bg-white px-3 py-2 text-sm text-gray-900"
+          className="w-full rounded-md border bg-white px-3 py-2 text-sm text-gray-900 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
           style={{ borderColor: "#d1d5db" }}
           value={domain}
           onChange={(e) => onDomainChange(e.target.value)}
-          placeholder="e.g. CREDIT"
+          placeholder={disabled ? "Admin = global access" : "e.g. CREDIT"}
           list="domain-list"
+          disabled={disabled}
         />
         <datalist id="domain-list">
           {domainList.map((d) => <option key={d} value={d} />)}
@@ -154,12 +157,13 @@ function ScopeInput({
           Context <span className="text-gray-400">(empty = all)</span>
         </label>
         <input
-          className="w-full rounded-md border bg-white px-3 py-2 text-sm text-gray-900"
+          className="w-full rounded-md border bg-white px-3 py-2 text-sm text-gray-900 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
           style={{ borderColor: "#d1d5db" }}
           value={context}
           onChange={(e) => onContextChange(e.target.value)}
-          placeholder="e.g. ENGAGEMENT"
+          placeholder={disabled ? "Admin = global access" : "e.g. ENGAGEMENT"}
           list="context-list"
+          disabled={disabled}
         />
         <datalist id="context-list">
           {contextList.map((c) => <option key={c} value={c} />)}
@@ -240,6 +244,20 @@ export default function PoliciesPage() {
   const [newDomainScope, setNewDomainScope] = useState("");
   const [newContextScope, setNewContextScope] = useState("");
   const [newDataContractScope, setNewDataContractScope] = useState("");
+
+  const adminPermissionId = useMemo(
+    () => permissions.find((p) => p.name === "admin")?.id ?? null,
+    [permissions],
+  );
+  const isAdmin = adminPermissionId !== null && parseInt(newPermissionId, 10) === adminPermissionId;
+
+  useEffect(() => {
+    if (isAdmin) {
+      setNewDomainScope("");
+      setNewContextScope("");
+      setNewDataContractScope("");
+    }
+  }, [isAdmin]);
 
   const [assignMode, setAssignMode] = useState<"user" | "group">("user");
   const [allUsers, setAllUsers] = useState<string[]>([]);
@@ -583,6 +601,7 @@ export default function PoliciesPage() {
             domain={newDomainScope}
             context={newContextScope}
             scopes={scopes}
+            disabled={isAdmin}
             onDomainChange={setNewDomainScope}
             onContextChange={setNewContextScope}
           />
@@ -592,12 +611,13 @@ export default function PoliciesPage() {
               Data Contract <span className="text-gray-400">(empty = all in context)</span>
             </label>
             <input
-              className="w-full rounded-md border bg-white px-3 py-2 text-sm text-gray-900"
+              className="w-full rounded-md border bg-white px-3 py-2 text-sm text-gray-900 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
               style={{ borderColor: "#d1d5db" }}
               value={newDataContractScope}
               onChange={(e) => setNewDataContractScope(e.target.value)}
-              placeholder="e.g. credit_engagement"
+              placeholder={isAdmin ? "Admin = global access" : "e.g. credit_engagement"}
               list="dc-list"
+              disabled={isAdmin}
             />
             <DataContractDatalist
               domain={newDomainScope}
