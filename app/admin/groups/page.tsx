@@ -32,6 +32,7 @@ export default function GroupsPage() {
   const [membersFilter, setMembersFilter] = useState("");
   const [removeMemberTarget, setRemoveMemberTarget] = useState<{ group: Group; userId: string } | null>(null);
   const [search, setSearch] = useState("");
+  const [creating, setCreating] = useState(false);
 
   const fetchGroups = useCallback(async () => {
     try {
@@ -55,6 +56,12 @@ export default function GroupsPage() {
   }, [fetchGroups]);
 
   useEffect(() => {
+    if (!error) return;
+    const t = setTimeout(() => setError(""), 6000);
+    return () => clearTimeout(t);
+  }, [error]);
+
+  useEffect(() => {
     function handleEscape(e: KeyboardEvent) {
       if (e.key === "Escape") {
         if (removeMemberTarget) {
@@ -72,6 +79,7 @@ export default function GroupsPage() {
   async function handleCreate() {
     if (!newName.trim()) return;
     setError("");
+    setCreating(true);
 
     const res = await fetch("/api/admin/groups", {
       method: "POST",
@@ -82,12 +90,14 @@ export default function GroupsPage() {
     if (!res.ok) {
       const data = await res.json();
       setError(data.error ?? "Failed to create group");
+      setCreating(false);
       return;
     }
 
     setNewName("");
     setToast({ message: `Group "${newName.trim()}" created` });
     await fetchGroups();
+    setCreating(false);
   }
 
   async function handleDelete(group: Group) {
@@ -218,11 +228,11 @@ export default function GroupsPage() {
           </div>
           <Button
             onClick={handleCreate}
-            disabled={!newName.trim() || newName !== newName.trim()}
+            disabled={!newName.trim() || newName !== newName.trim() || creating}
             style={{
-              backgroundColor: newName.trim() && newName === newName.trim() ? "var(--ui-primary)" : "#d1d5db",
-              color: newName.trim() && newName === newName.trim() ? "#fff" : "#6b7280",
-              cursor: newName.trim() && newName === newName.trim() ? "pointer" : "not-allowed",
+              backgroundColor: newName.trim() && newName === newName.trim() && !creating ? "var(--ui-primary)" : "#d1d5db",
+              color: newName.trim() && newName === newName.trim() && !creating ? "#fff" : "#6b7280",
+              cursor: newName.trim() && newName === newName.trim() && !creating ? "pointer" : "not-allowed",
             }}
             className="border-0 font-bold"
           >
