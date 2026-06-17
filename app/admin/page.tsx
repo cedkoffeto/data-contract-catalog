@@ -100,7 +100,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-4 gap-4">
         {cards.map((c) => (
           <div key={c.label} className={`rounded-lg border bg-white border-l-4 ${c.accent} p-4`}>
             <div className="flex items-start justify-between">
