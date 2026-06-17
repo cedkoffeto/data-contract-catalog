@@ -29,11 +29,21 @@ type AuditLog = {
   created_at: string;
 };
 
+type DashboardData = {
+  contractsCount: number;
+  groupCount: number;
+  memberCount: number;
+  userCount: number;
+  policyCount: number;
+  notificationsCount: number;
+  unreadNotificationsCount: number;
+  subscriptionsCount: number;
+  auditCount: number;
+  recentLogs: AuditLog[];
+};
+
 export default function AdminDashboard() {
-  const [groupCount, setGroupCount] = useState(0);
-  const [memberCount, setMemberCount] = useState(0);
-  const [policyCount, setPolicyCount] = useState(0);
-  const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [data, setData] = useState<DashboardData | null>(null);
   const [sortKey, setSortKey] = useState("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [search, setSearch] = useState("");
@@ -51,16 +61,14 @@ export default function AdminDashboard() {
 
   const fetchData = useCallback(async () => {
     const res = await fetch("/api/admin/dashboard");
-    const data = await res.json();
-    setGroupCount(data.groupCount ?? 0);
-    setMemberCount(data.memberCount ?? 0);
-    setPolicyCount(data.policyCount ?? 0);
-    setLogs(data.recentLogs ?? []);
+    setData(await res.json());
   }, []);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const logs = data?.recentLogs ?? [];
 
   const filtered = logs.filter((log) =>
     [log.created_at, log.action, log.actor_id, log.target_type, log.target_id, log.details].some((v) =>
@@ -79,21 +87,28 @@ export default function AdminDashboard() {
   const safePage = Math.min(page, totalPages - 1);
   const paginated = sorted.slice(safePage * pageSize, (safePage + 1) * pageSize);
 
+  const cards = data ? [
+    { label: "Contracts", value: data.contractsCount, color: "bg-blue-50 text-blue-700" },
+    { label: "Policies", value: data.policyCount, color: "bg-red-50 text-red-700" },
+    { label: "Groups", value: data.groupCount, color: "bg-amber-50 text-amber-700" },
+    { label: "Users", value: data.userCount, color: "bg-green-50 text-green-700" },
+    { label: "Notifications", value: data.notificationsCount, color: "bg-purple-50 text-purple-700" },
+    { label: "Unread", value: data.unreadNotificationsCount, color: "bg-pink-50 text-pink-700" },
+    { label: "Subscriptions", value: data.subscriptionsCount, color: "bg-indigo-50 text-indigo-700" },
+    { label: "Memberships", value: data.memberCount, color: "bg-gray-50 text-gray-700" },
+  ] : [];
+
   return (
     <div className="space-y-6">
-      <div className="flex gap-3">
-        <div className="flex-1 rounded-lg border bg-white p-4">
-          <p className="text-sm text-gray-500">Groups</p>
-          <p className="text-2xl font-bold text-gray-900">{groupCount}</p>
-        </div>
-        <div className="flex-1 rounded-lg border bg-white p-4">
-          <p className="text-sm text-gray-500">Group memberships</p>
-          <p className="text-2xl font-bold text-gray-900">{memberCount}</p>
-        </div>
-        <div className="flex-1 rounded-lg border bg-white p-4">
-          <p className="text-sm text-gray-500">Access policies</p>
-          <p className="text-2xl font-bold text-gray-900">{policyCount}</p>
-        </div>
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        {cards.map((c) => (
+          <div key={c.label} className="rounded-lg border bg-white p-5">
+            <p className="text-xs font-medium uppercase tracking-wider text-gray-500">{c.label}</p>
+            <p className={`mt-1 inline-block rounded-md px-2 py-0.5 text-2xl font-bold ${c.color}`}>
+              {c.value}
+            </p>
+          </div>
+        ))}
       </div>
 
       <div>
