@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useRef, useState } from "react";
+import { useCallback, useId, useMemo, useRef, useState } from "react";
 
 import yaml from "js-yaml";
 
@@ -55,7 +55,7 @@ export function ContractDiffDialog({
   historyEntries: ContractHistoryEntry[];
   onClose: () => void;
 }) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
   const id = useId().replace(/:/g, "");
 
   const [fromRef, setFromRef] = useState("");
@@ -63,9 +63,17 @@ export function ContractDiffDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [diffResult, setDiffResult] = useState<ReturnType<typeof computeDiff> | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+
+  const dialogRefCallback = useCallback((node: HTMLDialogElement | null) => {
+    dialogRef.current = node;
+    if (node && isOpen && !node.open) {
+      node.showModal();
+    }
+  }, [isOpen]);
 
   function open() {
-    dialogRef.current?.showModal();
+    setIsOpen(true);
     setDiffResult(null);
     setError(null);
     setToRef("latest");
@@ -73,7 +81,14 @@ export function ContractDiffDialog({
   }
 
   function handleClose() {
+    if (loading) return;
+    setIsOpen(false);
     dialogRef.current?.close();
+  }
+
+  function handleDialogClose() {
+    if (loading) return;
+    setIsOpen(false);
     onClose();
   }
 
@@ -128,19 +143,19 @@ export function ContractDiffDialog({
         Compare versions
       </button>
 
-      <dialog ref={dialogRef} className="yaml-sheet yaml-sheet--diff" aria-labelledby={`diff-sheet-title-${id}`}>
+      <dialog ref={dialogRefCallback} className="yaml-sheet yaml-sheet--diff-centered" aria-labelledby={`diff-sheet-title-${id}`} onClose={handleDialogClose}>
         <form method="dialog" className="yaml-sheet__backdrop">
-          <button className="yaml-sheet__scrim" aria-label="Close diff panel" />
+          <button className="yaml-sheet__scrim" aria-label="Close diff panel" onClick={handleClose} />
         </form>
 
-        <div className="yaml-sheet__panel yaml-sheet__panel--diff">
+        <div className="yaml-sheet__panel yaml-sheet__panel--diff-centered">
           <div className="yaml-sheet__header">
             <div>
               <p className="yaml-sheet__eyebrow">Version comparison</p>
               <h3 id={`diff-sheet-title-${id}`}>Compare versions</h3>
             </div>
             <div className="yaml-sheet__header-actions">
-              <button className="editor-soft-button" onClick={handleClose} type="button">Close</button>
+              <button className="editor-soft-button" disabled={loading} onClick={handleClose} type="button">Close</button>
             </div>
           </div>
 

@@ -2631,6 +2631,35 @@ a:has(> .kpi-card) {
   height: 0.95rem;
 }
 
+.editor-close-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #ef4444;
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    color 140ms ease;
+}
+
+.editor-close-button:hover,
+.editor-close-button:focus-visible {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+  outline: none;
+}
+
+.editor-close-button svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
 .editor-status-strip {
   margin-bottom: 0.55rem;
 }
@@ -3318,7 +3347,18 @@ a:has(> .kpi-card) {
 }
 
 .yaml-sheet__panel--commit {
-  width: min(56rem, 100vw);
+  width: min(56rem, calc(100vw - 3rem));
+  height: auto;
+  max-height: 90vh;
+  border-radius: var(--ui-radius-lg, 0.5rem);
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.2);
+  resize: both;
+  overflow: auto;
+}
+
+.yaml-sheet--commit-centered[open] {
+  justify-content: center;
+  align-items: center;
 }
 
 .yaml-sheet__panel--commit .yaml-sheet__body {

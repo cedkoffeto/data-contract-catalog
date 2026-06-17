@@ -1440,6 +1440,24 @@ export function ContractEditorClient({
                   />
                 </svg>
               </button>
+
+              <button
+                aria-label="Close editor"
+                className="editor-close-button"
+                onClick={() => { window.location.href = selectedDocument.contractSlug ? `/${selectedDocument.contractSlug}` : "/"; }}
+                title="Close editor"
+                type="button"
+              >
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path
+                    d="M5.5 5.5l9 9m0-9l-9 9"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
             </div>
           </div>
 

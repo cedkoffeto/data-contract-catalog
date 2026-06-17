@@ -73,7 +73,7 @@ Update data contract ${contractName} - ${date}`);
   const hasChanges = diff.unified.some((c) => c.type !== "unchanged");
 
   return (
-    <dialog ref={dialogRefCallback} className="yaml-sheet yaml-sheet--commit" aria-labelledby={`commit-sheet-title-${id}`} onClose={handleDialogClose}>
+    <dialog ref={dialogRefCallback} className="yaml-sheet yaml-sheet--commit-centered" aria-labelledby={`commit-sheet-title-${id}`} onClose={handleDialogClose}>
       <form method="dialog" className="yaml-sheet__backdrop">
         <button className="yaml-sheet__scrim" aria-label="Close" onClick={handleClose} />
       </form>
