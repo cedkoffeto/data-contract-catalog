@@ -1,0 +1,204 @@
+"use client";
+
+import { useId, useMemo, useRef, useState } from "react";
+
+import yaml from "js-yaml";
+
+import { computeDiff } from "@/src/lib/diff";
+import { SearchableSelect } from "@/src/components/ui/SearchableSelect";
+import { DiffView } from "@/src/components/contract/diff/DiffView";
+import type { ContractHistoryEntry, DataContract } from "@/src/lib/types";
+
+function formatDate(value: string) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("en", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  }).format(date);
+}
+
+const contentCache = new Map<string, { content: string; ts: number }>();
+
+async function fetchContent(slug: string, ref: string): Promise<string> {
+  const cacheKey = `${slug}:${ref}`;
+  const cached = contentCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < 30_000) {
+    return cached.content;
+  }
+
+  const response = await fetch(`/api/contracts/${slug}/repository-content?ref=${encodeURIComponent(ref)}`, {
+    cache: "no-store"
+  });
+  const data = await response.json() as { content?: string; error?: string };
+
+  if (!response.ok || !data.content) {
+    throw new Error(data.error ?? "Unable to load contract version");
+  }
+
+  contentCache.set(cacheKey, { content: data.content, ts: Date.now() });
+  return data.content;
+}
+
+export function ContractDiffDialog({
+  slug,
+  currentYamlRaw,
+  currentData,
+  historyEntries,
+  onClose
+}: {
+  slug: string;
+  currentYamlRaw: string;
+  currentData: DataContract;
+  historyEntries: ContractHistoryEntry[];
+  onClose: () => void;
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const id = useId().replace(/:/g, "");
+
+  const [fromRef, setFromRef] = useState("");
+  const [toRef, setToRef] = useState("latest");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [diffResult, setDiffResult] = useState<ReturnType<typeof computeDiff> | null>(null);
+
+  function open() {
+    dialogRef.current?.showModal();
+    setDiffResult(null);
+    setError(null);
+    setToRef("latest");
+    setFromRef(historyEntries[0]?.id ?? "");
+  }
+
+  function handleClose() {
+    dialogRef.current?.close();
+    onClose();
+  }
+
+  async function handleCompare(event: React.FormEvent) {
+    event.preventDefault();
+    if (!fromRef) return;
+
+    setLoading(true);
+    setError(null);
+    setDiffResult(null);
+
+    try {
+      const fromContent = await fetchContent(slug, fromRef);
+      const toContent = toRef === "latest" ? currentYamlRaw : await fetchContent(slug, toRef);
+
+      const fromData = yaml.load(fromContent) as Record<string, unknown> | null;
+      const toData = toRef === "latest"
+        ? (currentData as unknown as Record<string, unknown>)
+        : (yaml.load(toContent) as Record<string, unknown> | null);
+
+      const diff = computeDiff(
+        fromContent,
+        toContent,
+        fromData ?? {},
+        toData ?? {}
+      );
+
+      setDiffResult(diff);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to compute diff");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const fromEntry = historyEntries.find((e) => e.id === fromRef);
+  const toEntry = toRef === "latest" ? null : historyEntries.find((e) => e.id === toRef);
+
+  const historyOptions = useMemo(
+    () =>
+      historyEntries.map((entry) => ({
+        value: entry.id,
+        label: `${entry.shortId} — ${entry.title}`,
+        extra: `${formatDate(entry.authoredDate)} · ${entry.authorName}`
+      })),
+    [historyEntries]
+  );
+
+  return (
+    <>
+      <button className="contract-side-card__link" onClick={open} type="button">
+        Compare versions
+      </button>
+
+      <dialog ref={dialogRef} className="yaml-sheet yaml-sheet--diff" aria-labelledby={`diff-sheet-title-${id}`}>
+        <form method="dialog" className="yaml-sheet__backdrop">
+          <button className="yaml-sheet__scrim" aria-label="Close diff panel" />
+        </form>
+
+        <div className="yaml-sheet__panel yaml-sheet__panel--diff">
+          <div className="yaml-sheet__header">
+            <div>
+              <p className="yaml-sheet__eyebrow">Version comparison</p>
+              <h3 id={`diff-sheet-title-${id}`}>Compare versions</h3>
+            </div>
+            <div className="yaml-sheet__header-actions">
+              <button className="editor-soft-button" onClick={handleClose} type="button">Close</button>
+            </div>
+          </div>
+
+          <div className="yaml-sheet__body yaml-sheet__body--diff">
+            <form className="diff-picker" onSubmit={handleCompare}>
+              <div className="diff-picker__fields">
+                <div className="diff-picker__field">
+                  <label className="diff-picker__label">From</label>
+                  <SearchableSelect
+                    value={fromRef}
+                    onChange={setFromRef}
+                    options={historyOptions}
+                    placeholder="Select version..."
+                    emptyLabel="No history available"
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="diff-picker__field">
+                  <label className="diff-picker__label">To</label>
+                  <SearchableSelect
+                    value={toRef}
+                    onChange={setToRef}
+                    options={historyOptions}
+                    placeholder="Select version..."
+                    disabled={loading}
+                    includeLatest
+                  />
+                </div>
+
+                <button
+                  className="diff-picker__submit"
+                  disabled={!fromRef || loading}
+                  type="submit"
+                >
+                  {loading ? "Computing..." : "Compare"}
+                </button>
+              </div>
+            </form>
+
+            {error ? <p className="diff-picker__error">{error}</p> : null}
+
+            {diffResult ? (
+              <div className="diff-picker__result">
+                <DiffView
+                  diff={diffResult}
+                  fromLabel={fromEntry ? `${fromEntry.shortId} — ${fromEntry.title}` : fromRef}
+                  toLabel={toEntry ? `${toEntry.shortId} — ${toEntry.title}` : "Current (main)"}
+                />
+              </div>
+            ) : !loading ? (
+              <div className="diff-picker__placeholder">
+                Select two versions and click &quot;Compare&quot; to see the differences.
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </dialog>
+    </>
+  );
+}

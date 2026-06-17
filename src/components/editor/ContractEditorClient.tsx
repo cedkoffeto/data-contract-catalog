@@ -18,6 +18,7 @@ import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { CommitModal } from "@/src/components/editor/CommitModal";
 import { ContractBody } from "@/src/components/contract/ContractBody";
 import { ContractHeader } from "@/src/components/contract/ContractHeader";
+import { createUnifiedDiffText } from "@/src/lib/diff";
 import type { DataContract, EditorRepositoryFile } from "@/src/lib/types";
 
 const uiSchema: UiSchema = {
@@ -491,34 +492,6 @@ function createDraftDocument(initialData: DataContract, sequence: number): Works
   };
 }
 
-function createUnifiedDiff(base: string, next: string): string {
-  const left = base.split("\n");
-  const right = next.split("\n");
-  const max = Math.max(left.length, right.length);
-  const lines: string[] = [];
-
-  for (let index = 0; index < max; index += 1) {
-    const before = left[index];
-    const after = right[index];
-
-    if (before === after) {
-      if (before !== undefined) {
-        lines.push(`  ${before}`);
-      }
-      continue;
-    }
-
-    if (before !== undefined) {
-      lines.push(`- ${before}`);
-    }
-    if (after !== undefined) {
-      lines.push(`+ ${after}`);
-    }
-  }
-
-  return lines.join("\n");
-}
-
 function formatHistoryMeta(value: string) {
   if (!value) {
     return "Repository";
@@ -664,7 +637,7 @@ export function ContractEditorClient({
       return selectedHistoryContent;
     }
     if (mainViewMode === "compare" && selectedHistoryContent) {
-      return createUnifiedDiff(selectedHistoryContent, selectedDocument.content);
+      return createUnifiedDiffText(selectedHistoryContent, selectedDocument.content);
     }
     return selectedDocument.content;
   }, [mainViewMode, selectedDocument.content, selectedHistoryContent]);

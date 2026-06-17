@@ -6,6 +6,7 @@ import yaml from "js-yaml";
 
 import { ContractBody } from "@/src/components/contract/ContractBody";
 import { ContractHeader } from "@/src/components/contract/ContractHeader";
+import { ContractDiffDialog } from "@/src/components/contract/ContractDiffDialog";
 import { SubscribeModal } from "@/src/components/contract/SubscribeModal";
 import { YamlDialogButton } from "@/src/components/contract/YamlDialogButton";
 import type { ContractHistoryEntry, DataContract } from "@/src/lib/types";
@@ -178,15 +179,18 @@ export function ContractPageClient({
             <div className="contract-side-card contract-side-card--history">
               <div className="contract-side-card__header">
                 <h2>History</h2>
-                {historyEntries.length > 6 ? (
-                  <button
-                    className="contract-side-card__link"
-                    onClick={() => historyDialogRef.current?.showModal()}
-                    type="button"
-                  >
-                    View more
-                  </button>
-                ) : null}
+                <div className="contract-side-card__header-actions">
+                  <ContractDiffDialog slug={slug} currentYamlRaw={displayedYamlRaw} currentData={displayedData} historyEntries={historyEntries} onClose={() => {}} />
+                  {historyEntries.length > 6 ? (
+                    <button
+                      className="contract-side-card__link"
+                      onClick={() => historyDialogRef.current?.showModal()}
+                      type="button"
+                    >
+                      View more
+                    </button>
+                  ) : null}
+                </div>
               </div>
               {historyError ? <p className="contract-side-card__muted">{historyError}</p> : null}
               {historyItems.length > 0 ? (
