@@ -15,11 +15,15 @@ export function UserMenu({
   email,
   image,
   name,
+  givenName,
+  familyName,
   userId,
 }: {
   email?: string | null;
   image?: string | null;
   name: string;
+  givenName?: string;
+  familyName?: string;
   userId?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -62,8 +66,24 @@ export function UserMenu({
       {isOpen ? (
         <div className="site-nav-user__menu" role="menu">
           <div className="site-nav-user__identity">
-            <strong>{name}</strong>
-            {email ? <span>{email}</span> : null}
+            <div className="flex items-start">
+              {image ? (
+                <Image alt={name} className="mr-2 mt-0.5 h-4 w-4 shrink-0 rounded-full object-cover" height={16} src={image} width={16} />
+              ) : (
+                <span className="mr-2 mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-gray-200">
+                  <svg className="h-3 w-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </span>
+              )}
+              <div className="flex flex-col min-w-0">
+                <strong className="truncate" title={`${givenName ?? ""} ${familyName ?? ""}`}>
+                  {givenName && familyName ? `${givenName} ${familyName}` : name}
+                </strong>
+                {name !== (givenName && familyName ? `${givenName} ${familyName}` : name) && <span className="truncate text-[11px] text-gray-400" title={name}>{name}</span>}
+                {email ? <span className="truncate text-[11px] text-gray-400" title={email}>{email}</span> : null}
+              </div>
+            </div>
           </div>
           <button
             className="site-nav-user__link"
@@ -93,6 +113,9 @@ export function UserMenu({
             role="menuitem"
             type="button"
           >
+            <svg className="mr-2 h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+            </svg>
             Log out
           </button>
         </div>

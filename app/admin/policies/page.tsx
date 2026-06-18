@@ -49,6 +49,22 @@ export default function PoliciesPage() {
   const [formKey, setFormKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [viewUserPolicies, setViewUserPolicies] = useState<ViewUserPolicies | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/auth/session")
+      .then((r) => r.json())
+      .then((s) => setCurrentUserId(s?.user?.name ?? null))
+      .catch(() => {});
+  }, []);
+
+  const minAdminUserId = useMemo(() => {
+    const adminUserIds = policies
+      .filter((p) => p.permission_name === "admin" && p.user_id)
+      .map((p) => p.user_id!);
+    const unique = [...new Set(adminUserIds)];
+    return unique.length > 0 ? unique.sort()[0] : null;
+  }, [policies]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -352,6 +368,8 @@ export default function PoliciesPage() {
         onViewUser={handleViewUser}
         onEdit={openEdit}
         onDelete={setDeleteTarget}
+        currentUserId={currentUserId}
+        minAdminUserId={minAdminUserId}
       />
 
       <ConfirmDialog

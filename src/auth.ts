@@ -74,6 +74,8 @@ async function authenticateWithKeycloak(username: string, password: string) {
     id: userInfo.sub ?? userInfo.preferred_username ?? username,
     name: userInfo.preferred_username ?? userInfo.name ?? username,
     email: userInfo.email ?? null,
+    givenName: userInfo.given_name ?? null,
+    familyName: userInfo.family_name ?? null,
     accessToken: tokenPayload.access_token,
     refreshToken: tokenPayload.refresh_token ?? null
   };
@@ -130,10 +132,25 @@ export const authOptions: NextAuthOptions = {
         if (preferredUsername) {
           token.preferredUsername = preferredUsername;
         }
+
+        const givenName =
+          "given_name" in profile && typeof profile.given_name === "string"
+            ? profile.given_name
+            : undefined;
+
+        const familyName =
+          "family_name" in profile && typeof profile.family_name === "string"
+            ? profile.family_name
+            : undefined;
+
+        if (givenName) token.givenName = givenName;
+        if (familyName) token.familyName = familyName;
       }
 
       if (user) {
-        token.preferredUsername = user.name;
+        if (typeof user.name === "string") token.preferredUsername = user.name;
+        if ("givenName" in user && typeof user.givenName === "string") token.givenName = user.givenName;
+        if ("familyName" in user && typeof user.familyName === "string") token.familyName = user.familyName;
       }
 
       // Enrich JWT with global role-based permissions on login/refresh
@@ -155,9 +172,11 @@ export const authOptions: NextAuthOptions = {
         session.user.name = token.preferredUsername;
       }
 
-      // Attach global permissions to the session for client-side use
-      if (session.user && Array.isArray(token.permissions)) {
-        (session.user as Record<string, unknown>).permissions = token.permissions;
+      if (session.user) {
+        const extra = session.user as Record<string, unknown>;
+        if (typeof token.givenName === "string") extra.givenName = token.givenName;
+        if (typeof token.familyName === "string") extra.familyName = token.familyName;
+        if (Array.isArray(token.permissions)) extra.permissions = token.permissions;
       }
 
       return session;

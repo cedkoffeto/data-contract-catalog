@@ -185,9 +185,11 @@ function ScopeDropdown({
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, []);
 
+  const allLabel = label === "Domain" ? "All domains" : label === "Context" ? "All contexts" : null;
+  const displayOptions = allLabel ? [allLabel, ...options] : options;
   const filtered = query
-    ? options.filter((o) => o.toLowerCase().includes(query.toLowerCase()))
-    : options;
+    ? displayOptions.filter((o) => o.toLowerCase().includes(query.toLowerCase()))
+    : displayOptions;
 
   return (
     <div ref={ref} className="relative" style={{ minWidth: "160px" }}>
@@ -225,9 +227,9 @@ function ScopeDropdown({
                 <button
                   key={o}
                   type="button"
-                  onClick={() => { onChange(o); setOpen(false); }}
+                  onClick={() => { onChange(o === allLabel ? "" : o); setOpen(false); }}
                   className="flex w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
-                  style={{ fontWeight: o === value ? "600" : "400" }}
+                  style={{ fontWeight: o === (value || allLabel) ? "600" : "400" }}
                 >
                   {o}
                 </button>
@@ -524,8 +526,20 @@ export default function PolicyForm({
           context={newContextScope}
           scopes={scopes}
           disabled={isAdmin}
-          onDomainChange={setNewDomainScope}
-          onContextChange={setNewContextScope}
+          onDomainChange={(v) => {
+            setNewDomainScope(v);
+            if (v && newContextScope) {
+              const validContexts = scopes.filter((s) => s.domain === v).map((s) => s.context).filter(Boolean);
+              if (!validContexts.includes(newContextScope)) {
+                setNewContextScope("");
+              }
+            }
+            if (newDataContractScope) setNewDataContractScope("");
+          }}
+          onContextChange={(v) => {
+            setNewContextScope(v);
+            if (newDataContractScope) setNewDataContractScope("");
+          }}
         />
 
         <DataContractSelect

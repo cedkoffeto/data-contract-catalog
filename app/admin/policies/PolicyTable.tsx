@@ -34,6 +34,8 @@ export default function PolicyTable({
   onViewUser,
   onEdit,
   onDelete,
+  currentUserId,
+  minAdminUserId,
 }: {
   policies: Policy[];
   filteredPolicies: Policy[];
@@ -43,7 +45,13 @@ export default function PolicyTable({
   onViewUser: (userId: string) => void;
   onEdit: (p: Policy) => void;
   onDelete: (id: number) => void;
+  currentUserId: string | null;
+  minAdminUserId: string | null;
 }) {
+  function isProtected(p: Policy): boolean {
+    if (!currentUserId || !minAdminUserId) return false;
+    return p.user_id === minAdminUserId && currentUserId !== minAdminUserId;
+  }
   return (
     <div>
       <div className="mb-3 flex items-center gap-3">
@@ -129,6 +137,9 @@ export default function PolicyTable({
                         <button
                           onClick={() => onEdit(p)}
                           className="editor-soft-button"
+                          disabled={isProtected(p)}
+                          title={isProtected(p) ? "Cannot modify primary admin's policies" : undefined}
+                          style={{ opacity: isProtected(p) ? 0.4 : 1, cursor: isProtected(p) ? "not-allowed" : "pointer" }}
                         >
                           <PencilIcon />
                           <span className="ml-1.5">Edit</span>
@@ -136,7 +147,9 @@ export default function PolicyTable({
                         <button
                           onClick={() => onDelete(p.id)}
                           className="rounded-md px-3 py-1.5 text-sm font-bold text-white"
-                          style={{ backgroundColor: "#dc2626" }}
+                          style={{ backgroundColor: isProtected(p) ? "#9ca3af" : "#dc2626", cursor: isProtected(p) ? "not-allowed" : "pointer" }}
+                          disabled={isProtected(p)}
+                          title={isProtected(p) ? "Cannot modify primary admin's policies" : undefined}
                         >
                           Delete
                         </button>

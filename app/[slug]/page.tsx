@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { auth } from "@/src/auth";
 import { ContractPage } from "@/src/components/contract/ContractPage";
+import { RequestAccessDialog } from "@/src/components/contract/RequestAccessDialog";
 import { authorize } from "@/src/lib/access-control";
 import { getContractPageData } from "@/src/lib/contracts";
 import { getUserPermissions } from "@/src/lib/rbac";
@@ -31,14 +32,15 @@ export default async function ContractRoutePage({ params }: { params: Promise<{ 
   const session = await auth();
   const userId = session?.user?.name;
 
+  const domain = page.data.asset?.domain ?? "";
+  const context = page.data.asset?.context ?? "";
+
   if (userId) {
     const globalPermissions = await getUserPermissions(userId);
     if (!globalPermissions.includes("admin")) {
-      const domain = page.data.asset?.domain ?? "";
-      const context = page.data.asset?.context ?? "";
       const allowed = await authorize(userId, domain, context, "read");
       if (!allowed) {
-        return <Forbidden />;
+        return <Forbidden slug={slug} domain={domain} context={context} />;
       }
     }
   } else {
@@ -48,7 +50,7 @@ export default async function ContractRoutePage({ params }: { params: Promise<{ 
   return <ContractPage data={page.data} slug={page.slug} yamlRaw={page.yamlRaw} userId={userId} />;
 }
 
-function Forbidden({ message }: { message?: string }) {
+function Forbidden({ message, slug, domain, context }: { message?: string; slug?: string; domain?: string; context?: string }) {
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
       <div className="text-center">
@@ -56,6 +58,7 @@ function Forbidden({ message }: { message?: string }) {
         <p className="mt-2 text-lg text-gray-500">
           {message ?? "Vous n'êtes pas autorisé à consulter ce contrat de données."}
         </p>
+        {slug && <RequestAccessDialog slug={slug} domain={domain} context={context} />}
       </div>
     </div>
   );

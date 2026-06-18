@@ -296,7 +296,9 @@ a {
   top: calc(100% + 0.55rem);
   right: 0;
   z-index: 50;
-  width: 14rem;
+  width: max-content;
+  min-width: 14rem;
+  max-width: 400px;
   padding: 0.45rem;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.98);
@@ -307,7 +309,7 @@ a {
   display: flex;
   flex-direction: column;
   gap: 0.12rem;
-  padding: 0.65rem 0.7rem;
+  padding: 0.45rem 0.7rem;
 }
 
 .site-nav-user__identity strong,
@@ -1321,6 +1323,17 @@ a:has(> .kpi-card) {
 .editor-breadcrumb,
 .editor-footer-bar span {
   color: var(--ui-text-soft);
+}
+
+.catalog-card__description--clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+}
+
+.catalog-card__description--expanded {
+  display: block;
 }
 
 .catalog-card__version,

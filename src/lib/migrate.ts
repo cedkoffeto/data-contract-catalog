@@ -194,6 +194,24 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
       );
     `,
   },
+  {
+    id: "003_access_requests",
+    sql: `
+      CREATE TABLE IF NOT EXISTS access_requests (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        domain TEXT NOT NULL DEFAULT '',
+        context TEXT NOT NULL DEFAULT '',
+        data_contract TEXT NOT NULL DEFAULT '',
+        message TEXT NOT NULL DEFAULT '',
+        status TEXT NOT NULL DEFAULT 'pending',
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_access_requests_status ON access_requests(status);
+      CREATE INDEX IF NOT EXISTS idx_access_requests_user_id ON access_requests(user_id);
+    `,
+  },
 ];
 
 export async function runMigrations(): Promise<void> {

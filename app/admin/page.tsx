@@ -121,7 +121,10 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      <AccessRequestsSection />
+
       <div>
+        <h2 className="mb-3 text-base font-semibold text-gray-900">Audit Log</h2>
         <div className="mb-3 flex items-center gap-3">
           <input
             className="flex-1 rounded-md border bg-white px-3 py-2 text-sm text-gray-900"
@@ -217,6 +220,86 @@ export default function AdminDashboard() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function AccessRequestsSection() {
+  const [requests, setRequests] = useState<Array<{ id: number; user_id: string; domain: string; context: string; data_contract: string; message: string; status: string; created_at: string }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchRequests = useCallback(async () => {
+    try {
+      const res = await fetch("/api/access-requests");
+      if (res.ok) setRequests((await res.json()).items ?? []);
+    } catch { /* silent */ } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRequests();
+  }, [fetchRequests]);
+
+  async function handleStatus(id: number, status: string) {
+    await fetch(`/api/access-requests/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    await fetchRequests();
+  }
+
+  const pending = requests.filter((r) => r.status === "pending");
+
+  if (loading) return null;
+
+  return (
+    <div>
+      <h2 className="mb-3 text-base font-semibold text-gray-900">
+        Access Requests {pending.length > 0 && <span className="text-sm font-normal text-gray-400">({pending.length} pending)</span>}
+      </h2>
+      {requests.length === 0 ? (
+        <div className="rounded-lg border bg-white py-8 text-center text-sm text-gray-400">No access requests yet.</div>
+      ) : (
+        <div className="overflow-x-auto rounded-lg border shadow-lg">
+          <table className="min-w-full divide-y divide-gray-200 bg-white text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                {["User", "Domain", "Context", "Contract", "Message", "Status", "Actions"].map((label) => (
+                  <th key={label} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{label}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {requests.map((r) => (
+                <tr key={r.id}>
+                  <td className="px-4 py-3 font-mono text-xs text-gray-900">{r.user_id}</td>
+                  <td className="px-4 py-3 text-gray-600">{r.domain || "\u2014"}</td>
+                  <td className="px-4 py-3 text-gray-600">{r.context || "\u2014"}</td>
+                  <td className="px-4 py-3 text-gray-600">{r.data_contract || "\u2014"}</td>
+                  <td className="max-w-[200px] truncate px-4 py-3 text-xs text-gray-500">{r.message || "\u2014"}</td>
+                  <td className="px-4 py-3">
+                    <span className={`rounded px-2 py-0.5 text-xs font-medium ${r.status === "pending" ? "bg-yellow-50 text-yellow-700" : r.status === "approved" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+                      {r.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {r.status === "pending" ? (
+                      <div className="flex gap-1">
+                        <button onClick={() => handleStatus(r.id, "approved")} className="rounded bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 hover:bg-green-100">Approve</button>
+                        <button onClick={() => handleStatus(r.id, "denied")} className="rounded bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 hover:bg-red-100">Deny</button>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-400">\u2014</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

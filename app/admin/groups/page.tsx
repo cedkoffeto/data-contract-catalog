@@ -66,6 +66,9 @@ export default function GroupsPage() {
       if (e.key === "Escape") {
         if (removeMemberTarget) {
           setRemoveMemberTarget(null);
+        } else if (addTarget) {
+          setAddTarget(null);
+          setAddUserIds([]);
         } else if (membersPopoverGroup) {
           setMembersPopoverGroup(null);
           setMembersFilter("");
@@ -74,7 +77,7 @@ export default function GroupsPage() {
     }
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
-  }, [removeMemberTarget, membersPopoverGroup]);
+  }, [removeMemberTarget, membersPopoverGroup, addTarget]);
 
   async function handleCreate() {
     if (!newName.trim()) return;
@@ -230,9 +233,10 @@ export default function GroupsPage() {
             onClick={handleCreate}
             disabled={!newName.trim() || newName !== newName.trim() || creating}
             style={{
-              backgroundColor: newName.trim() && newName === newName.trim() && !creating ? "var(--ui-primary)" : "#d1d5db",
-              color: newName.trim() && newName === newName.trim() && !creating ? "#fff" : "#6b7280",
-              cursor: newName.trim() && newName === newName.trim() && !creating ? "pointer" : "not-allowed",
+              backgroundColor: "var(--ui-primary)",
+              color: "#fff",
+              opacity: !newName.trim() || newName !== newName.trim() || creating ? 0.5 : 1,
+              cursor: !newName.trim() || newName !== newName.trim() || creating ? "not-allowed" : "pointer",
             }}
             className="border-0 font-bold"
           >
@@ -389,10 +393,13 @@ export default function GroupsPage() {
               </div>
               <button
                 onClick={() => { setMembersPopoverGroup(null); setMembersFilter(""); }}
-                className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                className="editor-close-button"
+                aria-label="Close"
+                title="Close"
+                type="button"
               >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path d="M5.5 5.5l9 9m0-9l-9 9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
             </div>
@@ -430,7 +437,7 @@ export default function GroupsPage() {
                         <button
                           onClick={() => setRemoveMemberTarget({ group: membersPopoverGroup, userId: m.user_id })}
                           className="rounded p-0.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
-                          title="Remove member"
+                          title={`Remove ${m.user_id} from ${membersPopoverGroup.name}`}
                         >
                           <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -443,14 +450,6 @@ export default function GroupsPage() {
               })()}
             </div>
 
-            <div className="flex justify-end border-t border-gray-100 px-4 py-2">
-              <button
-                onClick={() => { setMembersPopoverGroup(null); setMembersFilter(""); }}
-                className="rounded px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
-              >
-                Close
-              </button>
-            </div>
           </div>
         </div>
       )}
@@ -524,10 +523,11 @@ function MemberManagerModal({
       onClick={onClose}
     >
       <div
-        className="flex max-h-[800px] min-h-[700px] w-11/12 max-w-[75vw] flex-col rounded-lg bg-white shadow-xl"
+        className="flex max-h-[60vh] flex-col rounded-lg bg-white shadow-xl"
+        style={{ width: "min(50vw, 600px)" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
           <div>
             <h3 className="text-sm font-semibold text-gray-900">
               Manage members of &ldquo;{groupName}&rdquo;
@@ -538,20 +538,33 @@ function MemberManagerModal({
               {removed.length > 0 && ` · ${removed.length} to remove`}
             </p>
           </div>
+          <button
+            onClick={onClose}
+            className="editor-close-button"
+            aria-label="Close"
+            title="Close"
+            type="button"
+          >
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M5.5 5.5l9 9m0-9l-9 9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
         </div>
 
-        <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-2">
-          <input
-            className="flex-1 rounded border bg-white px-2 py-1.5 text-xs text-gray-900"
-            style={{ borderColor: "#d1d5db" }}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Filter users…"
-            autoFocus
-          />
-          <span className="text-[11px] text-gray-400">
-            {selected.length} selected
-          </span>
+        <div className="border-b border-gray-100 px-4 py-2">
+          <div className="flex items-center gap-2">
+            <input
+              className="flex-1 rounded border bg-white px-2 py-1.5 text-xs text-gray-900"
+              style={{ borderColor: "#d1d5db" }}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Filter users…"
+              autoFocus
+            />
+            <span className="text-[11px] text-gray-400">
+              {selected.length} selected
+            </span>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-2">
@@ -560,41 +573,58 @@ function MemberManagerModal({
               {search ? "No users match your filter" : "No users available"}
             </div>
           ) : (
-            <div className="space-y-px">
+            <div className="space-y-0.5">
               {filtered.map((user, index) => {
                 const isSelected = selected.includes(user.userId);
                 const isCurrent = currentMembers.includes(user.userId);
                 return (
-                  <label
-                    key={`${user.userId}-${index}`}
-                    className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-gray-50"
-                  >
-                    <input
-                      type="checkbox"
-                      className="h-3.5 w-3.5 rounded border-gray-300"
-                      checked={isSelected}
-                      onChange={() => toggleUser(user.userId)}
-                    />
-                    <span
-                      className={
-                        isCurrent
-                          ? "font-medium text-gray-900"
-                          : isSelected
-                            ? "font-medium text-green-700"
-                            : "text-gray-500"
-                      }
+                    <label
+                      key={`${user.userId}-${index}`}
+                      className="flex cursor-pointer items-center gap-2 whitespace-nowrap rounded px-2 py-1 text-xs hover:bg-gray-50"
                     >
-                      {user.userId}
-                      {user.email ? <span className="ml-1 text-gray-400">({user.email})</span> : null}
-                    </span>
-                    {isCurrent && (
-                      <span className="ml-auto rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
+                      <input
+                        type="checkbox"
+                        className="h-3.5 w-3.5 shrink-0 rounded border-gray-300"
+                        checked={isSelected}
+                        onChange={() => toggleUser(user.userId)}
+                      />
+                      <span
+                        className={
+                          (isCurrent && !isSelected
+                            ? "font-medium text-red-700"
+                            : isCurrent
+                              ? "font-medium text-gray-900"
+                              : isSelected
+                                ? "font-medium text-green-700"
+                                : "text-gray-500"
+                          ) + " min-w-0 truncate"
+                        }
+                      >
+                        {user.userId}
+                        {user.email ? <span className="ml-1 text-gray-400">({user.email})</span> : null}
+                      </span>
+                    {isCurrent && isSelected && (
+                      <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
                         member
+                        <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                        </svg>
+                      </span>
+                    )}
+                    {isCurrent && !isSelected && (
+                      <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-600">
+                        to remove
+                        <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
                       </span>
                     )}
                     {!isCurrent && isSelected && (
-                      <span className="ml-auto rounded bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-600">
+                      <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-600">
                         new
+                        <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                        </svg>
                       </span>
                     )}
                   </label>
@@ -608,24 +638,18 @@ function MemberManagerModal({
           <div className="flex gap-1.5">
             <button
               onClick={selectAll}
-              className="rounded px-2 py-1 text-[11px] font-medium text-gray-600 hover:bg-gray-100"
+              className="rounded px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100"
             >
               Select all
             </button>
             <button
               onClick={deselectAll}
-              className="rounded px-2 py-1 text-[11px] font-medium text-gray-600 hover:bg-gray-100"
+              className="rounded px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100"
             >
               Deselect all
             </button>
           </div>
           <div className="flex gap-1.5">
-            <button
-              onClick={onClose}
-              className="rounded px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
-            >
-              Cancel
-            </button>
             <button
               onClick={onSave}
               disabled={added.length === 0 && removed.length === 0}

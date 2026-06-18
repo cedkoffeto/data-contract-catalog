@@ -1,5 +1,9 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 
+import { RequestAccessButton } from "@/src/components/catalog/RequestAccessButton";
 import type { CatalogCard as CatalogCardType } from "@/src/lib/types";
 
 function humanize(value: string): string {
@@ -27,38 +31,64 @@ function LockIcon() {
   );
 }
 
+function Description({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (!text) return null;
+
+  return (
+    <p
+      className={`catalog-card__description cursor-pointer ${expanded ? "catalog-card__description--expanded" : "catalog-card__description--clamped"}`}
+      onClick={(e) => { e.stopPropagation(); e.preventDefault(); setExpanded((v) => !v); }}
+      title={expanded ? "Click to collapse" : "Click to expand"}
+    >
+      {text}
+    </p>
+  );
+}
+
 export function CatalogCard({ card }: { card: CatalogCardType }) {
   if (!card.accessible) {
     return (
-      <li className="catalog-card-listing" data-accessible="false" data-search={card.searchData}>
+      <li className="catalog-card-listing group" data-accessible="false" data-search={card.searchData}>
         <div
-          aria-disabled="true"
-          className="catalog-card catalog-card--disabled"
-          title="Vous n'êtes pas autorisé à consulter ce contrat de données."
+          className="relative transition-shadow duration-200 group-hover:shadow-[0_0_20px_4px_rgba(234,88,12,0.35)] rounded-xl"
         >
-          <div className="catalog-card__header">
-            <div className="catalog-card__meta">
-              <span className="catalog-card__badge">{humanize(card.maturity)}</span>
-              <span className="catalog-card__badge catalog-card__badge--subtle">{humanize(card.domain)}</span>
-            </div>
-            <span className="catalog-card__version">v{card.version}</span>
-          </div>
-
-          <div className="catalog-card__body">
-            <h3 className="catalog-card__title">{card.title}</h3>
-
-            {card.description ? <p className="catalog-card__description">{card.description}</p> : null}
-          </div>
-
-          <div className="catalog-card__footer">
-            <div className="catalog-card__owner-block">
-              <p className="catalog-card__owner">{card.owner || "Platform team"}</p>
-              <span className="catalog-card__owner-label">Owner</span>
+          <div
+            aria-disabled="true"
+            className="catalog-card catalog-card--disabled"
+            title="Vous n'êtes pas autorisé à consulter ce contrat de données."
+          >
+            <div className="catalog-card__header">
+              <div className="catalog-card__meta">
+                <span className="catalog-card__badge">{humanize(card.maturity)}</span>
+                <span className="catalog-card__badge catalog-card__badge--subtle">{humanize(card.domain)}</span>
+              </div>
+              <span className="catalog-card__version">v{card.version}</span>
             </div>
 
-            <span className="catalog-card__link catalog-card__link--disabled">
-              <LockIcon /> Accès restreint
-            </span>
+            <div className="catalog-card__body">
+              <h3 className="catalog-card__title">{card.title}</h3>
+
+              {card.description ? <Description text={card.description} /> : null}
+            </div>
+
+            <div className="catalog-card__footer">
+              <div className="catalog-card__owner-block">
+                <p className="catalog-card__owner">{card.owner || "Platform team"}</p>
+                <span className="catalog-card__owner-label">Owner</span>
+              </div>
+
+              <span className="catalog-card__link catalog-card__link--disabled">
+                <LockIcon /> Accès restreint
+              </span>
+            </div>
+          </div>
+
+          <div className="absolute inset-0 z-10 flex cursor-pointer items-center justify-center rounded-xl bg-orange-600/20 opacity-0 backdrop-blur-[0.5px] transition-opacity duration-200 group-hover:opacity-100" style={{ pointerEvents: "auto" }}>
+            <div onClick={(e) => e.stopPropagation()}>
+              <RequestAccessButton slug={card.slug} domain={card.domain} context={card.context} />
+            </div>
           </div>
         </div>
       </li>
@@ -79,7 +109,7 @@ export function CatalogCard({ card }: { card: CatalogCardType }) {
         <div className="catalog-card__body">
           <h3 className="catalog-card__title">{card.title}</h3>
 
-          {card.description ? <p className="catalog-card__description">{card.description}</p> : null}
+          {card.description ? <Description text={card.description} /> : null}
         </div>
 
         <div className="catalog-card__footer">
