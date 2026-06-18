@@ -1348,6 +1348,10 @@ body[data-ra-modal] [data-ra-overlay] {
   line-height: 1.5;
 }
 
+.catalog-card__description {
+  min-height: 4.56rem;
+}
+
 .catalog-card__body {
   display: flex;
   flex: 1 1 auto;
