@@ -34,6 +34,15 @@ export function RequestAccessDialog({
   const [done, setDone] = useState(false);
 
   useEffect(() => {
+    if (open) {
+      document.body.dataset.raModal = "open";
+    } else {
+      delete document.body.dataset.raModal;
+    }
+    return () => { delete document.body.dataset.raModal; };
+  }, [open]);
+
+  useEffect(() => {
     if (!open) return;
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
