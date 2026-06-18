@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 import type { AccessPolicyRecord } from "@/src/lib/access-control";
 
@@ -13,8 +14,10 @@ export function UserPoliciesDialog({
 }) {
   const [policies, setPolicies] = useState<AccessPolicyRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     setLoading(true);
     fetch(`/api/policies/effective?userId=${encodeURIComponent(userId)}`)
       .then((r) => r.json())
@@ -23,7 +26,9 @@ export function UserPoliciesDialog({
       .finally(() => setLoading(false));
   }, [userId]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/50" onClick={onClose} />
       <div className="relative z-10 rounded-lg bg-white p-6 shadow-xl" style={{ width: "min(70vw, 480px)" }}>
@@ -80,6 +85,7 @@ export function UserPoliciesDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
