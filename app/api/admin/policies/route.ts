@@ -9,6 +9,7 @@ import {
   listAccessPolicies,
   listPermissions,
 } from "@/src/lib/access-control";
+import { extractSessionId } from "@/src/lib/audit-session";
 
 export async function GET() {
   const unauthorized = await requireAdmin();
@@ -23,6 +24,7 @@ export async function POST(request: Request) {
   if (unauthorized) return unauthorized;
 
   const session = await auth();
+  const sessionId = extractSessionId(request);
 
   try {
     const body = await request.json();
@@ -58,6 +60,7 @@ export async function POST(request: Request) {
           dataContractScope: dataContractScope ?? null,
           actorId: session!.user!.email!,
           force: true,
+          sessionId,
         });
         return NextResponse.json(policy, { status: 200 });
       }
@@ -98,6 +101,7 @@ export async function POST(request: Request) {
       contextScope: contextScope ?? null,
       dataContractScope: dataContractScope ?? null,
       actorId: session!.user!.email!,
+      sessionId,
     });
 
     return NextResponse.json(policy, { status: 201 });

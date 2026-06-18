@@ -9,6 +9,7 @@ import {
   listPermissions,
   updateAccessPolicy,
 } from "@/src/lib/access-control";
+import { extractSessionId } from "@/src/lib/audit-session";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const unauthorized = await requireAdmin();
@@ -25,6 +26,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   try {
     const body = await request.json();
     const { permissionId, domainScope, contextScope, dataContractScope, force } = body;
+    const sessionId = extractSessionId(request);
 
     if (!permissionId) {
       return NextResponse.json({ error: "permissionId is required" }, { status: 400 });
@@ -47,7 +49,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     if (conflict) {
       if (conflict.type === "overlap" && force) {
-        await deleteAccessPolicy({ id: conflict.existing.id, actorId: session!.user!.email! });
+        await deleteAccessPolicy({ id: conflict.existing.id, actorId: session!.user!.email!, sessionId });
         const policy = await updateAccessPolicy({
           id: policyId,
           permissionId,
@@ -55,6 +57,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           contextScope: contextScope ?? null,
           dataContractScope: dataContractScope ?? null,
           actorId: session!.user!.email!,
+          sessionId,
         });
         return NextResponse.json(policy);
       }
@@ -94,6 +97,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       contextScope: contextScope ?? null,
       dataContractScope: dataContractScope ?? null,
       actorId: session!.user!.email!,
+      sessionId,
     });
 
     return NextResponse.json(policy);
@@ -103,20 +107,21 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 }
 
-export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const unauthorized = await requireAdmin();
   if (unauthorized) return unauthorized;
 
   const session = await auth();
   const { id } = await params;
   const policyId = parseInt(id, 10);
+  const sessionId = extractSessionId(request);
 
   if (isNaN(policyId)) {
     return NextResponse.json({ error: "Invalid policy id" }, { status: 400 });
   }
 
   try {
-    await deleteAccessPolicy({ id: policyId, actorId: session!.user!.email! });
+    await deleteAccessPolicy({ id: policyId, actorId: session!.user!.email!, sessionId });
     return NextResponse.json({ success: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to delete policy";

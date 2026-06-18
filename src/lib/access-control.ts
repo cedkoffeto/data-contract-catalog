@@ -353,8 +353,9 @@ export async function createAccessPolicy(params: {
   dataContractScope?: string | null;
   actorId: string;
   force?: boolean;
+  sessionId?: string;
 }): Promise<AccessPolicyRecord> {
-  const { userId, groupId, permissionId, domainScope, contextScope, dataContractScope, actorId, force } = params;
+  const { userId, groupId, permissionId, domainScope, contextScope, dataContractScope, actorId, force, sessionId } = params;
 
   if ((userId === null) === (groupId === null)) {
     throw new Error("Exactly one of userId or groupId must be provided");
@@ -377,6 +378,7 @@ export async function createAccessPolicy(params: {
             targetType: "policy",
             targetId: String(id),
             details: { replacedBy: `broader policy #${conflict.existing.id}` },
+            sessionId,
           });
         }
       }
@@ -387,6 +389,7 @@ export async function createAccessPolicy(params: {
         contextScope: contextScope ?? null,
         dataContractScope: dataContractScope ?? null,
         actorId,
+        sessionId,
       });
     }
   }
@@ -408,6 +411,7 @@ export async function createAccessPolicy(params: {
     targetType: "policy",
     targetId: String(newId),
     details: { userId, groupId, permissionId, domainScope, contextScope, dataContractScope },
+    sessionId,
   });
 
   return (await getAccessPolicy(newId))!;
@@ -420,8 +424,9 @@ export async function updateAccessPolicy(params: {
   contextScope: string | null;
   dataContractScope?: string | null;
   actorId: string;
+  sessionId?: string;
 }): Promise<AccessPolicyRecord> {
-  const { id, permissionId, domainScope, contextScope, dataContractScope, actorId } = params;
+  const { id, permissionId, domainScope, contextScope, dataContractScope, actorId, sessionId } = params;
 
   await execute(
     `UPDATE access_policies
@@ -436,6 +441,7 @@ export async function updateAccessPolicy(params: {
     targetType: "policy",
     targetId: String(id),
     details: { permissionId, domainScope, contextScope, dataContractScope },
+    sessionId,
   });
 
   return (await getAccessPolicy(id))!;
@@ -444,6 +450,7 @@ export async function updateAccessPolicy(params: {
 export async function deleteAccessPolicy(params: {
   id: number;
   actorId: string;
+  sessionId?: string;
 }): Promise<void> {
   await execute("DELETE FROM access_policies WHERE id = ?", [params.id]);
 
@@ -452,6 +459,7 @@ export async function deleteAccessPolicy(params: {
     actorId: params.actorId,
     targetType: "policy",
     targetId: String(params.id),
+    sessionId: params.sessionId,
   });
 }
 
@@ -463,7 +471,7 @@ export async function listGroups(): Promise<{ id: number; name: string }[]> {
   return query<{ id: number; name: string }>("SELECT id, name FROM groups ORDER BY name");
 }
 
-export async function createGroup(params: { name: string; actorId: string }): Promise<{ id: number; name: string }> {
+export async function createGroup(params: { name: string; actorId: string; sessionId?: string }): Promise<{ id: number; name: string }> {
   await execute("INSERT INTO groups (name) VALUES (?)", [params.name]);
 
   const rows = await query<{ id: number; name: string }>(
@@ -476,12 +484,13 @@ export async function createGroup(params: { name: string; actorId: string }): Pr
     actorId: params.actorId,
     targetType: "group",
     targetId: params.name,
+    sessionId: params.sessionId,
   });
 
   return rows[0]!;
 }
 
-export async function deleteGroup(params: { id: number; actorId: string }): Promise<void> {
+export async function deleteGroup(params: { id: number; actorId: string; sessionId?: string }): Promise<void> {
   const group = await query<{ name: string }>("SELECT name FROM groups WHERE id = ?", [params.id]);
   await execute("DELETE FROM groups WHERE id = ?", [params.id]);
 
@@ -490,6 +499,7 @@ export async function deleteGroup(params: { id: number; actorId: string }): Prom
     actorId: params.actorId,
     targetType: "group",
     targetId: group[0]?.name ?? String(params.id),
+    sessionId: params.sessionId,
   });
 }
 
@@ -497,6 +507,7 @@ export async function addUserToGroup(params: {
   userId: string;
   groupId: number;
   actorId: string;
+  sessionId?: string;
 }): Promise<void> {
   await execute("INSERT OR IGNORE INTO user_group (user_id, group_id) VALUES (?, ?)", [
     params.userId,
@@ -509,6 +520,7 @@ export async function addUserToGroup(params: {
     targetType: "group",
     targetId: String(params.groupId),
     details: { userId: params.userId },
+    sessionId: params.sessionId,
   });
 }
 
@@ -516,6 +528,7 @@ export async function removeUserFromGroup(params: {
   userId: string;
   groupId: number;
   actorId: string;
+  sessionId?: string;
 }): Promise<void> {
   await execute("DELETE FROM user_group WHERE user_id = ? AND group_id = ?", [
     params.userId,
@@ -528,6 +541,7 @@ export async function removeUserFromGroup(params: {
     targetType: "group",
     targetId: String(params.groupId),
     details: { userId: params.userId },
+    sessionId: params.sessionId,
   });
 }
 

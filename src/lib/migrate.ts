@@ -212,6 +212,12 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
       CREATE INDEX IF NOT EXISTS idx_access_requests_user_id ON access_requests(user_id);
     `,
   },
+  {
+    id: "004_audit_session_id",
+    sql: `
+      ALTER TABLE audit_log ADD COLUMN session_id TEXT DEFAULT '';
+    `,
+  },
 ];
 
 export async function runMigrations(): Promise<void> {

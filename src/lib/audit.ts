@@ -28,15 +28,17 @@ export async function writeAuditLog(params: {
   targetType: AuditTargetType;
   targetId: string;
   details?: Record<string, unknown>;
+  sessionId?: string;
 }) {
   await execute(
-    `INSERT INTO audit_log (action, actor_id, target_type, target_id, details) VALUES (?, ?, ?, ?, ?)`,
+    `INSERT INTO audit_log (action, actor_id, target_type, target_id, details, session_id) VALUES (?, ?, ?, ?, ?, ?)`,
     [
       params.action,
       params.actorId,
       params.targetType,
       params.targetId,
       JSON.stringify(params.details ?? {}),
+      params.sessionId ?? "",
     ]
   );
 }

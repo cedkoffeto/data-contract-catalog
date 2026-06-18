@@ -10,6 +10,7 @@ import { authorize } from "@/src/lib/access-control";
 import { getAdminUserIds, getUserIdsWithScopeAccess, getUserPermissions } from "@/src/lib/rbac";
 import { getSubscribers } from "@/src/lib/subscriptions";
 import { createNotification } from "@/src/lib/notifications";
+import { extractSessionId } from "@/src/lib/audit-session";
 
 export async function POST(req: Request, { params }: { params: Promise<{ slug: string }> }) {
   try {
@@ -44,8 +45,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
       return NextResponse.json({ error: "Missing content" }, { status: 400 });
     }
 
+    const sessionId = extractSessionId(req);
     const isNew = !fs.existsSync(contract.fullPath);
-    await saveContractFile(contract.fullPath, content, userId, body?.commitMessage);
+    await saveContractFile(contract.fullPath, content, userId, body?.commitMessage, sessionId);
 
     const title = contract.data.asset?.name ?? slug;
     const domain = contract.data.asset?.domain ?? "";

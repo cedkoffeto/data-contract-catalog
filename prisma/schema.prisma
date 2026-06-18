@@ -24,6 +24,7 @@ model AuditLog {
   targetType String   @map("target_type")
   targetId   String   @map("target_id")
   details    String   @default("{}")
+  sessionId  String   @default("") @map("session_id")
   createdAt  DateTime @default(now()) @map("created_at")
 
   @@index([actorId])

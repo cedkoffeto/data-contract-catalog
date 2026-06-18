@@ -4,6 +4,7 @@ import { execute, query } from "@/src/lib/db";
 import { getAdminUserIds } from "@/src/lib/rbac";
 import { createAccessPolicy } from "@/src/lib/access-control";
 import { writeAuditLog } from "@/src/lib/audit";
+import { extractSessionId } from "@/src/lib/audit-session";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -20,6 +21,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const { id } = await params;
   const body = await request.json();
   const { status } = body;
+  const sessionId = extractSessionId(request);
 
   if (!["pending", "approved", "rejected"].includes(status)) {
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
@@ -44,6 +46,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           dataContractScope: req.data_contract || null,
           actorId: userId,
           force: true,
+          sessionId,
         });
       }
     }
@@ -60,6 +63,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     targetType: "contract",
     targetId: id,
     details: { newStatus: status },
+    sessionId,
   }).catch(() => {});
 
   return NextResponse.json({ success: true });

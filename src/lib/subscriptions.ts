@@ -58,6 +58,7 @@ export async function subscribe(params: {
   userId: string;
   contractSlug: string;
   actorId: string;
+  sessionId?: string;
 }): Promise<Subscription> {
   const channel = await resolveChannel(params.userId);
 
@@ -73,6 +74,7 @@ export async function subscribe(params: {
     targetType: "contract",
     targetId: params.contractSlug,
     details: { channel },
+    sessionId: params.sessionId,
   });
 
   return (await getSubscription(params.userId, params.contractSlug))!;
@@ -82,6 +84,7 @@ export async function unsubscribe(params: {
   userId: string;
   contractSlug: string;
   actorId: string;
+  sessionId?: string;
 }): Promise<void> {
   await execute(
     "DELETE FROM subscriptions WHERE user_id = ? AND contract_slug = ?",
@@ -93,6 +96,7 @@ export async function unsubscribe(params: {
     actorId: params.actorId,
     targetType: "contract",
     targetId: params.contractSlug,
+    sessionId: params.sessionId,
   });
 }
 

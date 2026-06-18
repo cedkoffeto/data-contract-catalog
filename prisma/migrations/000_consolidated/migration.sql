@@ -82,6 +82,7 @@ CREATE TABLE IF NOT EXISTS "audit_log" (
     "target_type" TEXT NOT NULL,
     "target_id" TEXT NOT NULL,
     "details" TEXT NOT NULL DEFAULT '{}',
+    "session_id" TEXT NOT NULL DEFAULT '',
     "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

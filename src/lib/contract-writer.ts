@@ -17,9 +17,10 @@ export async function saveContractFile(
   content: string,
   actorId: string,
   commitMessage?: string,
+  sessionId?: string,
 ): Promise<{ commitId?: string }> {
   if (hasGitLabConfig()) {
-    return saveToGitLab(filePath, content, actorId, commitMessage);
+    return saveToGitLab(filePath, content, actorId, commitMessage, sessionId);
   }
 
   saveToLocal(filePath, content);
@@ -31,6 +32,7 @@ async function saveToGitLab(
   content: string,
   actorId: string,
   commitMessage?: string,
+  sessionId?: string,
 ): Promise<{ commitId?: string }> {
   const { api, config } = getGitLabClient();
   const branch = config.ref;
@@ -57,6 +59,7 @@ async function saveToGitLab(
     targetType: "contract",
     targetId: filePath,
     details: { filePath, mode: "gitlab" },
+    sessionId,
   });
 
   return {};

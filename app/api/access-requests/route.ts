@@ -4,6 +4,7 @@ import { execute, query } from "@/src/lib/db";
 import { createNotification } from "@/src/lib/notifications";
 import { getAdminUserIds } from "@/src/lib/rbac";
 import { writeAuditLog } from "@/src/lib/audit";
+import { extractSessionId } from "@/src/lib/audit-session";
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -26,12 +27,15 @@ export async function POST(request: Request) {
       [userId, domain ?? "", context ?? "", dataContract ?? "", message ?? ""],
     );
 
+    const sessionId = extractSessionId(request);
+
     writeAuditLog({
       action: "access_request.create",
       actorId: userId,
       targetType: "contract",
       targetId: dataContract || "__unknown__",
       details: { domain, context, message },
+      sessionId,
     }).catch(() => {});
 
     // Notify all admins
