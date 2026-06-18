@@ -196,6 +196,16 @@ export type ContractComment = {
   editedAt: string | null;
 };
 
+export type ContractIssue = {
+  id: number;
+  contractSlug: string;
+  userId: string;
+  body: string;
+  status: "open" | "fixed" | "false_alert";
+  createdAt: string;
+  resolvedAt: string | null;
+};
+
 export type EditorRepositoryFile = {
   id: string;
   name: string;

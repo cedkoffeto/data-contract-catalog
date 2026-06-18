@@ -159,6 +159,19 @@ CREATE TABLE IF NOT EXISTS "comment_mentions" (
 CREATE INDEX IF NOT EXISTS "comment_mentions_user_id_idx" ON "comment_mentions"("user_id");
 CREATE INDEX IF NOT EXISTS "comment_mentions_comment_id_idx" ON "comment_mentions"("comment_id");
 
+CREATE TABLE IF NOT EXISTS "contract_issues" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "contract_slug" TEXT NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "body" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'open',
+    "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "resolved_at" DATETIME
+);
+
+CREATE INDEX IF NOT EXISTS "contract_issues_contract_slug_idx" ON "contract_issues"("contract_slug", "created_at", "id");
+CREATE INDEX IF NOT EXISTS "contract_issues_status_idx" ON "contract_issues"("status");
+
 -- User preferences (notification channel, etc.)
 CREATE TABLE IF NOT EXISTS "user_preferences" (
     "user_id" TEXT NOT NULL PRIMARY KEY,

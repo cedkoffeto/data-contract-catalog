@@ -90,6 +90,20 @@ model UserGroup {
   @@map("user_group")
 }
 
+model ContractIssue {
+  id          Int       @id @default(autoincrement())
+  contractSlug String   @map("contract_slug")
+  userId      String    @map("user_id")
+  body        String
+  status      String    @default("open")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  resolvedAt  DateTime? @map("resolved_at")
+
+  @@index([contractSlug, createdAt, id])
+  @@index([status])
+  @@map("contract_issues")
+}
+
 model ContractComment {
   id            Int          @id @default(autoincrement())
   contractSlug  String       @map("contract_slug")

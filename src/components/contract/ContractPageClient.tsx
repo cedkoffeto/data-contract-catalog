@@ -7,6 +7,7 @@ import yaml from "js-yaml";
 import { ContractBody } from "@/src/components/contract/ContractBody";
 import { ContractComments } from "@/src/components/contract/ContractComments";
 import { ContractHeader } from "@/src/components/contract/ContractHeader";
+import { ContractIssues } from "@/src/components/contract/ContractIssues";
 import { ContractDiffDialog } from "@/src/components/contract/ContractDiffDialog";
 import { SubscribeModal } from "@/src/components/contract/SubscribeModal";
 import { YamlDialogButton } from "@/src/components/contract/YamlDialogButton";
@@ -36,7 +37,8 @@ export function ContractPageClient({
   slug,
   yamlRaw,
   userId,
-  canEdit
+  canEdit,
+  canAdmin
 }: {
   data: DataContract;
   historyEntries: ContractHistoryEntry[];
@@ -44,6 +46,7 @@ export function ContractPageClient({
   yamlRaw: string;
   userId?: string;
   canEdit: boolean;
+  canAdmin: boolean;
 }) {
   const [activeVersion, setActiveVersion] = useState<{
     entry: ContractHistoryEntry;
@@ -57,7 +60,7 @@ export function ContractPageClient({
 
   const [subscribed, setSubscribed] = useState(false);
   const [loadingSubscription, setLoadingSubscription] = useState(true);
-  const [activeTab, setActiveTab] = useState<"details" | "comments">("details");
+  const [activeTab, setActiveTab] = useState<"details" | "comments" | "issues">("details");
 
   useEffect(() => {
     if (!userId) {
@@ -165,8 +168,15 @@ export function ContractPageClient({
                   >
                     Comments
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("issues")}
+                    className={`rounded-md px-3 py-1.5 text-xs font-bold transition-colors ${activeTab === "issues" ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-100"}`}
+                  >
+                    Issues
+                  </button>
                 </div>
-                {activeTab === "details" ? <ContractBody data={displayedData} /> : <ContractComments slug={slug} userId={userId} />}
+                {activeTab === "details" ? <ContractBody data={displayedData} /> : activeTab === "comments" ? <ContractComments slug={slug} userId={userId} /> : <ContractIssues slug={slug} userId={userId} canAdmin={canAdmin} />}
               </div>
             </div>
           </div>

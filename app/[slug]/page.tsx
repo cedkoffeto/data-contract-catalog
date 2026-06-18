@@ -37,6 +37,7 @@ export default async function ContractRoutePage({ params }: { params: Promise<{ 
   const context = page.data.asset?.context ?? "";
   const globalPermissions = userId ? await getUserPermissions(userId) : [];
   const canEdit = await canEditContract(userId, globalPermissions, domain, context, slug);
+  const canAdmin = globalPermissions.includes("admin") || (userId ? await authorize(userId, domain, context, "admin", slug) : false);
 
   if (userId) {
     if (!globalPermissions.includes("admin")) {
@@ -49,7 +50,7 @@ export default async function ContractRoutePage({ params }: { params: Promise<{ 
     return <Forbidden message="Authentification requise" />;
   }
 
-  return <ContractPage data={page.data} slug={page.slug} yamlRaw={page.yamlRaw} userId={userId} canEdit={canEdit} />;
+  return <ContractPage data={page.data} slug={page.slug} yamlRaw={page.yamlRaw} userId={userId} canEdit={canEdit} canAdmin={canAdmin} />;
 }
 
 function Forbidden({ message, slug, domain, context }: { message?: string; slug?: string; domain?: string; context?: string }) {
