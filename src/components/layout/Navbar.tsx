@@ -49,7 +49,7 @@ export async function Navbar() {
 
             {session ? <NotificationBell /> : null}
 
-            {session ? <UserMenu email={session.user?.email} image={session.user?.image} name={displayName} /> : null}
+            {session ? <UserMenu email={session.user?.email} image={session.user?.image} name={displayName} userId={session.user?.name ?? undefined} /> : null}
           </div>
         </div>
       </div>

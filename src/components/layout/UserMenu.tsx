@@ -13,11 +13,13 @@ function getInitial(name: string) {
 export function UserMenu({
   email,
   image,
-  name
+  name,
+  userId,
 }: {
   email?: string | null;
   image?: string | null;
   name: string;
+  userId?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [showPolicies, setShowPolicies] = useState(false);
@@ -82,7 +84,7 @@ export function UserMenu({
 
       {showPolicies && (
         <UserPoliciesDialog
-          userId={name}
+          userId={userId ?? name}
           onClose={() => setShowPolicies(false)}
         />
       )}
