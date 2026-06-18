@@ -55,23 +55,27 @@ export async function filterCatalogCards(
   if (isFreshInstall) return cards;
 
   const hasGlobalAccess = policies.some(
-    (p) => p.domain_scope === null && p.context_scope === null && p.data_contract_scope === null,
+    (p) =>
+      (p.domain_scope ?? "") === "" &&
+      (p.context_scope ?? "") === "" &&
+      (p.data_contract_scope ?? "") === "",
   );
   if (hasGlobalAccess) return cards;
 
   return cards.filter((card) => {
-    const domain = card.domain?.toLowerCase() ?? "";
-    const context = card.context?.toLowerCase() ?? "";
+    const domain = card.domain?.toLowerCase().trim() ?? "";
+    const context = card.context?.toLowerCase().trim() ?? "";
 
     return policies.some((p) => {
-      const pd = p.domain_scope?.toLowerCase() ?? null;
-      const pc = p.context_scope?.toLowerCase() ?? null;
-      const pdc = p.data_contract_scope?.toLowerCase() ?? null;
+      const pd = (p.domain_scope ?? "").toLowerCase().trim();
+      const pc = (p.context_scope ?? "").toLowerCase().trim();
+      const pdc = (p.data_contract_scope ?? "").toLowerCase().trim();
 
-      if (pd === null && pc === null && pdc === null) return true;
-      if (pd === domain && pc === null && pdc === null) return true;
-      if (pd === domain && pc === context && pdc === null) return true;
-      if (pd === domain && pc === context && pdc === card.slug) return true;
+      if (pd === "" && pc === "" && pdc === "") return true;
+      if (pd === "" && pc === "" && pdc === card.slug.toLowerCase()) return true;
+      if (pd === domain && pc === "" && pdc === "") return true;
+      if (pd === domain && pc === context && pdc === "") return true;
+      if (pd === domain && pc === context && pdc === card.slug.toLowerCase()) return true;
 
       return false;
     });
@@ -107,24 +111,28 @@ export async function getAccessibleSlugs(
   if (isFreshInstall) return new Set(cards.map((c) => c.slug));
 
   const hasGlobalAccess = policies.some(
-    (p) => p.domain_scope === null && p.context_scope === null && p.data_contract_scope === null,
+    (p) =>
+      (p.domain_scope ?? "") === "" &&
+      (p.context_scope ?? "") === "" &&
+      (p.data_contract_scope ?? "") === "",
   );
   if (hasGlobalAccess) return new Set(cards.map((c) => c.slug));
 
   const accessible = new Set<string>();
   for (const card of cards) {
-    const domain = card.domain?.toLowerCase() ?? "";
-    const context = card.context?.toLowerCase() ?? "";
+    const domain = card.domain?.toLowerCase().trim() ?? "";
+    const context = card.context?.toLowerCase().trim() ?? "";
 
     const match = policies.some((p) => {
-      const pd = p.domain_scope?.toLowerCase() ?? null;
-      const pc = p.context_scope?.toLowerCase() ?? null;
-      const pdc = p.data_contract_scope?.toLowerCase() ?? null;
+      const pd = (p.domain_scope ?? "").toLowerCase().trim();
+      const pc = (p.context_scope ?? "").toLowerCase().trim();
+      const pdc = (p.data_contract_scope ?? "").toLowerCase().trim();
 
-      if (pd === null && pc === null && pdc === null) return true;
-      if (pd === domain && pc === null && pdc === null) return true;
-      if (pd === domain && pc === context && pdc === null) return true;
-      if (pd === domain && pc === context && pdc === card.slug) return true;
+      if (pd === "" && pc === "" && pdc === "") return true;
+      if (pd === "" && pc === "" && pdc === card.slug.toLowerCase()) return true;
+      if (pd === domain && pc === "" && pdc === "") return true;
+      if (pd === domain && pc === context && pdc === "") return true;
+      if (pd === domain && pc === context && pdc === card.slug.toLowerCase()) return true;
 
       return false;
     });

@@ -130,7 +130,7 @@ export function CatalogClient({ cards }: { cards: CatalogCardType[] }) {
               <Button
                 key={domain}
                 className={selectedDomain === domain ? "is-active" : undefined}
-                onClick={() => setSelectedDomain(domain)}
+                onClick={() => setSelectedDomain(selectedDomain === domain ? ALL_DOMAINS : domain)}
                 variant="chip"
               >
                 {humanize(domain)}
@@ -174,7 +174,7 @@ export function CatalogClient({ cards }: { cards: CatalogCardType[] }) {
                 <button
                   key={context}
                   className={selectedContext === context ? "catalog-filter-pill is-active" : "catalog-filter-pill"}
-                  onClick={() => setSelectedContext(context)}
+                  onClick={() => setSelectedContext(selectedContext === context ? ALL_CONTEXTS : context)}
                   type="button"
                 >
                   {humanize(context)}
@@ -197,7 +197,7 @@ export function CatalogClient({ cards }: { cards: CatalogCardType[] }) {
                 <button
                   key={maturity}
                   className={selectedMaturity === maturity ? "catalog-filter-pill is-active" : "catalog-filter-pill"}
-                  onClick={() => setSelectedMaturity(maturity)}
+                  onClick={() => setSelectedMaturity(selectedMaturity === maturity ? "all" : maturity)}
                   type="button"
                 >
                   {humanize(maturity)}
