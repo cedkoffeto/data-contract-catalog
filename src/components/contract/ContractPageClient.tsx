@@ -60,6 +60,8 @@ export function ContractPageClient({
 
   const [subscribed, setSubscribed] = useState(false);
   const [loadingSubscription, setLoadingSubscription] = useState(true);
+  const [commentCount, setCommentCount] = useState(0);
+  const [issueCount, setIssueCount] = useState(0);
   const [activeTab, setActiveTab] = useState<"details" | "comments" | "issues">("details");
 
   useEffect(() => {
@@ -76,6 +78,16 @@ export function ContractPageClient({
       .catch(() => setSubscribed(false))
       .finally(() => setLoadingSubscription(false));
   }, [slug, userId]);
+
+  useEffect(() => {
+    Promise.all([
+      fetch(`/api/contracts/${encodeURIComponent(slug)}/comments`).then((res) => (res.ok ? (res.json() as Promise<{ comments: unknown[] }>) : null)),
+      fetch(`/api/contracts/${encodeURIComponent(slug)}/issues`).then((res) => (res.ok ? (res.json() as Promise<{ issues: unknown[] }>) : null)),
+    ]).then(([commentsPayload, issuesPayload]) => {
+      if (commentsPayload) setCommentCount(commentsPayload.comments.length);
+      if (issuesPayload) setIssueCount(issuesPayload.issues.length);
+    });
+  }, [slug]);
 
   const displayedData = activeVersion?.data ?? data;
   const displayedYamlRaw = activeVersion?.yamlRaw ?? yamlRaw;
@@ -111,6 +123,53 @@ export function ContractPageClient({
     } finally {
       setLoadingHistoryId(null);
     }
+  }
+
+  function TabIcon({ name }: { name: "details" | "comments" | "issues" }) {
+    if (name === "comments") {
+      return (
+        <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3.75h6.75M21 12c0 4.142-3.582 7.5-8 7.5a8.8 8.8 0 0 1-2.25-.29L6 20.25l.9-3.15A7.05 7.05 0 0 1 5 12c0-4.142 3.582-7.5 8-7.5s8 3.358 8 7.5Z" />
+        </svg>
+      );
+    }
+
+    if (name === "issues") {
+      return (
+        <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0-5.25V9m0 12a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
+        </svg>
+      );
+    }
+
+    return (
+      <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 4.575 16.5 9v6L7.5 19.425a1.5 1.5 0 0 1-2.121-1.421V6a1.5 1.5 0 0 1 2.121-1.425ZM16.5 9 7.5 4.575" />
+      </svg>
+    );
+  }
+
+  function ContractTab({ id, label, count, icon }: { id: "details" | "comments" | "issues"; label: string; count?: number; icon: "details" | "comments" | "issues" }) {
+    const isActive = activeTab === id;
+    return (
+      <button
+        type="button"
+        role="tab"
+        aria-selected={isActive}
+        onClick={() => setActiveTab(id)}
+        className={`group relative flex min-w-max items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-colors focus:outline-none ${isActive ? "border-orange-500 text-orange-700" : "border-transparent text-gray-500 hover:border-gray-200 hover:text-gray-700"}`}
+      >
+        <span className={isActive ? "text-orange-600" : "text-gray-400 group-hover:text-gray-500"}>
+          <TabIcon name={icon} />
+        </span>
+        {label}
+        {count !== undefined ? (
+          <span className={`rounded-full px-1.5 py-0.5 text-[11px] font-bold ${isActive ? "bg-orange-100 text-orange-700" : "bg-gray-100 text-gray-500 group-hover:bg-gray-200"}`}>
+            {count}
+          </span>
+        ) : null}
+      </button>
+    );
   }
 
   return (
@@ -153,28 +212,12 @@ export function ContractPageClient({
 
             <div className="contract-content-shell">
               <div className="contract-content-shell__main">
-                <div className="mb-4 flex gap-2 rounded-lg border border-gray-200 bg-white p-1 shadow-sm">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("details")}
-                    className={`rounded-md px-3 py-1.5 text-xs font-bold transition-colors ${activeTab === "details" ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-100"}`}
-                  >
-                    Details
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("comments")}
-                    className={`rounded-md px-3 py-1.5 text-xs font-bold transition-colors ${activeTab === "comments" ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-100"}`}
-                  >
-                    Comments
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("issues")}
-                    className={`rounded-md px-3 py-1.5 text-xs font-bold transition-colors ${activeTab === "issues" ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-100"}`}
-                  >
-                    Issues
-                  </button>
+                <div className="sticky top-0 z-10 mb-4 border-b border-gray-200 bg-white/95 shadow-sm backdrop-blur">
+                  <div role="tablist" aria-label="Contract sections" className="flex overflow-x-auto">
+                    <ContractTab id="details" label="Details" icon="details" />
+                    <ContractTab id="comments" label="Comments" count={commentCount} icon="comments" />
+                    <ContractTab id="issues" label="Issues" count={issueCount} icon="issues" />
+                  </div>
                 </div>
                 {activeTab === "details" ? <ContractBody data={displayedData} /> : activeTab === "comments" ? <ContractComments slug={slug} userId={userId} /> : <ContractIssues slug={slug} userId={userId} canAdmin={canAdmin} />}
               </div>
