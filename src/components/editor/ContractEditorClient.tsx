@@ -623,21 +623,7 @@ export function ContractEditorClient({
 
   const validationErrors = (validationResult?.errors ?? []) as RJSFValidationError[];
 
-  const parseErrorLines = useMemo(() => {
-    if (!yamlValidationState.parseError) return [];
-    const lines = new Set<number>();
-    if (yamlValidationState.parseLineNumber != null) {
-      lines.add(yamlValidationState.parseLineNumber);
-    }
-    const lineRegex = /^\s*(\d+)\s*\|/gm;
-    let match;
-    while ((match = lineRegex.exec(yamlValidationState.parseError)) !== null) {
-      lines.add(parseInt(match[1], 10));
-    }
-    return Array.from(lines).sort((a, b) => a - b);
-  }, [yamlValidationState.parseError, yamlValidationState.parseLineNumber]);
-
-  const validationIssueCount = yamlValidationState.parseError ? parseErrorLines.length : validationErrors.length;
+  const validationIssueCount = yamlValidationState.parseError ? 1 : validationErrors.length;
   const hasBlockingErrors = isContractDocument && (!!yamlValidationState.parseError || validationErrors.length > 0);
 
   const codeMirrorRef = useRef<React.ComponentRef<typeof CodeMirror>>(null);
@@ -1594,13 +1580,11 @@ export function ContractEditorClient({
                             {isContractDocument ? (
                               yamlValidationState.parseError ? (
                                 <ul className="editor-list editor-list--validation">
-                                  {parseErrorLines.map((lineNumber, idx) => (
-                                    <li key={`yaml-L${lineNumber}`} className="editor-list__item editor-list__item--error" style={{ cursor: "pointer" }} onClick={() => scrollToLine(lineNumber)}>
-                                      <strong>yaml</strong>
-                                      <span className="text-xs text-red-600 font-mono">L{lineNumber}</span>
-                                      <span style={{ whiteSpace: "pre-wrap" }}>{idx === 0 ? yamlValidationState.parseError : `See related context at line ${lineNumber}`}</span>
-                                    </li>
-                                  ))}
+                                  <li className="editor-list__item editor-list__item--error" style={{ cursor: "pointer" }} onClick={() => scrollToLine(yamlValidationState.parseLineNumber)}>
+                                    <strong>yaml</strong>
+                                    {yamlValidationState.parseLineNumber != null && <span className="text-xs text-red-600 font-mono">L{yamlValidationState.parseLineNumber}</span>}
+                                    <span style={{ whiteSpace: "pre-wrap" }}>{yamlValidationState.parseError}</span>
+                                  </li>
                                 </ul>
                               ) : validationErrors.length === 0 ? (
                                 <ul className="editor-list editor-list--validation">
