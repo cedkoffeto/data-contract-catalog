@@ -408,7 +408,22 @@ function readLocalContracts(): ContractFile[] {
   return buildContractsFromRecords(records);
 }
 
-async function readGitLabContracts(): Promise<ContractFile[]> {
+function getLocalContractCandidates(contract: ContractFile): string[] {
+  const stem = path.basename(contract.fullPath, path.extname(contract.fullPath));
+  const maturity = contract.maturity;
+  return [
+    contract.slug,
+    contract.stem,
+    stem,
+    maturity ? `${maturity}-${stem}` : "",
+  ].filter(Boolean);
+}
+
+export async function getLocalContracts(): Promise<ContractFile[]> {
+  return readLocalContracts();
+}
+
+async function getGitLabContracts(): Promise<ContractFile[]> {
   const client = getGitLabClient();
   if (!client) {
     return readLocalContracts();
@@ -471,12 +486,22 @@ async function readGitLabContracts(): Promise<ContractFile[]> {
 }
 
 export async function getContracts(): Promise<ContractFile[]> {
-  return hasGitLabContractsConfig() ? readGitLabContracts() : readLocalContracts();
+  return hasGitLabContractsConfig() ? getGitLabContracts() : readLocalContracts();
 }
 
 export async function getContractBySlug(slug: string): Promise<ContractFile | undefined> {
+  let normalizedSlug = slug.trim();
+  try {
+    normalizedSlug = decodeURIComponent(slug).trim();
+  } catch {
+    normalizedSlug = slug.trim();
+  }
+
   const contracts = await getContracts();
-  return contracts.find((contract) => contract.slug === slug);
+  const contract = contracts.find((candidate) => candidate.slug === normalizedSlug);
+  if (contract) return contract;
+
+  return readLocalContracts().find((candidate) => getLocalContractCandidates(candidate).includes(normalizedSlug));
 }
 
 function getOwnerName(data: DataContract): string {
