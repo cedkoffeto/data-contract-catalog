@@ -151,7 +151,7 @@ export function RequestAccessButton({
 
               <div className="mt-3 flex items-center justify-between gap-3">
                 <span className="text-xs font-semibold text-gray-700">Requested permission</span>
-                <div className="inline-flex rounded-md border p-0.5" style={{ borderColor: "#e5e7eb" }}>
+                    <div className="inline-flex rounded-full border p-0.5" style={{ backgroundColor: "rgba(249, 115, 22, 0.08)", borderColor: "rgba(249, 115, 22, 0.22)" }}>
                   {ACCESS_REQUEST_PERMISSIONS.map((permission) => {
                     const selected = requestedPermission === permission;
                     return (
@@ -162,7 +162,7 @@ export function RequestAccessButton({
                         className="rounded px-2.5 py-1 text-xs font-bold transition-colors"
                         style={{
                           backgroundColor: selected ? "var(--ui-primary)" : "transparent",
-                          color: selected ? "#fff" : "#64748b",
+                              color: selected ? "#fff" : "#92400e",
                         }}
                       >
                         {permission}
