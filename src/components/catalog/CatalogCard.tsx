@@ -95,7 +95,7 @@ export function CatalogCard({ card }: { card: CatalogCardType }) {
 
           <div data-ra-overlay className={`absolute inset-0 z-10 flex cursor-pointer items-center justify-center rounded-xl bg-orange-600/20 backdrop-blur-[0.5px] transition-opacity duration-200 ${hovered ? "opacity-100" : "opacity-0"}`} style={{ pointerEvents: "auto" }}>
             <div onClick={(e) => e.stopPropagation()}>
-              <RequestAccessButton slug={card.slug} domain={card.domain} context={card.context} />
+              <RequestAccessButton slug={card.slug} domain={card.domain} context={card.context} accessRequestStatus={card.accessRequestStatus} />
             </div>
           </div>
         </div>

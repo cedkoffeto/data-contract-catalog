@@ -3,6 +3,7 @@ import { getCatalogCards } from "@/src/lib/contracts";
 import { getAccessibleSlugs } from "@/src/lib/catalog-filter";
 import { getUserPermissions } from "@/src/lib/rbac";
 import { auth } from "@/src/auth";
+import { query } from "@/src/lib/db";
 
 export default async function HomePage() {
   const session = await auth();
@@ -15,9 +16,17 @@ export default async function HomePage() {
   }
 
   const accessible = await getAccessibleSlugs(userId, permissions, cards);
+
+  const pendingRows = await query<{ data_contract: string }>(
+    "SELECT DISTINCT data_contract FROM access_requests WHERE user_id = ? AND status = 'pending'",
+    [userId],
+  );
+  const pendingSlugs = new Set(pendingRows.map((r) => r.data_contract));
+
   const annotated = cards.map((card) => ({
     ...card,
     accessible: accessible.has(card.slug),
+    accessRequestStatus: pendingSlugs.has(card.slug) ? "pending" as const : undefined,
   }));
   return <CatalogPage cards={annotated} />;
 }

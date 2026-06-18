@@ -173,6 +173,7 @@ export type CatalogCard = {
   searchData: string;
   href: string;
   accessible: boolean;
+  accessRequestStatus?: "pending";
 };
 
 export type ContractHistoryEntry = {
