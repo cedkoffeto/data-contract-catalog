@@ -90,6 +90,23 @@ model UserGroup {
   @@map("user_group")
 }
 
+model ContractComment {
+  id            Int          @id @default(autoincrement())
+  contractSlug  String       @map("contract_slug")
+  userId        String       @map("user_id")
+  body          String
+  parentId      Int?         @map("parent_id")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  editedAt      DateTime?    @map("edited_at")
+
+  parent        ContractComment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: SetNull)
+  replies       ContractComment[] @relation("CommentReplies")
+
+  @@index([contractSlug, createdAt, id])
+  @@index([parentId])
+  @@map("contract_comments")
+}
+
 model AccessRequest {
   id                  Int      @id @default(autoincrement())
   userId              String   @map("user_id")

@@ -132,6 +132,20 @@ CREATE INDEX IF NOT EXISTS "access_requests_status_idx" ON "access_requests"("st
 CREATE INDEX IF NOT EXISTS "access_requests_user_id_idx" ON "access_requests"("user_id");
 CREATE INDEX IF NOT EXISTS "access_requests_requested_permission_idx" ON "access_requests"("requested_permission");
 
+CREATE TABLE IF NOT EXISTS "contract_comments" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "contract_slug" TEXT NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "body" TEXT NOT NULL,
+    "parent_id" INTEGER,
+    "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "edited_at" DATETIME,
+    CONSTRAINT "contract_comments_parent_id_fkey" FOREIGN KEY ("parent_id") REFERENCES "contract_comments"("id") ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS "contract_comments_contract_slug_idx" ON "contract_comments"("contract_slug", "created_at", "id");
+CREATE INDEX IF NOT EXISTS "contract_comments_parent_id_idx" ON "contract_comments"("parent_id");
+
 -- User preferences (notification channel, etc.)
 CREATE TABLE IF NOT EXISTS "user_preferences" (
     "user_id" TEXT NOT NULL PRIMARY KEY,

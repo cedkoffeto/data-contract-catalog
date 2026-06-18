@@ -186,6 +186,16 @@ export type ContractHistoryEntry = {
   filePath: string;
 };
 
+export type ContractComment = {
+  id: number;
+  contractSlug: string;
+  userId: string;
+  body: string;
+  parentId: number | null;
+  createdAt: string;
+  editedAt: string | null;
+};
+
 export type EditorRepositoryFile = {
   id: string;
   name: string;

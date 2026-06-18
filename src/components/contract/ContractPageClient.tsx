@@ -5,6 +5,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import yaml from "js-yaml";
 
 import { ContractBody } from "@/src/components/contract/ContractBody";
+import { ContractComments } from "@/src/components/contract/ContractComments";
 import { ContractHeader } from "@/src/components/contract/ContractHeader";
 import { ContractDiffDialog } from "@/src/components/contract/ContractDiffDialog";
 import { SubscribeModal } from "@/src/components/contract/SubscribeModal";
@@ -56,6 +57,7 @@ export function ContractPageClient({
 
   const [subscribed, setSubscribed] = useState(false);
   const [loadingSubscription, setLoadingSubscription] = useState(true);
+  const [activeTab, setActiveTab] = useState<"details" | "comments">("details");
 
   useEffect(() => {
     if (!userId) {
@@ -148,7 +150,23 @@ export function ContractPageClient({
 
             <div className="contract-content-shell">
               <div className="contract-content-shell__main">
-                <ContractBody data={displayedData} />
+                <div className="mb-4 flex gap-2 rounded-lg border border-gray-200 bg-white p-1 shadow-sm">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("details")}
+                    className={`rounded-md px-3 py-1.5 text-xs font-bold transition-colors ${activeTab === "details" ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-100"}`}
+                  >
+                    Details
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("comments")}
+                    className={`rounded-md px-3 py-1.5 text-xs font-bold transition-colors ${activeTab === "comments" ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-100"}`}
+                  >
+                    Comments
+                  </button>
+                </div>
+                {activeTab === "details" ? <ContractBody data={displayedData} /> : <ContractComments slug={slug} userId={userId} />}
               </div>
             </div>
           </div>
