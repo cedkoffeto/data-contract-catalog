@@ -356,22 +356,33 @@ function buildContractsFromRecords(
 ): ContractFile[] {
   const stemCount = new Map<string, number>();
   const slugCount = new Map<string, number>();
+  const valid: Array<{ record: typeof records[number]; slug: string; data: DataContract }> = [];
 
   for (const record of records) {
     const stem = path.basename(record.path, path.extname(record.path));
     stemCount.set(stem, (stemCount.get(stem) ?? 0) + 1);
   }
 
-  const contracts = records.map((record) => {
+  for (const record of records) {
     const stem = path.basename(record.path, path.extname(record.path));
     const maturity = record.path.split("/")[1] ?? path.basename(path.dirname(record.path));
     const isDuplicateStem = (stemCount.get(stem) ?? 0) > 1;
     const slug = isDuplicateStem ? `${maturity}-${stem}` : stem;
-    const data = (yaml.load(record.yamlRaw) as DataContract) ?? {};
+    let data: DataContract;
+    try {
+      data = (yaml.load(record.yamlRaw) as DataContract) ?? {};
+    } catch {
+      console.warn(`[contracts] Skipping malformed contract: ${record.path}`);
+      continue;
+    }
 
     slugCount.set(slug, (slugCount.get(slug) ?? 0) + 1);
 
-    return { slug, stem, maturity, fullPath: record.fullPath, yamlRaw: record.yamlRaw, data } satisfies ContractFile;
+    valid.push({ record, slug, data });
+  }
+
+  const contracts = valid.map(({ record, slug, data }) => {
+    return { slug, stem: path.basename(record.path, path.extname(record.path)), maturity: record.path.split("/")[1] ?? path.basename(path.dirname(record.path)), fullPath: record.fullPath, yamlRaw: record.yamlRaw, data } satisfies ContractFile;
   });
 
   const seen = new Map<string, number>();
