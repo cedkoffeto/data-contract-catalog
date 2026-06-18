@@ -20,7 +20,7 @@ type Membership = {
 export default function GroupsPage() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [memberships, setMemberships] = useState<Membership[]>([]);
-  const [allUsers, setAllUsers] = useState<string[]>([]);
+  const [allUsers, setAllUsers] = useState<Array<{ userId: string; email?: string | null }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [newName, setNewName] = useState("");
@@ -322,8 +322,8 @@ export default function GroupsPage() {
                               setAddTarget(group);
                               setAddUserIds(
                                 allUsers.filter((u) =>
-                                  memberships.some((m) => m.group_id === group.id && m.user_id === u),
-                                ),
+                                  memberships.some((m) => m.group_id === group.id && m.user_id === u.userId),
+                                ).map((u) => u.userId),
                               );
                             }}
                             className="editor-soft-button"
@@ -485,7 +485,7 @@ function MemberManagerModal({
   onClose,
 }: {
   groupName: string;
-  allUsers: string[];
+  allUsers: Array<{ userId: string; email?: string | null }>;
   currentMembers: string[];
   selected: string[];
   onSelect: (ids: string[]) => void;
@@ -495,7 +495,7 @@ function MemberManagerModal({
   const [search, setSearch] = useState("");
 
   const filtered = search
-    ? allUsers.filter((u) => u.toLowerCase().includes(search.toLowerCase()))
+    ? allUsers.filter((u) => u.userId.toLowerCase().includes(search.toLowerCase()))
     : allUsers;
 
   function toggleUser(userId: string) {
@@ -507,11 +507,11 @@ function MemberManagerModal({
   }
 
   function selectAll() {
-    onSelect(filtered.filter((u) => !selected.includes(u)).concat(selected));
+    onSelect(filtered.filter((u) => !selected.includes(u.userId)).map((u) => u.userId).concat(selected));
   }
 
   function deselectAll() {
-    onSelect(selected.filter((u) => !filtered.includes(u)));
+    onSelect(selected.filter((u) => !filtered.map((fu) => fu.userId).includes(u)));
   }
 
   const added = selected.filter((u) => !currentMembers.includes(u));
@@ -561,19 +561,19 @@ function MemberManagerModal({
             </div>
           ) : (
             <div className="space-y-px">
-              {filtered.map((userId, index) => {
-                const isSelected = selected.includes(userId);
-                const isCurrent = currentMembers.includes(userId);
+              {filtered.map((user, index) => {
+                const isSelected = selected.includes(user.userId);
+                const isCurrent = currentMembers.includes(user.userId);
                 return (
                   <label
-                    key={`${userId}-${index}`}
+                    key={`${user.userId}-${index}`}
                     className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-gray-50"
                   >
                     <input
                       type="checkbox"
                       className="h-3.5 w-3.5 rounded border-gray-300"
                       checked={isSelected}
-                      onChange={() => toggleUser(userId)}
+                      onChange={() => toggleUser(user.userId)}
                     />
                     <span
                       className={
@@ -584,7 +584,8 @@ function MemberManagerModal({
                             : "text-gray-500"
                       }
                     >
-                      {userId}
+                      {user.userId}
+                      {user.email ? <span className="ml-1 text-gray-400">({user.email})</span> : null}
                     </span>
                     {isCurrent && (
                       <span className="ml-auto rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
