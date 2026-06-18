@@ -14,18 +14,22 @@ function UserAutocomplete({
   onChange: (v: string) => void;
   validUsers: Array<{ userId: string; email?: string | null }>;
 }) {
-  const [query, setQuery] = useState(value);
+  const [query, setQuery] = useState("");
   const [users, setUsers] = useState<Array<{ userId: string; email?: string | null }>>([]);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const userEdit = useRef(false);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const userIds = validUsers.map((u) => u.userId);
+  const selected = validUsers.find((u) => u.userId === value);
 
   useEffect(() => {
-    if (!userEdit.current) setQuery(value);
-    userEdit.current = false;
-  }, [value]);
+    if (open) searchRef.current?.focus();
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) setQuery("");
+  }, [open]);
 
   useEffect(() => {
     const ctrl = new AbortController();
@@ -51,46 +55,48 @@ function UserAutocomplete({
       <label className="mb-1 block text-xs font-medium text-gray-500" title="Required field">
         User ID <span className="text-red-500">*</span>
       </label>
-      <div className="relative">
-        <input
-          className="w-full rounded-md border bg-white px-3 py-2 pr-8 text-sm text-gray-900"
-          style={{
-            borderColor: isValid ? "#22c55e" : value && !isValid ? "#ef4444" : "#d1d5db",
-          }}
-          value={query}
-          onChange={(e) => {
-            userEdit.current = true;
-            setQuery(e.target.value);
-            setOpen(true);
-            if (!e.target.value || !userIds.includes(e.target.value)) {
-              onChange("");
-            } else {
-              onChange(e.target.value);
-            }
-          }}
-          onFocus={() => setOpen(true)}
-          placeholder="Search users..."
-        />
-        <svg
-          className={`pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
-          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-        >
+      <button
+        type="button"
+        className="flex w-full items-center justify-between rounded-md border bg-white px-3 py-2 text-sm"
+        style={{
+          borderColor: isValid ? "#22c55e" : value && !isValid ? "#ef4444" : "#d1d5db",
+          color: value ? "#111827" : "#9ca3af",
+        }}
+        onClick={() => setOpen(!open)}
+      >
+        <span>{selected ? (selected.email ? `${selected.userId} (${selected.email})` : selected.userId) : "Search users\u2026"}</span>
+        <svg className={`h-4 w-4 shrink-0 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </svg>
-      </div>
-      {open && users.length > 0 && (
-        <div className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-md border bg-white shadow-lg">
-          {users.map((u) => (
-            <button
-              key={u.userId}
-              type="button"
-              onClick={() => { userEdit.current = true; onChange(u.userId); setQuery(u.userId); setOpen(false); }}
-              className="flex w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
-              style={{ fontWeight: u.userId === value ? "600" : "400" }}
-            >
-              {u.email ? `${u.userId} (${u.email})` : u.userId}
-            </button>
-          ))}
+      </button>
+      {open && (
+        <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border bg-white shadow-lg">
+          <div className="border-b border-gray-100 p-1">
+            <input
+              ref={searchRef}
+              className="w-full rounded border px-2 py-1.5 text-sm outline-none focus:border-gray-300"
+              placeholder="Search users..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+          <div className="max-h-40 overflow-auto">
+            {users.length === 0 ? (
+              <p className="px-3 py-2 text-sm text-gray-400">No matches</p>
+            ) : (
+              users.map((u) => (
+                <button
+                  key={u.userId}
+                  type="button"
+                  onClick={() => { onChange(u.userId); setOpen(false); }}
+                  className="flex w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
+                  style={{ fontWeight: u.userId === value ? "600" : "400" }}
+                >
+                  {u.email ? `${u.userId} (${u.email})` : u.userId}
+                </button>
+              ))
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -158,15 +164,18 @@ function ScopeDropdown({
   options: string[];
   disabled?: boolean;
 }) {
-  const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
-  const userEdit = useRef(false);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!userEdit.current) setQuery(value);
-    userEdit.current = false;
-  }, [value]);
+    if (!open) setQuery("");
+  }, [open]);
+
+  useEffect(() => {
+    if (open) searchRef.current?.focus();
+  }, [open]);
 
   useEffect(() => {
     function handlePointerDown(e: MouseEvent) {
@@ -185,43 +194,46 @@ function ScopeDropdown({
       <label className="mb-1 block text-xs font-medium text-gray-500">
         {label} <span className="text-gray-400">({hint})</span>
       </label>
-      <div className="relative">
-        <input
-          className="w-full rounded-md border bg-white px-3 py-2 pr-8 text-sm text-gray-900 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
-          style={{ borderColor: "#d1d5db" }}
-          value={query}
-          onChange={(e) => {
-            userEdit.current = true;
-            setQuery(e.target.value);
-            setOpen(true);
-            onChange(e.target.value);
-          }}
-          onFocus={() => setOpen(true)}
-          placeholder={placeholder}
-          disabled={disabled}
-        />
-        {!disabled && (
-          <svg
-            className={`pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
-            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-        )}
-      </div>
-      {open && !disabled && filtered.length > 0 && (
-        <div className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-md border bg-white shadow-lg">
-          {filtered.map((o) => (
-            <button
-              key={o}
-              type="button"
-              onClick={() => { userEdit.current = true; onChange(o); setQuery(o); setOpen(false); }}
-              className="flex w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
-              style={{ fontWeight: o === value ? "600" : "400" }}
-            >
-              {o}
-            </button>
-          ))}
+      <button
+        type="button"
+        className="flex w-full items-center justify-between rounded-md border bg-white px-3 py-2 text-sm text-gray-900 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
+        style={{ borderColor: "#d1d5db" }}
+        onClick={() => !disabled && setOpen(!open)}
+        disabled={disabled}
+      >
+        <span className={value ? "text-gray-900" : "text-gray-400"}>{value || placeholder}</span>
+        <svg className={`h-4 w-4 shrink-0 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && !disabled && (
+        <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border bg-white shadow-lg">
+          <div className="border-b border-gray-100 p-1">
+            <input
+              ref={searchRef}
+              className="w-full rounded border px-2 py-1.5 text-sm outline-none focus:border-gray-300"
+              placeholder="Filter..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+          <div className="max-h-40 overflow-auto">
+            {filtered.length === 0 ? (
+              <p className="px-3 py-2 text-sm text-gray-400">No matches</p>
+            ) : (
+              filtered.map((o) => (
+                <button
+                  key={o}
+                  type="button"
+                  onClick={() => { onChange(o); setOpen(false); }}
+                  className="flex w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
+                  style={{ fontWeight: o === value ? "600" : "400" }}
+                >
+                  {o}
+                </button>
+              ))
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -241,16 +253,19 @@ function DataContractSelect({
   context: string;
   disabled?: boolean;
 }) {
-  const [query, setQuery] = useState(value);
-  const [items, setItems] = useState<{ slug: string; title: string }[]>([]);
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [items, setItems] = useState<{ slug: string; title: string }[]>([]);
   const ref = useRef<HTMLDivElement>(null);
-  const userEdit = useRef(false);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!userEdit.current) setQuery(value);
-    userEdit.current = false;
-  }, [value]);
+    if (!open) setQuery("");
+  }, [open]);
+
+  useEffect(() => {
+    if (open) searchRef.current?.focus();
+  }, [open]);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -275,49 +290,54 @@ function DataContractSelect({
     ? items.filter((s) => s.slug.toLowerCase().includes(query.toLowerCase()) || s.title.toLowerCase().includes(query.toLowerCase()))
     : items;
 
+  const selected = items.find((s) => s.slug === value);
+
   return (
     <div ref={ref} className="relative" style={{ minWidth: "200px" }}>
       <label className="mb-1 block text-xs font-medium text-gray-500">
         Data Contract <span className="text-gray-400">(empty = all in context)</span>
       </label>
-      <div className="relative">
-        <input
-          className="w-full rounded-md border bg-white px-3 py-2 pr-8 text-sm text-gray-900 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
-          style={{ borderColor: "#d1d5db" }}
-          value={query}
-          onChange={(e) => {
-            userEdit.current = true;
-            setQuery(e.target.value);
-            setOpen(true);
-            onChange(e.target.value);
-          }}
-          onFocus={() => setOpen(true)}
-          placeholder={disabled ? "Admin = global access" : "e.g. credit_engagement"}
-          disabled={disabled}
-        />
-        {!disabled && (
-          <svg
-            className={`pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
-            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-        )}
-      </div>
-      {open && !disabled && filtered.length > 0 && (
-        <div className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-md border bg-white shadow-lg">
-          {filtered.map((s) => (
-            <button
-              key={s.slug}
-              type="button"
-              onClick={() => { userEdit.current = true; onChange(s.slug); setQuery(s.slug); setOpen(false); }}
-              className="flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-gray-50"
-              style={{ fontWeight: s.slug === value ? "600" : "400" }}
-            >
-              <span>{s.slug}</span>
-              {s.title && <span className="text-xs text-gray-400">{s.title}</span>}
-            </button>
-          ))}
+      <button
+        type="button"
+        className="flex w-full items-center justify-between rounded-md border bg-white px-3 py-2 text-sm text-gray-900 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
+        style={{ borderColor: "#d1d5db" }}
+        onClick={() => !disabled && setOpen(!open)}
+        disabled={disabled}
+      >
+        <span className={value ? "text-gray-900" : "text-gray-400"}>{selected ? (selected.title ? `${selected.slug} — ${selected.title}` : selected.slug) : (disabled ? "Admin = global access" : "e.g. credit_engagement")}</span>
+        <svg className={`h-4 w-4 shrink-0 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && !disabled && (
+        <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border bg-white shadow-lg">
+          <div className="border-b border-gray-100 p-1">
+            <input
+              ref={searchRef}
+              className="w-full rounded border px-2 py-1.5 text-sm outline-none focus:border-gray-300"
+              placeholder="Filter..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+          <div className="max-h-40 overflow-auto">
+            {filtered.length === 0 ? (
+              <p className="px-3 py-2 text-sm text-gray-400">No matches</p>
+            ) : (
+              filtered.map((s) => (
+                <button
+                  key={s.slug}
+                  type="button"
+                  onClick={() => { onChange(s.slug); setOpen(false); }}
+                  className="flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-gray-50"
+                  style={{ fontWeight: s.slug === value ? "600" : "400" }}
+                >
+                  <span>{s.slug}</span>
+                  {s.title && <span className="text-xs text-gray-400">{s.title}</span>}
+                </button>
+              ))
+            )}
+          </div>
         </div>
       )}
     </div>
