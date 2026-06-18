@@ -561,12 +561,12 @@ function MemberManagerModal({
             </div>
           ) : (
             <div className="space-y-px">
-              {filtered.map((userId) => {
+              {filtered.map((userId, index) => {
                 const isSelected = selected.includes(userId);
                 const isCurrent = currentMembers.includes(userId);
                 return (
                   <label
-                    key={userId}
+                    key={`${userId}-${index}`}
                     className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-gray-50"
                   >
                     <input

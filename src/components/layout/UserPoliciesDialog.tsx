@@ -1,8 +1,8 @@
-"use client";
-
 import { useEffect, useState } from "react";
 
 import type { AccessPolicyRecord } from "@/src/lib/access-control";
+
+type PolicyWithSource = AccessPolicyRecord & { source: "direct" | "group" };
 
 function formatScope(policy: AccessPolicyRecord): string {
   if (policy.domain_scope === null && policy.context_scope === null && policy.data_contract_scope === null) {
@@ -24,23 +24,38 @@ export function UserPoliciesDialog({
   userId: string;
   onClose: () => void;
 }) {
-  const [policies, setPolicies] = useState<AccessPolicyRecord[]>([]);
+  const [policies, setPolicies] = useState<PolicyWithSource[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/admin/policies/effective?userId=${encodeURIComponent(userId)}`)
+    fetch(`/api/policies/effective?userId=${encodeURIComponent(userId)}`)
       .then((r) => r.json())
-      .then((data) => setPolicies(data.items ?? []))
+      .then((data: { items: AccessPolicyRecord[] }) => {
+        const items = data.items ?? [];
+        const withSource: PolicyWithSource[] = items.map((p) => ({
+          ...p,
+          source: p.group_id !== null && p.group_id !== undefined ? "group" : "direct",
+        }));
+        setPolicies(withSource);
+      })
       .catch(() => setPolicies([]))
       .finally(() => setLoading(false));
   }, [userId]);
 
+  const directPolicies = policies.filter((p) => p.source === "direct");
+  const groupPolicies = policies.filter((p) => p.source === "group");
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative z-10 rounded-lg bg-white p-6 shadow-xl" style={{ width: "min(70vw, 500px)" }}>
-        <h3 className="text-base font-semibold text-gray-900">
+    <div className="user-policies-dialog">
+      <div className="user-policies-dialog__overlay" onClick={onClose} />
+      <div
+        className="user-policies-dialog__content"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="user-policies-title"
+      >
+        <h3 id="user-policies-title" className="text-base font-semibold text-gray-900">
           Access policies for: <span className="font-mono text-sm">{userId}</span>
         </h3>
 
@@ -52,32 +67,91 @@ export function UserPoliciesDialog({
           <p className="mt-4 text-sm text-gray-500">No policies found. Contact your administrator for access.</p>
         ) : (
           <div className="mt-3 max-h-72 overflow-y-auto">
-            <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
-              <thead>
-                <tr className="border-b border-gray-100 text-left text-xs text-gray-400">
-                  <th className="pb-1 pr-2">Permission</th>
-                  <th className="pb-1">Scope</th>
-                </tr>
-              </thead>
-              <tbody>
-                {policies.map((p) => (
-                  <tr key={p.id} className="text-gray-700">
-                    <td className="py-1 pr-2">
-                      <span
-                        className="rounded-md px-2 py-0.5 text-xs font-medium"
-                        style={{
-                          background: p.permission_name === "admin" ? "#fef2f2" : p.permission_name === "editor" ? "#fff7ed" : "#f0f9ff",
-                          color: p.permission_name === "admin" ? "#dc2626" : p.permission_name === "editor" ? "#f97316" : "#2563eb",
-                        }}
-                      >
-                        {p.permission_name}
-                      </span>
-                    </td>
-                    <td className="py-1 text-xs">{formatScope(p)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {directPolicies.length > 0 ? (
+              <div className="mb-4">
+                <p className="mb-1 text-xs font-semibold uppercase text-gray-500">Direct policies</p>
+                <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
+                  <thead>
+                    <tr className="border-b border-gray-100 text-left text-xs text-gray-400">
+                      <th className="pb-1 pr-2">Permission</th>
+                      <th className="pb-1">Scope</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {directPolicies.map((p) => (
+                      <tr key={p.id} className="text-gray-700">
+                        <td className="py-1 pr-2">
+                          <span
+                            className="rounded-md px-2 py-0.5 text-xs font-medium"
+                            style={{
+                              background:
+                                p.permission_name === "admin"
+                                  ? "#fef2f2"
+                                  : p.permission_name === "editor"
+                                    ? "#fff7ed"
+                                    : "#f0f9ff",
+                              color:
+                                p.permission_name === "admin"
+                                  ? "#dc2626"
+                                  : p.permission_name === "editor"
+                                    ? "#f97316"
+                                    : "#2563eb",
+                            }}
+                          >
+                            {p.permission_name}
+                          </span>
+                        </td>
+                        <td className="py-1 text-xs">{formatScope(p)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : null}
+
+            {groupPolicies.length > 0 ? (
+              <div>
+                <p className="mb-1 text-xs font-semibold uppercase text-gray-500">Group policies</p>
+                <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
+                  <thead>
+                    <tr className="border-b border-gray-100 text-left text-xs text-gray-400">
+                      <th className="pb-1 pr-2">Permission</th>
+                      <th className="pb-1">Group</th>
+                      <th className="pb-1">Scope</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {groupPolicies.map((p) => (
+                      <tr key={p.id} className="text-gray-700">
+                        <td className="py-1 pr-2">
+                          <span
+                            className="rounded-md px-2 py-0.5 text-xs font-medium"
+                            style={{
+                              background:
+                                p.permission_name === "admin"
+                                  ? "#fef2f2"
+                                  : p.permission_name === "editor"
+                                    ? "#fff7ed"
+                                    : "#f0f9ff",
+                              color:
+                                p.permission_name === "admin"
+                                  ? "#dc2626"
+                                  : p.permission_name === "editor"
+                                    ? "#f97316"
+                                    : "#2563eb",
+                            }}
+                          >
+                            {p.permission_name}
+                          </span>
+                        </td>
+                        <td className="py-1 text-xs font-mono">{p.group_name ?? ""}</td>
+                        <td className="py-1 text-xs">{formatScope(p)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : null}
           </div>
         )}
 

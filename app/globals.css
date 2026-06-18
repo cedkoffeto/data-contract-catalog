@@ -347,6 +347,25 @@ a {
   background: rgba(254, 226, 226, 0.55);
 }
 
+.site-nav-user__link {
+  display: flex;
+  width: 100%;
+  min-height: 2.1rem;
+  align-items: center;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  padding: 0.45rem 0.7rem;
+  color: var(--ui-text);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.site-nav-user__link:hover {
+  background: var(--ui-subtle);
+}
+
 .notification-bell {
   position: relative;
   display: inline-flex;

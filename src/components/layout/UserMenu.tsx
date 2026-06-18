@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { signOut } from "next-auth/react";
 
+import { UserPoliciesDialog } from "./UserPoliciesDialog";
+
 function getInitial(name: string) {
   return name.trim().charAt(0).toUpperCase() || "U";
 }
@@ -18,6 +20,7 @@ export function UserMenu({
   name: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [showPolicies, setShowPolicies] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -30,6 +33,11 @@ export function UserMenu({
     document.addEventListener("mousedown", handlePointerDown);
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, []);
+
+  function handleShowPolicies() {
+    setShowPolicies(true);
+    setIsOpen(false);
+  }
 
   return (
     <div className="site-nav-user" ref={menuRef}>
@@ -54,6 +62,14 @@ export function UserMenu({
             {email ? <span>{email}</span> : null}
           </div>
           <button
+            className="site-nav-user__link"
+            onClick={handleShowPolicies}
+            role="menuitem"
+            type="button"
+          >
+            My access policies
+          </button>
+          <button
             className="site-nav-user__logout"
             onClick={() => void signOut({ callbackUrl: "/login" })}
             role="menuitem"
@@ -63,6 +79,13 @@ export function UserMenu({
           </button>
         </div>
       ) : null}
+
+      {showPolicies && (
+        <UserPoliciesDialog
+          userId={name}
+          onClose={() => setShowPolicies(false)}
+        />
+      )}
     </div>
   );
 }
