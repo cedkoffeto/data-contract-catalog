@@ -19,6 +19,10 @@ function CloseIcon() {
   );
 }
 
+type AccessRequestPermission = "reader" | "editor";
+
+const ACCESS_REQUEST_PERMISSIONS: AccessRequestPermission[] = ["reader", "editor"];
+
 export function RequestAccessDialog({
   slug,
   domain,
@@ -30,6 +34,7 @@ export function RequestAccessDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
+  const [requestedPermission, setRequestedPermission] = useState<AccessRequestPermission>("reader");
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
   const [localPending, setLocalPending] = useState(false);
@@ -61,6 +66,7 @@ export function RequestAccessDialog({
     setOpen(false);
     setDone(false);
     setMessage("");
+    setRequestedPermission("reader");
   }
 
   async function handleSubmit() {
@@ -73,6 +79,7 @@ export function RequestAccessDialog({
           domain: domain || "",
           context: context || "",
           dataContract: slug || "",
+          requestedPermission,
           message,
         }),
       });
@@ -149,6 +156,29 @@ export function RequestAccessDialog({
                     {domain && <span className="flex items-center gap-1">Domain: <span className="catalog-card__badge">{domain}</span></span>}
                     {context && <span className="flex items-center gap-1">Context: <span className="catalog-card__badge catalog-card__badge--subtle">{context}</span></span>}
                     {slug && <span className="flex items-center gap-1">Contract: <span className="catalog-card__badge" style={{ backgroundColor: "#fffbeb", color: "#854d0e" }}>{slug}</span></span>}
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between gap-3">
+                    <span className="text-xs font-semibold text-gray-700">Requested permission</span>
+                    <div className="inline-flex rounded-md border p-0.5" style={{ borderColor: "#e5e7eb" }}>
+                      {ACCESS_REQUEST_PERMISSIONS.map((permission) => {
+                        const selected = requestedPermission === permission;
+                        return (
+                          <button
+                            key={permission}
+                            type="button"
+                            onClick={() => setRequestedPermission(permission)}
+                            className="rounded px-2.5 py-1 text-xs font-bold transition-colors"
+                            style={{
+                              backgroundColor: selected ? "var(--ui-primary)" : "transparent",
+                              color: selected ? "#fff" : "#64748b",
+                            }}
+                          >
+                            {permission}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   <textarea

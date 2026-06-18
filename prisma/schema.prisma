@@ -90,6 +90,23 @@ model UserGroup {
   @@map("user_group")
 }
 
+model AccessRequest {
+  id                  Int      @id @default(autoincrement())
+  userId              String   @map("user_id")
+  domain              String   @default("")
+  context             String   @default("")
+  dataContract        String   @default("") @map("data_contract")
+  requestedPermission String   @default("reader") @map("requested_permission")
+  message             String   @default("")
+  status              String   @default("pending")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  @@index([status])
+  @@index([userId])
+  @@index([requestedPermission])
+  @@map("access_requests")
+}
+
 model AccessPolicy {
   id                Int      @id @default(autoincrement())
   userId            String?  @map("user_id")

@@ -203,6 +203,7 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
         domain TEXT NOT NULL DEFAULT '',
         context TEXT NOT NULL DEFAULT '',
         data_contract TEXT NOT NULL DEFAULT '',
+        requested_permission TEXT NOT NULL DEFAULT 'reader',
         message TEXT NOT NULL DEFAULT '',
         status TEXT NOT NULL DEFAULT 'pending',
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -210,12 +211,20 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
 
       CREATE INDEX IF NOT EXISTS idx_access_requests_status ON access_requests(status);
       CREATE INDEX IF NOT EXISTS idx_access_requests_user_id ON access_requests(user_id);
+      CREATE INDEX IF NOT EXISTS idx_access_requests_requested_permission ON access_requests(requested_permission);
     `,
   },
   {
     id: "004_audit_session_id",
     sql: `
       ALTER TABLE audit_log ADD COLUMN session_id TEXT DEFAULT '';
+    `,
+  },
+  {
+    id: "005_access_request_permission",
+    sql: `
+      ALTER TABLE access_requests ADD COLUMN requested_permission TEXT NOT NULL DEFAULT 'reader';
+      CREATE INDEX IF NOT EXISTS idx_access_requests_requested_permission ON access_requests(requested_permission);
     `,
   },
 ];

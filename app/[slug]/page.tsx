@@ -5,6 +5,7 @@ import { auth } from "@/src/auth";
 import { ContractPage } from "@/src/components/contract/ContractPage";
 import { RequestAccessDialog } from "@/src/components/contract/RequestAccessDialog";
 import { authorize } from "@/src/lib/access-control";
+import { canEditContract } from "@/src/lib/catalog-filter";
 import { getContractPageData } from "@/src/lib/contracts";
 import { getUserPermissions } from "@/src/lib/rbac";
 
@@ -34,9 +35,10 @@ export default async function ContractRoutePage({ params }: { params: Promise<{ 
 
   const domain = page.data.asset?.domain ?? "";
   const context = page.data.asset?.context ?? "";
+  const globalPermissions = userId ? await getUserPermissions(userId) : [];
+  const canEdit = await canEditContract(userId, globalPermissions, domain, context, slug);
 
   if (userId) {
-    const globalPermissions = await getUserPermissions(userId);
     if (!globalPermissions.includes("admin")) {
       const allowed = await authorize(userId, domain, context, "read", slug);
       if (!allowed) {
@@ -47,7 +49,7 @@ export default async function ContractRoutePage({ params }: { params: Promise<{ 
     return <Forbidden message="Authentification requise" />;
   }
 
-  return <ContractPage data={page.data} slug={page.slug} yamlRaw={page.yamlRaw} userId={userId} />;
+  return <ContractPage data={page.data} slug={page.slug} yamlRaw={page.yamlRaw} userId={userId} canEdit={canEdit} />;
 }
 
 function Forbidden({ message, slug, domain, context }: { message?: string; slug?: string; domain?: string; context?: string }) {

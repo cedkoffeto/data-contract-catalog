@@ -253,6 +253,13 @@ a {
   color: #fff;
 }
 
+.catalog-primary-link--disabled,
+.catalog-primary-link:disabled {
+  background: #cbd5e1;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
 .site-nav-user {
   position: relative;
   display: inline-flex;

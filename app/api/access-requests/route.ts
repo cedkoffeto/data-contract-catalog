@@ -6,6 +6,14 @@ import { getAdminUserIds } from "@/src/lib/rbac";
 import { writeAuditLog } from "@/src/lib/audit";
 import { extractSessionId } from "@/src/lib/audit-session";
 
+type AccessRequestPermission = "reader" | "editor";
+
+const ACCESS_REQUEST_PERMISSIONS = new Set<AccessRequestPermission>(["reader", "editor"]);
+
+function normalizeRequestedPermission(value: unknown): AccessRequestPermission {
+  return value === "editor" ? "editor" : "reader";
+}
+
 export async function POST(request: Request) {
   const session = await auth();
   const userId = session?.user?.name;
@@ -15,16 +23,21 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { domain, context, dataContract, message } = body;
+    const { domain, context, dataContract, message, requestedPermission: requestedPermissionValue } = body;
+    const requestedPermission = normalizeRequestedPermission(requestedPermissionValue);
 
     if (!domain && !context && !dataContract) {
       return NextResponse.json({ error: "Specify at least a domain, context, or data contract" }, { status: 400 });
     }
 
+    if (requestedPermissionValue && !ACCESS_REQUEST_PERMISSIONS.has(requestedPermissionValue as AccessRequestPermission)) {
+      return NextResponse.json({ error: "Invalid requested permission" }, { status: 400 });
+    }
+
     const result = await execute(
-      `INSERT INTO access_requests (user_id, domain, context, data_contract, message)
-       VALUES (?, ?, ?, ?, ?)`,
-      [userId, domain ?? "", context ?? "", dataContract ?? "", message ?? ""],
+      `INSERT INTO access_requests (user_id, domain, context, data_contract, requested_permission, message)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [userId, domain ?? "", context ?? "", dataContract ?? "", requestedPermission, message ?? ""],
     );
 
     const sessionId = extractSessionId(request);
@@ -34,7 +47,7 @@ export async function POST(request: Request) {
       actorId: userId,
       targetType: "contract",
       targetId: dataContract || "__unknown__",
-      details: { domain, context, message },
+      details: { domain, context, requestedPermission, message },
       sessionId,
     }).catch(() => {});
 
@@ -47,7 +60,7 @@ export async function POST(request: Request) {
         contractSlug: dataContract || "__access_request__",
         type: "access_request",
         title: `Access request from ${userId}`,
-        message: `Requested access to ${targetParts}${message ? `: ${message}` : ""}`,
+        message: `Requested ${requestedPermission} access to ${targetParts}${message ? `: ${message}` : ""}`,
       });
     }
 
@@ -70,20 +83,21 @@ export async function GET() {
     return NextResponse.json({ error: "Admin access required" }, { status: 403 });
   }
 
-  const items = await query<{
-    id: number;
-    user_id: string;
-    domain: string;
-    context: string;
-    data_contract: string;
-    message: string;
-    status: string;
-    created_at: string;
-  }>(
-    `SELECT id, user_id, domain, context, data_contract, message, status, created_at
-     FROM access_requests
-     ORDER BY created_at DESC`,
-  );
+    const items = await query<{
+      id: number;
+      user_id: string;
+      domain: string;
+      context: string;
+      data_contract: string;
+      requested_permission: AccessRequestPermission;
+      message: string;
+      status: string;
+      created_at: string;
+    }>(
+      `SELECT id, user_id, domain, context, data_contract, requested_permission, message, status, created_at
+       FROM access_requests
+       ORDER BY created_at DESC`,
+    );
 
   return NextResponse.json({ items });
 }

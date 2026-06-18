@@ -225,7 +225,7 @@ export default function AdminDashboard() {
 }
 
 function AccessRequestsSection() {
-  const [requests, setRequests] = useState<Array<{ id: number; user_id: string; domain: string; context: string; data_contract: string; message: string; status: string; created_at: string }>>([]);
+  const [requests, setRequests] = useState<Array<{ id: number; user_id: string; domain: string; context: string; data_contract: string; requested_permission: "reader" | "editor"; message: string; status: string; created_at: string }>>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchRequests = useCallback(async () => {
@@ -266,7 +266,7 @@ function AccessRequestsSection() {
           <table className="min-w-full divide-y divide-gray-200 bg-white text-sm">
             <thead className="bg-gray-50">
               <tr>
-                {["User", "Domain", "Context", "Contract", "Message", "Status", "Actions"].map((label) => (
+                {["User", "Domain", "Context", "Contract", "Permission", "Message", "Status", "Actions"].map((label) => (
                   <th key={label} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{label}</th>
                 ))}
               </tr>
@@ -278,6 +278,7 @@ function AccessRequestsSection() {
                   <td className="px-4 py-3 text-gray-600">{r.domain || "\u2014"}</td>
                   <td className="px-4 py-3 text-gray-600">{r.context || "\u2014"}</td>
                   <td className="px-4 py-3 text-gray-600">{r.data_contract || "\u2014"}</td>
+                  <td className="px-4 py-3 text-gray-600">{r.requested_permission || "reader"}</td>
                   <td className="max-w-[200px] truncate px-4 py-3 text-xs text-gray-500">{r.message || "\u2014"}</td>
                   <td className="px-4 py-3">
                     <span className={`rounded px-2 py-0.5 text-xs font-medium ${r.status === "pending" ? "bg-yellow-50 text-yellow-700" : r.status === "approved" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>

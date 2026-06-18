@@ -34,13 +34,15 @@ export function ContractPageClient({
   historyEntries,
   slug,
   yamlRaw,
-  userId
+  userId,
+  canEdit
 }: {
   data: DataContract;
   historyEntries: ContractHistoryEntry[];
   slug: string;
   yamlRaw: string;
   userId?: string;
+  canEdit: boolean;
 }) {
   const [activeVersion, setActiveVersion] = useState<{
     entry: ContractHistoryEntry;
@@ -156,9 +158,20 @@ export function ContractPageClient({
               <h2>Workspace</h2>
               <p>Review, edit and follow this contract from one place.</p>
               <div className="contract-side-card__actions">
-                <a className="catalog-primary-link" href={`/editor?contract=${slug}`}>
-                  Open editor
-                </a>
+                {canEdit ? (
+                  <a className="catalog-primary-link" href={`/editor?contract=${encodeURIComponent(slug)}`}>
+                    Open editor
+                  </a>
+                ) : (
+                  <button
+                    className="catalog-primary-link catalog-primary-link--disabled"
+                    disabled
+                    title="Vous n'avez pas les droits editor ou admin pour modifier ce contrat"
+                    type="button"
+                  >
+                    Open editor
+                  </button>
+                )}
                 {userId ? (
                   <SubscribeModal
                     slug={slug}

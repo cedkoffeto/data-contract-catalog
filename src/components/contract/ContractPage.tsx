@@ -7,18 +7,20 @@ export async function ContractPage({
   data,
   slug,
   yamlRaw,
-  userId
+  userId,
+  canEdit
 }: {
   data: DataContract;
   slug: string;
   yamlRaw: string;
   userId?: string;
+  canEdit: boolean;
 }) {
   const historyEntries = await getGitLabFileHistory(slug, 20).catch(() => []);
 
   return (
     <PageShell footerVersion="">
-      <ContractPageClient data={data} historyEntries={historyEntries} slug={slug} yamlRaw={yamlRaw} userId={userId} />
+      <ContractPageClient data={data} historyEntries={historyEntries} slug={slug} yamlRaw={yamlRaw} userId={userId} canEdit={canEdit} />
     </PageShell>
   );
 }

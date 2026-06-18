@@ -1,4 +1,5 @@
 import { auth } from "@/src/auth";
+import { authorize } from "@/src/lib/access-control";
 import { getUserPermissions, type Permission } from "@/src/lib/rbac";
 import { query } from "@/src/lib/db";
 import type { CatalogCard } from "@/src/lib/types";
@@ -17,6 +18,18 @@ export async function getSessionPermissions(): Promise<{
     canEdit: permissions.includes("write") || permissions.includes("admin"),
     userName,
   };
+}
+
+export async function canEditContract(
+  userId: string | null | undefined,
+  permissions: Permission[],
+  domain: string,
+  context: string,
+  dataContract?: string,
+): Promise<boolean> {
+  if (!userId) return false;
+  if (permissions.includes("write") || permissions.includes("admin")) return true;
+  return authorize(userId, domain, context, "write", dataContract);
 }
 
 type PolicyRow = {

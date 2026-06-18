@@ -116,6 +116,22 @@ CREATE TABLE IF NOT EXISTS "notifications" (
 
 CREATE INDEX IF NOT EXISTS "notifications_user_id_is_read_idx" ON "notifications"("user_id", "is_read");
 
+CREATE TABLE IF NOT EXISTS "access_requests" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "user_id" TEXT NOT NULL,
+    "domain" TEXT NOT NULL DEFAULT '',
+    "context" TEXT NOT NULL DEFAULT '',
+    "data_contract" TEXT NOT NULL DEFAULT '',
+    "requested_permission" TEXT NOT NULL DEFAULT 'reader',
+    "message" TEXT NOT NULL DEFAULT '',
+    "status" TEXT NOT NULL DEFAULT 'pending',
+    "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS "access_requests_status_idx" ON "access_requests"("status");
+CREATE INDEX IF NOT EXISTS "access_requests_user_id_idx" ON "access_requests"("user_id");
+CREATE INDEX IF NOT EXISTS "access_requests_requested_permission_idx" ON "access_requests"("requested_permission");
+
 -- User preferences (notification channel, etc.)
 CREATE TABLE IF NOT EXISTS "user_preferences" (
     "user_id" TEXT NOT NULL PRIMARY KEY,
