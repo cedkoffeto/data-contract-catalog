@@ -24,6 +24,7 @@ export async function GET() {
         type: n.type,
         title: n.title,
         message: n.message,
+        metadata: n.metadata,
         isRead: n.is_read === 1,
         createdAt: n.created_at,
       })),

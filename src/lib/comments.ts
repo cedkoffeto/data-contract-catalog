@@ -1,4 +1,5 @@
 import { execute, query } from "@/src/lib/db";
+import { createNotification } from "@/src/lib/notifications";
 import type { ContractComment } from "@/src/lib/types";
 
 export async function listContractComments(contractSlug: string): Promise<ContractComment[]> {
@@ -27,6 +28,45 @@ export async function listContractComments(contractSlug: string): Promise<Contra
     createdAt: row.created_at,
     editedAt: row.edited_at,
   }));
+}
+
+export function extractMentionedUserIds(body: string): string[] {
+  const matches = body.match(/@([A-Za-z0-9_.-]+)/g) ?? [];
+  return [...new Set(matches.map((match) => match.slice(1)))];
+}
+
+export async function recordCommentMentions(commentId: number, mentionedUserIds: string[]): Promise<void> {
+  for (const userId of mentionedUserIds) {
+    await execute(
+      `INSERT OR IGNORE INTO comment_mentions (comment_id, user_id)
+       VALUES (?, ?)`,
+      [commentId, userId],
+    );
+  }
+}
+
+export async function notifyMentionedUsers(params: {
+  contractSlug: string;
+  commentId: number;
+  mentionedBy: string;
+  mentionedUserIds: string[];
+}): Promise<void> {
+  for (const userId of params.mentionedUserIds) {
+    if (userId === params.mentionedBy) continue;
+
+    await createNotification({
+      userId,
+      contractSlug: params.contractSlug,
+      type: "mention",
+      title: `${params.mentionedBy} mentioned you`,
+      message: "Open the notification to jump to the comment.",
+      metadata: {
+        contractSlug: params.contractSlug,
+        commentId: params.commentId,
+        mentionedBy: params.mentionedBy,
+      },
+    });
+  }
 }
 
 export async function createContractComment(params: {

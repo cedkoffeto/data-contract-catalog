@@ -16,6 +16,20 @@ function formatDate(value: string) {
   }).format(date);
 }
 
+function renderBody(body: string) {
+  const parts = body.split(/(@[A-Za-z0-9_.-]+)/g);
+  return parts.map((part, index) => {
+    if (/^@[A-Za-z0-9_.-]+$/.test(part)) {
+      return (
+        <span key={`${part}-${index}`} className="rounded bg-orange-100 px-1 font-semibold text-orange-800">
+          {part}
+        </span>
+      );
+    }
+    return <span key={index}>{part}</span>;
+  });
+}
+
 export function ContractComments({ slug, userId }: { slug: string; userId?: string }) {
   const [comments, setComments] = useState<ContractComment[]>([]);
   const [body, setBody] = useState("");
@@ -124,7 +138,7 @@ export function ContractComments({ slug, userId }: { slug: string; userId?: stri
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900">{comment.userId}</h3>
-                  <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-gray-700">{comment.body}</p>
+                  <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-gray-700">{renderBody(comment.body)}</p>
                 </div>
                 <time className="shrink-0 text-xs text-gray-400">{formatDate(comment.createdAt)}</time>
               </div>

@@ -9,6 +9,7 @@ type NotificationItem = {
   type: string;
   title: string;
   message: string;
+  metadata: string;
   isRead: boolean;
   createdAt: string;
 };
@@ -196,6 +197,36 @@ export function NotificationBell() {
     }).format(date);
   }
 
+  function parseMetadata(metadata: string) {
+    try {
+      return JSON.parse(metadata) as Record<string, unknown>;
+    } catch {
+      return {};
+    }
+  }
+
+  async function handleNotificationClick(n: NotificationItem) {
+    const metadata = parseMetadata(n.metadata);
+    const contractSlug = typeof metadata.contractSlug === "string" && metadata.contractSlug ? metadata.contractSlug : n.contractSlug;
+    const commentId = typeof metadata.commentId === "number" ? metadata.commentId : null;
+
+    if (n.type === "mention" && contractSlug && commentId) {
+      window.location.href = `/${contractSlug}#comment-${commentId}`;
+    } else if (contractSlug) {
+      window.location.href = `/${contractSlug}`;
+    }
+
+    if (!n.isRead) {
+      await fetch("/api/notifications/read", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [n.id] }),
+      });
+      setNotifications((prev) => prev.map((item) => (item.id === n.id ? { ...item, isRead: true } : item)));
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    }
+  }
+
   const displayCount = unreadCount > 9 ? "9+" : String(unreadCount);
 
   return (
@@ -283,7 +314,7 @@ export function NotificationBell() {
                     <button
                       key={n.id}
                       className={`notification-dropdown__item${n.isRead ? "" : " is-unread"}`}
-                      onClick={() => handleToggleRead(n.id, n.isRead)}
+                      onClick={() => void handleNotificationClick(n)}
                       type="button"
                     >
                       <div className="notification-dropdown__item-header">

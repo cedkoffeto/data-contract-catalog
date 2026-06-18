@@ -7,6 +7,7 @@ export type NotificationRow = {
   type: string;
   title: string;
   message: string;
+  metadata: string;
   is_read: number;
   created_at: string;
 };
@@ -16,7 +17,7 @@ export async function getUserNotifications(
   limit = 20,
 ): Promise<NotificationRow[]> {
   return query<NotificationRow>(
-    `SELECT id, user_id, contract_slug, type, title, message, is_read, created_at
+    `SELECT id, user_id, contract_slug, type, title, message, metadata, is_read, created_at
      FROM notifications
      WHERE user_id = ?
      ORDER BY created_at DESC
@@ -72,16 +73,18 @@ export async function createNotification(params: {
   type?: string;
   title: string;
   message?: string;
+  metadata?: Record<string, unknown>;
 }): Promise<void> {
   await execute(
-    `INSERT INTO notifications (user_id, contract_slug, type, title, message)
-     VALUES (?, ?, ?, ?, ?)`,
+    `INSERT INTO notifications (user_id, contract_slug, type, title, message, metadata)
+     VALUES (?, ?, ?, ?, ?, ?)`,
     [
       params.userId,
       params.contractSlug,
       params.type ?? "info",
       params.title,
       params.message ?? "",
+      JSON.stringify(params.metadata ?? {}),
     ],
   );
 }

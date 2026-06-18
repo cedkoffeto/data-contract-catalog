@@ -106,11 +106,12 @@ CREATE INDEX IF NOT EXISTS "subscriptions_contract_slug_idx" ON "subscriptions"(
 CREATE TABLE IF NOT EXISTS "notifications" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "user_id" TEXT NOT NULL,
-    "contract_slug" TEXT NOT NULL,
+    "contract_slug" TEXT NOT NULL DEFAULT '',
     "type" TEXT NOT NULL DEFAULT 'info',
     "title" TEXT NOT NULL,
-    "message" TEXT NOT NULL DEFAULT '',
-    "is_read" BOOLEAN NOT NULL DEFAULT false,
+    "message" TEXT NOT NULL,
+    "metadata" TEXT NOT NULL DEFAULT '{}',
+    "is_read" INTEGER NOT NULL DEFAULT 0,
     "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -145,6 +146,18 @@ CREATE TABLE IF NOT EXISTS "contract_comments" (
 
 CREATE INDEX IF NOT EXISTS "contract_comments_contract_slug_idx" ON "contract_comments"("contract_slug", "created_at", "id");
 CREATE INDEX IF NOT EXISTS "contract_comments_parent_id_idx" ON "contract_comments"("parent_id");
+
+CREATE TABLE IF NOT EXISTS "comment_mentions" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "comment_id" INTEGER NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "comment_mentions_comment_id_user_id_unique" UNIQUE ("comment_id", "user_id"),
+    CONSTRAINT "comment_mentions_comment_id_fkey" FOREIGN KEY ("comment_id") REFERENCES "contract_comments"("id") ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS "comment_mentions_user_id_idx" ON "comment_mentions"("user_id");
+CREATE INDEX IF NOT EXISTS "comment_mentions_comment_id_idx" ON "comment_mentions"("comment_id");
 
 -- User preferences (notification channel, etc.)
 CREATE TABLE IF NOT EXISTS "user_preferences" (

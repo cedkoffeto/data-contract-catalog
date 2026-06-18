@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { auth } from "@/src/auth";
-import { createContractComment, listContractComments } from "@/src/lib/comments";
+import { createContractComment, extractMentionedUserIds, listContractComments, notifyMentionedUsers, recordCommentMentions } from "@/src/lib/comments";
 import { getContractBySlug } from "@/src/lib/contracts";
 import { authorize } from "@/src/lib/access-control";
 import { requireApiAuth } from "@/src/lib/require-auth";
@@ -81,6 +81,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     userId,
     body: commentBody,
     parentId: body.parentId ?? null,
+  });
+
+  const mentionedUserIds = extractMentionedUserIds(commentBody);
+  await recordCommentMentions(comment.id, mentionedUserIds);
+  await notifyMentionedUsers({
+    contractSlug: slug,
+    commentId: comment.id,
+    mentionedBy: userId,
+    mentionedUserIds,
   });
 
   return NextResponse.json({ comment }, { status: 201 });
