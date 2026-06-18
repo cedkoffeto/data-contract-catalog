@@ -2,6 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 
+type UserItem = {
+  userId: string;
+  email?: string | null;
+};
+
 type UserMultiSelectProps = {
   selected: string[];
   onChange: (selected: string[]) => void;
@@ -16,7 +21,7 @@ export function UserMultiSelect({
   exclude = [],
 }: UserMultiSelectProps) {
   const [query, setQuery] = useState("");
-  const [users, setUsers] = useState<string[]>([]);
+  const [users, setUsers] = useState<UserItem[]>([]);
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -28,8 +33,8 @@ export function UserMultiSelect({
     })
       .then((r) => r.json())
       .then((data) => {
-        const items: string[] = data.items ?? [];
-        setUsers(items.filter((u) => !exclude.includes(u)));
+        const items: UserItem[] = data.items ?? [];
+        setUsers(items.filter((u: UserItem) => !exclude.includes(u.userId)));
       })
       .catch(() => {});
 
@@ -59,7 +64,7 @@ export function UserMultiSelect({
   }
 
   const filtered = query
-    ? users.filter((u) => u.toLowerCase().includes(query.toLowerCase()))
+    ? users.filter((u) => u.userId.toLowerCase().includes(query.toLowerCase()))
     : users;
 
   return (
@@ -72,22 +77,28 @@ export function UserMultiSelect({
           if (input) input.focus();
         }}
       >
-        {selected.map((userId) => (
-          <span
-            key={userId}
-            className="flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium"
-            style={{ backgroundColor: "var(--ui-primary)", color: "#fff" }}
-          >
-            {userId}
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); removeUser(userId); }}
-              className="ml-0.5 leading-none hover:opacity-80"
+        {selected.map((userEntry) => {
+          const user = users.find((u) => u.userId === userEntry);
+          return (
+            <span
+              key={userEntry}
+              className="flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium"
+              style={{ backgroundColor: "var(--ui-primary)", color: "#fff" }}
             >
-              &times;
-            </button>
-          </span>
-        ))}
+              {userEntry}
+              {user?.email ? (
+                <span className="opacity-80">({user.email})</span>
+              ) : null}
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); removeUser(userEntry); }}
+                className="ml-0.5 leading-none hover:opacity-80"
+              >
+                &times;
+              </button>
+            </span>
+          );
+        })}
         <input
           className="min-w-[120px] flex-1 border-0 bg-transparent p-0 text-sm text-gray-900 outline-none"
           value={query}
@@ -104,13 +115,13 @@ export function UserMultiSelect({
               {query ? "No users match" : "No users found"}
             </div>
           ) : (
-            filtered.slice(0, 50).map((userId) => {
-              const isSelected = selected.includes(userId);
+            filtered.slice(0, 50).map((user) => {
+              const isSelected = selected.includes(user.userId);
               return (
                 <button
-                  key={userId}
+                  key={user.userId}
                   type="button"
-                  onClick={() => toggleUser(userId)}
+                  onClick={() => toggleUser(user.userId)}
                   className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-gray-50"
                 >
                   <input
@@ -120,8 +131,11 @@ export function UserMultiSelect({
                     readOnly
                   />
                   <span className={isSelected ? "font-medium text-gray-900" : "text-gray-700"}>
-                    {userId}
+                    {user.userId}
                   </span>
+                  {user.email ? (
+                    <span className="ml-1 text-xs text-gray-400">({user.email})</span>
+                  ) : null}
                 </button>
               );
             })

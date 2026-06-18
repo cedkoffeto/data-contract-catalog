@@ -41,10 +41,6 @@ export async function middleware(request: NextRequest) {
     return clearAuthCookies(response);
   }
 
-  if (token && pathname === "/login") {
-    return NextResponse.redirect(new URL("/", nextUrl));
-  }
-
   if (token || isPublicPath || isAuthRoute) {
     return NextResponse.next();
   }

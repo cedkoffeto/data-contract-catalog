@@ -536,7 +536,10 @@ describe("RBAC admin lookup APIs", () => {
 
   it("searches users", async () => {
     mockAdminGate();
-    const searchAllUsers = vi.fn(async () => ["admin.user", "reader.user"]);
+    const searchAllUsers = vi.fn(async () => [
+      { userId: "admin.user", email: "admin.user@example.com" },
+      { userId: "reader.user", email: "reader.user@example.com" }
+    ]);
 
     vi.doMock("@/src/lib/rbac", () => ({ searchAllUsers }));
 
@@ -544,7 +547,10 @@ describe("RBAC admin lookup APIs", () => {
     const response = await route.GET(new Request("http://localhost.test/api/admin/users/search?q=user"));
 
     expect(response.status).toBe(200);
-    expect(await readJson(response)).toEqual({ items: ["admin.user", "reader.user"] });
+    expect(await readJson(response)).toEqual({ items: [
+      { userId: "admin.user", email: "admin.user@example.com" },
+      { userId: "reader.user", email: "reader.user@example.com" }
+    ] });
     expect(searchAllUsers).toHaveBeenCalledWith("user");
   });
 

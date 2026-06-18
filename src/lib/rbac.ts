@@ -135,7 +135,7 @@ async function searchKeycloakUsers(queryStr: string): Promise<string[]> {
   }
 }
 
-export async function searchAllUsers(queryStr: string): Promise<string[]> {
+export async function searchAllUsers(queryStr: string): Promise<Array<{ userId: string; email?: string | null }>> {
   const local = await query<{ user_id: string }>(
     `SELECT DISTINCT user_id FROM (
       SELECT user_id FROM user_group
@@ -146,17 +146,17 @@ export async function searchAllUsers(queryStr: string): Promise<string[]> {
      ORDER BY user_id`,
     [`%${queryStr}%`],
   );
-  const localUsers = local.map((r) => r.user_id);
+  const localUsers = local.map((r) => ({ userId: r.user_id, email: null }));
 
   const keycloakUsers = await searchKeycloakUsers(queryStr);
 
-  const seen = new Set(localUsers);
+  const seen = new Set(localUsers.map((u) => u.userId));
   for (const u of keycloakUsers) {
     if (!seen.has(u)) {
-      localUsers.push(u);
+      localUsers.push({ userId: u, email: null });
       seen.add(u);
     }
   }
 
-  return localUsers.sort();
+  return localUsers.sort((a, b) => a.userId.localeCompare(b.userId));
 }

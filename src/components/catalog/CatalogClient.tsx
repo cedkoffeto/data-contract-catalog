@@ -8,6 +8,7 @@ import { Input } from "@/src/components/ui/Input";
 import type { CatalogCard as CatalogCardType } from "@/src/lib/types";
 
 const ALL_DOMAINS = "__all_domains__";
+const ALL_CONTEXTS = "__all_contexts__";
 
 function humanize(value: string): string {
   const trimmed = value.trim();
@@ -25,10 +26,17 @@ function humanize(value: string): string {
 export function CatalogClient({ cards }: { cards: CatalogCardType[] }) {
   const [search, setSearch] = useState("");
   const [selectedDomain, setSelectedDomain] = useState(ALL_DOMAINS);
+  const [selectedContext, setSelectedContext] = useState(ALL_CONTEXTS);
   const [selectedMaturity, setSelectedMaturity] = useState("all");
+  const [showOnlyAccessible, setShowOnlyAccessible] = useState(false);
 
   const domains = useMemo(() => {
     const unique = new Set(cards.map((card) => card.domain.trim()).filter(Boolean));
+    return Array.from(unique).sort((a, b) => a.localeCompare(b));
+  }, [cards]);
+
+  const contexts = useMemo(() => {
+    const unique = new Set(cards.map((card) => card.context.trim()).filter(Boolean));
     return Array.from(unique).sort((a, b) => a.localeCompare(b));
   }, [cards]);
 
@@ -43,18 +51,23 @@ export function CatalogClient({ cards }: { cards: CatalogCardType[] }) {
     return cards.filter((card) => {
       const matchesSearch = !query || card.searchData.includes(query);
       const matchesDomain = selectedDomain === ALL_DOMAINS || card.domain.trim() === selectedDomain;
+      const matchesContext = selectedContext === ALL_CONTEXTS || card.context.trim() === selectedContext;
       const matchesMaturity = selectedMaturity === "all" || card.maturity.trim() === selectedMaturity;
-      return matchesSearch && matchesDomain && matchesMaturity;
+      const matchesAccessible = !showOnlyAccessible || card.accessible;
+      return matchesSearch && matchesDomain && matchesContext && matchesMaturity && matchesAccessible;
     });
-  }, [cards, search, selectedDomain, selectedMaturity]);
+  }, [cards, search, selectedDomain, selectedContext, selectedMaturity, showOnlyAccessible]);
+
+  const accessibleCount = useMemo(() => cards.filter((c) => c.accessible).length, [cards]);
 
   const stats = useMemo(
     () => [
       { label: "Contracts", value: cards.length.toString().padStart(2, "0") },
       { label: "Domains", value: domains.length.toString().padStart(2, "0") },
+      { label: "Contexts", value: contexts.length.toString().padStart(2, "0") },
       { label: "Maturity tiers", value: maturities.length.toString().padStart(2, "0") }
     ],
-    [cards.length, domains.length, maturities.length]
+    [cards.length, domains.length, contexts.length, maturities.length]
   );
 
   return (
@@ -104,6 +117,15 @@ export function CatalogClient({ cards }: { cards: CatalogCardType[] }) {
             >
               All domains
             </Button>
+            {cards.length > 0 ? (
+              <Button
+                className={showOnlyAccessible ? "is-active" : undefined}
+                onClick={() => setShowOnlyAccessible((v) => !v)}
+                variant="chip"
+              >
+                Accessible only ({accessibleCount}/{cards.length})
+              </Button>
+            ) : null}
             {domains.map((domain) => (
               <Button
                 key={domain}
@@ -122,18 +144,43 @@ export function CatalogClient({ cards }: { cards: CatalogCardType[] }) {
         <aside className="catalog-filters">
           <div className="catalog-filters__heading">
             <h2>Filters</h2>
-            {(search || selectedDomain !== ALL_DOMAINS || selectedMaturity !== "all") && (
+            {(search || selectedDomain !== ALL_DOMAINS || selectedContext !== ALL_CONTEXTS || selectedMaturity !== "all" || showOnlyAccessible) && (
               <Button
                 onClick={() => {
                   setSearch("");
                   setSelectedDomain(ALL_DOMAINS);
+                  setSelectedContext(ALL_CONTEXTS);
                   setSelectedMaturity("all");
+                  setShowOnlyAccessible(false);
                 }}
                 variant="outline"
               >
                 Reset
               </Button>
             )}
+          </div>
+
+          <div className="catalog-filter-group">
+            <span className="catalog-filter-group__label">Context</span>
+            <div className="catalog-filter-stack">
+              <button
+                className={selectedContext === ALL_CONTEXTS ? "catalog-filter-pill is-active" : "catalog-filter-pill"}
+                onClick={() => setSelectedContext(ALL_CONTEXTS)}
+                type="button"
+              >
+                All contexts
+              </button>
+              {contexts.map((context) => (
+                <button
+                  key={context}
+                  className={selectedContext === context ? "catalog-filter-pill is-active" : "catalog-filter-pill"}
+                  onClick={() => setSelectedContext(context)}
+                  type="button"
+                >
+                  {humanize(context)}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="catalog-filter-group">

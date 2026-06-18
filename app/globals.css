@@ -3457,10 +3457,20 @@ a:has(> .kpi-card) {
 
 /* --- Diff sheet dialog --- */
 
-.yaml-sheet--diff .yaml-sheet__panel {
-  width: min(56rem, 100vw);
-  resize: horizontal;
+.yaml-sheet--diff .yaml-sheet__panel,
+.yaml-sheet__panel--diff-centered {
+  width: min(56rem, calc(100vw - 3rem));
+  height: auto;
+  max-height: 90vh;
+  border-radius: var(--ui-radius-lg, 0.5rem);
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.2);
+  resize: both;
   overflow: auto;
+}
+
+.yaml-sheet--diff-centered[open] {
+  justify-content: center;
+  align-items: center;
 }
 
 .yaml-sheet__body--diff {
