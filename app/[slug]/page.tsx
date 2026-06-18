@@ -38,7 +38,7 @@ export default async function ContractRoutePage({ params }: { params: Promise<{ 
   if (userId) {
     const globalPermissions = await getUserPermissions(userId);
     if (!globalPermissions.includes("admin")) {
-      const allowed = await authorize(userId, domain, context, "read");
+      const allowed = await authorize(userId, domain, context, "read", slug);
       if (!allowed) {
         return <Forbidden slug={slug} domain={domain} context={context} />;
       }

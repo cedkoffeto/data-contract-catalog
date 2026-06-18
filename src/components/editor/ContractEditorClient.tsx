@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, type ReactNode, useEffect, useMemo, useState } from "react";
+import { Fragment, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { IChangeEvent } from "@rjsf/core";
 import { yaml as yamlLanguage } from "@codemirror/lang-yaml";
@@ -623,6 +623,20 @@ export function ContractEditorClient({
 
   const validationErrors = (validationResult?.errors ?? []) as RJSFValidationError[];
   const validationIssueCount = yamlValidationState.parseError ? 1 : validationErrors.length;
+  const hasBlockingErrors = isContractDocument && (!!yamlValidationState.parseError || validationErrors.length > 0);
+
+  const codeMirrorRef = useRef<React.ComponentRef<typeof CodeMirror>>(null);
+
+  const scrollToLine = useCallback((lineNumber: number | null) => {
+    if (!lineNumber || lineNumber < 1) return;
+    const view = codeMirrorRef.current?.view;
+    if (!view) return;
+    const line = view.state.doc.line(lineNumber);
+    view.dispatch({
+      selection: { anchor: line.from },
+      scrollIntoView: true,
+    });
+  }, []);
   const historyEntries = useMemo(() => {
     if (!isContractDocument || selectedDocument.isDraft || !selectedDocument.contractSlug) {
       return [];
@@ -1488,6 +1502,7 @@ export function ContractEditorClient({
                   <div className="editor-code-shell">
                     <div className="editor-code-surface">
                       <CodeMirror
+                        ref={codeMirrorRef}
                         basicSetup={{
                           foldGutter: true,
                           highlightActiveLine: true,
@@ -1564,8 +1579,9 @@ export function ContractEditorClient({
                             {isContractDocument ? (
                               yamlValidationState.parseError ? (
                                 <ul className="editor-list editor-list--validation">
-                                  <li className="editor-list__item editor-list__item--error">
+                                  <li className="editor-list__item editor-list__item--error" style={{ cursor: "pointer" }} onClick={() => scrollToLine(yamlValidationState.parseLineNumber)}>
                                     <strong>yaml</strong>
+                                    {yamlValidationState.parseLineNumber != null && <span className="text-xs text-red-600 font-mono">L{yamlValidationState.parseLineNumber}</span>}
                                     <span>{yamlValidationState.parseError}</span>
                                   </li>
                                 </ul>
@@ -1578,12 +1594,16 @@ export function ContractEditorClient({
                                 </ul>
                               ) : (
                                 <ul className="editor-list editor-list--validation">
-                                  {validationErrors.map((error) => (
-                                    <li key={`${error.property}-${error.stack}`} className="editor-list__item editor-list__item--error">
-                                      <strong>{error.property || "schema"}</strong>
-                                      <span>{error.message}</span>
-                                    </li>
-                                  ))}
+                                  {validationErrors.map((error) => {
+                                    const lineNumber = findYamlLineForPath(selectedDocument.content, error.property ?? "");
+                                    return (
+                                      <li key={`${error.property}-${error.stack}`} className="editor-list__item editor-list__item--error" style={{ cursor: lineNumber ? "pointer" : "default" }} onClick={() => scrollToLine(lineNumber)}>
+                                        <strong>{error.property || "schema"}</strong>
+                                        {lineNumber != null && <span className="text-xs text-red-600 font-mono">L{lineNumber}</span>}
+                                        <span>{error.message}</span>
+                                      </li>
+                                    );
+                                  })}
                                 </ul>
                               )
                             ) : (
@@ -1761,7 +1781,13 @@ export function ContractEditorClient({
                   <button className="editor-soft-button" onClick={applyYamlDraft} type="button">
                     Apply YAML
                   </button>
-                  <button className="editor-primary-button" onClick={handleSubmitContract} type="button">
+                  <button
+                    className="editor-primary-button"
+                    onClick={handleSubmitContract}
+                    type="button"
+                    disabled={hasBlockingErrors}
+                    title={hasBlockingErrors ? "Fix validation errors before submitting" : "Submit contract"}
+                  >
                     Submit contract
                   </button>
                 </>

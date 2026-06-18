@@ -5,18 +5,6 @@ import initSqlJs, { type SqlValue } from "sql.js";
 
 const DB_PATH = process.env.DB_PATH ?? path.join(process.cwd(), "prisma", "data", "rbac.db");
 
-function shouldLog(sql: string): boolean {
-  const trimmed = sql.trim().toLowerCase();
-  if (trimmed.startsWith("select") && trimmed.includes("from audit_log")) return false;
-  return true;
-}
-
-function dbLog(type: string, sql: string, params?: SqlValue[]) {
-  if (!shouldLog(sql)) return;
-  const msg = params ? `${sql} -- ${JSON.stringify(params)}` : sql;
-  console.log(`[db.${type}] ${msg}`);
-}
-
 let _SQL: Awaited<ReturnType<typeof initSqlJs>> | null = null;
 
 async function getSqlModule() {
@@ -32,7 +20,6 @@ export async function query<T = Record<string, unknown>>(
   sql: string,
   params?: SqlValue[]
 ): Promise<T[]> {
-  dbLog("query", sql, params);
   const SQL = await getSqlModule();
   const buffer = fs.readFileSync(DB_PATH);
   const db = new SQL.Database(buffer);
@@ -59,7 +46,6 @@ export async function execute(
   sql: string,
   params?: SqlValue[]
 ): Promise<{ changes: number }> {
-  dbLog("execute", sql, params);
   const SQL = await getSqlModule();
   const buffer = fs.readFileSync(DB_PATH);
   const db = new SQL.Database(buffer);

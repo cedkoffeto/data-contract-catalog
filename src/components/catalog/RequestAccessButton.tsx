@@ -33,7 +33,7 @@ export function RequestAccessButton({
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
-  const [done, setDone] = useState(false);
+  const [localPending, setLocalPending] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -61,7 +61,6 @@ export function RequestAccessButton({
 
   function handleClose() {
     setOpen(false);
-    setDone(false);
     setMessage("");
   }
 
@@ -78,7 +77,8 @@ export function RequestAccessButton({
           message,
         }),
       });
-      setDone(true);
+      setLocalPending(true);
+      handleClose();
     } catch {
       // silent
     } finally {
@@ -86,22 +86,21 @@ export function RequestAccessButton({
     }
   }
 
-  if (done) {
-    return (
-      <span className="text-xs text-green-600 font-medium" style={{ pointerEvents: "auto" }}>
-        Request sent
-      </span>
-    );
-  }
+  const isPending = accessRequestStatus === "pending" || localPending;
+  const isMessageValid = message.trim().length >= 3;
 
-  if (accessRequestStatus === "pending") {
+  if (isPending) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-gray-400" style={{ pointerEvents: "auto" }}>
-        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+      <button
+        className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-white shadow-lg"
+        style={{ pointerEvents: "auto", backgroundColor: "var(--ui-primary)", opacity: 0.7, cursor: "default" }}
+        disabled
+      >
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         Access requested
-      </span>
+      </button>
     );
   }
 
@@ -137,33 +136,29 @@ export function RequestAccessButton({
             </div>
 
             <div className="flex-1 overflow-y-auto px-4 py-3">
-              <div className="flex flex-wrap items-center space-x-6 text-xs text-gray-400">
-                {domain && <span>Domain: <span className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-gray-700">{domain}</span></span>}
-                {context && <span>Context: <span className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-gray-700">{context}</span></span>}
-                <span>Contract: <span className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-gray-700">{slug}</span></span>
+              <div className="flex flex-wrap items-center gap-x-6 text-xs text-gray-400">
+                {domain && <span className="flex items-center gap-1">Domain: <span className="catalog-card__badge">{domain}</span></span>}
+                {context && <span className="flex items-center gap-1">Context: <span className="catalog-card__badge catalog-card__badge--subtle">{context}</span></span>}
+                <span className="flex items-center gap-1">Contract: <span className="catalog-card__badge" style={{ backgroundColor: "#fffbeb", color: "#854d0e" }}>{slug}</span></span>
               </div>
 
               <textarea
                 className="mt-3 w-full rounded-md border px-3 py-2 text-sm text-gray-900"
                 rows={3}
-                placeholder="Why do you need access? (optional)"
+                placeholder="Why do you need access? (min. 3 characters)"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                style={{ borderColor: "#d1d5db" }}
+                style={{ borderColor: "#e5e7eb" }}
               />
+              {message.trim() && !isMessageValid && (
+                <p className="mt-1 text-xs text-red-500">Minimum 3 characters required</p>
+              )}
             </div>
 
             <div className="flex items-center justify-end gap-2 border-t border-gray-100 px-4 py-2">
               <button
-                type="button"
-                onClick={handleClose}
-                className="rounded px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
-              >
-                Cancel
-              </button>
-              <button
                 onClick={handleSubmit}
-                disabled={sending}
+                disabled={sending || !isMessageValid}
                 className="rounded px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
                 style={{ backgroundColor: "var(--ui-primary)" }}
               >
