@@ -8,6 +8,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model UserPreference {
+  userId             String   @id @map("user_id")
+  notificationChannel String   @default("in_app") @map("notification_channel")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@map("user_preferences")
+}
+
 model AuditLog {
   id         Int      @id @default(autoincrement())
   action     String

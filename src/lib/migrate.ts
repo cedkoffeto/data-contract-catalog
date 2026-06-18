@@ -183,6 +183,17 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
       CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, is_read);
     `,
   },
+  {
+    id: "002_user_preferences",
+    sql: `
+      CREATE TABLE IF NOT EXISTS user_preferences (
+        user_id TEXT NOT NULL PRIMARY KEY,
+        notification_channel TEXT NOT NULL DEFAULT 'in_app',
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+    `,
+  },
 ];
 
 export async function runMigrations(): Promise<void> {

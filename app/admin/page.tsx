@@ -101,21 +101,24 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="kpi-grid">
-        {cards.map((c) => {
-          const inner = (
-            <div className="kpi-card" style={{ borderLeft: `4px solid ${c.color}` }}>
-              <div className="kpi-card__info">
-                <p>{c.label}</p>
-                <p className="kpi-card__value">{c.value}</p>
+      <div className="rounded-lg border bg-white p-6">
+        <h2 className="mb-4 text-base font-semibold text-gray-900">Key Metrics</h2>
+        <div className="kpi-grid">
+          {cards.map((c) => {
+            const inner = (
+              <div className="kpi-card" style={{ borderLeft: "4px solid #f97316", backgroundColor: "rgba(249,115,22,0.08)" }}>
+                <div className="kpi-card__info">
+                  <p>{c.label}</p>
+                  <p className="kpi-card__value">{c.value}</p>
+                </div>
+                <svg className="kpi-card__icon" fill="none" viewBox="0 0 24 24" stroke="#f97316" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d={c.icon} />
+                </svg>
               </div>
-              <svg className="kpi-card__icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d={c.icon} />
-              </svg>
-            </div>
-          );
-          return c.href ? <Link key={c.label} href={c.href}>{inner}</Link> : <div key={c.label}>{inner}</div>;
-        })}
+            );
+            return c.href ? <Link key={c.label} href={c.href}>{inner}</Link> : <div key={c.label}>{inner}</div>;
+          })}
+        </div>
       </div>
 
       <div>

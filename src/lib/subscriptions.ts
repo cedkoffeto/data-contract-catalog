@@ -10,6 +10,13 @@ export type Subscription = {
   created_at: string;
 };
 
+export type UserPreference = {
+  user_id: string;
+  notification_channel: NotificationChannel;
+  created_at: string;
+  updated_at: string;
+};
+
 export async function getSubscription(
   userId: string,
   contractSlug: string,
@@ -21,16 +28,43 @@ export async function getSubscription(
   return rows[0] ?? null;
 }
 
+export async function getUserPreference(userId: string): Promise<UserPreference | null> {
+  const rows = await query<UserPreference>(
+    "SELECT user_id, notification_channel, created_at, updated_at FROM user_preferences WHERE user_id = ?",
+    [userId],
+  );
+  return rows[0] ?? null;
+}
+
+export async function setUserPreference(userId: string, channel: NotificationChannel): Promise<void> {
+  await execute(
+    `INSERT INTO user_preferences (user_id, notification_channel) VALUES (?, ?)
+     ON CONFLICT(user_id) DO UPDATE SET notification_channel = excluded.notification_channel, updated_at = CURRENT_TIMESTAMP`,
+    [userId, channel],
+  );
+
+  await execute(
+    "UPDATE subscriptions SET channel = ? WHERE user_id = ?",
+    [channel, userId],
+  );
+}
+
+async function resolveChannel(userId: string): Promise<NotificationChannel> {
+  const pref = await getUserPreference(userId);
+  return pref?.notification_channel ?? "in_app";
+}
+
 export async function subscribe(params: {
   userId: string;
   contractSlug: string;
-  channel: NotificationChannel;
   actorId: string;
 }): Promise<Subscription> {
+  const channel = await resolveChannel(params.userId);
+
   await execute(
     `INSERT INTO subscriptions (user_id, contract_slug, channel) VALUES (?, ?, ?)
      ON CONFLICT(user_id, contract_slug) DO UPDATE SET channel = excluded.channel`,
-    [params.userId, params.contractSlug, params.channel],
+    [params.userId, params.contractSlug, channel],
   );
 
   await writeAuditLog({
@@ -38,7 +72,7 @@ export async function subscribe(params: {
     actorId: params.actorId,
     targetType: "contract",
     targetId: params.contractSlug,
-    details: { channel: params.channel },
+    details: { channel },
   });
 
   return (await getSubscription(params.userId, params.contractSlug))!;

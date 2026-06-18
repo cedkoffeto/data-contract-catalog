@@ -114,3 +114,11 @@ CREATE TABLE IF NOT EXISTS "notifications" (
 );
 
 CREATE INDEX IF NOT EXISTS "notifications_user_id_is_read_idx" ON "notifications"("user_id", "is_read");
+
+-- User preferences (notification channel, etc.)
+CREATE TABLE IF NOT EXISTS "user_preferences" (
+    "user_id" TEXT NOT NULL PRIMARY KEY,
+    "notification_channel" TEXT NOT NULL DEFAULT 'in_app',
+    "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

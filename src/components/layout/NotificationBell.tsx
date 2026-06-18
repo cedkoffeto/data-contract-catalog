@@ -165,7 +165,7 @@ export function NotificationBell() {
       const res = await fetch(`/api/contracts/${slug}/subscription`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(currentlySubscribed ? { channel: null } : { channel: "in_app" }),
+        body: JSON.stringify(currentlySubscribed ? { channel: null } : {}),
       });
 
       if (res.ok) {

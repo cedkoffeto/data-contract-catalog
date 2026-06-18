@@ -10,7 +10,7 @@ import { ContractDiffDialog } from "@/src/components/contract/ContractDiffDialog
 import { SubscribeModal } from "@/src/components/contract/SubscribeModal";
 import { YamlDialogButton } from "@/src/components/contract/YamlDialogButton";
 import type { ContractHistoryEntry, DataContract } from "@/src/lib/types";
-import type { NotificationChannel, Subscription } from "@/src/lib/subscriptions";
+import type { Subscription } from "@/src/lib/subscriptions";
 
 function formatHistoryMeta(value: string) {
   if (!value) {
@@ -52,7 +52,7 @@ export function ContractPageClient({
   const historyDialogRef = useRef<HTMLDialogElement>(null);
   const historyDialogId = useId().replace(/:/g, "");
 
-  const [currentChannel, setCurrentChannel] = useState<NotificationChannel | null>(null);
+  const [subscribed, setSubscribed] = useState(false);
   const [loadingSubscription, setLoadingSubscription] = useState(true);
 
   useEffect(() => {
@@ -64,9 +64,9 @@ export function ContractPageClient({
     fetch(`/api/contracts/${slug}/subscription`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data: { subscription?: Subscription | null } | null) => {
-        setCurrentChannel(data?.subscription?.channel ?? null);
+        setSubscribed(data?.subscription !== null && data?.subscription !== undefined);
       })
-      .catch(() => setCurrentChannel(null))
+      .catch(() => setSubscribed(false))
       .finally(() => setLoadingSubscription(false));
   }, [slug, userId]);
 
@@ -162,9 +162,9 @@ export function ContractPageClient({
                 {userId ? (
                   <SubscribeModal
                     slug={slug}
-                    currentChannel={loadingSubscription ? null : currentChannel}
-                    onSubscribed={(channel) => setCurrentChannel(channel)}
-                    onUnsubscribed={() => setCurrentChannel(null)}
+                    isSubscribed={!loadingSubscription && subscribed}
+                    onSubscribed={() => setSubscribed(true)}
+                    onUnsubscribed={() => setSubscribed(false)}
                     onClose={() => {}}
                   />
                 ) : (

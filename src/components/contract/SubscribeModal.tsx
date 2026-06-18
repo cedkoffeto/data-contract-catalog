@@ -2,24 +2,21 @@
 
 import { useId, useRef, useState } from "react";
 
-import type { NotificationChannel } from "@/src/lib/subscriptions";
-
 export function SubscribeModal({
   slug,
-  currentChannel,
+  isSubscribed,
   onSubscribed,
   onUnsubscribed,
   onClose,
 }: {
   slug: string;
-  currentChannel: NotificationChannel | null;
-  onSubscribed: (channel: NotificationChannel) => void;
+  isSubscribed: boolean;
+  onSubscribed: () => void;
   onUnsubscribed: () => void;
   onClose: () => void;
 }) {
   const id = useId().replace(/:/g, "");
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const [channel, setChannel] = useState<NotificationChannel>(currentChannel ?? "in_app");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,7 +25,7 @@ export function SubscribeModal({
     onClose();
   }
 
-  async function handleSave() {
+  async function handleSubscribe() {
     setSaving(true);
     setError(null);
 
@@ -36,7 +33,7 @@ export function SubscribeModal({
       const res = await fetch(`/api/contracts/${slug}/subscription`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ channel }),
+        body: JSON.stringify({}),
       });
 
       if (!res.ok) {
@@ -51,7 +48,7 @@ export function SubscribeModal({
       }
 
       dialogRef.current?.close();
-      onSubscribed(channel);
+      onSubscribed();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
@@ -97,7 +94,7 @@ export function SubscribeModal({
         onClick={() => dialogRef.current?.showModal()}
         className="catalog-secondary-link catalog-secondary-link--button"
       >
-        {currentChannel ? "Edit subscription" : "Subscribe"}
+        {isSubscribed ? "Edit subscription" : "Subscribe"}
       </button>
 
       <dialog ref={dialogRef} className="yaml-sheet" aria-labelledby={`subscribe-sheet-title-${id}`}>
@@ -110,7 +107,7 @@ export function SubscribeModal({
             <div>
               <p className="yaml-sheet__eyebrow">Notifications</p>
               <h3 id={`subscribe-sheet-title-${id}`}>
-                {currentChannel ? "Edit subscription" : "Subscribe to updates"}
+                {isSubscribed ? "Edit subscription" : "Subscribe to updates"}
               </h3>
             </div>
 
@@ -118,62 +115,29 @@ export function SubscribeModal({
               <button className="editor-soft-button" onClick={handleClose} type="button">
                 Cancel
               </button>
-              {currentChannel ? (
+              {isSubscribed ? (
                 <button className="catalog-secondary-link catalog-secondary-link--button" disabled={saving} onClick={handleUnsubscribe} type="button">
                   Unsubscribe
                 </button>
-              ) : null}
-              <button className="catalog-primary-link" disabled={saving} onClick={handleSave} type="button">
-                {saving ? "Saving..." : "Save"}
-              </button>
+              ) : (
+                <button className="catalog-primary-link" disabled={saving} onClick={handleSubscribe} type="button">
+                  {saving ? "Subscribing..." : "Subscribe"}
+                </button>
+              )}
             </div>
           </div>
 
           <div className="yaml-sheet__body">
             {error ? <p className="contract-side-card__muted" role="alert">{error}</p> : null}
 
-            <fieldset className="subscribe-fieldset">
-              <legend className="subscribe-legend">Notification channel</legend>
-
-              <label className="subscribe-option">
-                <input
-                  checked={channel === "in_app"}
-                  className="subscribe-option__radio"
-                  name={`channel-${id}`}
-                  onChange={() => setChannel("in_app")}
-                  type="radio"
-                  value="in_app"
-                />
-                <span className="subscribe-option__label">In-app</span>
-                <span className="subscribe-option__desc">Notifications within the application</span>
-              </label>
-
-              <label className="subscribe-option">
-                <input
-                  checked={channel === "email"}
-                  className="subscribe-option__radio"
-                  name={`channel-${id}`}
-                  onChange={() => setChannel("email")}
-                  type="radio"
-                  value="email"
-                />
-                <span className="subscribe-option__label">Email</span>
-                <span className="subscribe-option__desc">Notifications via email</span>
-              </label>
-
-              <label className="subscribe-option">
-                <input
-                  checked={channel === "both"}
-                  className="subscribe-option__radio"
-                  name={`channel-${id}`}
-                  onChange={() => setChannel("both")}
-                  type="radio"
-                  value="both"
-                />
-                <span className="subscribe-option__label">In-app &amp; Email</span>
-                <span className="subscribe-option__desc">Receive notifications both in-app and via email</span>
-              </label>
-            </fieldset>
+            <p className="text-sm text-gray-500">
+              {isSubscribed
+                ? "You are subscribed to notifications for this contract."
+                : "Subscribe to receive notifications about this contract."}
+            </p>
+            <p className="mt-2 text-xs text-gray-400">
+              Your notification channel (in-app, email, or both) is set in your profile preferences.
+            </p>
           </div>
         </div>
       </dialog>

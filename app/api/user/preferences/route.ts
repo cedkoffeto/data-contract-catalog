@@ -2,49 +2,49 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/src/auth";
 import { requireApiAuth } from "@/src/lib/require-auth";
-import { getSubscription, subscribe, unsubscribe } from "@/src/lib/subscriptions";
+import { getUserPreference, setUserPreference } from "@/src/lib/subscriptions";
+import type { NotificationChannel } from "@/src/lib/subscriptions";
 
-export async function GET(_: Request, { params }: { params: Promise<{ slug: string }> }) {
+export async function GET() {
   try {
     const unauthorized = await requireApiAuth();
     if (unauthorized) return unauthorized;
 
-    const { slug } = await params;
     const session = await auth();
     const userId = session?.user?.name;
     if (!userId) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     }
 
-    const subscription = await getSubscription(userId, slug);
-    return NextResponse.json({ subscription });
+    const pref = await getUserPreference(userId);
+    return NextResponse.json({
+      preference: pref ?? { user_id: userId, notification_channel: "in_app" },
+    });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Internal server error" }, { status: 500 });
   }
 }
 
-export async function POST(req: Request, { params }: { params: Promise<{ slug: string }> }) {
+export async function PUT(req: Request) {
   try {
     const unauthorized = await requireApiAuth();
     if (unauthorized) return unauthorized;
 
-    const { slug } = await params;
     const session = await auth();
     const userId = session?.user?.name;
     if (!userId) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     }
 
-    const body = (await req.json()) as { channel?: string | null } | null;
-    const channel = body?.channel;
+    const body = (await req.json()) as { notificationChannel?: string } | null;
+    const channel = body?.notificationChannel;
 
-    if (channel === null) {
-      await unsubscribe({ userId, contractSlug: slug, actorId: userId });
-      return NextResponse.json({ subscription: null });
+    if (!channel || !["in_app", "email", "both"].includes(channel)) {
+      return NextResponse.json({ error: "Invalid notification channel" }, { status: 400 });
     }
 
-    const subscription = await subscribe({ userId, contractSlug: slug, actorId: userId });
-    return NextResponse.json({ subscription });
+    await setUserPreference(userId, channel as NotificationChannel);
+    return NextResponse.json({ success: true });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Internal server error" }, { status: 500 });
   }

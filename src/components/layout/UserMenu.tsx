@@ -5,6 +5,7 @@ import Image from "next/image";
 import { signOut } from "next-auth/react";
 
 import { UserPoliciesDialog } from "./UserPoliciesDialog";
+import { NotificationPreferencesDialog } from "./NotificationPreferencesDialog";
 
 function getInitial(name: string) {
   return name.trim().charAt(0).toUpperCase() || "U";
@@ -23,6 +24,7 @@ export function UserMenu({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [showPolicies, setShowPolicies] = useState(false);
+  const [showNotificationPrefs, setShowNotificationPrefs] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -65,10 +67,24 @@ export function UserMenu({
           </div>
           <button
             className="site-nav-user__link"
+            onClick={() => { setShowNotificationPrefs(true); setIsOpen(false); }}
+            role="menuitem"
+            type="button"
+          >
+            <svg className="mr-2 h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+            </svg>
+            Notification preferences
+          </button>
+          <button
+            className="site-nav-user__link"
             onClick={handleShowPolicies}
             role="menuitem"
             type="button"
           >
+            <svg className="mr-2 h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
             My access policies
           </button>
           <button
@@ -81,6 +97,12 @@ export function UserMenu({
           </button>
         </div>
       ) : null}
+
+      {showNotificationPrefs && (
+        <NotificationPreferencesDialog
+          onClose={() => setShowNotificationPrefs(false)}
+        />
+      )}
 
       {showPolicies && (
         <UserPoliciesDialog

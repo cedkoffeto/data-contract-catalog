@@ -45,7 +45,7 @@ export default function PoliciesPage() {
   }, [isAdmin]);
 
   const [assignMode, setAssignMode] = useState<"user" | "group">("user");
-  const [allUsers, setAllUsers] = useState<string[]>([]);
+  const [allUsers, setAllUsers] = useState<Array<{ userId: string; email?: string | null }>>([]);
   const [formKey, setFormKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [viewUserPolicies, setViewUserPolicies] = useState<ViewUserPolicies | null>(null);
@@ -110,7 +110,7 @@ export default function PoliciesPage() {
     };
 
     if (assignMode === "user") {
-      if (!newUserId.trim()) {
+      if (!newUserId.trim() || !allUsers.some((u) => u.userId === newUserId.trim())) {
         setError("User ID is required");
         setSaving(false);
         return;

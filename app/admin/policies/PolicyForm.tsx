@@ -12,13 +12,15 @@ function UserAutocomplete({
 }: {
   value: string;
   onChange: (v: string) => void;
-  validUsers: string[];
+  validUsers: Array<{ userId: string; email?: string | null }>;
 }) {
   const [query, setQuery] = useState(value);
-  const [users, setUsers] = useState<string[]>([]);
+  const [users, setUsers] = useState<Array<{ userId: string; email?: string | null }>>([]);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const userEdit = useRef(false);
+
+  const userIds = validUsers.map((u) => u.userId);
 
   useEffect(() => {
     if (!userEdit.current) setQuery(value);
@@ -42,41 +44,51 @@ function UserAutocomplete({
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, []);
 
+  const isValid = value && userIds.includes(value);
+
   return (
     <div ref={ref} className="relative" style={{ minWidth: "200px" }}>
       <label className="mb-1 block text-xs font-medium text-gray-500" title="Required field">
         User ID <span className="text-red-500">*</span>
       </label>
-      <input
-        className="w-full rounded-md border bg-white px-3 py-2 text-sm text-gray-900"
-        style={{
-          borderColor: value && validUsers.includes(value) ? "#22c55e" : value && !validUsers.includes(value) ? "#ef4444" : "#d1d5db",
-        }}
-        value={query}
-        onChange={(e) => {
-          userEdit.current = true;
-          setQuery(e.target.value);
-          setOpen(true);
-          if (!e.target.value || !validUsers.includes(e.target.value)) {
-            onChange("");
-          } else {
-            onChange(e.target.value);
-          }
-        }}
-        onFocus={() => setOpen(true)}
-        placeholder="Search users..."
-      />
+      <div className="relative">
+        <input
+          className="w-full rounded-md border bg-white px-3 py-2 pr-8 text-sm text-gray-900"
+          style={{
+            borderColor: isValid ? "#22c55e" : value && !isValid ? "#ef4444" : "#d1d5db",
+          }}
+          value={query}
+          onChange={(e) => {
+            userEdit.current = true;
+            setQuery(e.target.value);
+            setOpen(true);
+            if (!e.target.value || !userIds.includes(e.target.value)) {
+              onChange("");
+            } else {
+              onChange(e.target.value);
+            }
+          }}
+          onFocus={() => setOpen(true)}
+          placeholder="Search users..."
+        />
+        <svg
+          className={`pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
+          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
       {open && users.length > 0 && (
         <div className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-md border bg-white shadow-lg">
           {users.map((u) => (
             <button
-              key={u}
+              key={u.userId}
               type="button"
-              onClick={() => { userEdit.current = true; onChange(u); setQuery(u); setOpen(false); }}
+              onClick={() => { userEdit.current = true; onChange(u.userId); setQuery(u.userId); setOpen(false); }}
               className="flex w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
-              style={{ fontWeight: u === value ? "600" : "400" }}
+              style={{ fontWeight: u.userId === value ? "600" : "400" }}
             >
-              {u}
+              {u.email ? `${u.userId} (${u.email})` : u.userId}
             </button>
           ))}
         </div>
@@ -107,54 +119,138 @@ function ScopeInput({
 
   return (
     <>
-      <div style={{ minWidth: "160px" }}>
-        <label className="mb-1 block text-xs font-medium text-gray-500">
-          Domain <span className="text-gray-400">(empty = all)</span>
-        </label>
-        <input
-          className="w-full rounded-md border bg-white px-3 py-2 text-sm text-gray-900 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
-          style={{ borderColor: "#d1d5db" }}
-          value={domain}
-          onChange={(e) => onDomainChange(e.target.value)}
-          placeholder={disabled ? "Admin = global access" : "e.g. CREDIT"}
-          list="domain-list"
-          disabled={disabled}
-        />
-        <datalist id="domain-list">
-          {domainList.map((d) => <option key={d} value={d} />)}
-        </datalist>
-      </div>
-      <div style={{ minWidth: "160px" }}>
-        <label className="mb-1 block text-xs font-medium text-gray-500">
-          Context <span className="text-gray-400">(empty = all)</span>
-        </label>
-        <input
-          className="w-full rounded-md border bg-white px-3 py-2 text-sm text-gray-900 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
-          style={{ borderColor: "#d1d5db" }}
-          value={context}
-          onChange={(e) => onContextChange(e.target.value)}
-          placeholder={disabled ? "Admin = global access" : "e.g. ENGAGEMENT"}
-          list="context-list"
-          disabled={disabled}
-        />
-        <datalist id="context-list">
-          {contextList.map((c) => <option key={c} value={c} />)}
-        </datalist>
-      </div>
+      <ScopeDropdown
+        label="Domain"
+        hint="empty = all"
+        placeholder={disabled ? "Admin = global access" : "e.g. CREDIT"}
+        value={domain}
+        onChange={onDomainChange}
+        options={domainList}
+        disabled={disabled}
+      />
+      <ScopeDropdown
+        label="Context"
+        hint="empty = all"
+        placeholder={disabled ? "Admin = global access" : "e.g. ENGAGEMENT"}
+        value={context}
+        onChange={onContextChange}
+        options={contextList}
+        disabled={disabled}
+      />
     </>
   );
 }
 
-function DataContractDatalist({
+function ScopeDropdown({
+  label,
+  hint,
+  placeholder,
+  value,
+  onChange,
+  options,
+  disabled,
+}: {
+  label: string;
+  hint: string;
+  placeholder: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+  disabled?: boolean;
+}) {
+  const [query, setQuery] = useState(value);
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const userEdit = useRef(false);
+
+  useEffect(() => {
+    if (!userEdit.current) setQuery(value);
+    userEdit.current = false;
+  }, [value]);
+
+  useEffect(() => {
+    function handlePointerDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, []);
+
+  const filtered = query
+    ? options.filter((o) => o.toLowerCase().includes(query.toLowerCase()))
+    : options;
+
+  return (
+    <div ref={ref} className="relative" style={{ minWidth: "160px" }}>
+      <label className="mb-1 block text-xs font-medium text-gray-500">
+        {label} <span className="text-gray-400">({hint})</span>
+      </label>
+      <div className="relative">
+        <input
+          className="w-full rounded-md border bg-white px-3 py-2 pr-8 text-sm text-gray-900 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
+          style={{ borderColor: "#d1d5db" }}
+          value={query}
+          onChange={(e) => {
+            userEdit.current = true;
+            setQuery(e.target.value);
+            setOpen(true);
+            onChange(e.target.value);
+          }}
+          onFocus={() => setOpen(true)}
+          placeholder={placeholder}
+          disabled={disabled}
+        />
+        {!disabled && (
+          <svg
+            className={`pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
+            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        )}
+      </div>
+      {open && !disabled && filtered.length > 0 && (
+        <div className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-md border bg-white shadow-lg">
+          {filtered.map((o) => (
+            <button
+              key={o}
+              type="button"
+              onClick={() => { userEdit.current = true; onChange(o); setQuery(o); setOpen(false); }}
+              className="flex w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
+              style={{ fontWeight: o === value ? "600" : "400" }}
+            >
+              {o}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DataContractSelect({
+  value,
+  onChange,
   domain,
   context,
-  id,
+  disabled,
 }: {
+  value: string;
+  onChange: (v: string) => void;
   domain: string;
   context: string;
-  id: string;
+  disabled?: boolean;
 }) {
+  const [query, setQuery] = useState(value);
   const [items, setItems] = useState<{ slug: string; title: string }[]>([]);
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const userEdit = useRef(false);
+
+  useEffect(() => {
+    if (!userEdit.current) setQuery(value);
+    userEdit.current = false;
+  }, [value]);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -167,10 +263,117 @@ function DataContractDatalist({
       .catch(() => {});
   }, [domain, context]);
 
+  useEffect(() => {
+    function handlePointerDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, []);
+
+  const filtered = query
+    ? items.filter((s) => s.slug.toLowerCase().includes(query.toLowerCase()) || s.title.toLowerCase().includes(query.toLowerCase()))
+    : items;
+
   return (
-    <datalist id={id}>
-      {items.map((s) => <option key={s.slug} value={s.slug}>{s.title}</option>)}
-    </datalist>
+    <div ref={ref} className="relative" style={{ minWidth: "200px" }}>
+      <label className="mb-1 block text-xs font-medium text-gray-500">
+        Data Contract <span className="text-gray-400">(empty = all in context)</span>
+      </label>
+      <div className="relative">
+        <input
+          className="w-full rounded-md border bg-white px-3 py-2 pr-8 text-sm text-gray-900 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
+          style={{ borderColor: "#d1d5db" }}
+          value={query}
+          onChange={(e) => {
+            userEdit.current = true;
+            setQuery(e.target.value);
+            setOpen(true);
+            onChange(e.target.value);
+          }}
+          onFocus={() => setOpen(true)}
+          placeholder={disabled ? "Admin = global access" : "e.g. credit_engagement"}
+          disabled={disabled}
+        />
+        {!disabled && (
+          <svg
+            className={`pointer-events-none absolute right-0 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
+            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        )}
+      </div>
+      {open && !disabled && filtered.length > 0 && (
+        <div className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-md border bg-white shadow-lg">
+          {filtered.map((s) => (
+            <button
+              key={s.slug}
+              type="button"
+              onClick={() => { userEdit.current = true; onChange(s.slug); setQuery(s.slug); setOpen(false); }}
+              className="flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-gray-50"
+              style={{ fontWeight: s.slug === value ? "600" : "400" }}
+            >
+              <span>{s.slug}</span>
+              {s.title && <span className="text-xs text-gray-400">{s.title}</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PermissionSelect({
+  value,
+  onChange,
+  items,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  items: Permission[];
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const selected = items.find((p) => String(p.id) === value);
+
+  useEffect(() => {
+    function handlePointerDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between rounded-md border bg-white px-3 py-2 text-sm text-gray-900"
+        style={{ borderColor: value ? "#22c55e" : "#ef4444" }}
+        onClick={() => setOpen(!open)}
+      >
+        <span>{selected ? selected.name : "Select\u2026"}</span>
+        <svg className={`h-4 w-4 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-md border bg-white shadow-lg">
+          {items.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => { onChange(String(p.id)); setOpen(false); }}
+              className="flex w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
+              style={{ fontWeight: String(p.id) === value ? "600" : "400" }}
+            >
+              {p.name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -214,7 +417,7 @@ export default function PolicyForm({
   setNewContextScope: (v: string) => void;
   newDataContractScope: string;
   setNewDataContractScope: (v: string) => void;
-  allUsers: string[];
+  allUsers: Array<{ userId: string; email?: string | null }>;
   groups: Group[];
   permissions: Permission[];
   scopes: Scope[];
@@ -225,12 +428,13 @@ export default function PolicyForm({
   onSave: () => void;
   onCancel: () => void;
 }) {
+  const allUserIds = allUsers.map((u) => u.userId);
   const isCreateDisabled = assignMode === "user"
-    ? !allUsers.includes(newUserId) || !newPermissionId || saving
+    ? !allUserIds.includes(newUserId) || !newPermissionId || saving
     : !newGroupId || !newPermissionId || saving;
 
   const isSaveDisabled = assignMode === "user"
-    ? !allUsers.includes(newUserId) || !newPermissionId || saving
+    ? !allUserIds.includes(newUserId) || !newPermissionId || saving
     : !newGroupId || !newPermissionId || saving;
 
   return (
@@ -284,21 +488,15 @@ export default function PolicyForm({
           </div>
         )}
 
-        <div style={{ minWidth: "140px" }}>
+        <div className="relative" style={{ minWidth: "140px" }}>
           <label className="mb-1 block text-xs font-medium text-gray-500" title="Required field">
             Permission <span className="text-red-500">*</span>
           </label>
-          <select
-            className="w-full rounded-md border bg-white px-3 py-2 text-sm text-gray-900"
-            style={{ borderColor: newPermissionId ? "#22c55e" : "#ef4444" }}
+          <PermissionSelect
             value={newPermissionId}
-            onChange={(e) => setNewPermissionId(e.target.value)}
-          >
-            <option value="">Select…</option>
-            {permissions.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
+            onChange={setNewPermissionId}
+            items={permissions}
+          />
         </div>
 
         <ScopeInput
@@ -310,25 +508,13 @@ export default function PolicyForm({
           onContextChange={setNewContextScope}
         />
 
-        <div style={{ minWidth: "200px" }}>
-          <label className="mb-1 block text-xs font-medium text-gray-500">
-            Data Contract <span className="text-gray-400">(empty = all in context)</span>
-          </label>
-          <input
-            className="w-full rounded-md border bg-white px-3 py-2 text-sm text-gray-900 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
-            style={{ borderColor: "#d1d5db" }}
-            value={newDataContractScope}
-            onChange={(e) => setNewDataContractScope(e.target.value)}
-            placeholder={isAdmin ? "Admin = global access" : "e.g. credit_engagement"}
-            list="dc-list"
-            disabled={isAdmin}
-          />
-          <DataContractDatalist
-            domain={newDomainScope}
-            context={newContextScope}
-            id="dc-list"
-          />
-        </div>
+        <DataContractSelect
+          value={newDataContractScope}
+          onChange={setNewDataContractScope}
+          domain={newDomainScope}
+          context={newContextScope}
+          disabled={isAdmin}
+        />
 
         {editTarget ? (
           <div className="flex gap-2">
