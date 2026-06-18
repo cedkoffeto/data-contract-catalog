@@ -288,10 +288,10 @@ function AccessRequestsSection() {
                     {r.status === "pending" ? (
                       <div className="flex gap-1">
                         <button onClick={() => handleStatus(r.id, "approved")} className="rounded bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 hover:bg-green-100">Approve</button>
-                        <button onClick={() => handleStatus(r.id, "denied")} className="rounded bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 hover:bg-red-100">Deny</button>
+                        <button onClick={() => handleStatus(r.id, "rejected")} className="rounded bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 hover:bg-red-100">Deny</button>
                       </div>
                     ) : (
-                      <span className="text-xs text-gray-400">\u2014</span>
+                      <span className="text-xs text-gray-400">{"\u2014"}</span>
                     )}
                   </td>
                 </tr>

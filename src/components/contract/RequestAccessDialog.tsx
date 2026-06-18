@@ -45,11 +45,22 @@ export function RequestAccessDialog({
   useEffect(() => {
     if (!open) return;
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") handleClose();
     }
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [open]);
+
+  function handleOpen() {
+    document.body.dataset.raModal = "fading";
+    setTimeout(() => setOpen(true), 200);
+  }
+
+  function handleClose() {
+    setOpen(false);
+    setDone(false);
+    setMessage("");
+  }
 
   async function handleSubmit() {
     setSending(true);
@@ -72,16 +83,10 @@ export function RequestAccessDialog({
     }
   }
 
-  function handleClose() {
-    setOpen(false);
-    setDone(false);
-    setMessage("");
-  }
-
   return (
     <>
       <button
-        onClick={() => setOpen(true)}
+        onClick={handleOpen}
         className="rounded-md px-4 py-2 text-sm font-bold text-white"
         style={{ backgroundColor: "var(--ui-primary)" }}
       >
@@ -113,6 +118,7 @@ export function RequestAccessDialog({
               <div className="flex flex-1 flex-col items-center justify-center px-4 py-6 text-center">
                 <p className="text-sm font-medium text-green-600">Request sent to administrators.</p>
                 <button
+                  type="button"
                   onClick={handleClose}
                   className="mt-3 rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
                 >
@@ -122,10 +128,10 @@ export function RequestAccessDialog({
             ) : (
               <>
                 <div className="flex-1 overflow-y-auto px-4 py-3">
-                  <div className="space-y-1 text-xs text-gray-400">
-                    {domain && <span className="block">Domain: {domain}</span>}
-                    {context && <span className="block">Context: {context}</span>}
-                    {slug && <span className="block">Contract: {slug}</span>}
+                  <div className="flex flex-wrap items-center space-x-6 text-xs text-gray-400">
+                    {domain && <span>Domain: <span className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-gray-700">{domain}</span></span>}
+                    {context && <span>Context: <span className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-gray-700">{context}</span></span>}
+                    {slug && <span>Contract: <span className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-gray-700">{slug}</span></span>}
                   </div>
 
                   <textarea
@@ -140,6 +146,7 @@ export function RequestAccessDialog({
 
                 <div className="flex items-center justify-end gap-2 border-t border-gray-100 px-4 py-2">
                   <button
+                    type="button"
                     onClick={handleClose}
                     className="rounded px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
                   >

@@ -11,9 +11,16 @@ export type AuditAction =
   | "group.create"
   | "group.delete"
   | "group.add_member"
-  | "group.remove_member";
+  | "group.remove_member"
+  | "auth.login"
+  | "auth.login_failed"
+  | "auth.logout"
+  | "auth.unauthorized"
+  | "access_request.create"
+  | "access_request.approve"
+  | "access_request.deny";
 
-export type AuditTargetType = "user" | "contract" | "policy" | "group";
+export type AuditTargetType = "user" | "contract" | "policy" | "group" | "system";
 
 export async function writeAuditLog(params: {
   action: AuditAction;

@@ -2,6 +2,7 @@ import { getServerSession, type NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import KeycloakProvider from "next-auth/providers/keycloak";
 import { getUserPermissions } from "@/src/lib/rbac";
+import { writeAuditLog } from "@/src/lib/audit";
 
 type KeycloakTokenResponse = {
   access_token?: string;
@@ -111,6 +112,13 @@ export const authOptions: NextAuthOptions = {
           console.error("[auth.credentials] Keycloak login failed", {
             message: error instanceof Error ? error.message : "Unknown authentication error"
           });
+          writeAuditLog({
+            action: "auth.login_failed",
+            actorId: username,
+            targetType: "user",
+            targetId: username,
+            details: { error: error instanceof Error ? error.message : "Unknown" },
+          }).catch(() => {});
           return null;
         }
       }
@@ -181,7 +189,32 @@ export const authOptions: NextAuthOptions = {
 
       return session;
     }
-  }
+  },
+  events: {
+    async signIn({ user }) {
+      if (!user?.name) return;
+      try {
+        await writeAuditLog({
+          action: "auth.login",
+          actorId: user.name,
+          targetType: "user",
+          targetId: user.name,
+        });
+      } catch { /* silent */ }
+    },
+    async signOut({ session }) {
+      const userId = session?.user?.name;
+      if (!userId) return;
+      try {
+        await writeAuditLog({
+          action: "auth.logout",
+          actorId: userId,
+          targetType: "user",
+          targetId: userId,
+        });
+      } catch { /* silent */ }
+    },
+  },
 };
 
 export function auth() {

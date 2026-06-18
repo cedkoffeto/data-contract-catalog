@@ -1220,7 +1220,7 @@ a:has(> .kpi-card) {
 }
 
 body[data-ra-modal] [data-ra-overlay] {
-  opacity: 0 !important;
+  opacity: 0;
   pointer-events: none !important;
 }
 

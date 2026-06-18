@@ -48,11 +48,19 @@ function Description({ text }: { text: string }) {
 }
 
 export function CatalogCard({ card }: { card: CatalogCardType }) {
+  const [hovered, setHovered] = useState(false);
+
   if (!card.accessible) {
     return (
-      <li className="catalog-card-listing group" data-accessible="false" data-search={card.searchData}>
+      <li
+        className="catalog-card-listing"
+        data-accessible="false"
+        data-search={card.searchData}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
         <div
-          className="relative transition-shadow duration-200 group-hover:shadow-[0_0_20px_4px_rgba(234,88,12,0.35)] rounded-xl"
+          className={`relative rounded-xl transition-shadow duration-200 ${hovered ? "shadow-[0_0_20px_4px_rgba(234,88,12,0.35)]" : ""}`}
         >
           <div
             aria-disabled="true"
@@ -85,7 +93,7 @@ export function CatalogCard({ card }: { card: CatalogCardType }) {
             </div>
           </div>
 
-          <div data-ra-overlay className="absolute inset-0 z-10 flex cursor-pointer items-center justify-center rounded-xl bg-orange-600/20 opacity-0 backdrop-blur-[0.5px] transition-opacity duration-200 group-hover:opacity-100" style={{ pointerEvents: "auto" }}>
+          <div data-ra-overlay className={`absolute inset-0 z-10 flex cursor-pointer items-center justify-center rounded-xl bg-orange-600/20 backdrop-blur-[0.5px] transition-opacity duration-200 ${hovered ? "opacity-100" : "opacity-0"}`} style={{ pointerEvents: "auto" }}>
             <div onClick={(e) => e.stopPropagation()}>
               <RequestAccessButton slug={card.slug} domain={card.domain} context={card.context} />
             </div>
