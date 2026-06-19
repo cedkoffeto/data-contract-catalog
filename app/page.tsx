@@ -11,7 +11,7 @@ export default async function HomePage() {
   const userId = session?.user?.name;
   const permissions = userId ? await getUserPermissions(userId) : [];
 
-  const cards = await getCatalogCards();
+  const cards = await getCatalogCards().catch(() => []);
   if (!userId) {
     return <CatalogPage cards={[]} />;
   }

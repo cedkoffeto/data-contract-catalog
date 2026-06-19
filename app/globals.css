@@ -949,6 +949,7 @@ a:has(> .kpi-card) {
   border-radius: var(--ui-radius);
   font-size: 0.82rem;
   font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
 }
 
