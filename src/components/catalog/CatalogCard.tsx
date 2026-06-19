@@ -123,11 +123,11 @@ export function CatalogCard({ card, onTogglePin, onToggleFavorite, onToggleSubsc
   if (!card.accessible) {
     return (
       <li
-        className="catalog-card-listing group"
+        className="catalog-card-listing"
         data-accessible="false"
         data-search={card.searchData}
       >
-        <div className="relative rounded-xl transition-shadow duration-300 group-hover:shadow-[0_8px_30px_rgba(249,115,22,0.15)]">
+        <div className="relative rounded-xl card-overlay-wrapper">
           <div
             aria-disabled="true"
             className="catalog-card catalog-card--disabled"
@@ -158,8 +158,8 @@ export function CatalogCard({ card, onTogglePin, onToggleFavorite, onToggleSubsc
             </div>
           </div>
 
-          <div data-ra-overlay className="absolute inset-0 z-10 flex cursor-default items-center justify-center rounded-xl bg-white/70 backdrop-blur-sm transition-all duration-300 ease-out opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto">
-            <div className="transition-all duration-300 ease-out translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 group-hover:delay-100">
+          <div data-ra-overlay className="card-overlay">
+            <div className="card-overlay__content">
               <RequestAccessButton slug={card.slug} domain={card.domain} context={card.context} accessRequestStatus={card.accessRequestStatus} />
             </div>
           </div>

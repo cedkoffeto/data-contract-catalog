@@ -1474,6 +1474,48 @@ body[data-ra-modal] [data-ra-overlay] {
   display: block;
 }
 
+.card-overlay-wrapper {
+  transition: box-shadow 0.3s;
+}
+
+.card-overlay-wrapper:hover {
+  box-shadow: 0 8px 30px rgba(249, 115, 22, 0.15);
+}
+
+.card-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  cursor: default;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease-out;
+}
+
+.card-overlay-wrapper:hover .card-overlay {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.card-overlay__content {
+  transition: all 0.3s ease-out;
+  transform: translateY(1rem);
+  opacity: 0;
+}
+
+.card-overlay-wrapper:hover .card-overlay__content {
+  transform: translateY(0);
+  opacity: 1;
+  transition-delay: 100ms;
+}
+
 .catalog-card__sub {
   display: inline-flex;
   align-items: center;
