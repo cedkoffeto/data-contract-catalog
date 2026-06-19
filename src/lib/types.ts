@@ -175,6 +175,7 @@ export type CatalogCard = {
   accessible: boolean;
   accessRequestStatus?: "pending";
   isFavorite?: boolean;
+  isPinned?: boolean;
 };
 
 export type ContractHistoryEntry = {

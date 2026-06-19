@@ -25,8 +25,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
   const userId = session?.user?.name;
   if (!userId) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
 
-  const body = (await request.json()) as { isFavorite?: boolean };
-  const isFavorite = await updateUserContractPreferences(userId, (await params).slug, body.isFavorite ?? false);
+  const body = (await request.json()) as { isFavorite?: boolean; isPinned?: boolean };
+  const preferences = await updateUserContractPreferences(userId, (await params).slug, body);
 
-  return NextResponse.json({ isFavorite });
+  return NextResponse.json({ preferences });
 }

@@ -324,6 +324,13 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
       ALTER TABLE user_contract_preferences DROP COLUMN is_pinned;
     `,
   },
+  {
+    id: "013_add_is_pinned",
+    sql: `
+      ALTER TABLE user_contract_preferences ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0;
+      CREATE INDEX IF NOT EXISTS idx_user_contract_preferences_pinned ON user_contract_preferences(user_id, is_pinned);
+    `,
+  },
 ];
 
 export async function runMigrations(): Promise<void> {

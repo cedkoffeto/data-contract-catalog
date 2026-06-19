@@ -84,8 +84,8 @@ export function ContractPageClient({
     if (!userId) return;
     fetch(`/api/contracts/${encodeURIComponent(slug)}/preferences`)
       .then((res) => (res.ok ? res.json() : null))
-      .then((data: { isFavorite?: boolean } | null) => {
-        setIsFavorite(Boolean(data?.isFavorite));
+      .then((data: { preferences?: { isFavorite?: boolean } } | null) => {
+        setIsFavorite(Boolean(data?.preferences?.isFavorite));
       })
       .catch(() => {
         setIsFavorite(false);
@@ -136,7 +136,8 @@ export function ContractPageClient({
       body: JSON.stringify({ isFavorite: next }),
     });
     if (!res.ok) return;
-    setIsFavorite(next);
+    const result = (await res.json()) as { preferences?: { isFavorite?: boolean } };
+    setIsFavorite(Boolean(result?.preferences?.isFavorite));
   }
 
   function TabIcon({ name }: { name: "details" | "comments" | "issues" }) {

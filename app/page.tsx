@@ -4,6 +4,7 @@ import { getAccessibleSlugs } from "@/src/lib/catalog-filter";
 import { getUserPermissions } from "@/src/lib/rbac";
 import { auth } from "@/src/auth";
 import { query } from "@/src/lib/db";
+import { getPinnedSlugs } from "@/src/lib/preferences";
 
 export default async function HomePage() {
   const session = await auth();
@@ -22,24 +23,24 @@ export default async function HomePage() {
     [userId],
   );
   const pendingSlugs = new Set(pendingRows.map((r) => r.data_contract));
-  const favoriteSlugs = userId ? await getFavoriteSlugs(userId) : [];
+  const favoriteSlugs = await getPreferenceSlugs(userId, "is_favorite");
+  const pinnedSlugs = await getPinnedSlugs(userId);
+  const pinnedSet = new Set(pinnedSlugs);
 
-  const annotated = cards.map((card) => {
-    const rows = userId ? favoriteSlugs.filter((s) => s === card.slug) : [];
-    return {
-      ...card,
-      accessible: accessible.has(card.slug),
-      accessRequestStatus: pendingSlugs.has(card.slug) ? "pending" as const : undefined,
-      isFavorite: rows.length > 0,
-    };
-  });
+  const annotated = cards.map((card) => ({
+    ...card,
+    accessible: accessible.has(card.slug),
+    accessRequestStatus: pendingSlugs.has(card.slug) ? "pending" as const : undefined,
+    isFavorite: favoriteSlugs.has(card.slug),
+    isPinned: pinnedSet.has(card.slug),
+  }));
   return <CatalogPage cards={annotated} />;
 }
 
-async function getFavoriteSlugs(userId: string): Promise<string[]> {
+async function getPreferenceSlugs(userId: string, column: string): Promise<Set<string>> {
   const rows = await query<{ contract_slug: string }>(
-    "SELECT contract_slug FROM user_contract_preferences WHERE user_id = ? AND is_favorite = 1",
+    `SELECT contract_slug FROM user_contract_preferences WHERE user_id = ? AND ${column} = 1`,
     [userId],
   );
-  return rows.map((r) => r.contract_slug);
+  return new Set(rows.map((r) => r.contract_slug));
 }
