@@ -36,9 +36,9 @@ function getInitials(name: string) {
 }
 
 function renderBody(body: string) {
-  const parts = body.split(/(@[A-Za-z0-9_.-]+)/g);
+  const parts = body.split(/(@[\p{L}\p{N}_.-]+)/gu);
   return parts.map((part, index) => {
-    if (/^@[A-Za-z0-9_.-]+$/.test(part)) {
+    if (/^@[\p{L}\p{N}_.-]+$/u.test(part)) {
       return (
         <span key={`${part}-${index}`} className="rounded bg-blue-50 px-1 font-semibold text-blue-700">
           {part}
@@ -191,7 +191,7 @@ function InlineReplyForm({
     setBody(value);
 
     const beforeCursor = value.slice(0, cursor);
-    const match = beforeCursor.match(/@([A-Za-z0-9_.-]*)$/);
+    const match = beforeCursor.match(/@([\p{L}\p{N}_.-]*)$/u);
     if (match) {
       const start = cursor - match[0].length;
       setMentionStart(start);
@@ -492,7 +492,7 @@ export function DiscussionThread({
     }
 
     const beforeCursor = value.slice(0, cursor);
-    const match = beforeCursor.match(/@([A-Za-z0-9_.-]*)$/);
+    const match = beforeCursor.match(/@([\p{L}\p{N}_.-]*)$/u);
     if (match) {
       const start = cursor - match[0].length;
       setMentionStart(start);

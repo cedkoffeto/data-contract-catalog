@@ -33,7 +33,7 @@ export async function listContractComments(contractSlug: string): Promise<Contra
 }
 
 export function extractMentionedUserIds(body: string): string[] {
-  const matches = body.match(/@([A-Za-z0-9_.-]+)/g) ?? [];
+  const matches = body.match(/@([\p{L}\p{N}_.-]+)/gu) ?? [];
   return [...new Set(matches.map((match) => match.slice(1)))];
 }
 
