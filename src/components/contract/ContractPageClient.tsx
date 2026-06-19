@@ -278,6 +278,12 @@ export function ContractPageClient({
                   </button>
                 )}
                 <YamlDialogButton yamlRaw={displayedYamlRaw} />
+                <a className="catalog-secondary-link" href={`/api/contracts/${encodeURIComponent(slug)}/export?type=csv`}>
+                  Export CSV
+                </a>
+                <a className="catalog-secondary-link" href={`/api/contracts/${encodeURIComponent(slug)}/export?type=pdf`} target="_blank" rel="noreferrer">
+                  Export PDF
+                </a>
               </div>
             </div>
 
