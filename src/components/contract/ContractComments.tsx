@@ -41,23 +41,13 @@ function CommentBubble({
   comment,
   userId,
   onReply,
-  isReplying,
-  replyBody,
-  setReplyBody,
-  onSubmitReply,
-  savingReply,
 }: {
   comment: ContractComment;
   userId?: string;
   onReply: (comment: ContractComment) => void;
-  isReplying: boolean;
-  replyBody: string;
-  setReplyBody: (value: string) => void;
-  onSubmitReply: (parentId: number) => void;
-  savingReply: boolean;
 }) {
   return (
-    <article id={`comment-${comment.id}`} className="group rounded-2xl border border-gray-200 bg-white p-4 shadow-sm scroll-mt-24">
+    <article id={`comment-${comment.id}`} className="group rounded-2xl border border-gray-200 bg-white p-3 shadow-sm scroll-mt-24">
       <div className="flex gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-100 text-xs font-bold text-orange-700">
           {getInitials(comment.userId)}
@@ -67,7 +57,7 @@ function CommentBubble({
             <h3 className="text-sm font-semibold text-gray-900">{comment.userId}</h3>
             <time className="text-xs text-gray-400">{formatDate(comment.createdAt)}</time>
           </div>
-          <div className="mt-2 rounded-2xl bg-gray-50 px-3 py-2 text-sm leading-6 text-gray-700">
+          <div className="mt-2 rounded-2xl border border-gray-100 bg-gray-50 px-3 py-2 text-sm leading-6 text-gray-700">
             {renderBody(comment.body)}
           </div>
           {comment.editedAt ? <p className="mt-1 text-xs text-gray-400">Edited</p> : null}
@@ -79,25 +69,6 @@ function CommentBubble({
             >
               Reply
             </button>
-          ) : null}
-          {isReplying ? (
-            <form className="mt-3 flex gap-2" onSubmit={(event) => { event.preventDefault(); onSubmitReply(comment.id); }}>
-              <textarea
-                className="min-h-[72px] flex-1 rounded-xl border px-3 py-2 text-sm text-gray-900"
-                placeholder="Write a reply..."
-                rows={2}
-                value={replyBody}
-                onChange={(event) => setReplyBody(event.target.value)}
-                style={{ borderColor: "#dbeafe" }}
-              />
-              <button
-                type="submit"
-                disabled={savingReply || !replyBody.trim()}
-                className="h-fit rounded-xl bg-orange-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
-              >
-                Reply
-              </button>
-            </form>
           ) : null}
         </div>
       </div>
@@ -122,11 +93,9 @@ export function ContractComments({
   const [mentionEnd, setMentionEnd] = useState<number | null>(null);
   const [mentionTop, setMentionTop] = useState(16);
   const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
-  const [replyingTo, setReplyingTo] = useState<number | null>(null);
-  const [replyBody, setReplyBody] = useState("");
+  const [replyingTo, setReplyingTo] = useState<ContractComment | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [savingReply, setSavingReply] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -171,6 +140,10 @@ export function ContractComments({
       document.getElementById(`comment-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 300);
   }, [comments]);
+
+  function focusComposer() {
+    window.setTimeout(() => textareaRef.current?.focus(), 0);
+  }
 
   function calculateMentionTop(value: string, cursor: number) {
     const lineHeight = 24;
@@ -237,36 +210,33 @@ export function ContractComments({
     setMentionEnd(null);
     setMentionSearch("");
     setUsers([]);
-
-    window.setTimeout(() => {
-      textareaRef.current?.focus();
-    }, 0);
+    focusComposer();
   }
 
-  async function submitComment(parentId?: number) {
-    const commentBody = parentId ? replyBody.trim() : body.trim();
+  async function submitComment() {
+    const commentBody = body.trim();
     if (!commentBody || !userId) return;
 
-    if (parentId) setSavingReply(true); else setSaving(true);
+    setSaving(true);
     setError(null);
 
     try {
       const res = await fetch(`/api/contracts/${encodeURIComponent(slug)}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: commentBody, parentId }),
+        body: JSON.stringify({ body: commentBody, parentId: replyingTo?.id ?? null }),
       });
       if (!res.ok) {
         const payload = (await res.json()) as { error?: string };
         throw new Error(payload.error ?? "Unable to post comment");
       }
-      if (parentId) setReplyBody(""); else setBody("");
+      setBody("");
       setReplyingTo(null);
       await fetchComments();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to post comment");
     } finally {
-      if (parentId) setSavingReply(false); else setSaving(false);
+      setSaving(false);
     }
   }
 
@@ -284,22 +254,75 @@ export function ContractComments({
 
   return (
     <section className="contract-comments">
-      <div className="mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-        <div className="flex items-start justify-between gap-3">
+      {error ? <p className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
+
+      {loading ? (
+        <p className="rounded-xl border bg-white px-4 py-6 text-sm text-gray-500 shadow-sm">Loading discussion...</p>
+      ) : topComments.length === 0 ? (
+        <div className="rounded-2xl border border-dashed bg-white px-4 py-8 text-center text-sm text-gray-500 shadow-sm">
+          No comments yet. Start the discussion.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {topComments.map((comment) => (
+            <div key={comment.id} className="space-y-3">
+              <CommentBubble
+                comment={comment}
+                userId={userId}
+                onReply={(replyComment) => {
+                  setReplyingTo(replyingTo?.id === replyComment.id ? null : replyComment);
+                  setBody("");
+                  focusComposer();
+                }}
+              />
+              {repliesByParentId[comment.id]?.map((reply) => (
+                <div key={reply.id} className="ml-8 border-l-2 border-orange-200 pl-4">
+                  <CommentBubble
+                    comment={reply}
+                    userId={userId}
+                    onReply={(replyComment) => {
+                      setReplyingTo(replyingTo?.id === replyComment.id ? null : replyComment);
+                      setBody("");
+                      focusComposer();
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="mb-3 flex items-start justify-between gap-3">
           <div>
             <h2 className="text-base font-semibold text-gray-900">Discussion</h2>
             <p className="mt-1 text-sm text-gray-500">Ask questions, reply in thread, and mention teammates.</p>
           </div>
+          {replyingTo ? (
+            <button
+              type="button"
+              onClick={() => setReplyingTo(null)}
+              className="text-xs font-semibold text-gray-500 hover:text-gray-800"
+            >
+              Cancel reply
+            </button>
+          ) : null}
         </div>
 
         {userId ? (
-          <form className="relative mt-4" onSubmit={handleSubmit}>
+          <form className="relative" onSubmit={handleSubmit}>
+            {replyingTo ? (
+              <div className="mb-2 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-xs font-semibold text-orange-800">
+                Replying to @{replyingTo.userId}
+              </div>
+            ) : null}
             <div className="rounded-2xl border bg-gray-50 p-3">
               <textarea
                 ref={textareaRef}
                 className="w-full resize-none bg-transparent text-sm leading-6 text-gray-900 outline-none"
                 rows={4}
-                placeholder="Start a discussion... type @ to mention someone"
+                placeholder={replyingTo ? "Write a reply... type @ to mention someone" : "Start a discussion... type @ to mention someone"}
                 value={body}
                 onChange={handleTextChange}
                 onKeyDown={handleKeyDown}
@@ -347,7 +370,7 @@ export function ContractComments({
                 className="rounded-xl px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
                 style={{ backgroundColor: "var(--ui-primary)" }}
               >
-                {saving ? "Posting..." : "Post comment"}
+                {saving ? "Posting..." : replyingTo ? "Reply" : "Post comment"}
               </button>
             </div>
           </form>
@@ -355,53 +378,6 @@ export function ContractComments({
           <p className="mt-4 text-sm text-gray-500">Sign in to comment.</p>
         )}
       </div>
-
-      {error ? <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
-
-      {loading ? (
-        <p className="rounded-xl border bg-white px-4 py-6 text-sm text-gray-500 shadow-sm">Loading discussion...</p>
-      ) : topComments.length === 0 ? (
-        <div className="rounded-2xl border border-dashed bg-white px-4 py-8 text-center text-sm text-gray-500 shadow-sm">
-          No comments yet. Start the discussion.
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {topComments.map((comment) => (
-            <div key={comment.id} className="space-y-3">
-              <CommentBubble
-                comment={comment}
-                userId={userId}
-                onReply={(replyComment) => {
-                  setReplyingTo(replyingTo === replyComment.id ? null : replyComment.id);
-                  setReplyBody("");
-                }}
-                isReplying={replyingTo === comment.id}
-                replyBody={replyBody}
-                setReplyBody={setReplyBody}
-                onSubmitReply={submitComment}
-                savingReply={savingReply}
-              />
-              {repliesByParentId[comment.id]?.map((reply) => (
-                <div key={reply.id} className="ml-8 border-l-2 border-orange-200 pl-4">
-                  <CommentBubble
-                    comment={reply}
-                    userId={userId}
-                    onReply={(replyComment) => {
-                      setReplyingTo(replyingTo === replyComment.id ? null : replyComment.id);
-                      setReplyBody("");
-                    }}
-                    isReplying={replyingTo === reply.id}
-                    replyBody={replyBody}
-                    setReplyBody={setReplyBody}
-                    onSubmitReply={submitComment}
-                    savingReply={savingReply}
-                  />
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      )}
     </section>
   );
 }
