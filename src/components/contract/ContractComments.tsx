@@ -182,15 +182,14 @@ export function ContractComments({
     setMentionStart(null);
     setMentionEnd(null);
     setMentionSearch("");
-    setUsers([]);
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (!users.length || mentionStart === null || mentionEnd === null) return;
+    if (!filteredUsers.length || mentionStart === null || mentionEnd === null) return;
 
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      setSelectedMentionIndex((current) => Math.min(current + 1, users.length - 1));
+      setSelectedMentionIndex((current) => Math.min(current + 1, filteredUsers.length - 1));
     }
 
     if (event.key === "ArrowUp") {
@@ -202,12 +201,13 @@ export function ContractComments({
       event.preventDefault();
       setMentionStart(null);
       setMentionEnd(null);
-      setUsers([]);
+      setMentionSearch("");
+      setSelectedMentionIndex(0);
     }
 
     if (event.key === "Enter") {
       event.preventDefault();
-      selectMention(users[selectedMentionIndex]);
+      selectMention(filteredUsers[selectedMentionIndex]);
     }
   }
 
@@ -219,7 +219,6 @@ export function ContractComments({
     setMentionStart(null);
     setMentionEnd(null);
     setMentionSearch("");
-    setUsers([]);
     focusComposer();
   }
 
@@ -346,7 +345,7 @@ export function ContractComments({
 
             {mentionStart !== null && mentionEnd !== null && filteredUsers.length > 0 ? (
               <div
-                className="absolute z-20 mt-2 w-72 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg"
+                className="absolute z-20 mt-1 w-64 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg"
                 style={{ top: mentionTop }}
               >
                 {filteredUsers.map((user, index) => {
@@ -355,21 +354,19 @@ export function ContractComments({
                     <button
                       key={user.userId}
                       type="button"
-                      className={`flex w-full items-center gap-3 px-3 py-2 text-left ${isActive ? "bg-orange-50" : "bg-white hover:bg-gray-50"}`}
+                      className={`flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm ${isActive ? "bg-orange-50" : "hover:bg-gray-50"}`}
                       onMouseDown={(event) => {
                         event.preventDefault();
                         selectMention(user);
                       }}
                     >
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-100 text-xs font-bold text-orange-700">
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-orange-100 text-[10px] font-bold text-orange-700">
                         {getInitials(user.displayName)}
                       </div>
-                      <div className="min-w-0">
-                        <p className={`truncate text-sm font-semibold ${isActive ? "text-orange-700" : "text-gray-900"}`}>
-                          {user.displayName}
-                        </p>
-                        <p className="truncate text-xs text-gray-500">@{user.userId}</p>
-                      </div>
+                      <span className={`truncate ${isActive ? "font-semibold text-orange-700" : "font-medium text-gray-900"}`}>
+                        {user.displayName}
+                      </span>
+                      <span className="ml-auto shrink-0 truncate text-xs text-gray-400">@{user.userId}</span>
                     </button>
                   );
                 })}
