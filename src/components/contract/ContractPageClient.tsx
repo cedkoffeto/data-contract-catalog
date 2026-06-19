@@ -151,20 +151,33 @@ export function ContractPageClient({
 
   function ContractTab({ id, label, count, icon }: { id: "details" | "comments" | "issues"; label: string; count?: number; icon: "details" | "comments" | "issues" }) {
     const isActive = activeTab === id;
+    const isFirst = id === "details";
+    const isLast = id === "issues";
+    const clipPath = isFirst
+      ? "polygon(0 0, 92% 0, 100% 100%, 0 100%)"
+      : isLast
+        ? "polygon(8% 0, 100% 0, 100% 100%, 0 100%)"
+        : "polygon(8% 0, 100% 0, 92% 100%, 0 100%)";
     return (
       <button
         type="button"
         role="tab"
         aria-selected={isActive}
         onClick={() => setActiveTab(id)}
-        className={`group relative flex min-w-max items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-colors focus:outline-none ${isActive ? "border-orange-500 text-orange-700" : "border-transparent text-gray-500 hover:border-gray-200 hover:text-gray-700"}`}
+        className={`group relative flex min-w-max items-center gap-2 px-5 py-2 text-sm font-bold transition hover:-translate-y-px focus:outline-none ${isFirst ? "ml-0" : "-ml-px"} ${isActive ? "z-20" : "z-10"}`}
+        style={{
+          clipPath,
+          backgroundColor: isActive ? "#f97316" : "#f8fafc",
+          color: isActive ? "#ffffff" : "#64748b",
+          boxShadow: isActive ? "0 8px 18px rgba(249, 115, 22, 0.22)" : "0 1px 2px rgba(15, 23, 42, 0.06)",
+        }}
       >
-        <span className={isActive ? "text-orange-600" : "text-gray-400 group-hover:text-gray-500"}>
+        <span className={isActive ? "text-white" : "text-gray-400 group-hover:text-gray-600"}>
           <TabIcon name={icon} />
         </span>
         {label}
         {count !== undefined ? (
-          <span className={`rounded-full px-1.5 py-0.5 text-[11px] font-bold ${isActive ? "bg-orange-100 text-orange-700" : "bg-gray-100 text-gray-500 group-hover:bg-gray-200"}`}>
+          <span className={`rounded-full px-1.5 py-0.5 text-[11px] font-bold ${isActive ? "bg-white text-orange-700" : "bg-gray-200 text-gray-600 group-hover:bg-gray-300"}`}>
             {count}
           </span>
         ) : null}
