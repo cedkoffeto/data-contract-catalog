@@ -34,10 +34,12 @@ export function ContractIssues({
   slug,
   userId,
   canAdmin,
+  enabled,
 }: {
   slug: string;
   userId?: string;
   canAdmin: boolean;
+  enabled?: boolean;
 }) {
   const [issues, setIssues] = useState<ContractIssue[]>([]);
   const [body, setBody] = useState("");
@@ -45,6 +47,7 @@ export function ContractIssues({
   const [saving, setSaving] = useState(false);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
   const fetchIssues = useCallback(async () => {
     setLoading(true);
@@ -54,6 +57,7 @@ export function ContractIssues({
       if (!res.ok) throw new Error("Unable to load issues");
       const payload = (await res.json()) as { issues: ContractIssue[] };
       setIssues(payload.issues);
+      setLoaded(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load issues");
     } finally {
@@ -62,8 +66,9 @@ export function ContractIssues({
   }, [slug]);
 
   useEffect(() => {
-    fetchIssues();
-  }, [fetchIssues]);
+    if (!enabled || loaded) return;
+    void fetchIssues();
+  }, [enabled, loaded, fetchIssues]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();

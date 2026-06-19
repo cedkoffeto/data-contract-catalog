@@ -95,16 +95,6 @@ export function ContractPageClient({
       });
   }, [slug, userId]);
 
-  useEffect(() => {
-    Promise.all([
-      fetch(`/api/contracts/${encodeURIComponent(slug)}/comments`).then((res) => (res.ok ? (res.json() as Promise<{ comments: unknown[] }>) : null)),
-      fetch(`/api/contracts/${encodeURIComponent(slug)}/issues`).then((res) => (res.ok ? (res.json() as Promise<{ issues: unknown[] }>) : null)),
-    ]).then(([commentsPayload, issuesPayload]) => {
-      if (commentsPayload) setCommentCount(commentsPayload.comments.length);
-      if (issuesPayload) setIssueCount(issuesPayload.issues.length);
-    });
-  }, [slug]);
-
   const displayedData = activeVersion?.data ?? data;
   const displayedYamlRaw = activeVersion?.yamlRaw ?? yamlRaw;
   const asset = displayedData.asset ?? {};
@@ -264,10 +254,10 @@ export function ContractPageClient({
                   <ContractBody data={displayedData} slug={slug} userId={userId} />
                 </div>
                 <div className={activeTab === "comments" ? "" : "hidden"}>
-                  <ContractComments slug={slug} userId={userId} onCommentCountChange={setCommentCount} />
+                  <ContractComments slug={slug} userId={userId} enabled={activeTab === "comments"} onCommentCountChange={setCommentCount} />
                 </div>
                 <div className={activeTab === "issues" ? "" : "hidden"}>
-                  <ContractIssues slug={slug} userId={userId} canAdmin={canAdmin} />
+                  <ContractIssues slug={slug} userId={userId} canAdmin={canAdmin} enabled={activeTab === "issues"} />
                 </div>
               </div>
             </div>

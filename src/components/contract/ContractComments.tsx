@@ -81,10 +81,12 @@ export function ContractComments({
   slug,
   userId,
   onCommentCountChange,
+  enabled,
 }: {
   slug: string;
   userId?: string;
   onCommentCountChange?: (count: number) => void;
+  enabled?: boolean;
 }) {
   const [comments, setComments] = useState<ContractComment[]>([]);
   const [body, setBody] = useState("");
@@ -98,6 +100,7 @@ export function ContractComments({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const fetchComments = useCallback(async () => {
@@ -108,6 +111,7 @@ export function ContractComments({
       if (!res.ok) throw new Error("Unable to load comments");
       const payload = (await res.json()) as { comments: ContractComment[] };
       setComments(payload.comments);
+      setLoaded(true);
       onCommentCountChange?.(payload.comments.length);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load comments");
@@ -116,9 +120,9 @@ export function ContractComments({
     }
   }, [slug, onCommentCountChange]);
 
-  const fetchUsers = useCallback(async (q: string) => {
+  const fetchUsers = useCallback(async () => {
     try {
-      const res = await fetch(`/api/users?q=${encodeURIComponent(q)}`);
+      const res = await fetch(`/api/users`);
       if (!res.ok) return;
       const payload = (await res.json()) as { users: UserProfile[] };
       setUsers(payload.users);
@@ -129,8 +133,14 @@ export function ContractComments({
   }, []);
 
   useEffect(() => {
-    fetchComments();
-  }, [fetchComments]);
+    if (!userId) return;
+    void fetchUsers();
+  }, [fetchUsers, userId]);
+
+  useEffect(() => {
+    if (!enabled || loaded) return;
+    void fetchComments();
+  }, [enabled, loaded, fetchComments]);
 
   useEffect(() => {
     const hash = window.location.hash;
@@ -166,7 +176,6 @@ export function ContractComments({
       setMentionEnd(cursor);
       setMentionSearch(match[1]);
       calculateMentionTop(value, cursor);
-      void fetchUsers(match[1]);
       return;
     }
 
@@ -247,6 +256,10 @@ export function ContractComments({
   }
 
   const topComments = comments.filter((comment) => !comment.parentId);
+  const filteredUsers = users.filter((user) => {
+    if (!mentionSearch) return true;
+    return [user.displayName, user.userId, user.firstName, user.lastName].some((value) => value.toLowerCase().includes(mentionSearch.toLowerCase()));
+  });
   const repliesByParentId = comments.reduce<Record<number, ContractComment[]>>((acc, comment) => {
     if (!comment.parentId) return acc;
     acc[comment.parentId] = [...(acc[comment.parentId] ?? []), comment];
@@ -331,12 +344,12 @@ export function ContractComments({
               />
             </div>
 
-            {mentionStart !== null && mentionEnd !== null && users.length > 0 ? (
+            {mentionStart !== null && mentionEnd !== null && filteredUsers.length > 0 ? (
               <div
                 className="absolute z-20 mt-2 w-72 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg"
                 style={{ top: mentionTop }}
               >
-                {users.map((user, index) => {
+                {filteredUsers.map((user, index) => {
                   const isActive = index === selectedMentionIndex;
                   return (
                     <button

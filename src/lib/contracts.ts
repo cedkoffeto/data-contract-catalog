@@ -9,6 +9,8 @@ import { getGitSourceRef } from "@/src/lib/git-source";
 import type { CatalogCard, ContractFile, DataContract, EditorRepositoryFile } from "@/src/lib/types";
 
 const contractsRoot = process.env.CONTRACTS_PATH ?? path.join(process.cwd(), "contracts");
+const contractsCache: { expiresAt: number; value: ContractFile[] } = { expiresAt: 0, value: [] };
+const CONTRACTS_CACHE_TTL_MS = 30_000;
 
 type GitLabTreeItem = {
   id?: string;
@@ -486,7 +488,15 @@ async function getGitLabContracts(): Promise<ContractFile[]> {
 }
 
 export async function getContracts(): Promise<ContractFile[]> {
-  return hasGitLabContractsConfig() ? getGitLabContracts() : readLocalContracts();
+  const now = Date.now();
+  if (contractsCache.value.length > 0 && contractsCache.expiresAt > now) {
+    return contractsCache.value;
+  }
+
+  const contracts = hasGitLabContractsConfig() ? await getGitLabContracts() : readLocalContracts();
+  contractsCache.value = contracts;
+  contractsCache.expiresAt = Date.now() + CONTRACTS_CACHE_TTL_MS;
+  return contracts;
 }
 
 export async function getContractBySlug(slug: string): Promise<ContractFile | undefined> {

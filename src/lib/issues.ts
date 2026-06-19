@@ -74,7 +74,7 @@ export async function createContractIssue(params: {
     [params.contractSlug, params.userId, params.body],
   );
 
-  const rows = await query<{ id: number }>("SELECT MAX(id) AS id FROM contract_issues");
+  const rows = await query<{ id: number }>("SELECT last_insert_rowid() AS id");
   const id = rows[0]?.id ?? 0;
 
   const created = await query<{

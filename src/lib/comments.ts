@@ -84,7 +84,7 @@ export async function createContractComment(params: {
     [params.contractSlug, params.userId, params.body, params.parentId ?? null, params.targetField ?? null],
   );
 
-  const rows = await query<{ id: number }>("SELECT MAX(id) AS id FROM contract_comments");
+  const rows = await query<{ id: number }>("SELECT last_insert_rowid() AS id");
   const id = rows[0]?.id ?? 0;
 
   const created = await query<{
