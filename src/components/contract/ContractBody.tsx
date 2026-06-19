@@ -1,5 +1,6 @@
 import { InfoSection } from "@/src/components/contract/InfoSection";
 import { InputsSection } from "@/src/components/contract/InputsSection";
+import { LineageGraph } from "@/src/components/contract/LineageGraph";
 import { ModelsSection } from "@/src/components/contract/ModelsSection";
 import { QualitySection } from "@/src/components/contract/QualitySection";
 import { SecuritySection } from "@/src/components/contract/SecuritySection";
@@ -29,6 +30,8 @@ export function ContractBody({ data, slug, userId }: { data: DataContract; slug?
         sources={inputs.sources ?? []}
         transformations={inputs.transformations ?? []}
       />
+
+      <LineageGraph data={data} />
 
       <QualitySection checks={quality.checks ?? []} onFailure={quality.on_failure} />
 
