@@ -164,7 +164,7 @@ export function ContractPageClient({
         role="tab"
         aria-selected={isActive}
         onClick={() => setActiveTab(id)}
-        className={`group relative flex min-w-max items-center gap-2 px-5 py-2 text-sm font-bold transition hover:-translate-y-px focus:outline-none ${isFirst ? "ml-0" : "-ml-px"} ${isActive ? "z-20" : "z-10"}`}
+        className={`group relative flex min-w-max items-center gap-2 px-6 py-2.5 text-sm font-bold transition hover:-translate-y-px focus:outline-none ${isFirst ? "ml-0" : "-ml-px"} ${isActive ? "z-20" : "z-10"}`}
         style={{
           clipPath,
           backgroundColor: isActive ? "#f97316" : "#f8fafc",
