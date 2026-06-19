@@ -1,5 +1,26 @@
+@import "tailwindcss";
 @import "./output.css";
 @import "./rjsf-shadcn.css";
+
+@theme {
+  --font-sans: "Manrope", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+  --color-ui-bg: #f5f6f8;
+  --color-ui-panel: #ffffff;
+  --color-ui-subtle: #eef1f5;
+  --color-ui-subtle-2: #f8f9fb;
+  --color-ui-text: #1f2937;
+  --color-ui-text-soft: #6b7280;
+  --color-ui-primary: #f97316;
+  --color-ui-primary-soft: rgba(249, 115, 22, 0.12);
+  --color-ui-border: #e2e5ea;
+  --color-ui-danger: #dc2626;
+  --color-ui-success: #16a34a;
+  --color-ui-warning: #f59e0b;
+  --radius-ui: 8px;
+  --radius-ui-lg: 10px;
+  --width-nav-height: 56px;
+}
 
 :root {
   --font-sans: "Manrope", sans-serif;

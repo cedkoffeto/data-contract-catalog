@@ -5,7 +5,6 @@ import type { RJSFSchema } from "@rjsf/utils";
 
 const ContractEditorClient = dynamic(
   () => import("@/src/components/editor/ContractEditorClient").then((m) => m.ContractEditorClient),
-  { ssr: false },
 );
 
 export function ContractEditorPage({
