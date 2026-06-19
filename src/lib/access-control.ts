@@ -3,6 +3,12 @@ import { writeAuditLog } from "@/src/lib/audit";
 
 export type PermissionName = "admin" | "editor" | "reader";
 
+function effectivePermissionsCacheKey(userId: string, domain: string, context: string, dataContract?: string) {
+  return `${userId}|${domain}|${context}|${dataContract ?? ""}`;
+}
+
+const effectivePermissionsCache = new Map<string, Promise<PermissionName[]>>();
+
 type AccessPolicyRow = {
   permission_name: string;
 };
@@ -45,7 +51,11 @@ export async function getEffectivePermissions(
   context: string,
   dataContract?: string,
 ): Promise<PermissionName[]> {
-  const rows = await query<AccessPolicyRow>(
+  const key = effectivePermissionsCacheKey(userId, domain, context, dataContract);
+  const cached = effectivePermissionsCache.get(key);
+  if (cached) return cached;
+
+  const promise = query<AccessPolicyRow>(
     `SELECT DISTINCT p.name AS permission_name
      FROM access_policies ap
      JOIN permissions p ON p.id = ap.permission_id
@@ -64,13 +74,13 @@ export async function getEffectivePermissions(
     dataContract
       ? [userId, userId, domain, domain, context, domain, context, dataContract]
       : [userId, userId, domain, domain, context],
-  );
+  ).then((rows: AccessPolicyRow[]) => {
+    const names: PermissionName[] = rows.map((r) => r.permission_name as PermissionName);
+    return names.includes("admin") ? (["admin"] as PermissionName[]) : names;
+  });
 
-  const names = rows.map((r) => r.permission_name as PermissionName);
-
-  if (names.includes("admin")) return ["admin"];
-
-  return names;
+  effectivePermissionsCache.set(key, promise);
+  return promise;
 }
 
 /**
