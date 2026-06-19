@@ -132,7 +132,7 @@ export function CatalogCard({ card, onTogglePin, onToggleFavorite, onToggleSubsc
         onMouseLeave={() => setHovered(false)}
       >
         <div
-          className={`relative rounded-xl transition-shadow duration-200 ${hovered ? "shadow-[0_0_20px_4px_rgba(234,88,12,0.35)]" : ""}`}
+          className={`relative rounded-xl transition-shadow duration-300 ${hovered ? "shadow-[0_8px_30px_rgba(249,115,22,0.15)]" : "shadow-none"}`}
         >
           <div
             aria-disabled="true"
@@ -164,8 +164,8 @@ export function CatalogCard({ card, onTogglePin, onToggleFavorite, onToggleSubsc
             </div>
           </div>
 
-          <div data-ra-overlay className={`absolute inset-0 z-10 flex cursor-default items-center justify-center rounded-xl bg-orange-600/20 backdrop-blur-[0.5px] transition-opacity duration-200 ${hovered ? "opacity-100" : "opacity-0"}`}>
-            <div onClick={(e) => e.stopPropagation()}>
+          <div data-ra-overlay className={`absolute inset-0 z-10 flex cursor-default items-center justify-center rounded-xl bg-white/70 backdrop-blur-sm transition-all duration-300 ease-out ${hovered ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+            <div onClick={(e) => e.stopPropagation()} className={`transition-all duration-300 ease-out ${hovered ? "translate-y-0 opacity-100 delay-100" : "translate-y-4 opacity-0"}`}>
               <RequestAccessButton slug={card.slug} domain={card.domain} context={card.context} accessRequestStatus={card.accessRequestStatus} />
             </div>
           </div>
