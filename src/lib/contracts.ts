@@ -647,7 +647,7 @@ export async function getCatalogCards(): Promise<CatalogCard[]> {
         domain,
         context,
         accessible: true,
-        searchData: `${title} ${version} ${owner} ${description} ${maturity} ${domain} ${context} ${contract.fullPath} ${contract.yamlRaw}`.toLowerCase(),
+        searchData: `${title} ${version} ${owner} ${description} ${maturity} ${domain} ${context} ${contract.fullPath}`.toLowerCase(),
         href: `/${contract.slug}`
       } satisfies CatalogCard;
     })
