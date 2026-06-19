@@ -125,8 +125,6 @@ export function CatalogCard({ card }: { card: CatalogCardType }) {
             <p className="catalog-card__owner">{card.owner || "Platform team"}</p>
             <span className="catalog-card__owner-label">Owner</span>
           </div>
-
-          <span className="catalog-card__link">Open</span>
         </div>
       </Link>
     </li>
