@@ -3,6 +3,7 @@ import { auth } from "@/src/auth";
 import { execute, query } from "@/src/lib/db";
 import { getAdminUserIds } from "@/src/lib/rbac";
 import { createAccessPolicy } from "@/src/lib/access-control";
+import { createNotification } from "@/src/lib/notifications";
 import { writeAuditLog } from "@/src/lib/audit";
 import { extractSessionId } from "@/src/lib/audit-session";
 
@@ -33,31 +34,28 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   }
 
-  let requestedAccessRequest: { user_id: string; domain: string; context: string; data_contract: string; requested_permission: AccessRequestPermission } | null = null;
+  const rows = await query<{ user_id: string; domain: string; context: string; data_contract: string; requested_permission: AccessRequestPermission }>(
+    "SELECT user_id, domain, context, data_contract, requested_permission FROM access_requests WHERE id = ?",
+    [parseInt(id, 10)],
+  );
+  const requestedAccessRequest = rows[0] ?? null;
 
-  if (status === "approved") {
-    const rows = await query<{ user_id: string; domain: string; context: string; data_contract: string; requested_permission: AccessRequestPermission }>(
-      "SELECT user_id, domain, context, data_contract, requested_permission FROM access_requests WHERE id = ?",
-      [parseInt(id, 10)],
-    );
-    requestedAccessRequest = rows[0] ?? null;
-    if (requestedAccessRequest) {
-      const requestedPermission = requestedAccessRequest.requested_permission === "editor" ? "editor" : "reader";
-      const permRows = await query<{ id: number }>(`SELECT id FROM permissions WHERE name = ?`, [permissionNameToPermissionIdName(requestedPermission)]);
-      const permissionId = permRows[0]?.id;
-      if (permissionId) {
-        await createAccessPolicy({
-          userId: requestedAccessRequest.user_id,
-          groupId: null,
-          permissionId,
-          domainScope: requestedAccessRequest.domain || null,
-          contextScope: requestedAccessRequest.context || null,
-          dataContractScope: requestedAccessRequest.data_contract || null,
-          actorId: userId,
-          force: true,
-          sessionId,
-        });
-      }
+  if (status === "approved" && requestedAccessRequest) {
+    const requestedPermission = requestedAccessRequest.requested_permission === "editor" ? "editor" : "reader";
+    const permRows = await query<{ id: number }>(`SELECT id FROM permissions WHERE name = ?`, [permissionNameToPermissionIdName(requestedPermission)]);
+    const permissionId = permRows[0]?.id;
+    if (permissionId) {
+      await createAccessPolicy({
+        userId: requestedAccessRequest.user_id,
+        groupId: null,
+        permissionId,
+        domainScope: requestedAccessRequest.domain || null,
+        contextScope: requestedAccessRequest.context || null,
+        dataContractScope: requestedAccessRequest.data_contract || null,
+        actorId: userId,
+        force: true,
+        sessionId,
+      });
     }
   }
 
@@ -74,6 +72,24 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     details: { newStatus: status, requestedPermission: requestedAccessRequest?.requested_permission ?? "reader" },
     sessionId,
   }).catch(() => {});
+
+  // Notify the requesting user
+  if (requestedAccessRequest) {
+    const targetParts = [requestedAccessRequest.domain, requestedAccessRequest.context, requestedAccessRequest.data_contract].filter(Boolean).join(" / ");
+    createNotification({
+      userId: requestedAccessRequest.user_id,
+      contractSlug: requestedAccessRequest.data_contract || "",
+      type: "access_request",
+      title: status === "approved" ? "Access request approved" : "Access request rejected",
+      message: status === "approved"
+        ? `Your request for ${requestedAccessRequest.requested_permission} access to ${targetParts} has been approved.`
+        : `Your request for ${requestedAccessRequest.requested_permission} access to ${targetParts} has been rejected.`,
+      metadata: {
+        contractSlug: requestedAccessRequest.data_contract || undefined,
+        requestStatus: status,
+      },
+    }).catch(() => {});
+  }
 
   return NextResponse.json({ success: true });
 }

@@ -228,9 +228,9 @@ export function DiscussionThread({
   }, [fetchUsers, userId]);
 
   useEffect(() => {
-    if (!enabled || loaded) return;
+    if (loaded) return;
     void fetchThread();
-  }, [enabled, loaded, fetchThread]);
+  }, [loaded, fetchThread]);
 
   useEffect(() => {
     const hash = window.location.hash;

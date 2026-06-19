@@ -3,11 +3,28 @@ import { writeAuditLog } from "@/src/lib/audit";
 
 export type PermissionName = "admin" | "editor" | "reader";
 
+const CACHE_TTL = 2_000;
+
 function effectivePermissionsCacheKey(userId: string, domain: string, context: string, dataContract?: string) {
   return `${userId}|${domain}|${context}|${dataContract ?? ""}`;
 }
 
-const effectivePermissionsCache = new Map<string, Promise<PermissionName[]>>();
+const effectivePermissionsCache = new Map<string, { promise: Promise<PermissionName[]>; ts: number }>();
+
+function getCachedPermissions(key: string): Promise<PermissionName[]> | undefined {
+  const entry = effectivePermissionsCache.get(key);
+  if (entry && Date.now() - entry.ts < CACHE_TTL) return entry.promise;
+  effectivePermissionsCache.delete(key);
+  return undefined;
+}
+
+function setCachedPermissions(key: string, promise: Promise<PermissionName[]>): void {
+  effectivePermissionsCache.set(key, { promise, ts: Date.now() });
+}
+
+function clearPermissionsCache(): void {
+  effectivePermissionsCache.clear();
+}
 
 type AccessPolicyRow = {
   permission_name: string;
@@ -52,7 +69,7 @@ export async function getEffectivePermissions(
   dataContract?: string,
 ): Promise<PermissionName[]> {
   const key = effectivePermissionsCacheKey(userId, domain, context, dataContract);
-  const cached = effectivePermissionsCache.get(key);
+  const cached = getCachedPermissions(key);
   if (cached) return cached;
 
   const promise = query<AccessPolicyRow>(
@@ -79,7 +96,7 @@ export async function getEffectivePermissions(
     return names.includes("admin") ? (["admin"] as PermissionName[]) : names;
   });
 
-  effectivePermissionsCache.set(key, promise);
+  setCachedPermissions(key, promise);
   return promise;
 }
 
@@ -424,6 +441,7 @@ export async function createAccessPolicy(params: {
     sessionId,
   });
 
+  clearPermissionsCache();
   return (await getAccessPolicy(newId))!;
 }
 
@@ -454,6 +472,7 @@ export async function updateAccessPolicy(params: {
     sessionId,
   });
 
+  clearPermissionsCache();
   return (await getAccessPolicy(id))!;
 }
 
@@ -469,8 +488,10 @@ export async function deleteAccessPolicy(params: {
     actorId: params.actorId,
     targetType: "policy",
     targetId: String(params.id),
-    sessionId: params.sessionId,
+      sessionId: params.sessionId,
   });
+
+  clearPermissionsCache();
 }
 
 // ---------------------------------------------------------------------------

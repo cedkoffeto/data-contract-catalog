@@ -57,12 +57,13 @@ export async function POST(request: Request) {
     for (const adminId of adminIds) {
       await createNotification({
         userId: adminId,
-        contractSlug: dataContract || "__access_request__",
+        contractSlug: dataContract || "",
         type: "access_request",
         title: `Access request from ${userId}`,
         message: `Requested ${requestedPermission} access to ${targetParts}${message ? `: ${message}` : ""}`,
         metadata: {
-          path: "/admin/dashboard",
+          path: "/admin",
+          contractSlug: dataContract || undefined,
           requestStatus: "pending",
         },
       });
