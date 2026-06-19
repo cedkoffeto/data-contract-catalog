@@ -331,6 +331,29 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
       CREATE INDEX IF NOT EXISTS idx_user_contract_preferences_pinned ON user_contract_preferences(user_id, is_pinned);
     `,
   },
+  {
+    id: "014_contract_change_requests",
+    sql: `
+      CREATE TABLE IF NOT EXISTS contract_change_requests (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        contract_slug TEXT NOT NULL,
+        editor_id TEXT NOT NULL,
+        yaml_content TEXT NOT NULL,
+        original_sha TEXT NOT NULL DEFAULT '',
+        status TEXT NOT NULL DEFAULT 'pending',
+        gitlab_mr_id INTEGER,
+        gitlab_mr_url TEXT NOT NULL DEFAULT '',
+        rejection_reason TEXT NOT NULL DEFAULT '',
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        resolved_at DATETIME,
+        resolved_by TEXT
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_change_requests_status ON contract_change_requests(status);
+      CREATE INDEX IF NOT EXISTS idx_change_requests_slug ON contract_change_requests(contract_slug);
+      CREATE INDEX IF NOT EXISTS idx_change_requests_editor ON contract_change_requests(editor_id);
+    `,
+  },
 ];
 
 export async function runMigrations(): Promise<void> {

@@ -216,6 +216,21 @@ export type UserProfile = {
   displayName: string;
 };
 
+export type ContractChangeRequest = {
+  id: number;
+  contractSlug: string;
+  editorId: string;
+  yamlContent: string;
+  originalSha: string;
+  status: "pending" | "approved" | "rejected";
+  gitlabMrId: number | null;
+  gitlabMrUrl: string;
+  rejectionReason: string;
+  createdAt: string;
+  resolvedAt: string | null;
+  resolvedBy: string | null;
+};
+
 export type EditorRepositoryFile = {
   id: string;
   name: string;
