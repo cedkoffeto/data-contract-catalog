@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { ContractComment, UserProfile } from "@/src/lib/types";
+import { t, tWith } from "@/src/lib/i18n";
 
 function formatDate(value: string) {
   const date = new Date(value);
@@ -67,7 +68,7 @@ function CommentBubble({
               onClick={() => onReply(comment)}
               className="mt-2 text-xs font-semibold text-blue-700 hover:text-blue-900"
             >
-              Reply
+              {t("reply")}
             </button>
           ) : null}
         </div>
@@ -257,10 +258,10 @@ export function ContractComments({
       {error ? <p className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
 
       {loading ? (
-        <p className="rounded-xl border bg-white px-4 py-6 text-sm text-gray-500 shadow-sm">Loading discussion...</p>
+        <p className="rounded-xl border bg-white px-4 py-6 text-sm text-gray-500 shadow-sm">{t("loadingDiscussion")}</p>
       ) : topComments.length === 0 ? (
         <div className="rounded-2xl border border-dashed bg-white px-4 py-8 text-center text-sm text-gray-500 shadow-sm">
-          No comments yet. Start the discussion.
+          {t("noComments")}
         </div>
       ) : (
         <div className="space-y-3">
@@ -296,8 +297,8 @@ export function ContractComments({
       <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-base font-semibold text-gray-900">Discussion</h2>
-            <p className="mt-1 text-sm text-gray-500">Ask questions, reply in thread, and mention teammates.</p>
+            <h2 className="text-base font-semibold text-gray-900">{t("commentsTitle")}</h2>
+            <p className="mt-1 text-sm text-gray-500">{t("commentsSubtitle")}</p>
           </div>
           {replyingTo ? (
             <button
@@ -305,7 +306,7 @@ export function ContractComments({
               onClick={() => setReplyingTo(null)}
               className="text-xs font-semibold text-gray-500 hover:text-gray-800"
             >
-              Cancel reply
+              {t("cancelReply")}
             </button>
           ) : null}
         </div>
@@ -314,7 +315,7 @@ export function ContractComments({
           <form className="relative" onSubmit={handleSubmit}>
             {replyingTo ? (
               <div className="mb-2 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-xs font-semibold text-orange-800">
-                Replying to @{replyingTo.userId}
+                {tWith("replyingTo", { user: replyingTo.userId })}
               </div>
             ) : null}
             <div className="rounded-2xl border bg-gray-50 p-3">
@@ -322,7 +323,7 @@ export function ContractComments({
                 ref={textareaRef}
                 className="w-full resize-none bg-transparent text-sm leading-6 text-gray-900 outline-none"
                 rows={4}
-                placeholder={replyingTo ? "Write a reply... type @ to mention someone" : "Start a discussion... type @ to mention someone"}
+                placeholder={replyingTo ? t("replyPlaceholder") : t("startDiscussionPlaceholder")}
                 value={body}
                 onChange={handleTextChange}
                 onKeyDown={handleKeyDown}
@@ -363,19 +364,19 @@ export function ContractComments({
             ) : null}
 
             <div className="mt-2 flex items-center justify-between gap-3">
-              <p className="text-xs text-gray-400">Use @username to notify someone.</p>
+              <p className="text-xs text-gray-400">{t("useMentionHint")}</p>
               <button
                 type="submit"
                 disabled={saving || !body.trim()}
                 className="rounded-xl px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
                 style={{ backgroundColor: "var(--ui-primary)" }}
               >
-                {saving ? "Posting..." : replyingTo ? "Reply" : "Post comment"}
+                {saving ? t("posting") : replyingTo ? t("reply") : t("postComment")}
               </button>
             </div>
           </form>
         ) : (
-          <p className="mt-4 text-sm text-gray-500">Sign in to comment.</p>
+          <p className="mt-4 text-sm text-gray-500">{t("signInToComment")}</p>
         )}
       </div>
     </section>
