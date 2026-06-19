@@ -49,7 +49,7 @@ function flattenFields(fields: ContractField[], depth = 0, parentId: string | nu
   return rows;
 }
 
-export function ModelFieldsTable({ fields }: { fields: ContractField[] }) {
+export function ModelFieldsTable({ fields, slug, userId }: { fields: ContractField[]; slug?: string; userId?: string }) {
   const rows = useMemo(() => flattenFields(fields), [fields]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
@@ -75,6 +75,18 @@ export function ModelFieldsTable({ fields }: { fields: ContractField[] }) {
         next.add(id);
       }
       return next;
+    });
+  }
+
+  async function annotateField(row: FlatField) {
+    if (!userId || !slug) return;
+    const annotation = window.prompt(`Annotation for ${row.name}`);
+    if (!annotation?.trim()) return;
+
+    await fetch(`/api/contracts/${encodeURIComponent(slug)}/comments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ body: annotation.trim(), targetField: row.name }),
     });
   }
 
@@ -119,6 +131,15 @@ export function ModelFieldsTable({ fields }: { fields: ContractField[] }) {
                 ) : null}
                 {!row.hasChildren ? <span className="contract-models-field__leaf" aria-hidden="true" /> : null}
                 <span className="contract-models-field__name">{row.name}</span>
+                {userId && slug ? (
+                  <button
+                    type="button"
+                    className="ml-auto rounded-full bg-orange-50 px-2 py-1 text-[11px] font-bold text-orange-700 hover:bg-orange-100"
+                    onClick={() => void annotateField(row)}
+                  >
+                    Annotate
+                  </button>
+                ) : null}
               </div>
             </td>
 

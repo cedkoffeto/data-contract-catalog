@@ -192,6 +192,7 @@ export type ContractComment = {
   userId: string;
   body: string;
   parentId: number | null;
+  targetField: string | null;
   createdAt: string;
   editedAt: string | null;
 };

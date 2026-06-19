@@ -6,12 +6,16 @@ export function ModelsSection({
   asset,
   fields,
   primaryKey,
-  grain
+  grain,
+  slug,
+  userId
 }: {
   asset: Asset;
   fields: ContractField[];
   primaryKey: string[] | string | undefined;
   grain?: string;
+  slug?: string;
+  userId?: string;
 }) {
   if (!fields || fields.length === 0) {
     return null;
@@ -45,7 +49,7 @@ export function ModelsSection({
                   </tr>
                 </thead>
 
-                <ModelFieldsTable fields={fields} />
+                <ModelFieldsTable fields={fields} slug={slug} userId={userId} />
 
                 {primaryKeyValue ? (
                   <tfoot className="contract-models-table__foot">

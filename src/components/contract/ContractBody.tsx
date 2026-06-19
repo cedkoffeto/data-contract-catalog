@@ -7,7 +7,7 @@ import { ServiceLevelsSection } from "@/src/components/contract/ServiceLevelsSec
 import { ServingSection } from "@/src/components/contract/ServingSection";
 import type { DataContract } from "@/src/lib/types";
 
-export function ContractBody({ data }: { data: DataContract }) {
+export function ContractBody({ data, slug, userId }: { data: DataContract; slug?: string; userId?: string }) {
   const asset = data.asset ?? {};
   const contract = data.contract ?? {};
   const schema = contract.schema ?? {};
@@ -22,7 +22,7 @@ export function ContractBody({ data }: { data: DataContract }) {
     <div className="mt-6 space-y-6">
       <InfoSection asset={asset} />
 
-      <ModelsSection asset={asset} fields={schema.fields ?? []} grain={contract.grain} primaryKey={contract.primary_key} />
+      <ModelsSection asset={asset} fields={schema.fields ?? []} grain={contract.grain} primaryKey={contract.primary_key} slug={slug} userId={userId} />
 
       <InputsSection
         outputName={output.table_name ?? asset.name}

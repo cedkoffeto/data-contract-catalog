@@ -134,6 +134,7 @@ model ContractComment {
   userId        String       @map("user_id")
   body          String
   parentId      Int?         @map("parent_id")
+  targetField   String?      @map("target_field")
   createdAt     DateTime     @default(now()) @map("created_at")
   editedAt      DateTime?    @map("edited_at")
 

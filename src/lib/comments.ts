@@ -9,10 +9,11 @@ export async function listContractComments(contractSlug: string): Promise<Contra
     user_id: string;
     body: string;
     parent_id: number | null;
+    target_field: string | null;
     created_at: string;
     edited_at: string | null;
   }>(
-    `SELECT id, contract_slug, user_id, body, parent_id, created_at, edited_at
+    `SELECT id, contract_slug, user_id, body, parent_id, target_field, created_at, edited_at
      FROM contract_comments
      WHERE contract_slug = ?
      ORDER BY created_at ASC, id ASC`,
@@ -25,6 +26,7 @@ export async function listContractComments(contractSlug: string): Promise<Contra
     userId: row.user_id,
     body: row.body,
     parentId: row.parent_id,
+    targetField: row.target_field,
     createdAt: row.created_at,
     editedAt: row.edited_at,
   }));
@@ -74,11 +76,12 @@ export async function createContractComment(params: {
   userId: string;
   body: string;
   parentId?: number | null;
+  targetField?: string | null;
 }): Promise<ContractComment> {
   await execute(
-    `INSERT INTO contract_comments (contract_slug, user_id, body, parent_id)
-     VALUES (?, ?, ?, ?)`,
-    [params.contractSlug, params.userId, params.body, params.parentId ?? null],
+    `INSERT INTO contract_comments (contract_slug, user_id, body, parent_id, target_field)
+     VALUES (?, ?, ?, ?, ?)`,
+    [params.contractSlug, params.userId, params.body, params.parentId ?? null, params.targetField ?? null],
   );
 
   const rows = await query<{ id: number }>("SELECT MAX(id) AS id FROM contract_comments");
@@ -90,10 +93,11 @@ export async function createContractComment(params: {
     user_id: string;
     body: string;
     parent_id: number | null;
+    target_field: string | null;
     created_at: string;
     edited_at: string | null;
   }>(
-    `SELECT id, contract_slug, user_id, body, parent_id, created_at, edited_at
+    `SELECT id, contract_slug, user_id, body, parent_id, target_field, created_at, edited_at
      FROM contract_comments
      WHERE id = ?`,
     [id],
@@ -110,6 +114,7 @@ export async function createContractComment(params: {
     userId: row.user_id,
     body: row.body,
     parentId: row.parent_id,
+    targetField: row.target_field,
     createdAt: row.created_at,
     editedAt: row.edited_at,
   };
