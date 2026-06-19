@@ -172,6 +172,14 @@ CREATE TABLE IF NOT EXISTS "contract_issues" (
 CREATE INDEX IF NOT EXISTS "contract_issues_contract_slug_idx" ON "contract_issues"("contract_slug", "created_at", "id");
 CREATE INDEX IF NOT EXISTS "contract_issues_status_idx" ON "contract_issues"("status");
 
+CREATE TABLE IF NOT EXISTS "user_profiles" (
+    "user_id" TEXT NOT NULL PRIMARY KEY,
+    "first_name" TEXT NOT NULL DEFAULT '',
+    "last_name" TEXT NOT NULL DEFAULT '',
+    "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- User preferences (notification channel, etc.)
 CREATE TABLE IF NOT EXISTS "user_preferences" (
     "user_id" TEXT NOT NULL PRIMARY KEY,

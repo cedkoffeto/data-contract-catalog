@@ -236,7 +236,7 @@ export function ContractPageClient({
                   <ContractBody data={displayedData} />
                 </div>
                 <div className={activeTab === "comments" ? "" : "hidden"}>
-                  <ContractComments slug={slug} userId={userId} />
+                  <ContractComments slug={slug} userId={userId} onCommentCountChange={setCommentCount} />
                 </div>
                 <div className={activeTab === "issues" ? "" : "hidden"}>
                   <ContractIssues slug={slug} userId={userId} canAdmin={canAdmin} />

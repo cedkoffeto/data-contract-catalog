@@ -206,6 +206,13 @@ export type ContractIssue = {
   resolvedAt: string | null;
 };
 
+export type UserProfile = {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  displayName: string;
+};
+
 export type EditorRepositoryFile = {
   id: string;
   name: string;

@@ -280,6 +280,18 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
       CREATE INDEX IF NOT EXISTS idx_contract_issues_status ON contract_issues(status);
     `,
   },
+  {
+    id: "009_user_profiles",
+    sql: `
+      CREATE TABLE IF NOT EXISTS user_profiles (
+        user_id TEXT NOT NULL PRIMARY KEY,
+        first_name TEXT NOT NULL DEFAULT '',
+        last_name TEXT NOT NULL DEFAULT '',
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+    `,
+  },
 ];
 
 export async function runMigrations(): Promise<void> {

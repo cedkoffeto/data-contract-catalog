@@ -8,6 +8,16 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model UserProfile {
+  userId    String   @id @map("user_id")
+  firstName String   @default("") @map("first_name")
+  lastName  String   @default("") @map("last_name")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("user_profiles")
+}
+
 model UserPreference {
   userId             String   @id @map("user_id")
   notificationChannel String   @default("in_app") @map("notification_channel")
