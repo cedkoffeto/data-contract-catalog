@@ -22,13 +22,11 @@ model UserContractPreference {
   userId        String    @map("user_id")
   contractSlug  String    @map("contract_slug")
   isFavorite    Boolean   @default(false) @map("is_favorite")
-  isPinned      Boolean   @default(false) @map("is_pinned")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
   @@id([userId, contractSlug])
   @@index([userId])
-  @@index([isPinned, contractSlug])
   @@map("user_contract_preferences")
 }
 

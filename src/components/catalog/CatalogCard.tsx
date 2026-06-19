@@ -32,16 +32,10 @@ function LockIcon() {
 }
 
 function Description({ text }: { text: string }) {
-  const [expanded, setExpanded] = useState(false);
-
   if (!text) return null;
 
   return (
-    <p
-      className={`catalog-card__description cursor-pointer ${expanded ? "catalog-card__description--expanded" : "catalog-card__description--clamped"}`}
-      onClick={(e) => { e.stopPropagation(); e.preventDefault(); setExpanded((v) => !v); }}
-      title={expanded ? "Click to collapse" : "Click to expand"}
-    >
+    <p className="catalog-card__description catalog-card__description--clamped">
       {text}
     </p>
   );

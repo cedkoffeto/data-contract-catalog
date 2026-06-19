@@ -63,7 +63,6 @@ export function ContractPageClient({
   const [commentCount, setCommentCount] = useState(0);
   const [issueCount, setIssueCount] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [isPinned, setIsPinned] = useState(false);
   const [activeTab, setActiveTab] = useState<"details" | "comments" | "issues">("details");
 
   useEffect(() => {
@@ -85,13 +84,11 @@ export function ContractPageClient({
     if (!userId) return;
     fetch(`/api/contracts/${encodeURIComponent(slug)}/preferences`)
       .then((res) => (res.ok ? res.json() : null))
-      .then((data: { preferences?: { isFavorite?: boolean; isPinned?: boolean } } | null) => {
-        setIsFavorite(Boolean(data?.preferences?.isFavorite));
-        setIsPinned(Boolean(data?.preferences?.isPinned));
+      .then((data: { isFavorite?: boolean } | null) => {
+        setIsFavorite(Boolean(data?.isFavorite));
       })
       .catch(() => {
         setIsFavorite(false);
-        setIsPinned(false);
       });
   }, [slug, userId]);
 
@@ -131,16 +128,15 @@ export function ContractPageClient({
     }
   }
 
-  async function handleTogglePreference(key: "isFavorite" | "isPinned") {
-    const next = key === "isFavorite" ? { isFavorite: !isFavorite, isPinned } : { isFavorite, isPinned: !isPinned };
+  async function handleToggleFavorite() {
+    const next = !isFavorite;
     const res = await fetch(`/api/contracts/${encodeURIComponent(slug)}/preferences`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(next),
+      body: JSON.stringify({ isFavorite: next }),
     });
     if (!res.ok) return;
-    setIsFavorite(next.isFavorite);
-    setIsPinned(next.isPinned);
+    setIsFavorite(next);
   }
 
   function TabIcon({ name }: { name: "details" | "comments" | "issues" }) {
@@ -286,25 +282,12 @@ export function ContractPageClient({
                   <button
                     type="button"
                     className={`catalog-secondary-link ${isFavorite ? "text-orange-700" : ""}`}
-                    onClick={() => void handleTogglePreference("isFavorite")}
+                    onClick={() => void handleToggleFavorite()}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill={isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                     </svg>
                     {isFavorite ? "Favorited" : "Favorite"}
-                  </button>
-                ) : null}
-                {userId ? (
-                  <button
-                    type="button"
-                    className={`catalog-secondary-link ${isPinned ? "text-orange-700" : ""}`}
-                    onClick={() => void handleTogglePreference("isPinned")}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill={isPinned ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
-                      <line x1="4" y1="22" x2="4" y2="15" />
-                    </svg>
-                    {isPinned ? "Pinned" : "Pin"}
                   </button>
                 ) : null}
                 {userId ? (

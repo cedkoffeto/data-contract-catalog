@@ -317,6 +317,12 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
       CREATE INDEX IF NOT EXISTS idx_contract_comments_target_field ON contract_comments(contract_slug, target_field);
     `,
   },
+  {
+    id: "012_remove_is_pinned",
+    sql: `
+      ALTER TABLE user_contract_preferences DROP COLUMN is_pinned;
+    `,
+  },
 ];
 
 export async function runMigrations(): Promise<void> {
