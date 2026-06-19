@@ -8,7 +8,7 @@ import { ContractBody } from "@/src/components/contract/ContractBody";
 import { DiscussionThread } from "@/src/components/contract/DiscussionThread";
 import { ContractHeader } from "@/src/components/contract/ContractHeader";
 import { ContractDiffDialog } from "@/src/components/contract/ContractDiffDialog";
-import { SubscribeModal } from "@/src/components/contract/SubscribeModal";
+import { SubscribeButton } from "@/src/components/contract/SubscribeModal";
 import { YamlDialogButton } from "@/src/components/contract/YamlDialogButton";
 import type { ContractHistoryEntry, DataContract } from "@/src/lib/types";
 import type { Subscription } from "@/src/lib/subscriptions";
@@ -279,12 +279,11 @@ export function ContractPageClient({
                   </button>
                 ) : null}
                 {userId ? (
-                  <SubscribeModal
+                  <SubscribeButton
                     slug={slug}
                     isSubscribed={!loadingSubscription && subscribed}
                     onSubscribed={() => setSubscribed(true)}
                     onUnsubscribed={() => setSubscribed(false)}
-                    onClose={() => {}}
                   />
                 ) : (
                   <button className="catalog-secondary-link catalog-secondary-link--button" disabled type="button">
