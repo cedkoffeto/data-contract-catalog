@@ -29,6 +29,12 @@ export function UserMenu({
   const [isOpen, setIsOpen] = useState(false);
   const [showPolicies, setShowPolicies] = useState(false);
   const [showNotificationPrefs, setShowNotificationPrefs] = useState(false);
+  const [currentLocale, setCurrentLocale] = useState<"en" | "fr">(() => {
+    if (typeof window === "undefined") return "en";
+    const stored = localStorage.getItem("opencode_locale");
+    if (stored === "en" || stored === "fr") return stored;
+    return navigator.language.toLowerCase().startsWith("fr") ? "fr" : "en";
+  });
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -106,6 +112,21 @@ export function UserMenu({
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
             My access policies
+          </button>
+          <button
+            className="site-nav-user__link"
+            onClick={() => {
+              const next = currentLocale === "en" ? "fr" : "en";
+              localStorage.setItem("opencode_locale", next);
+              window.location.reload();
+            }}
+            role="menuitem"
+            type="button"
+          >
+            <svg className="mr-2 h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 21l5.25-11.25L21 21m-9-3h7.5M3 5.621a48.474 48.474 0 016-.371m0 0c1.12 0 2.233.038 3.334.114M9 5.25V3m3.334 2.364C11.176 10.658 7.69 15.08 3 17.502m9.334-12.138c.896.061 1.78.147 2.653.255M9 5.25v-1.5a.75.75 0 01.75-.75h2.25a.75.75 0 01.75.75v1.5" />
+            </svg>
+            Language: {currentLocale === "en" ? "English" : "Français"}
           </button>
           <button
             className="site-nav-user__logout"

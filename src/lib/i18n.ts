@@ -45,7 +45,23 @@ const dictionaries = {
   },
 } satisfies Record<Locale, Record<string, string>>;
 
+const LOCALE_STORAGE_KEY = "opencode_locale";
+
+export function getStoredLocale(): Locale | null {
+  if (typeof window === "undefined") return null;
+  const stored = localStorage.getItem(LOCALE_STORAGE_KEY);
+  if (stored === "en" || stored === "fr") return stored;
+  return null;
+}
+
+export function setStoredLocale(locale: Locale): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+}
+
 export function getLocale(): Locale {
+  const stored = getStoredLocale();
+  if (stored) return stored;
   if (typeof navigator !== "undefined" && navigator.language.toLowerCase().startsWith("fr")) {
     return "fr";
   }

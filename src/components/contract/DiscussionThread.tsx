@@ -635,9 +635,10 @@ export function DiscussionThread({
               <button
                 type="submit"
                 disabled={saving || !body.trim()}
-                className={`rounded-xl px-3 py-2 text-xs font-bold text-white disabled:opacity-50 ${
-                  composerMode === "issue" ? "bg-red-600 hover:bg-red-700" : "bg-orange-600 hover:bg-orange-700"
-                }`}
+                className="rounded-xl px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
+                style={{
+                  backgroundColor: composerMode === "issue" ? "#dc2626" : "var(--ui-primary)",
+                }}
               >
                 {saving
                   ? t("posting")
