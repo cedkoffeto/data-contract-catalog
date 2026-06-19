@@ -41,7 +41,23 @@ function Description({ text }: { text: string }) {
   );
 }
 
-export function CatalogCard({ card }: { card: CatalogCardType }) {
+function PinButton({ pinned, onToggle }: { pinned: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); e.preventDefault(); onToggle(); }}
+      className="catalog-card__pin"
+      title={pinned ? "Unpin" : "Pin to top"}
+      aria-label={pinned ? "Unpin" : "Pin to top"}
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill={pinned ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2 L15 9 L22 9 L16.5 14 L18 22 L12 18 L6 22 L7.5 14 L2 9 L9 9 Z" />
+      </svg>
+    </button>
+  );
+}
+
+export function CatalogCard({ card, onTogglePin }: { card: CatalogCardType; onTogglePin?: () => void }) {
   const [hovered, setHovered] = useState(false);
 
   if (!card.accessible) {
@@ -74,8 +90,8 @@ export function CatalogCard({ card }: { card: CatalogCardType }) {
                 ) : null}
               </div>
               <span className="catalog-card__version">v{card.version}</span>
+              <PinButton pinned={!!card.isPinned} onToggle={() => onTogglePin?.()} />
             </div>
-
             <div className="catalog-card__body">
               <h3 className="catalog-card__title">{card.title}</h3>
 
@@ -120,8 +136,8 @@ export function CatalogCard({ card }: { card: CatalogCardType }) {
             ) : null}
           </div>
           <span className="catalog-card__version">v{card.version}</span>
+          <PinButton pinned={!!card.isPinned} onToggle={() => onTogglePin?.()} />
         </div>
-
         <div className="catalog-card__body">
           <h3 className="catalog-card__title">{card.title}</h3>
 

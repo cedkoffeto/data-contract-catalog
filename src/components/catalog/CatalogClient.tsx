@@ -32,6 +32,9 @@ export function CatalogClient({ cards }: { cards: CatalogCardType[] }) {
   const [showOnlyAccessible, setShowOnlyAccessible] = useState(false);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [pinnedSlugs, setPinnedSlugs] = useState<Set<string>>(
+    () => new Set(cards.filter((c) => c.isPinned).map((c) => c.slug)),
+  );
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const domains = useMemo(() => {
@@ -52,16 +55,23 @@ export function CatalogClient({ cards }: { cards: CatalogCardType[] }) {
   const visibleCards = useMemo(() => {
     const query = search.trim().toLowerCase();
 
-    return cards.filter((card) => {
-      const matchesSearch = !query || card.searchData.includes(query);
-      const matchesDomain = selectedDomain === ALL_DOMAINS || card.domain.trim() === selectedDomain;
-      const matchesContext = selectedContext === ALL_CONTEXTS || card.context.trim() === selectedContext;
-      const matchesMaturity = selectedMaturity === "all" || card.maturity.trim() === selectedMaturity;
-      const matchesAccessible = !showOnlyAccessible || card.accessible;
-      const matchesFavorite = !showFavoritesOnly || card.isFavorite;
-      return matchesSearch && matchesDomain && matchesContext && matchesMaturity && matchesAccessible && matchesFavorite;
-    });
-  }, [cards, search, selectedDomain, selectedContext, selectedMaturity, showOnlyAccessible, showFavoritesOnly]);
+    return cards
+      .filter((card) => {
+        const matchesSearch = !query || card.searchData.includes(query);
+        const matchesDomain = selectedDomain === ALL_DOMAINS || card.domain.trim() === selectedDomain;
+        const matchesContext = selectedContext === ALL_CONTEXTS || card.context.trim() === selectedContext;
+        const matchesMaturity = selectedMaturity === "all" || card.maturity.trim() === selectedMaturity;
+        const matchesAccessible = !showOnlyAccessible || card.accessible;
+        const matchesFavorite = !showFavoritesOnly || card.isFavorite;
+        return matchesSearch && matchesDomain && matchesContext && matchesMaturity && matchesAccessible && matchesFavorite;
+      })
+      .sort((a, b) => {
+        const aPinned = pinnedSlugs.has(a.slug) ? 1 : 0;
+        const bPinned = pinnedSlugs.has(b.slug) ? 1 : 0;
+        if (aPinned !== bPinned) return bPinned - aPinned;
+        return a.title.localeCompare(b.title);
+      });
+  }, [cards, search, selectedDomain, selectedContext, selectedMaturity, showOnlyAccessible, showFavoritesOnly, pinnedSlugs]);
 
   const renderedCards = visibleCards.slice(0, visibleCount);
   const hasMore = renderedCards.length < visibleCards.length;
@@ -80,6 +90,20 @@ export function CatalogClient({ cards }: { cards: CatalogCardType[] }) {
     observer.observe(el);
     return () => observer.disconnect();
   }, [hasMore]);
+
+  async function handleTogglePin(slug: string) {
+    const next = !pinnedSlugs.has(slug);
+    setPinnedSlugs((prev) => {
+      const nextSet = new Set(prev);
+      if (next) nextSet.add(slug); else nextSet.delete(slug);
+      return nextSet;
+    });
+    await fetch(`/api/contracts/${encodeURIComponent(slug)}/preferences`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isPinned: next }),
+    });
+  }
 
   const accessibleCount = useMemo(() => cards.filter((c) => c.accessible).length, [cards]);
   const favoriteCount = useMemo(() => cards.filter((c) => c.isFavorite).length, [cards]);
@@ -266,7 +290,7 @@ export function CatalogClient({ cards }: { cards: CatalogCardType[] }) {
 
           <ul role="list" className="catalog-grid">
             {renderedCards.map((card) => (
-              <CatalogCard key={card.slug} card={card} />
+              <CatalogCard key={card.slug} card={card} onTogglePin={() => handleTogglePin(card.slug)} />
             ))}
           </ul>
 
