@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { ContractComment, ContractIssue, UserProfile } from "@/src/lib/types";
-import { t, tWith } from "@/src/lib/i18n";
+import { t } from "@/src/lib/i18n";
 
 const STATUSES = ["open", "fixed", "false_alert"] as const;
 
@@ -59,12 +59,10 @@ function Avatar({ name }: { name: string }) {
 
 function CommentBubble({
   comment,
-  userId,
-  onReply,
+  parentUser,
 }: {
   comment: ContractComment;
-  userId?: string;
-  onReply: (comment: ContractComment) => void;
+  parentUser?: string;
 }) {
   return (
     <div className="group flex gap-3">
@@ -72,21 +70,104 @@ function CommentBubble({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-gray-900">{comment.userId}</span>
+          {parentUser ? (
+            <span className="text-xs text-gray-400">
+              In reply to <span className="font-medium text-gray-500">@{parentUser}</span>
+            </span>
+          ) : null}
           <span className="text-xs text-gray-400">{timeAgo(comment.createdAt)}</span>
         </div>
         <div className="mt-1 rounded-2xl bg-gray-50 px-3 py-2 text-sm leading-6 text-gray-700">
           {renderBody(comment.body)}
         </div>
         {comment.editedAt ? <p className="mt-0.5 text-[11px] text-gray-400">Edited</p> : null}
-        {userId ? (
+      </div>
+    </div>
+  );
+}
+
+function InlineReplyForm({
+  comment,
+  slug,
+  userId,
+  onClose,
+  onPosted,
+}: {
+  comment: ContractComment;
+  slug: string;
+  userId?: string;
+  onClose: () => void;
+  onPosted: () => void;
+}) {
+  const [body, setBody] = useState("");
+  const [saving, setSaving] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    window.setTimeout(() => textareaRef.current?.focus(), 0);
+  }, []);
+
+  async function handlePost() {
+    if (!body.trim() || !userId) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/contracts/${encodeURIComponent(slug)}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: body.trim(), parentId: comment.id }),
+      });
+      if (!res.ok) throw new Error("Failed to post reply");
+      setBody("");
+      onPosted();
+    } catch {
+      // handled by parent fetchThread
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+      event.preventDefault();
+      void handlePost();
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      onClose();
+    }
+  }
+
+  return (
+    <div className="ml-8 border-l-2 border-orange-200 pl-4">
+      <textarea
+        ref={textareaRef}
+        className="mt-2 w-full resize-none rounded-xl border border-gray-200 bg-white p-3 text-sm leading-6 text-gray-900 outline-none"
+        rows={2}
+        placeholder={t("replyPlaceholder")}
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        onKeyDown={handleKeyDown}
+      />
+      <div className="mt-2 flex items-center justify-between">
+        <p className="text-xs text-gray-400">{t("useMentionHint")}</p>
+        <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => onReply(comment)}
-            className="mt-1 text-xs font-semibold text-blue-700 hover:text-blue-900"
+            onClick={onClose}
+            className="rounded-xl px-3 py-2 text-xs font-bold text-gray-500 hover:bg-gray-100"
           >
-            {t("reply")}
+            {t("cancel")}
           </button>
-        ) : null}
+          <button
+            type="button"
+            onClick={handlePost}
+            disabled={saving || !body.trim()}
+            className="rounded-xl px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
+            style={{ backgroundColor: "var(--ui-primary)" }}
+          >
+            {saving ? t("posting") : t("reply")}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -461,30 +542,55 @@ export function DiscussionThread({
               if (!comment) return null;
               return (
                 <div key={`comment-${comment.id}`} id={`comment-${comment.id}`} className="space-y-2">
-                  <CommentBubble
-                    comment={comment}
-                    userId={userId}
-                    onReply={(replyComment) => {
-                      setReplyingTo(replyingTo?.id === replyComment.id ? null : replyComment);
-                      setBody("");
-                      setComposerMode("comment");
-                      focusComposer();
-                    }}
-                  />
-                  {repliesByParentId[comment.id]?.map((reply) => (
-                    <div key={`reply-${reply.id}`} className="ml-8 border-l-2 border-orange-200 pl-4">
-                      <CommentBubble
-                        comment={reply}
-                        userId={userId}
-                        onReply={(replyComment) => {
-                          setReplyingTo(replyingTo?.id === replyComment.id ? null : replyComment);
-                          setBody("");
-                          setComposerMode("comment");
-                          focusComposer();
-                        }}
-                      />
+                  <CommentBubble comment={comment} />
+                  {userId ? (
+                    <div className="ml-8">
+                      <button
+                        type="button"
+                        onClick={() => setReplyingTo(replyingTo?.id === comment.id ? null : comment)}
+                        className="text-xs font-semibold text-blue-700 hover:text-blue-900"
+                      >
+                        {t("reply")}
+                      </button>
                     </div>
-                  ))}
+                  ) : null}
+                  {repliesByParentId[comment.id]?.map((reply) => {
+                    const parent = commentMap.get(reply.parentId!);
+                    return (
+                      <div key={`reply-${reply.id}`} className="ml-8 border-l-2 border-orange-200 pl-4">
+                        <CommentBubble comment={reply} parentUser={parent?.userId} />
+                        {userId ? (
+                          <div className="mt-1">
+                            <button
+                              type="button"
+                              onClick={() => setReplyingTo(replyingTo?.id === reply.id ? null : reply)}
+                              className="text-xs font-semibold text-blue-700 hover:text-blue-900"
+                            >
+                              {t("reply")}
+                            </button>
+                          </div>
+                        ) : null}
+                        {replyingTo?.id === reply.id ? (
+                          <InlineReplyForm
+                            comment={reply}
+                            slug={slug}
+                            userId={userId}
+                            onClose={() => setReplyingTo(null)}
+                            onPosted={() => { setReplyingTo(null); void fetchThread(); }}
+                          />
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                  {replyingTo?.id === comment.id ? (
+                    <InlineReplyForm
+                      comment={comment}
+                      slug={slug}
+                      userId={userId}
+                      onClose={() => setReplyingTo(null)}
+                      onPosted={() => { setReplyingTo(null); void fetchThread(); }}
+                    />
+                  ) : null}
                 </div>
               );
             }
@@ -510,20 +616,9 @@ export function DiscussionThread({
       )}
 
       <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-        <div className="mb-3 flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-base font-semibold text-gray-900">{t("commentsTitle")}</h2>
-            {t("commentsSubtitle") ? <p className="mt-1 text-sm text-gray-500">{t("commentsSubtitle")}</p> : null}
-          </div>
-          {replyingTo ? (
-            <button
-              type="button"
-              onClick={() => setReplyingTo(null)}
-              className="text-xs font-semibold text-gray-500 hover:text-gray-800"
-            >
-              {t("cancelReply")}
-            </button>
-          ) : null}
+        <div className="mb-3">
+          <h2 className="text-base font-semibold text-gray-900">{t("commentsTitle")}</h2>
+          {t("commentsSubtitle") ? <p className="mt-1 text-sm text-gray-500">{t("commentsSubtitle")}</p> : null}
         </div>
 
         {userId ? (
@@ -532,8 +627,7 @@ export function DiscussionThread({
               type="button"
               onClick={() => {
                 setComposerMode("comment");
-                setReplyingTo(null);
-              }}
+              }} 
               className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
                 composerMode === "comment"
                   ? "bg-orange-100 text-orange-800"
@@ -546,8 +640,7 @@ export function DiscussionThread({
               type="button"
               onClick={() => {
                 setComposerMode("issue");
-                setReplyingTo(null);
-              }}
+              }} 
               className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
                 composerMode === "issue"
                   ? "bg-red-100 text-red-800"
@@ -561,11 +654,6 @@ export function DiscussionThread({
 
         {userId ? (
           <form className="relative" onSubmit={handleSubmit}>
-            {replyingTo ? (
-              <div className="mb-2 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-xs font-semibold text-orange-800">
-                {tWith("replyingTo", { user: replyingTo.userId })}
-              </div>
-            ) : null}
             <div
               className={`rounded-2xl border bg-gray-50 p-3 ${
                 composerMode === "issue" ? "border-red-200 bg-red-50/30" : ""
@@ -578,9 +666,7 @@ export function DiscussionThread({
                 placeholder={
                   composerMode === "issue"
                     ? t("issuePlaceholder")
-                    : replyingTo
-                      ? t("replyPlaceholder")
-                      : t("startDiscussionPlaceholder")
+                    : t("startDiscussionPlaceholder")
                 }
                 value={body}
                 onChange={handleTextChange}
@@ -644,9 +730,7 @@ export function DiscussionThread({
                   ? t("posting")
                   : composerMode === "issue"
                     ? t("reportIssue")
-                    : replyingTo
-                      ? t("reply")
-                      : t("postComment")}
+                    : t("postComment")}
               </button>
             </div>
           </form>

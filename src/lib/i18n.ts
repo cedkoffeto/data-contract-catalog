@@ -21,6 +21,7 @@ const dictionaries = {
     reportIssueHint: "Issues are visible to contract admins.",
     addComment: "Comment",
     issuePlaceholder: "Describe the issue...",
+    cancel: "Cancel",
   },
   fr: {
     commentsTitle: "Discussion",
@@ -35,6 +36,7 @@ const dictionaries = {
     replyPlaceholder: "Répondre... tapez @ pour mentionner quelqu'un",
     replyingTo: "Réponse à @{user}",
     cancelReply: "Annuler",
+    cancel: "Annuler",
     useMentionHint: "Utilisez @utilisateur pour notifier quelqu'un.",
     details: "Détails",
     issues: "Signalements",
