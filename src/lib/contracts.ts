@@ -10,7 +10,9 @@ import type { CatalogCard, ContractFile, DataContract, EditorRepositoryFile } fr
 
 const contractsRoot = process.env.CONTRACTS_PATH ?? path.join(process.cwd(), "contracts");
 const contractsCache: { expiresAt: number; value: ContractFile[] } = { expiresAt: 0, value: [] };
-const CONTRACTS_CACHE_TTL_MS = 30_000;
+const cardsCache: { expiresAt: number; value: CatalogCard[] } = { expiresAt: 0, value: [] };
+const CONTRACTS_CACHE_TTL_MS = 60_000;
+const CARDS_CACHE_TTL_MS = 60_000;
 
 type GitLabTreeItem = {
   id?: string;
@@ -520,9 +522,13 @@ function getOwnerName(data: DataContract): string {
 }
 
 export async function getCatalogCards(): Promise<CatalogCard[]> {
-  const contracts = await getContracts();
+  const now = Date.now();
+  if (cardsCache.value.length > 0 && cardsCache.expiresAt > now) {
+    return cardsCache.value;
+  }
 
-  return contracts
+  const contracts = await getContracts();
+  const cards = contracts
     .map((contract) => {
       const asset = contract.data.asset ?? {};
       const title = contract.data.asset?.name ?? "Unknown";
@@ -547,6 +553,10 @@ export async function getCatalogCards(): Promise<CatalogCard[]> {
       } satisfies CatalogCard;
     })
     .sort((a, b) => a.title.localeCompare(b.title));
+
+  cardsCache.value = cards;
+  cardsCache.expiresAt = now + CARDS_CACHE_TTL_MS;
+  return cards;
 }
 
 export async function getDistinctScopes(): Promise<{ domain: string; context: string }[]> {
