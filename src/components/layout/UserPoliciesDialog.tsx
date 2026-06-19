@@ -5,6 +5,71 @@ import { createPortal } from "react-dom";
 
 import type { AccessPolicyRecord } from "@/src/lib/access-control";
 
+function RequestEditorForm({ onDone }: { onDone: () => void }) {
+  const [slug, setSlug] = useState("");
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  async function handleSubmit() {
+    if (!slug.trim()) return;
+    setSending(true);
+    try {
+      await fetch("/api/access-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          domain: "",
+          context: "",
+          dataContract: slug.trim(),
+          requestedPermission: "editor",
+          message,
+        }),
+      });
+      setSent(true);
+    } catch {
+      // silent
+    } finally {
+      setSending(false);
+    }
+  }
+
+  if (sent) {
+    return <p className="mt-2 text-sm font-medium text-green-600">Request sent to administrators.</p>;
+  }
+
+  return (
+    <div className="mt-3 space-y-2 rounded-md border border-dashed border-gray-200 bg-gray-50 p-3">
+      <p className="text-xs font-semibold text-gray-700">Request editor access on a contract</p>
+      <input
+        type="text"
+        placeholder="Contract slug"
+        value={slug}
+        onChange={(e) => setSlug(e.target.value)}
+        className="w-full rounded-md border px-2 py-1.5 text-xs text-gray-900 outline-none"
+        style={{ borderColor: "#d1d5db" }}
+      />
+      <textarea
+        rows={2}
+        placeholder="Reason (optional)"
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        className="w-full rounded-md border px-2 py-1.5 text-xs text-gray-900 outline-none"
+        style={{ borderColor: "#d1d5db" }}
+      />
+      <button
+        type="button"
+        onClick={handleSubmit}
+        disabled={sending || !slug.trim()}
+        className="rounded-md px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+        style={{ backgroundColor: "var(--ui-primary)" }}
+      >
+        {sending ? "Sending\u2026" : "Send request"}
+      </button>
+    </div>
+  );
+}
+
 export function UserPoliciesDialog({
   userId,
   onClose,
@@ -15,6 +80,7 @@ export function UserPoliciesDialog({
   const [policies, setPolicies] = useState<AccessPolicyRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [showRequest, setShowRequest] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -76,7 +142,14 @@ export function UserPoliciesDialog({
           </div>
         )}
 
-        <div className="mt-5 flex justify-end">
+        <div className="mt-4 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => setShowRequest(!showRequest)}
+            className="text-xs font-semibold text-orange-600 hover:text-orange-800"
+          >
+            {showRequest ? "- Hide" : "+ Request editor access"}
+          </button>
           <button
             onClick={onClose}
             className="rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
@@ -84,6 +157,8 @@ export function UserPoliciesDialog({
             Close
           </button>
         </div>
+
+        {showRequest ? <RequestEditorForm onDone={() => setShowRequest(false)} /> : null}
       </div>
     </div>,
     document.body
