@@ -135,7 +135,6 @@ export function CatalogCard({ card, onTogglePin, onToggleFavorite, onToggleSubsc
       <li
         className="catalog-card-listing"
         data-accessible="false"
-        data-search={card.searchData}
       >
         <div className="relative rounded-xl card-overlay-wrapper">
           <div
@@ -179,7 +178,7 @@ export function CatalogCard({ card, onTogglePin, onToggleFavorite, onToggleSubsc
   }
 
   return (
-    <li className="catalog-card-listing" data-accessible="true" data-search={card.searchData}>
+    <li className="catalog-card-listing" data-accessible="true">
       <Link className="catalog-card" href={card.href}>
         <div className="catalog-card__header">
           <div className="catalog-card__meta">

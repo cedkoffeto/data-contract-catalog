@@ -12,8 +12,8 @@ const contractsRoot = process.env.CONTRACTS_PATH ?? path.join(process.cwd(), "co
 const contractsCache: { expiresAt: number; value: ContractFile[] } = { expiresAt: 0, value: [] };
 const cardsCache: { expiresAt: number; value: CatalogCard[] } = { expiresAt: 0, value: [] };
 const slugToPathCache: { expiresAt: number; map: Map<string, string> } = { expiresAt: 0, map: new Map() };
-const CONTRACTS_CACHE_TTL_MS = 300_000;
-const CARDS_CACHE_TTL_MS = 300_000;
+const CONTRACTS_CACHE_TTL_MS = 3_600_000;
+const CARDS_CACHE_TTL_MS = 3_600_000;
 
 type GitLabTreeItem = {
   id?: string;

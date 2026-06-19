@@ -1,7 +1,8 @@
 import { CatalogPage } from "@/src/components/catalog/CatalogPage";
 import { getCatalogCards } from "@/src/lib/contracts";
 import { getAccessibleSlugs } from "@/src/lib/catalog-filter";
-import { getUserPermissions } from "@/src/lib/rbac";
+import { getUserPermissions, type Permission } from "@/src/lib/rbac";
+import type { CatalogCard } from "@/src/lib/types";
 import { auth } from "@/src/auth";
 import { query } from "@/src/lib/db";
 import { getPinnedSlugs } from "@/src/lib/preferences";
@@ -9,22 +10,28 @@ import { getPinnedSlugs } from "@/src/lib/preferences";
 export default async function HomePage() {
   const session = await auth();
   const userId = session?.user?.name;
-  const permissions = userId ? await getUserPermissions(userId) : [];
 
-  const cards = await getCatalogCards().catch(() => []);
+  // Fetch cards and user-specific data in parallel
+  const [cards, permissions] = await Promise.all([
+    getCatalogCards().catch(() => [] as CatalogCard[]),
+    userId ? getUserPermissions(userId) : Promise.resolve([] as Permission[]),
+  ]);
+
   if (!userId) {
     return <CatalogPage cards={[]} />;
   }
 
-  const accessible = await getAccessibleSlugs(userId, permissions, cards);
+  const [accessible, pendingRows, favoriteSlugs, pinnedSlugs] = await Promise.all([
+    getAccessibleSlugs(userId, permissions, cards),
+    query<{ data_contract: string }>(
+      "SELECT DISTINCT data_contract FROM access_requests WHERE user_id = ? AND status = 'pending'",
+      [userId],
+    ),
+    getPreferenceSlugs(userId, "is_favorite"),
+    getPinnedSlugs(userId),
+  ]);
 
-  const pendingRows = await query<{ data_contract: string }>(
-    "SELECT DISTINCT data_contract FROM access_requests WHERE user_id = ? AND status = 'pending'",
-    [userId],
-  );
   const pendingSlugs = new Set(pendingRows.map((r) => r.data_contract));
-  const favoriteSlugs = await getPreferenceSlugs(userId, "is_favorite");
-  const pinnedSlugs = await getPinnedSlugs(userId);
   const pinnedSet = new Set(pinnedSlugs);
 
   const annotated = cards.map((card) => ({
