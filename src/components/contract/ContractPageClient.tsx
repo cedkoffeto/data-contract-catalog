@@ -232,7 +232,15 @@ export function ContractPageClient({
                     <ContractTab id="issues" label="Issues" count={issueCount} icon="issues" />
                   </div>
                 </div>
-                {activeTab === "details" ? <ContractBody data={displayedData} /> : activeTab === "comments" ? <ContractComments slug={slug} userId={userId} /> : <ContractIssues slug={slug} userId={userId} canAdmin={canAdmin} />}
+                <div className={activeTab === "details" ? "" : "hidden"}>
+                  <ContractBody data={displayedData} />
+                </div>
+                <div className={activeTab === "comments" ? "" : "hidden"}>
+                  <ContractComments slug={slug} userId={userId} />
+                </div>
+                <div className={activeTab === "issues" ? "" : "hidden"}>
+                  <ContractIssues slug={slug} userId={userId} canAdmin={canAdmin} />
+                </div>
               </div>
             </div>
           </div>
