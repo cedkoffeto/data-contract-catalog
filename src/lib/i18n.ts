@@ -3,7 +3,7 @@ export type Locale = "en" | "fr";
 const dictionaries = {
   en: {
     commentsTitle: "Discussion",
-    commentsSubtitle: "Ask questions, reply in thread, and mention teammates.",
+    commentsSubtitle: "",
     noComments: "No comments yet. Start the discussion.",
     loadingDiscussion: "Loading discussion...",
     signInToComment: "Sign in to comment.",
@@ -20,7 +20,7 @@ const dictionaries = {
   },
   fr: {
     commentsTitle: "Discussion",
-    commentsSubtitle: "Posez des questions, répondez en thread et mentionnez vos collègues.",
+    commentsSubtitle: "",
     noComments: "Aucun commentaire. Lancez la discussion.",
     loadingDiscussion: "Chargement de la discussion...",
     signInToComment: "Connectez-vous pour commenter.",

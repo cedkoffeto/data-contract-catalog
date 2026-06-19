@@ -513,7 +513,7 @@ export function DiscussionThread({
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
             <h2 className="text-base font-semibold text-gray-900">{t("commentsTitle")}</h2>
-            <p className="mt-1 text-sm text-gray-500">{t("commentsSubtitle")}</p>
+            {t("commentsSubtitle") ? <p className="mt-1 text-sm text-gray-500">{t("commentsSubtitle")}</p> : null}
           </div>
           {replyingTo ? (
             <button
