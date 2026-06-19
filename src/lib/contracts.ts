@@ -11,6 +11,7 @@ import type { CatalogCard, ContractFile, DataContract, EditorRepositoryFile } fr
 const contractsRoot = process.env.CONTRACTS_PATH ?? path.join(process.cwd(), "contracts");
 const contractsCache: { expiresAt: number; value: ContractFile[] } = { expiresAt: 0, value: [] };
 const cardsCache: { expiresAt: number; value: CatalogCard[] } = { expiresAt: 0, value: [] };
+const slugToPathCache: { expiresAt: number; map: Map<string, string> } = { expiresAt: 0, map: new Map() };
 const CONTRACTS_CACHE_TTL_MS = 300_000;
 const CARDS_CACHE_TTL_MS = 300_000;
 
@@ -489,6 +490,95 @@ async function getGitLabContracts(): Promise<ContractFile[]> {
   return contracts;
 }
 
+function computeContractSlug(fullPath: string, stemCounts: Map<string, number>): string {
+  const stem = path.basename(fullPath, path.extname(fullPath));
+  const maturity = fullPath.split("/")[1] ?? path.basename(path.dirname(fullPath));
+  const isDuplicateStem = (stemCounts.get(stem) ?? 0) > 1;
+  return isDuplicateStem ? `${maturity}-${stem}` : stem;
+}
+
+function computeStemCounts(paths: string[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const p of paths) {
+    const stem = path.basename(p, path.extname(p));
+    counts.set(stem, (counts.get(stem) ?? 0) + 1);
+  }
+  return counts;
+}
+
+function populateSlugToPathCache(records: Array<{ fullPath: string }>) {
+  const paths = records.map((r) => r.fullPath);
+  const stemCounts = computeStemCounts(paths);
+  for (const record of records) {
+    const slug = computeContractSlug(record.fullPath, stemCounts);
+    slugToPathCache.map.set(slug, record.fullPath);
+  }
+  slugToPathCache.expiresAt = Date.now() + CONTRACTS_CACHE_TTL_MS;
+}
+
+async function buildSlugToPathMapFromTree(): Promise<Map<string, string>> {
+  const client = getGitLabClient();
+  if (!client) return new Map();
+
+  const tree = await readGitLabTree(client.projectId, client.ref, "contracts");
+  const yamlPaths = tree
+    .filter((e) => e.type === "blob" && /^contracts\/.+\.(yaml|yml)$/i.test(e.path))
+    .map((e) => e.path);
+
+  const stemCounts = computeStemCounts(yamlPaths);
+  const map = new Map<string, string>();
+  for (const p of yamlPaths) {
+    const slug = computeContractSlug(p, stemCounts);
+    map.set(slug, p);
+  }
+  return map;
+}
+
+async function fetchSingleContractFile(fullPath: string): Promise<ContractFile | undefined> {
+  const client = getGitLabClient();
+  if (!client) return undefined;
+
+  try {
+    const file = (await client.api.RepositoryFiles.show(client.projectId, fullPath, client.ref)) as GitLabRepositoryFile;
+    const rawContent = file.content ?? "";
+    const yamlRaw = file.encoding === "base64" ? Buffer.from(rawContent, "base64").toString("utf-8") : rawContent;
+    const record = { path: fullPath, fullPath, yamlRaw };
+    const contracts = buildContractsFromRecords([record]);
+    return contracts[0];
+  } catch {
+    return undefined;
+  }
+}
+
+async function getSingleContractFromGitLab(slug: string): Promise<ContractFile | undefined> {
+  // Fast path: use cached slug→path mapping
+  if (slugToPathCache.map.size > 0 && slugToPathCache.expiresAt > Date.now()) {
+    const fullPath = slugToPathCache.map.get(slug);
+    if (fullPath) return fetchSingleContractFile(fullPath);
+  }
+
+  // Try direct path guessing (common case: slug = filename stem)
+  const candidates = [
+    `contracts/${slug}.yaml`,
+    `contracts/${slug}.yml`,
+  ];
+  for (const candidate of candidates) {
+    const contract = await fetchSingleContractFile(candidate);
+    if (contract && contract.slug === slug) return contract;
+  }
+
+  // Build mapping from tree listing (1 API call), then fetch only the target file
+  const map = await buildSlugToPathMapFromTree();
+  const fullPath = map.get(slug);
+  if (fullPath) {
+    slugToPathCache.map = map;
+    slugToPathCache.expiresAt = Date.now() + CONTRACTS_CACHE_TTL_MS;
+    return fetchSingleContractFile(fullPath);
+  }
+
+  return undefined;
+}
+
 export async function getContracts(): Promise<ContractFile[]> {
   const now = Date.now();
   if (contractsCache.value.length > 0 && contractsCache.expiresAt > now) {
@@ -498,6 +588,10 @@ export async function getContracts(): Promise<ContractFile[]> {
   const contracts = hasGitLabContractsConfig() ? await getGitLabContracts() : readLocalContracts();
   contractsCache.value = contracts;
   contractsCache.expiresAt = Date.now() + CONTRACTS_CACHE_TTL_MS;
+  // Also warm slug→path mapping from the fetched contracts
+  if (contracts.length > 0) {
+    populateSlugToPathCache(contracts.map((c) => ({ fullPath: c.fullPath })));
+  }
   return contracts;
 }
 
@@ -507,6 +601,11 @@ export async function getContractBySlug(slug: string): Promise<ContractFile | un
     normalizedSlug = decodeURIComponent(slug).trim();
   } catch {
     normalizedSlug = slug.trim();
+  }
+
+  if (hasGitLabContractsConfig()) {
+    const direct = await getSingleContractFromGitLab(normalizedSlug);
+    if (direct) return direct;
   }
 
   const contracts = await getContracts();
