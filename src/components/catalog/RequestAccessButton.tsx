@@ -132,7 +132,7 @@ export function RequestAccessButton({
         >
           <div
             className="flex max-h-[60vh] flex-col rounded-lg bg-white shadow-xl"
-            style={{ width: "min(50vw, 600px)", resize: "both", overflow: "hidden" }}
+            style={{ width: "min(80vw, 900px)", resize: "both", overflow: "hidden" }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">

@@ -8,7 +8,6 @@ import { Input } from "@/src/components/ui/Input";
 import type { CatalogCard as CatalogCardType } from "@/src/lib/types";
 
 const ALL_DOMAINS = "__all_domains__";
-const ALL_CONTEXTS = "__all_contexts__";
 const PAGE_SIZE = 20;
 
 function humanize(value: string): string {
@@ -28,8 +27,8 @@ export function CatalogClient({ cards: initialCards }: { cards: CatalogCardType[
   const [cards, setCards] = useState(initialCards);
   const [search, setSearch] = useState("");
   const [selectedDomain, setSelectedDomain] = useState(ALL_DOMAINS);
-  const [selectedContext, setSelectedContext] = useState(ALL_CONTEXTS);
-  const [selectedMaturity, setSelectedMaturity] = useState("all");
+  const [selectedContexts, setSelectedContexts] = useState<Set<string>>(new Set());
+  const [selectedMaturities, setSelectedMaturities] = useState<Set<string>>(new Set());
   const [showOnlyAccessible, setShowOnlyAccessible] = useState(false);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -77,8 +76,8 @@ export function CatalogClient({ cards: initialCards }: { cards: CatalogCardType[
       .filter((card) => {
         const matchesSearch = !query || card.searchData.includes(query);
         const matchesDomain = selectedDomain === ALL_DOMAINS || card.domain.trim() === selectedDomain;
-        const matchesContext = selectedContext === ALL_CONTEXTS || card.context.trim() === selectedContext;
-        const matchesMaturity = selectedMaturity === "all" || card.maturity.trim() === selectedMaturity;
+        const matchesContext = selectedContexts.size === 0 || selectedContexts.has(card.context.trim());
+        const matchesMaturity = selectedMaturities.size === 0 || selectedMaturities.has(card.maturity.trim());
         const matchesAccessible = !showOnlyAccessible || card.accessible;
         const matchesFavorite = !showFavoritesOnly || card.isFavorite;
         return matchesSearch && matchesDomain && matchesContext && matchesMaturity && matchesAccessible && matchesFavorite;
@@ -92,14 +91,14 @@ export function CatalogClient({ cards: initialCards }: { cards: CatalogCardType[
         if (aFav !== bFav) return aFav - bFav;
         return a.title.localeCompare(b.title);
       });
-  }, [cards, search, selectedDomain, selectedContext, selectedMaturity, showOnlyAccessible, showFavoritesOnly, pinnedSlugs]);
+  }, [cards, search, selectedDomain, selectedContexts, selectedMaturities, showOnlyAccessible, showFavoritesOnly, pinnedSlugs]);
 
   const renderedCards = visibleCards.slice(0, visibleCount);
   const hasMore = renderedCards.length < visibleCards.length;
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [search, selectedDomain, selectedContext, selectedMaturity, showOnlyAccessible, showFavoritesOnly]);
+  }, [search, selectedDomain, selectedContexts, selectedMaturities, showOnlyAccessible, showFavoritesOnly]);
 
   useEffect(() => {
     const el = sentinelRef.current;
@@ -251,13 +250,13 @@ export function CatalogClient({ cards: initialCards }: { cards: CatalogCardType[
         <aside className="catalog-filters">
           <div className="catalog-filters__heading">
             <h2>Filters</h2>
-            {(search || selectedDomain !== ALL_DOMAINS || selectedContext !== ALL_CONTEXTS || selectedMaturity !== "all" || showOnlyAccessible || showFavoritesOnly) && (
+            {(search || selectedDomain !== ALL_DOMAINS || selectedContexts.size > 0 || selectedMaturities.size > 0 || showOnlyAccessible || showFavoritesOnly) && (
               <Button
                 onClick={() => {
                   setSearch("");
                   setSelectedDomain(ALL_DOMAINS);
-                  setSelectedContext(ALL_CONTEXTS);
-                  setSelectedMaturity("all");
+                  setSelectedContexts(new Set());
+                  setSelectedMaturities(new Set());
                   setShowOnlyAccessible(false);
                   setShowFavoritesOnly(false);
                 }}
@@ -277,8 +276,8 @@ export function CatalogClient({ cards: initialCards }: { cards: CatalogCardType[
             </button>
             <div className="catalog-filter-stack" style={{ maxHeight: collapsedGroups.has("maturity") ? "0" : undefined, opacity: collapsedGroups.has("maturity") ? 0 : 1 }}>
               <button
-                className={selectedMaturity === "all" ? "catalog-filter-pill is-active" : "catalog-filter-pill"}
-                onClick={() => setSelectedMaturity("all")}
+                className={selectedMaturities.size === 0 ? "catalog-filter-pill is-active" : "catalog-filter-pill"}
+                onClick={() => setSelectedMaturities(new Set())}
                 type="button"
               >
                 All maturities
@@ -286,8 +285,12 @@ export function CatalogClient({ cards: initialCards }: { cards: CatalogCardType[
               {maturities.map((maturity) => (
                 <button
                   key={maturity}
-                  className={selectedMaturity === maturity ? "catalog-filter-pill is-active" : "catalog-filter-pill"}
-                  onClick={() => setSelectedMaturity(selectedMaturity === maturity ? "all" : maturity)}
+                  className={selectedMaturities.has(maturity) ? "catalog-filter-pill is-active" : "catalog-filter-pill"}
+                  onClick={() => setSelectedMaturities((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(maturity)) next.delete(maturity); else next.add(maturity);
+                    return next;
+                  })}
                   type="button"
                 >
                   {humanize(maturity)}
@@ -305,8 +308,8 @@ export function CatalogClient({ cards: initialCards }: { cards: CatalogCardType[
             </button>
             <div className="catalog-filter-stack" style={{ maxHeight: collapsedGroups.has("context") ? "0" : undefined, opacity: collapsedGroups.has("context") ? 0 : 1 }}>
               <button
-                className={selectedContext === ALL_CONTEXTS ? "catalog-filter-pill is-active" : "catalog-filter-pill"}
-                onClick={() => setSelectedContext(ALL_CONTEXTS)}
+                className={selectedContexts.size === 0 ? "catalog-filter-pill is-active" : "catalog-filter-pill"}
+                onClick={() => setSelectedContexts(new Set())}
                 type="button"
               >
                 All contexts
@@ -314,8 +317,12 @@ export function CatalogClient({ cards: initialCards }: { cards: CatalogCardType[
               {contexts.map((context) => (
                 <button
                   key={context}
-                  className={selectedContext === context ? "catalog-filter-pill is-active" : "catalog-filter-pill"}
-                  onClick={() => setSelectedContext(selectedContext === context ? ALL_CONTEXTS : context)}
+                  className={selectedContexts.has(context) ? "catalog-filter-pill is-active" : "catalog-filter-pill"}
+                  onClick={() => setSelectedContexts((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(context)) next.delete(context); else next.add(context);
+                    return next;
+                  })}
                   type="button"
                 >
                   {humanize(context)}
