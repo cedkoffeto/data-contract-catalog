@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import { auth } from "@/src/auth";
 import { execute, query } from "@/src/lib/db";
@@ -40,55 +42,62 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   );
   const requestedAccessRequest = rows[0] ?? null;
 
-  if (status === "approved" && requestedAccessRequest) {
-    const requestedPermission = requestedAccessRequest.requested_permission === "editor" ? "editor" : "reader";
-    const permRows = await query<{ id: number }>(`SELECT id FROM permissions WHERE name = ?`, [permissionNameToPermissionIdName(requestedPermission)]);
-    const permissionId = permRows[0]?.id;
-    if (permissionId) {
-      await createAccessPolicy({
-        userId: requestedAccessRequest.user_id,
-        groupId: null,
-        permissionId,
-        domainScope: requestedAccessRequest.domain || null,
-        contextScope: requestedAccessRequest.context || null,
-        dataContractScope: requestedAccessRequest.data_contract || null,
-        actorId: userId,
-        force: true,
-        sessionId,
-      });
-    }
-  }
-
+  // Update status immediately (fast path)
   await execute(
     "UPDATE access_requests SET status = ? WHERE id = ?",
     [status, parseInt(id, 10)],
   );
 
-  writeAuditLog({
-    action: status === "approved" ? "access_request.approve" : "access_request.deny",
-    actorId: userId,
-    targetType: "contract",
-    targetId: id,
-    details: { newStatus: status, requestedPermission: requestedAccessRequest?.requested_permission ?? "reader" },
-    sessionId,
-  }).catch(() => {});
-
-  // Notify the requesting user
+  // Defer slow work: policy creation, audit, notification
   if (requestedAccessRequest) {
-    const targetParts = [requestedAccessRequest.domain, requestedAccessRequest.context, requestedAccessRequest.data_contract].filter(Boolean).join(" / ");
-    createNotification({
-      userId: requestedAccessRequest.user_id,
-      contractSlug: requestedAccessRequest.data_contract || "",
-      type: "access_request",
-      title: status === "approved" ? "Access request approved" : "Access request rejected",
-      message: status === "approved"
-        ? `Your request for ${requestedAccessRequest.requested_permission} access to ${targetParts} has been approved.`
-        : `Your request for ${requestedAccessRequest.requested_permission} access to ${targetParts} has been rejected.`,
-      metadata: {
-        contractSlug: requestedAccessRequest.data_contract || undefined,
-        requestStatus: status,
-      },
-    }).catch(() => {});
+    (async () => {
+      try {
+        if (status === "approved") {
+          const requestedPermission = requestedAccessRequest.requested_permission === "editor" ? "editor" : "reader";
+          const permRows = await query<{ id: number }>("SELECT id FROM permissions WHERE name = ?", [permissionNameToPermissionIdName(requestedPermission)]);
+          const permissionId = permRows[0]?.id;
+          if (permissionId) {
+            await createAccessPolicy({
+              userId: requestedAccessRequest.user_id,
+              groupId: null,
+              permissionId,
+              domainScope: requestedAccessRequest.domain || null,
+              contextScope: requestedAccessRequest.context || null,
+              dataContractScope: requestedAccessRequest.data_contract || null,
+              actorId: userId,
+              force: true,
+              sessionId,
+            });
+          }
+        }
+
+        await writeAuditLog({
+          action: status === "approved" ? "access_request.approve" : "access_request.deny",
+          actorId: userId,
+          targetType: "contract",
+          targetId: id,
+          details: { newStatus: status, requestedPermission: requestedAccessRequest.requested_permission ?? "reader" },
+          sessionId,
+        });
+
+        const targetParts = [requestedAccessRequest.domain, requestedAccessRequest.context, requestedAccessRequest.data_contract].filter(Boolean).join(" / ");
+        await createNotification({
+          userId: requestedAccessRequest.user_id,
+          contractSlug: requestedAccessRequest.data_contract || "",
+          type: "access_request",
+          title: status === "approved" ? "Access request approved" : "Access request rejected",
+          message: status === "approved"
+            ? `Your request for ${requestedAccessRequest.requested_permission} access to ${targetParts} has been approved.`
+            : `Your request for ${requestedAccessRequest.requested_permission} access to ${targetParts} has been rejected.`,
+          metadata: {
+            contractSlug: requestedAccessRequest.data_contract || undefined,
+            requestStatus: status,
+          },
+        });
+      } catch {
+        // Background work failed; status already updated.
+      }
+    })();
   }
 
   return NextResponse.json({ success: true });

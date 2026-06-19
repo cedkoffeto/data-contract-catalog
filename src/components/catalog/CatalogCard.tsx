@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo } from "react";
 import Link from "next/link";
 
 import { RequestAccessButton } from "@/src/components/catalog/RequestAccessButton";
@@ -108,27 +108,27 @@ function SubscriptionButton({ subscribed, onToggle }: { subscribed: boolean; onT
 function CardActions({ card, isSubscribed, onTogglePin, onToggleFavorite, onToggleSubscription }: {
   card: CatalogCardType;
   isSubscribed?: boolean;
-  onTogglePin?: () => void;
-  onToggleFavorite?: () => void;
-  onToggleSubscription?: () => void;
+  onTogglePin?: (slug: string) => void;
+  onToggleFavorite?: (slug: string) => void;
+  onToggleSubscription?: (slug: string) => void;
 }) {
   return (
     <div className="catalog-card__actions">
       <span className="catalog-card__version">v{card.version}</span>
       {card.isFavorite !== undefined ? (
-        <FavoriteButton favorited={card.isFavorite} onToggle={() => onToggleFavorite?.()} />
+        <FavoriteButton favorited={card.isFavorite} onToggle={() => onToggleFavorite?.(card.slug)} />
       ) : null}
-      <SubscriptionButton subscribed={!!isSubscribed} onToggle={() => onToggleSubscription?.()} />
-      <PinButton pinned={!!card.isPinned} onToggle={() => onTogglePin?.()} />
+      <SubscriptionButton subscribed={!!isSubscribed} onToggle={() => onToggleSubscription?.(card.slug)} />
+      <PinButton pinned={!!card.isPinned} onToggle={() => onTogglePin?.(card.slug)} />
     </div>
   );
 }
 
-export function CatalogCard({ card, onTogglePin, onToggleFavorite, onToggleSubscription, isSubscribed, canRequestUpgrade }: {
+export const CatalogCard = memo(function CatalogCard({ card, onTogglePin, onToggleFavorite, onToggleSubscription, isSubscribed, canRequestUpgrade }: {
   card: CatalogCardType;
-  onTogglePin?: () => void;
-  onToggleFavorite?: () => void;
-  onToggleSubscription?: () => void;
+  onTogglePin?: (slug: string) => void;
+  onToggleFavorite?: (slug: string) => void;
+  onToggleSubscription?: (slug: string) => void;
   isSubscribed?: boolean;
   canRequestUpgrade?: boolean;
 }) {
@@ -205,4 +205,4 @@ export function CatalogCard({ card, onTogglePin, onToggleFavorite, onToggleSubsc
       </Link>
     </li>
   );
-}
+});

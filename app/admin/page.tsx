@@ -259,11 +259,12 @@ function ChangeRequestsSection() {
   async function handleApprove(id: number) {
     setActionLoading((prev) => ({ ...prev, [id]: "approve" }));
     try {
-      await fetch(`/api/change-requests/${id}`, {
+      const res = await fetch(`/api/change-requests/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "approve" }),
       });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Failed to approve");
       await fetchRequests();
     } catch { /* silent */ } finally {
       setActionLoading((prev) => { const n = { ...prev }; delete n[id]; return n; });
@@ -275,11 +276,12 @@ function ChangeRequestsSection() {
     if (!reason || reason.length < 3) return;
     setActionLoading((prev) => ({ ...prev, [id]: "reject" }));
     try {
-      await fetch(`/api/change-requests/${id}`, {
+      const res = await fetch(`/api/change-requests/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "reject", rejectionReason: reason }),
       });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Failed to reject");
       setRejectReasons((prev) => { const n = { ...prev }; delete n[id]; return n; });
       await fetchRequests();
     } catch { /* silent */ } finally {
@@ -407,11 +409,16 @@ function AccessRequestsSection() {
   }, [fetchRequests]);
 
   async function handleStatus(id: number, status: string) {
-    await fetch(`/api/access-requests/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
+    try {
+      const res = await fetch(`/api/access-requests/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) throw new Error("API error");
+    } catch {
+      // PATCH may return before background work completes; refresh anyway
+    }
     await fetchRequests();
   }
 

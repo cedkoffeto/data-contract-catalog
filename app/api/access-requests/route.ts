@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import { auth } from "@/src/auth";
 import { execute, query } from "@/src/lib/db";
@@ -54,8 +56,8 @@ export async function POST(request: Request) {
     // Notify all admins
     const adminIds = await getAdminUserIds();
     const targetParts = [domain, context, dataContract].filter(Boolean).join(" / ");
-    for (const adminId of adminIds) {
-      await createNotification({
+    await Promise.allSettled(adminIds.map((adminId) =>
+      createNotification({
         userId: adminId,
         contractSlug: dataContract || "",
         type: "access_request",
@@ -66,8 +68,8 @@ export async function POST(request: Request) {
           contractSlug: dataContract || undefined,
           requestStatus: "pending",
         },
-      });
-    }
+      }),
+    ));
 
     return NextResponse.json({ id: result.changes }, { status: 201 });
   } catch (error) {

@@ -207,7 +207,18 @@ function InlineReplyForm({
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+    if (event.key === "Enter") {
+      if (event.shiftKey) return;
+      if (event.metaKey || event.ctrlKey) {
+        event.preventDefault();
+        void handlePost();
+        return;
+      }
+      if (mentionStart !== null) {
+        event.preventDefault();
+        selectMention(filteredUsers[selectedMentionIndex]);
+        return;
+      }
       event.preventDefault();
       void handlePost();
       return;
@@ -234,10 +245,6 @@ function InlineReplyForm({
     if (event.key === "ArrowUp") {
       event.preventDefault();
       setSelectedMentionIndex((current) => Math.max(current - 1, 0));
-    }
-    if (event.key === "Enter" && mentionStart !== null) {
-      event.preventDefault();
-      selectMention(filteredUsers[selectedMentionIndex]);
     }
   }
 
@@ -508,7 +515,36 @@ export function DiscussionThread({
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (!filteredUsers.length || mentionStart === null || mentionEnd === null) return;
+    if (event.key === "Enter") {
+      if (event.shiftKey) return;
+      if (event.metaKey || event.ctrlKey) {
+        event.preventDefault();
+        if (!saving && body.trim()) void handleSubmit();
+        return;
+      }
+      if (mentionStart !== null) {
+        event.preventDefault();
+        selectMention(filteredUsers[selectedMentionIndex]);
+        return;
+      }
+      event.preventDefault();
+      if (!saving && body.trim()) void handleSubmit();
+      return;
+    }
+
+    if (event.key === "Escape") {
+      if (mentionStart !== null) {
+        event.preventDefault();
+        setMentionStart(null);
+        setMentionEnd(null);
+        setMentionSearch("");
+        setSelectedMentionIndex(0);
+        return;
+      }
+      return;
+    }
+
+    if (mentionStart === null || mentionEnd === null || filteredUsers.length === 0) return;
 
     if (event.key === "ArrowDown") {
       event.preventDefault();
@@ -518,19 +554,6 @@ export function DiscussionThread({
     if (event.key === "ArrowUp") {
       event.preventDefault();
       setSelectedMentionIndex((current) => Math.max(current - 1, 0));
-    }
-
-    if (event.key === "Escape") {
-      event.preventDefault();
-      setMentionStart(null);
-      setMentionEnd(null);
-      setMentionSearch("");
-      setSelectedMentionIndex(0);
-    }
-
-    if (event.key === "Enter") {
-      event.preventDefault();
-      selectMention(filteredUsers[selectedMentionIndex]);
     }
   }
 
@@ -613,8 +636,7 @@ export function DiscussionThread({
     }
   }
 
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
+  async function handleSubmit() {
     if (composerMode === "comment") {
       await submitComment();
     } else {
@@ -667,6 +689,37 @@ export function DiscussionThread({
     [users, mentionSearch],
   );
 
+  function renderCommentTree(comment: ContractComment, depth: number): React.ReactNode {
+    const replies = repliesByParentId[comment.id] ?? [];
+    const isReplyingToThis = replyingTo?.id === comment.id;
+    const bubble = (
+      <div key={`comment-${comment.id}`} id={`comment-${comment.id}`} className="space-y-2">
+        <CommentBubble
+          comment={comment}
+          parentUser={depth > 0 ? commentMap.get(comment.parentId!)?.userId : undefined}
+          isCurrentUser={comment.userId === userId}
+          userId={userId}
+          onReply={() => setReplyingTo(isReplyingToThis ? null : comment)}
+        />
+        {isReplyingToThis ? (
+          <InlineReplyForm
+            comment={comment}
+            slug={slug}
+            userId={userId}
+            users={users}
+            onClose={() => setReplyingTo(null)}
+            onPosted={() => { setReplyingTo(null); void fetchThread(); }}
+          />
+        ) : null}
+        {replies.map((reply) => renderCommentTree(reply, depth + 1))}
+      </div>
+    );
+    if (depth > 0) {
+      return <div className="ml-8 border-l-2 border-orange-200 pl-4">{bubble}</div>;
+    }
+    return bubble;
+  }
+
   return (
     <section className="discussion-thread">
       {error ? (
@@ -685,50 +738,7 @@ export function DiscussionThread({
             if (item.type === "comment") {
               const comment = commentMap.get(item.id);
               if (!comment) return null;
-              return (
-                <div key={`comment-${comment.id}`} id={`comment-${comment.id}`} className="space-y-2">
-                  <CommentBubble
-                    comment={comment}
-                    isCurrentUser={comment.userId === userId}
-                    userId={userId}
-                    onReply={() => setReplyingTo(replyingTo?.id === comment.id ? null : comment)}
-                  />
-                  {repliesByParentId[comment.id]?.map((reply) => {
-                    const parent = commentMap.get(reply.parentId!);
-                    return (
-                      <div key={`reply-${reply.id}`} className="ml-8 border-l-2 border-orange-200 pl-4">
-                        <CommentBubble
-                          comment={reply}
-                          parentUser={parent?.userId}
-                          isCurrentUser={reply.userId === userId}
-                          userId={userId}
-                          onReply={() => setReplyingTo(replyingTo?.id === reply.id ? null : reply)}
-                        />
-                        {replyingTo?.id === reply.id ? (
-                          <InlineReplyForm
-                            comment={reply}
-                            slug={slug}
-                            userId={userId}
-                            users={users}
-                            onClose={() => setReplyingTo(null)}
-                            onPosted={() => { setReplyingTo(null); void fetchThread(); }}
-                          />
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                  {replyingTo?.id === comment.id ? (
-                    <InlineReplyForm
-                      comment={comment}
-                      slug={slug}
-                      userId={userId}
-                      users={users}
-                      onClose={() => setReplyingTo(null)}
-                      onPosted={() => { setReplyingTo(null); void fetchThread(); }}
-                    />
-                  ) : null}
-                </div>
-              );
+              return renderCommentTree(comment, 0);
             }
 
             const issue = issueMap.get(item.id);
@@ -789,7 +799,7 @@ export function DiscussionThread({
         ) : null}
 
         {userId ? (
-          <form className="relative" onSubmit={handleSubmit}>
+          <form className="relative" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
             <div
               className={`rounded-2xl border bg-gray-50 p-3 ${
                 composerMode === "issue" ? "border-red-200 bg-red-50/30" : ""

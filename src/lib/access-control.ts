@@ -397,7 +397,7 @@ export async function createAccessPolicy(params: {
         const narrowerIds = await findNarrowerPolicies(
           userId, groupId, domainScope ?? null, contextScope ?? null, dataContractScope ?? null, conflict.existing.id,
         );
-        for (const id of narrowerIds) {
+        await Promise.allSettled(narrowerIds.map(async (id) => {
           await execute("DELETE FROM access_policies WHERE id = ?", [id]);
           await writeAuditLog({
             action: "policy.delete",
@@ -407,7 +407,7 @@ export async function createAccessPolicy(params: {
             details: { replacedBy: `broader policy #${conflict.existing.id}` },
             sessionId,
           });
-        }
+        }));
       }
       return await updateAccessPolicy({
         id: conflict.existing.id,

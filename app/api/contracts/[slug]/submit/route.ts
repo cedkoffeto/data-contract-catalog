@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 
 import fs from "node:fs";
@@ -56,48 +57,54 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
 
     // Notify all admin users
     const adminUsers = await getAdminUserIds();
-    for (const adminId of adminUsers) {
-      if (adminId === userId || notified.has(adminId)) continue;
-      notified.add(adminId);
-      await createNotification({
-        userId: adminId,
-        contractSlug: slug,
-        type: isNew ? "contract.created" : "contract.submitted",
-        title: isNew ? `New contract: ${title}` : `Contract updated: ${title}`,
-        message: isNew
-          ? `${userId} created ${title}`
-          : `${userId} submitted a new version of ${title}`,
-      });
-    }
+    await Promise.allSettled(adminUsers
+      .filter((adminId) => adminId !== userId && !notified.has(adminId))
+      .map((adminId) => {
+        notified.add(adminId);
+        return createNotification({
+          userId: adminId,
+          contractSlug: slug,
+          type: isNew ? "contract.created" : "contract.submitted",
+          title: isNew ? `New contract: ${title}` : `Contract updated: ${title}`,
+          message: isNew
+            ? `${userId} created ${title}`
+            : `${userId} submitted a new version of ${title}`,
+        });
+      }),
+    );
 
     // Notify subscribers (excluding admins already notified)
     const subscribers = await getSubscribers(slug);
-    for (const sub of subscribers) {
-      if (sub.user_id === userId || sub.channel === "email" || notified.has(sub.user_id)) continue;
-      notified.add(sub.user_id);
-      await createNotification({
-        userId: sub.user_id,
-        contractSlug: slug,
-        type: "contract.submitted",
-        title: `Contract updated: ${title}`,
-        message: `${userId} submitted a new version of ${title}`,
-      });
-    }
+    await Promise.allSettled(subscribers
+      .filter((sub) => sub.user_id !== userId && sub.channel !== "email" && !notified.has(sub.user_id))
+      .map((sub) => {
+        notified.add(sub.user_id);
+        return createNotification({
+          userId: sub.user_id,
+          contractSlug: slug,
+          type: "contract.submitted",
+          title: `Contract updated: ${title}`,
+          message: `${userId} submitted a new version of ${title}`,
+        });
+      }),
+    );
 
     // For new contracts, also notify users with scope access
     if (isNew && (domain || context)) {
       const scopeUsers = await getUserIdsWithScopeAccess(domain, context);
-      for (const scopeUserId of scopeUsers) {
-        if (scopeUserId === userId || notified.has(scopeUserId)) continue;
-        notified.add(scopeUserId);
-        await createNotification({
-          userId: scopeUserId,
-          contractSlug: slug,
-          type: "contract.created",
-          title: `New contract: ${title}`,
-          message: `${userId} created ${title} (${domain}${context ? ` / ${context}` : ""})`,
-        });
-      }
+      await Promise.allSettled(scopeUsers
+        .filter((scopeUserId) => scopeUserId !== userId && !notified.has(scopeUserId))
+        .map((scopeUserId) => {
+          notified.add(scopeUserId);
+          return createNotification({
+            userId: scopeUserId,
+            contractSlug: slug,
+            type: "contract.created",
+            title: `New contract: ${title}`,
+            message: `${userId} created ${title} (${domain}${context ? ` / ${context}` : ""})`,
+          });
+        }),
+      );
     }
 
     return NextResponse.json({ success: true, slug });

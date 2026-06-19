@@ -15,9 +15,14 @@ import CodeMirror from "@uiw/react-codemirror";
 import yaml from "js-yaml";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 
-import { CommitModal } from "@/src/components/editor/CommitModal";
+import dynamic from "next/dynamic";
 import { ContractBody } from "@/src/components/contract/ContractBody";
 import { ContractHeader } from "@/src/components/contract/ContractHeader";
+
+const CommitModal = dynamic(
+  () => import("@/src/components/editor/CommitModal").then((m) => m.CommitModal),
+  { ssr: false },
+);
 import { computeDiff, createUnifiedDiffText } from "@/src/lib/diff";
 import type { DiffResult } from "@/src/lib/diff";
 import type { DataContract, EditorRepositoryFile } from "@/src/lib/types";

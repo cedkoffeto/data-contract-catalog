@@ -28,34 +28,39 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function ContractRoutePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
 
-  // Parallelize contract data fetch with history fetch (both hit GitLab)
-  const [page, historyEntries] = await Promise.all([
+  // Parallelize contract fetch, history fetch, and auth (all independent)
+  const [page, historyEntries, session] = await Promise.all([
     getContractPageData(slug),
     getGitLabFileHistory(slug, 20).catch(() => [] as ContractHistoryEntry[]),
+    auth(),
   ]);
   if (!page) {
     notFound();
   }
 
-  const session = await auth();
   const userId = session?.user?.name;
 
   const domain = page.data.asset?.domain ?? "";
   const context = page.data.asset?.context ?? "";
   const globalPermissions = userId ? await getUserPermissions(userId) : [];
-  const canEdit = await canEditContract(userId, globalPermissions, domain, context, slug);
-  const canAdmin = globalPermissions.includes("admin") || (userId ? await authorize(userId, domain, context, "admin", slug) : false);
 
-  if (userId) {
-    if (!globalPermissions.includes("admin")) {
-      const allowed = await authorize(userId, domain, context, "read", slug);
-      if (!allowed) {
-        return <Forbidden slug={slug} domain={domain} context={context} />;
-      }
-    }
-  } else {
+  if (!userId) {
     return <Forbidden message="Authentification requise" />;
   }
+
+  // Parallelize permission checks
+  const [canEdit, canRead] = await Promise.all([
+    canEditContract(userId, globalPermissions, domain, context, slug),
+    globalPermissions.includes("admin")
+      ? Promise.resolve(true)
+      : authorize(userId, domain, context, "read", slug),
+  ]);
+
+  if (!canRead) {
+    return <Forbidden slug={slug} domain={domain} context={context} />;
+  }
+
+  const canAdmin = globalPermissions.includes("admin") || await authorize(userId, domain, context, "admin", slug);
 
   return <ContractPage data={page.data} slug={page.slug} yamlRaw={page.yamlRaw} historyEntries={historyEntries} userId={userId} canEdit={canEdit} canAdmin={canAdmin} />;
 }

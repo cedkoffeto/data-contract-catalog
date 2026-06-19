@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CatalogCard } from "@/src/components/catalog/CatalogCard";
 import { Button } from "@/src/components/ui/Button";
 import { Input } from "@/src/components/ui/Input";
+import { t, tWith } from "@/src/lib/i18n";
 import type { CatalogCard as CatalogCardType } from "@/src/lib/types";
 
 const ALL_DOMAINS = "__all_domains__";
@@ -26,6 +27,13 @@ function humanize(value: string): string {
 export function CatalogClient({ cards: initialCards, canRequestUpgrade }: { cards: CatalogCardType[]; canRequestUpgrade?: boolean }) {
   const [cards, setCards] = useState(initialCards);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => {
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setDebouncedSearch(search), 200);
+    return () => clearTimeout(debounceRef.current);
+  }, [search]);
   const [selectedDomain, setSelectedDomain] = useState(ALL_DOMAINS);
   const [selectedContexts, setSelectedContexts] = useState<Set<string>>(new Set());
   const [selectedMaturities, setSelectedMaturities] = useState<Set<string>>(new Set());
@@ -70,7 +78,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade }: { card
   }, [cards]);
 
   const visibleCards = useMemo(() => {
-    const query = search.trim().toLowerCase();
+    const query = debouncedSearch.trim().toLowerCase();
 
     return cards
       .filter((card) => {
@@ -91,7 +99,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade }: { card
         if (aFav !== bFav) return aFav - bFav;
         return a.title.localeCompare(b.title);
       });
-  }, [cards, search, selectedDomain, selectedContexts, selectedMaturities, showOnlyAccessible, showFavoritesOnly, pinnedSlugs]);
+  }, [cards, debouncedSearch, selectedDomain, selectedContexts, selectedMaturities, showOnlyAccessible, showFavoritesOnly, pinnedSlugs]);
 
   const renderedCards = visibleCards.slice(0, visibleCount);
   const hasMore = renderedCards.length < visibleCards.length;
@@ -111,9 +119,10 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade }: { card
     return () => observer.disconnect();
   }, [hasMore]);
 
-  async function handleTogglePin(slug: string) {
-    const next = !pinnedSlugs.has(slug);
+  const handleTogglePin = useCallback(async (slug: string) => {
+    let next = false;
     setPinnedSlugs((prev) => {
+      next = !prev.has(slug);
       const nextSet = new Set(prev);
       if (next) nextSet.add(slug); else nextSet.delete(slug);
       return nextSet;
@@ -124,23 +133,26 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade }: { card
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isPinned: next }),
     });
-  }
+  }, []);
 
-  async function handleToggleFavorite(slug: string) {
-    const card = cards.find((c) => c.slug === slug);
-    if (!card) return;
-    const next = !card.isFavorite;
-    setCards((prev) => prev.map((c) => (c.slug === slug ? { ...c, isFavorite: next } : c)));
+  const handleToggleFavorite = useCallback(async (slug: string) => {
+    let next = false;
+    setCards((prev) => {
+      const card = prev.find((c) => c.slug === slug);
+      next = !card?.isFavorite;
+      return prev.map((c) => (c.slug === slug ? { ...c, isFavorite: next } : c));
+    });
     await fetch(`/api/contracts/${encodeURIComponent(slug)}/preferences`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isFavorite: next }),
     });
-  }
+  }, []);
 
-  async function handleToggleSubscription(slug: string) {
-    const next = !subscribedSlugs.has(slug);
+  const handleToggleSubscription = useCallback(async (slug: string) => {
+    let next = false;
     setSubscribedSlugs((prev) => {
+      next = !prev.has(slug);
       const nextSet = new Set(prev);
       if (next) nextSet.add(slug); else nextSet.delete(slug);
       return nextSet;
@@ -150,7 +162,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade }: { card
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(next ? {} : { channel: null }),
     });
-  }
+  }, []);
 
   const accessibleCount = useMemo(() => cards.filter((c) => c.accessible).length, [cards]);
   const favoriteCount = useMemo(() => cards.filter((c) => c.isFavorite).length, [cards]);
@@ -362,7 +374,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade }: { card
 
           <ul role="list" className="catalog-grid">
             {renderedCards.map((card) => (
-              <CatalogCard key={card.slug} card={card} canRequestUpgrade={canRequestUpgrade} onTogglePin={() => handleTogglePin(card.slug)} onToggleFavorite={() => handleToggleFavorite(card.slug)} onToggleSubscription={() => handleToggleSubscription(card.slug)} isSubscribed={subscribedSlugs.has(card.slug)} />
+              <CatalogCard key={card.slug} card={card} canRequestUpgrade={canRequestUpgrade} onTogglePin={handleTogglePin} onToggleFavorite={handleToggleFavorite} onToggleSubscription={handleToggleSubscription} isSubscribed={subscribedSlugs.has(card.slug)} />
             ))}
           </ul>
 

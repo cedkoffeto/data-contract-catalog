@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/src/lib/require-admin";
 import { getDistinctScopes } from "@/src/lib/contracts";

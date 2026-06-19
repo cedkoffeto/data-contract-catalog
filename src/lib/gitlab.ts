@@ -117,6 +117,30 @@ export async function getGitLabContractFilePath(slug: string) {
   return contract.fullPath.replace(/\\/g, "/");
 }
 
+export async function getGitLabMergeRequest(mrIid: number) {
+  const { api, config } = getGitLabClient();
+  return (await api.MergeRequests.show(config.projectId, mrIid)) as {
+    iid: number;
+    web_url: string;
+    state: string;
+    source_branch: string;
+  };
+}
+
+export async function findGitLabMergeRequestByBranch(branchName: string) {
+  const { api, config } = getGitLabClient();
+  for (const state of ["opened", "merged", "closed"] as const) {
+    const mrs = (await api.MergeRequests.all({
+      projectId: config.projectId,
+      sourceBranch: branchName,
+      state,
+      perPage: 1,
+    })) as Array<{ iid: number; web_url: string; state: string; source_branch: string }>;
+    if (mrs[0]) return mrs[0];
+  }
+  return null;
+}
+
 export async function getGitLabFileLastCommitSha(slug: string): Promise<string> {
   const { api, config } = getGitLabClient();
   const filePath = await getGitLabContractFilePath(slug);

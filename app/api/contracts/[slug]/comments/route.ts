@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 
 import { auth } from "@/src/auth";
@@ -85,13 +86,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
   });
 
   const mentionedUserIds = extractMentionedUserIds(commentBody);
-  await recordCommentMentions(comment.id, mentionedUserIds);
-  await notifyMentionedUsers({
-    contractSlug: slug,
-    commentId: comment.id,
-    mentionedBy: userId,
-    mentionedUserIds,
-  });
+  await Promise.allSettled([
+    recordCommentMentions(comment.id, mentionedUserIds),
+    notifyMentionedUsers({
+      contractSlug: slug,
+      commentId: comment.id,
+      mentionedBy: userId,
+      mentionedUserIds,
+    }),
+  ]);
 
   return NextResponse.json({ comment }, { status: 201 });
 }

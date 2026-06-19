@@ -2,17 +2,22 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
+import dynamic from "next/dynamic";
 import yaml from "js-yaml";
 
 import { ContractBody } from "@/src/components/contract/ContractBody";
 import { DiscussionThread } from "@/src/components/contract/DiscussionThread";
 import { ContractHeader } from "@/src/components/contract/ContractHeader";
-import { ContractDiffDialog } from "@/src/components/contract/ContractDiffDialog";
 import { RequestEditorUpgrade } from "@/src/components/contract/RequestEditorUpgrade";
 import { SubscribeButton } from "@/src/components/contract/SubscribeModal";
 import { YamlDialogButton } from "@/src/components/contract/YamlDialogButton";
 import type { ContractHistoryEntry, DataContract } from "@/src/lib/types";
 import type { Subscription } from "@/src/lib/subscriptions";
+
+const ContractDiffDialog = dynamic(
+  () => import("@/src/components/contract/ContractDiffDialog").then((m) => m.ContractDiffDialog),
+  { ssr: false },
+);
 
 function formatHistoryMeta(value: string) {
   if (!value) {
