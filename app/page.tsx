@@ -1,7 +1,7 @@
 import { CatalogPage } from "@/src/components/catalog/CatalogPage";
 import { getCatalogCards } from "@/src/lib/contracts";
 import { getAccessibleSlugs } from "@/src/lib/catalog-filter";
-import { getUserPermissions, type Permission } from "@/src/lib/rbac";
+import { canWrite, getUserPermissions, type Permission } from "@/src/lib/rbac";
 import type { CatalogCard } from "@/src/lib/types";
 import { auth } from "@/src/auth";
 import { query } from "@/src/lib/db";
@@ -34,6 +34,8 @@ export default async function HomePage() {
   const pendingSlugs = new Set(pendingRows.map((r) => r.data_contract));
   const pinnedSet = new Set(pinnedSlugs);
 
+  const canRequestUpgrade = !canWrite(permissions);
+
   const annotated = cards.map((card) => ({
     ...card,
     accessible: accessible.has(card.slug),
@@ -41,7 +43,7 @@ export default async function HomePage() {
     isFavorite: favoriteSlugs.has(card.slug),
     isPinned: pinnedSet.has(card.slug),
   }));
-  return <CatalogPage cards={annotated} />;
+  return <CatalogPage cards={annotated} canRequestUpgrade={canRequestUpgrade} />;
 }
 
 async function getPreferenceSlugs(userId: string, column: string): Promise<Set<string>> {

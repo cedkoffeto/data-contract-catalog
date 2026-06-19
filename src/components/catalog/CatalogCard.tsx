@@ -124,12 +124,13 @@ function CardActions({ card, isSubscribed, onTogglePin, onToggleFavorite, onTogg
   );
 }
 
-export function CatalogCard({ card, onTogglePin, onToggleFavorite, onToggleSubscription, isSubscribed }: {
+export function CatalogCard({ card, onTogglePin, onToggleFavorite, onToggleSubscription, isSubscribed, canRequestUpgrade }: {
   card: CatalogCardType;
   onTogglePin?: () => void;
   onToggleFavorite?: () => void;
   onToggleSubscription?: () => void;
   isSubscribed?: boolean;
+  canRequestUpgrade?: boolean;
 }) {
   if (!card.accessible) {
     return (
@@ -199,7 +200,7 @@ export function CatalogCard({ card, onTogglePin, onToggleFavorite, onToggleSubsc
             <p className="catalog-card__owner">{card.owner || "Platform team"}</p>
             <span className="catalog-card__owner-label">Owner</span>
           </div>
-          <RequestEditorUpgrade slug={card.slug} domain={card.domain} compact />
+          {canRequestUpgrade !== false ? <RequestEditorUpgrade slug={card.slug} domain={card.domain} compact /> : null}
         </div>
       </Link>
     </li>

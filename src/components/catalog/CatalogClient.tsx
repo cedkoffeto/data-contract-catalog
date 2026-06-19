@@ -23,7 +23,7 @@ function humanize(value: string): string {
     .join(" ");
 }
 
-export function CatalogClient({ cards: initialCards }: { cards: CatalogCardType[] }) {
+export function CatalogClient({ cards: initialCards, canRequestUpgrade }: { cards: CatalogCardType[]; canRequestUpgrade?: boolean }) {
   const [cards, setCards] = useState(initialCards);
   const [search, setSearch] = useState("");
   const [selectedDomain, setSelectedDomain] = useState(ALL_DOMAINS);
@@ -362,7 +362,7 @@ export function CatalogClient({ cards: initialCards }: { cards: CatalogCardType[
 
           <ul role="list" className="catalog-grid">
             {renderedCards.map((card) => (
-              <CatalogCard key={card.slug} card={card} onTogglePin={() => handleTogglePin(card.slug)} onToggleFavorite={() => handleToggleFavorite(card.slug)} onToggleSubscription={() => handleToggleSubscription(card.slug)} isSubscribed={subscribedSlugs.has(card.slug)} />
+              <CatalogCard key={card.slug} card={card} canRequestUpgrade={canRequestUpgrade} onTogglePin={() => handleTogglePin(card.slug)} onToggleFavorite={() => handleToggleFavorite(card.slug)} onToggleSubscription={() => handleToggleSubscription(card.slug)} isSubscribed={subscribedSlugs.has(card.slug)} />
             ))}
           </ul>
 
