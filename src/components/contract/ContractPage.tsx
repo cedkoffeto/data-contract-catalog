@@ -1,12 +1,12 @@
 import { ContractPageClient } from "@/src/components/contract/ContractPageClient";
 import { PageShell } from "@/src/components/layout/PageShell";
-import { getGitLabFileHistory } from "@/src/lib/gitlab";
-import type { DataContract } from "@/src/lib/types";
+import type { ContractHistoryEntry, DataContract } from "@/src/lib/types";
 
 export async function ContractPage({
   data,
   slug,
   yamlRaw,
+  historyEntries,
   userId,
   canEdit,
   canAdmin
@@ -14,12 +14,11 @@ export async function ContractPage({
   data: DataContract;
   slug: string;
   yamlRaw: string;
+  historyEntries: ContractHistoryEntry[];
   userId?: string;
   canEdit: boolean;
   canAdmin: boolean;
 }) {
-  const historyEntries = await getGitLabFileHistory(slug, 20).catch(() => []);
-
   return (
     <PageShell footerVersion="">
       <ContractPageClient data={data} historyEntries={historyEntries} slug={slug} yamlRaw={yamlRaw} userId={userId} canEdit={canEdit} canAdmin={canAdmin} />

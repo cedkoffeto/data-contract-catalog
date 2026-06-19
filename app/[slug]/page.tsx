@@ -7,6 +7,8 @@ import { RequestAccessDialog } from "@/src/components/contract/RequestAccessDial
 import { authorize } from "@/src/lib/access-control";
 import { canEditContract } from "@/src/lib/catalog-filter";
 import { getContractPageData } from "@/src/lib/contracts";
+import { getGitLabFileHistory } from "@/src/lib/gitlab";
+import type { ContractHistoryEntry } from "@/src/lib/types";
 import { getUserPermissions } from "@/src/lib/rbac";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +27,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function ContractRoutePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const page = await getContractPageData(slug);
+
+  // Parallelize contract data fetch with history fetch (both hit GitLab)
+  const [page, historyEntries] = await Promise.all([
+    getContractPageData(slug),
+    getGitLabFileHistory(slug, 20).catch(() => [] as ContractHistoryEntry[]),
+  ]);
   if (!page) {
     notFound();
   }
@@ -50,7 +57,7 @@ export default async function ContractRoutePage({ params }: { params: Promise<{ 
     return <Forbidden message="Authentification requise" />;
   }
 
-  return <ContractPage data={page.data} slug={page.slug} yamlRaw={page.yamlRaw} userId={userId} canEdit={canEdit} canAdmin={canAdmin} />;
+  return <ContractPage data={page.data} slug={page.slug} yamlRaw={page.yamlRaw} historyEntries={historyEntries} userId={userId} canEdit={canEdit} canAdmin={canAdmin} />;
 }
 
 function Forbidden({ message, slug, domain, context }: { message?: string; slug?: string; domain?: string; context?: string }) {
