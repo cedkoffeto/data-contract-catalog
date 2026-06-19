@@ -29,6 +29,7 @@ export function CatalogClient({ cards }: { cards: CatalogCardType[] }) {
   const [selectedContext, setSelectedContext] = useState(ALL_CONTEXTS);
   const [selectedMaturity, setSelectedMaturity] = useState("all");
   const [showOnlyAccessible, setShowOnlyAccessible] = useState(false);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
   const domains = useMemo(() => {
     const unique = new Set(cards.map((card) => card.domain.trim()).filter(Boolean));
@@ -54,11 +55,13 @@ export function CatalogClient({ cards }: { cards: CatalogCardType[] }) {
       const matchesContext = selectedContext === ALL_CONTEXTS || card.context.trim() === selectedContext;
       const matchesMaturity = selectedMaturity === "all" || card.maturity.trim() === selectedMaturity;
       const matchesAccessible = !showOnlyAccessible || card.accessible;
-      return matchesSearch && matchesDomain && matchesContext && matchesMaturity && matchesAccessible;
+      const matchesFavorite = !showFavoritesOnly || card.isFavorite;
+      return matchesSearch && matchesDomain && matchesContext && matchesMaturity && matchesAccessible && matchesFavorite;
     });
-  }, [cards, search, selectedDomain, selectedContext, selectedMaturity, showOnlyAccessible]);
+  }, [cards, search, selectedDomain, selectedContext, selectedMaturity, showOnlyAccessible, showFavoritesOnly]);
 
   const accessibleCount = useMemo(() => cards.filter((c) => c.accessible).length, [cards]);
+  const favoriteCount = useMemo(() => cards.filter((c) => c.isFavorite).length, [cards]);
 
   const stats = useMemo(
     () => [
@@ -126,6 +129,18 @@ export function CatalogClient({ cards }: { cards: CatalogCardType[] }) {
                 Accessible only ({accessibleCount}/{cards.length})
               </Button>
             ) : null}
+            {favoriteCount > 0 ? (
+              <Button
+                className={showFavoritesOnly ? "is-active" : undefined}
+                onClick={() => setShowFavoritesOnly((v) => !v)}
+                variant="chip"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>
+                Favorites ({favoriteCount})
+              </Button>
+            ) : null}
             {domains.map((domain) => (
               <Button
                 key={domain}
@@ -144,7 +159,7 @@ export function CatalogClient({ cards }: { cards: CatalogCardType[] }) {
         <aside className="catalog-filters">
           <div className="catalog-filters__heading">
             <h2>Filters</h2>
-            {(search || selectedDomain !== ALL_DOMAINS || selectedContext !== ALL_CONTEXTS || selectedMaturity !== "all" || showOnlyAccessible) && (
+            {(search || selectedDomain !== ALL_DOMAINS || selectedContext !== ALL_CONTEXTS || selectedMaturity !== "all" || showOnlyAccessible || showFavoritesOnly) && (
               <Button
                 onClick={() => {
                   setSearch("");
@@ -152,6 +167,7 @@ export function CatalogClient({ cards }: { cards: CatalogCardType[] }) {
                   setSelectedContext(ALL_CONTEXTS);
                   setSelectedMaturity("all");
                   setShowOnlyAccessible(false);
+                  setShowFavoritesOnly(false);
                 }}
                 variant="outline"
               >

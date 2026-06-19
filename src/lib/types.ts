@@ -174,6 +174,7 @@ export type CatalogCard = {
   href: string;
   accessible: boolean;
   accessRequestStatus?: "pending";
+  isFavorite?: boolean;
 };
 
 export type ContractHistoryEntry = {

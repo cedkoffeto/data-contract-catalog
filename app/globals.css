@@ -1358,6 +1358,16 @@ body[data-ra-modal] [data-ra-overlay] {
   color: var(--ui-primary);
 }
 
+.catalog-card__badge--favorite {
+  background: #fef3c7;
+  color: #b45309;
+  padding: 0.3rem 0.35rem;
+}
+
+.catalog-card__badge--favorite svg {
+  display: block;
+}
+
 .catalog-card__title {
   margin: 0;
   font-size: 1rem;
