@@ -133,7 +133,7 @@ export async function getGitLabFileHistory(slug: string, limit = 10): Promise<Co
     const commits = (await api.Commits.all(config.projectId, {
       path: filePath,
       refName: config.ref,
-      perPage: Math.max(limit, 50)
+      perPage: Math.max(limit, 20)
     })) as GitLabCommitResponse[];
 
     console.info("[gitlab.history] Success", {
