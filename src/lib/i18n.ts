@@ -17,6 +17,10 @@ const dictionaries = {
     useMentionHint: "Use @username to notify someone.",
     details: "Details",
     issues: "Issues",
+    reportIssue: "Report issue",
+    reportIssueHint: "Issues are visible to contract admins.",
+    addComment: "Comment",
+    issuePlaceholder: "Describe the issue...",
   },
   fr: {
     commentsTitle: "Discussion",
@@ -34,6 +38,10 @@ const dictionaries = {
     useMentionHint: "Utilisez @utilisateur pour notifier quelqu'un.",
     details: "Détails",
     issues: "Signalements",
+    reportIssue: "Signaler un problème",
+    reportIssueHint: "Les signalements sont visibles par les administrateurs du contrat.",
+    addComment: "Commenter",
+    issuePlaceholder: "Décrivez le problème...",
   },
 } satisfies Record<Locale, Record<string, string>>;
 

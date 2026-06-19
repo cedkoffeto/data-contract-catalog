@@ -540,7 +540,7 @@ export function DiscussionThread({
                   : "text-gray-500 hover:bg-gray-100"
               }`}
             >
-              Comment
+              {t("addComment")}
             </button>
             <button
               type="button"
@@ -554,7 +554,7 @@ export function DiscussionThread({
                   : "text-gray-500 hover:bg-gray-100"
               }`}
             >
-              Report issue
+              {t("reportIssue")}
             </button>
           </div>
         ) : null}
@@ -577,7 +577,7 @@ export function DiscussionThread({
                 rows={4}
                 placeholder={
                   composerMode === "issue"
-                    ? "Describe the issue..."
+                    ? t("issuePlaceholder")
                     : replyingTo
                       ? t("replyPlaceholder")
                       : t("startDiscussionPlaceholder")
@@ -630,22 +630,19 @@ export function DiscussionThread({
 
             <div className="mt-2 flex items-center justify-between gap-3">
               <p className="text-xs text-gray-400">
-                {composerMode === "issue"
-                  ? "Issues are visible to contract admins."
-                  : t("useMentionHint")}
+                {composerMode === "issue" ? t("reportIssueHint") : t("useMentionHint")}
               </p>
               <button
                 type="submit"
                 disabled={saving || !body.trim()}
                 className={`rounded-xl px-3 py-2 text-xs font-bold text-white disabled:opacity-50 ${
-                  composerMode === "issue" ? "bg-red-600 hover:bg-red-700" : ""
+                  composerMode === "issue" ? "bg-red-600 hover:bg-red-700" : "bg-orange-600 hover:bg-orange-700"
                 }`}
-                style={composerMode === "comment" ? { backgroundColor: "var(--ui-primary)" } : undefined}
               >
                 {saving
-                  ? "Posting..."
+                  ? t("posting")
                   : composerMode === "issue"
-                    ? "Report issue"
+                    ? t("reportIssue")
                     : replyingTo
                       ? t("reply")
                       : t("postComment")}
