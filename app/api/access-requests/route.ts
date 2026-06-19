@@ -61,6 +61,10 @@ export async function POST(request: Request) {
         type: "access_request",
         title: `Access request from ${userId}`,
         message: `Requested ${requestedPermission} access to ${targetParts}${message ? `: ${message}` : ""}`,
+        metadata: {
+          path: "/admin/dashboard",
+          requestStatus: "pending",
+        },
       });
     }
 
