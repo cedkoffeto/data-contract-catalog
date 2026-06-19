@@ -5,15 +5,15 @@
 @theme {
   --font-sans: "Manrope", sans-serif;
   --font-mono: "IBM Plex Mono", monospace;
-  --color-ui-bg: #f5f6f8;
-  --color-ui-panel: #ffffff;
-  --color-ui-subtle: #eef1f5;
-  --color-ui-subtle-2: #f8f9fb;
-  --color-ui-text: #1f2937;
-  --color-ui-text-soft: #6b7280;
-  --color-ui-primary: #f97316;
-  --color-ui-primary-soft: rgba(249, 115, 22, 0.12);
-  --color-ui-border: #e2e5ea;
+  --color-ui-bg: var(--ui-bg);
+  --color-ui-panel: var(--ui-panel);
+  --color-ui-subtle: var(--ui-subtle);
+  --color-ui-subtle-2: var(--ui-subtle-2);
+  --color-ui-text: var(--ui-text);
+  --color-ui-text-soft: var(--ui-text-soft);
+  --color-ui-primary: var(--ui-primary);
+  --color-ui-primary-soft: var(--ui-primary-soft);
+  --color-ui-border: var(--ui-border, #e2e5ea);
   --color-ui-danger: #dc2626;
   --color-ui-success: #16a34a;
   --color-ui-warning: #f59e0b;

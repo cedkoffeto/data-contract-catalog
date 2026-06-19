@@ -55,7 +55,7 @@ export function RequestEditorUpgrade({
         type="button"
         onClick={(e) => { e.stopPropagation(); e.preventDefault(); setOpen(true); }}
         className={compact
-          ? "text-xs font-semibold text-orange-600 hover:text-orange-800"
+          ? "flex items-center gap-1 text-xs font-semibold text-orange-600 hover:text-orange-800"
           : "catalog-secondary-link catalog-secondary-link--button"
         }
       >
