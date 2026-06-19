@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { CatalogCard } from "@/src/components/catalog/CatalogCard";
 import { Button } from "@/src/components/ui/Button";
@@ -9,6 +9,7 @@ import type { CatalogCard as CatalogCardType } from "@/src/lib/types";
 
 const ALL_DOMAINS = "__all_domains__";
 const ALL_CONTEXTS = "__all_contexts__";
+const PAGE_SIZE = 20;
 
 function humanize(value: string): string {
   const trimmed = value.trim();
@@ -30,6 +31,8 @@ export function CatalogClient({ cards }: { cards: CatalogCardType[] }) {
   const [selectedMaturity, setSelectedMaturity] = useState("all");
   const [showOnlyAccessible, setShowOnlyAccessible] = useState(false);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const domains = useMemo(() => {
     const unique = new Set(cards.map((card) => card.domain.trim()).filter(Boolean));
@@ -59,6 +62,24 @@ export function CatalogClient({ cards }: { cards: CatalogCardType[] }) {
       return matchesSearch && matchesDomain && matchesContext && matchesMaturity && matchesAccessible && matchesFavorite;
     });
   }, [cards, search, selectedDomain, selectedContext, selectedMaturity, showOnlyAccessible, showFavoritesOnly]);
+
+  const renderedCards = visibleCards.slice(0, visibleCount);
+  const hasMore = renderedCards.length < visibleCards.length;
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [search, selectedDomain, selectedContext, selectedMaturity, showOnlyAccessible, showFavoritesOnly]);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasMore) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setVisibleCount((c) => c + PAGE_SIZE); },
+      { rootMargin: "400px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore]);
 
   const accessibleCount = useMemo(() => cards.filter((c) => c.accessible).length, [cards]);
   const favoriteCount = useMemo(() => cards.filter((c) => c.isFavorite).length, [cards]);
@@ -244,10 +265,19 @@ export function CatalogClient({ cards }: { cards: CatalogCardType[] }) {
           </div>
 
           <ul role="list" className="catalog-grid">
-            {visibleCards.map((card) => (
+            {renderedCards.map((card) => (
               <CatalogCard key={card.slug} card={card} />
             ))}
           </ul>
+
+          {hasMore ? (
+            <div ref={sentinelRef} className="flex justify-center py-8">
+              <svg className="h-6 w-6 animate-spin text-gray-400" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            </div>
+          ) : null}
 
           {cards.length === 0 ? <p className="catalog-empty">The contract repository is currently empty.</p> : null}
 
