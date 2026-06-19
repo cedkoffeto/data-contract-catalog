@@ -117,6 +117,19 @@ export async function getGitLabContractFilePath(slug: string) {
   return contract.fullPath.replace(/\\/g, "/");
 }
 
+export async function getGitLabFileLastCommitSha(slug: string): Promise<string> {
+  const { api, config } = getGitLabClient();
+  const filePath = await getGitLabContractFilePath(slug);
+
+  const commits = (await api.Commits.all(config.projectId, {
+    path: filePath,
+    refName: config.ref,
+    perPage: 1,
+  })) as GitLabCommitResponse[];
+
+  return commits[0]?.id ?? "";
+}
+
 export async function getGitLabFileHistory(slug: string, limit = 10): Promise<ContractHistoryEntry[]> {
   const { api, config } = getGitLabClient();
   const filePath = await getGitLabContractFilePath(slug);
