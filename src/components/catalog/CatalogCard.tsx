@@ -50,9 +50,12 @@ function PinButton({ pinned, onToggle }: { pinned: boolean; onToggle: () => void
       title={pinned ? "Unpin" : "Pin to top"}
       aria-label={pinned ? "Unpin" : "Pin to top"}
     >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill={pinned ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 3a4 4 0 0 0-4 4c0 2 1 3.5 2 4.5V21a2 2 0 0 0 4 0v-9.5c1-1 2-2.5 2-4.5a4 4 0 0 0-4-4z" />
-        <path d="M8 21h8" />
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <g transform="rotate(45 12 12)">
+          <circle cx="12" cy="4" r="3" fill={pinned ? "currentColor" : "none"} stroke="currentColor" />
+          <rect x="11" y="7" width="2" height="10" rx="1" />
+          <path d="M7 17h10" />
+        </g>
       </svg>
     </button>
   );
