@@ -46,7 +46,7 @@ function PinButton({ pinned, onToggle }: { pinned: boolean; onToggle: () => void
     <button
       type="button"
       onClick={(e) => { e.stopPropagation(); e.preventDefault(); onToggle(); }}
-      className="catalog-card__pin"
+      className={`catalog-card__pin${pinned ? " pinned" : ""}`}
       title={pinned ? "Unpin" : "Pin to top"}
       aria-label={pinned ? "Unpin" : "Pin to top"}
     >
@@ -66,7 +66,7 @@ function FavoriteButton({ favorited, onToggle }: { favorited: boolean; onToggle:
     <button
       type="button"
       onClick={(e) => { e.stopPropagation(); e.preventDefault(); onToggle(); }}
-      className="catalog-card__fav"
+      className={`catalog-card__fav${favorited ? " favorited" : ""}`}
       title={favorited ? "Remove from favorites" : "Add to favorites"}
       aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
     >
@@ -77,7 +77,49 @@ function FavoriteButton({ favorited, onToggle }: { favorited: boolean; onToggle:
   );
 }
 
-export function CatalogCard({ card, onTogglePin, onToggleFavorite }: { card: CatalogCardType; onTogglePin?: () => void; onToggleFavorite?: () => void }) {
+function SubscriptionButton({ subscribed, onToggle }: { subscribed: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); e.preventDefault(); onToggle(); }}
+      className={`catalog-card__sub${subscribed ? " subscribed" : ""}`}
+      title={subscribed ? "Unsubscribe" : "Subscribe to updates"}
+      aria-label={subscribed ? "Unsubscribe" : "Subscribe to updates"}
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+      </svg>
+    </button>
+  );
+}
+
+function CardActions({ card, isSubscribed, onTogglePin, onToggleFavorite, onToggleSubscription }: {
+  card: CatalogCardType;
+  isSubscribed?: boolean;
+  onTogglePin?: () => void;
+  onToggleFavorite?: () => void;
+  onToggleSubscription?: () => void;
+}) {
+  return (
+    <div className="catalog-card__actions">
+      <span className="catalog-card__version">v{card.version}</span>
+      {card.isFavorite !== undefined ? (
+        <FavoriteButton favorited={card.isFavorite} onToggle={() => onToggleFavorite?.()} />
+      ) : null}
+      <SubscriptionButton subscribed={!!isSubscribed} onToggle={() => onToggleSubscription?.()} />
+      <PinButton pinned={!!card.isPinned} onToggle={() => onTogglePin?.()} />
+    </div>
+  );
+}
+
+export function CatalogCard({ card, onTogglePin, onToggleFavorite, onToggleSubscription, isSubscribed }: {
+  card: CatalogCardType;
+  onTogglePin?: () => void;
+  onToggleFavorite?: () => void;
+  onToggleSubscription?: () => void;
+  isSubscribed?: boolean;
+}) {
   const [hovered, setHovered] = useState(false);
 
   if (!card.accessible) {
@@ -101,12 +143,8 @@ export function CatalogCard({ card, onTogglePin, onToggleFavorite }: { card: Cat
               <div className="catalog-card__meta">
                 <span className="catalog-card__badge">{humanize(card.maturity)}</span>
                 <span className="catalog-card__badge catalog-card__badge--subtle">{humanize(card.domain)}</span>
-                {card.isFavorite !== undefined ? (
-                  <FavoriteButton favorited={card.isFavorite} onToggle={() => onToggleFavorite?.()} />
-                ) : null}
               </div>
-              <span className="catalog-card__version">v{card.version}</span>
-              <PinButton pinned={!!card.isPinned} onToggle={() => onTogglePin?.()} />
+              <CardActions card={card} isSubscribed={isSubscribed} onTogglePin={onTogglePin} onToggleFavorite={onToggleFavorite} onToggleSubscription={onToggleSubscription} />
             </div>
             <div className="catalog-card__body">
               <h3 className="catalog-card__title">{card.title}</h3>
@@ -143,12 +181,8 @@ export function CatalogCard({ card, onTogglePin, onToggleFavorite }: { card: Cat
           <div className="catalog-card__meta">
             <span className="catalog-card__badge">{humanize(card.maturity)}</span>
             <span className="catalog-card__badge catalog-card__badge--subtle">{humanize(card.domain)}</span>
-            {card.isFavorite !== undefined ? (
-              <FavoriteButton favorited={card.isFavorite} onToggle={() => onToggleFavorite?.()} />
-            ) : null}
           </div>
-          <span className="catalog-card__version">v{card.version}</span>
-          <PinButton pinned={!!card.isPinned} onToggle={() => onTogglePin?.()} />
+          <CardActions card={card} isSubscribed={isSubscribed} onTogglePin={onTogglePin} onToggleFavorite={onToggleFavorite} onToggleSubscription={onToggleSubscription} />
         </div>
         <div className="catalog-card__body">
           <h3 className="catalog-card__title">{card.title}</h3>

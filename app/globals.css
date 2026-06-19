@@ -1387,6 +1387,16 @@ body[data-ra-modal] [data-ra-overlay] {
   color: var(--ui-primary);
 }
 
+.catalog-card__fav.favorited {
+  background: var(--ui-primary);
+  color: #fff;
+}
+
+.catalog-card__fav.favorited:hover {
+  background: #ea580c;
+  color: #fff;
+}
+
 .catalog-card__fav svg {
   display: block;
 }
@@ -1408,6 +1418,12 @@ body[data-ra-modal] [data-ra-overlay] {
   color: #9ca3af;
   cursor: pointer;
   transition: color 0.15s, background 0.15s;
+}
+
+.catalog-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
   margin-left: auto;
 }
 
@@ -1417,8 +1433,56 @@ body[data-ra-modal] [data-ra-overlay] {
   color: var(--ui-primary);
 }
 
+.catalog-card__pin.pinned {
+  background: #374151;
+  color: #fff;
+}
+
+.catalog-card__pin.pinned:hover {
+  background: #4b5563;
+  color: #fff;
+}
+
 .catalog-card__pin svg {
   display: block;
+}
+
+.catalog-card__sub {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.catalog-card__sub:hover {
+  background: rgba(249, 115, 22, 0.08);
+  color: var(--ui-primary);
+}
+
+.catalog-card__sub.subscribed {
+  background: #374151;
+  color: #fff;
+}
+
+.catalog-card__sub.subscribed:hover {
+  background: #4b5563;
+  color: #fff;
+}
+
+.catalog-card__sub svg {
+  display: block;
+}
+
+.catalog-card--disabled .catalog-card__sub {
+  opacity: 0.4;
+  pointer-events: none;
 }
 
 .catalog-card__title {

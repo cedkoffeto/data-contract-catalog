@@ -24,7 +24,8 @@ function humanize(value: string): string {
     .join(" ");
 }
 
-export function CatalogClient({ cards }: { cards: CatalogCardType[] }) {
+export function CatalogClient({ cards: initialCards }: { cards: CatalogCardType[] }) {
+  const [cards, setCards] = useState(initialCards);
   const [search, setSearch] = useState("");
   const [selectedDomain, setSelectedDomain] = useState(ALL_DOMAINS);
   const [selectedContext, setSelectedContext] = useState(ALL_CONTEXTS);
@@ -35,6 +36,14 @@ export function CatalogClient({ cards }: { cards: CatalogCardType[] }) {
   const [pinnedSlugs, setPinnedSlugs] = useState<Set<string>>(
     () => new Set(cards.filter((c) => c.isPinned).map((c) => c.slug)),
   );
+  const [subscribedSlugs, setSubscribedSlugs] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    fetch("/api/subscriptions")
+      .then((res) => res.json() as Promise<{ subscriptions: { contractSlug: string }[] }>)
+      .then((data) => setSubscribedSlugs(new Set(data.subscriptions.map((s) => s.contractSlug))))
+      .catch(() => {});
+  }, []);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const domains = useMemo(() => {
@@ -66,9 +75,12 @@ export function CatalogClient({ cards }: { cards: CatalogCardType[] }) {
         return matchesSearch && matchesDomain && matchesContext && matchesMaturity && matchesAccessible && matchesFavorite;
       })
       .sort((a, b) => {
-        const aPinned = pinnedSlugs.has(a.slug) ? 1 : 0;
-        const bPinned = pinnedSlugs.has(b.slug) ? 1 : 0;
-        if (aPinned !== bPinned) return bPinned - aPinned;
+        const aPinned = pinnedSlugs.has(a.slug) ? 0 : 1;
+        const bPinned = pinnedSlugs.has(b.slug) ? 0 : 1;
+        if (aPinned !== bPinned) return aPinned - bPinned;
+        const aFav = a.isFavorite ? 0 : 1;
+        const bFav = b.isFavorite ? 0 : 1;
+        if (aFav !== bFav) return aFav - bFav;
         return a.title.localeCompare(b.title);
       });
   }, [cards, search, selectedDomain, selectedContext, selectedMaturity, showOnlyAccessible, showFavoritesOnly, pinnedSlugs]);
@@ -114,6 +126,20 @@ export function CatalogClient({ cards }: { cards: CatalogCardType[] }) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isFavorite: next }),
+    });
+  }
+
+  async function handleToggleSubscription(slug: string) {
+    const next = !subscribedSlugs.has(slug);
+    setSubscribedSlugs((prev) => {
+      const nextSet = new Set(prev);
+      if (next) nextSet.add(slug); else nextSet.delete(slug);
+      return nextSet;
+    });
+    await fetch(`/api/contracts/${encodeURIComponent(slug)}/subscription`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(next ? {} : { channel: null }),
     });
   }
 
@@ -302,7 +328,7 @@ export function CatalogClient({ cards }: { cards: CatalogCardType[] }) {
 
           <ul role="list" className="catalog-grid">
             {renderedCards.map((card) => (
-              <CatalogCard key={card.slug} card={card} onTogglePin={() => handleTogglePin(card.slug)} onToggleFavorite={() => handleToggleFavorite(card.slug)} />
+              <CatalogCard key={card.slug} card={card} onTogglePin={() => handleTogglePin(card.slug)} onToggleFavorite={() => handleToggleFavorite(card.slug)} onToggleSubscription={() => handleToggleSubscription(card.slug)} isSubscribed={subscribedSlugs.has(card.slug)} />
             ))}
           </ul>
 
