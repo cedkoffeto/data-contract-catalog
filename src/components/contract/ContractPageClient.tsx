@@ -62,6 +62,8 @@ export function ContractPageClient({
   const [loadingSubscription, setLoadingSubscription] = useState(true);
   const [commentCount, setCommentCount] = useState(0);
   const [issueCount, setIssueCount] = useState(0);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [isPinned, setIsPinned] = useState(false);
   const [activeTab, setActiveTab] = useState<"details" | "comments" | "issues">("details");
 
   useEffect(() => {
@@ -77,6 +79,20 @@ export function ContractPageClient({
       })
       .catch(() => setSubscribed(false))
       .finally(() => setLoadingSubscription(false));
+  }, [slug, userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+    fetch(`/api/contracts/${encodeURIComponent(slug)}/preferences`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { preferences?: { isFavorite?: boolean; isPinned?: boolean } } | null) => {
+        setIsFavorite(Boolean(data?.preferences?.isFavorite));
+        setIsPinned(Boolean(data?.preferences?.isPinned));
+      })
+      .catch(() => {
+        setIsFavorite(false);
+        setIsPinned(false);
+      });
   }, [slug, userId]);
 
   useEffect(() => {
@@ -123,6 +139,18 @@ export function ContractPageClient({
     } finally {
       setLoadingHistoryId(null);
     }
+  }
+
+  async function handleTogglePreference(key: "isFavorite" | "isPinned") {
+    const next = key === "isFavorite" ? { isFavorite: !isFavorite, isPinned } : { isFavorite, isPinned: !isPinned };
+    const res = await fetch(`/api/contracts/${encodeURIComponent(slug)}/preferences`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(next),
+    });
+    if (!res.ok) return;
+    setIsFavorite(next.isFavorite);
+    setIsPinned(next.isPinned);
   }
 
   function TabIcon({ name }: { name: "details" | "comments" | "issues" }) {
@@ -264,6 +292,24 @@ export function ContractPageClient({
                     Open editor
                   </button>
                 )}
+                {userId ? (
+                  <button
+                    type="button"
+                    className={`catalog-secondary-link ${isFavorite ? "text-orange-700" : ""}`}
+                    onClick={() => void handleTogglePreference("isFavorite")}
+                  >
+                    {isFavorite ? "★ Favorited" : "☆ Favorite"}
+                  </button>
+                ) : null}
+                {userId ? (
+                  <button
+                    type="button"
+                    className={`catalog-secondary-link ${isPinned ? "text-orange-700" : ""}`}
+                    onClick={() => void handleTogglePreference("isPinned")}
+                  >
+                    {isPinned ? "Pinned" : "Pin"}
+                  </button>
+                ) : null}
                 {userId ? (
                   <SubscribeModal
                     slug={slug}
