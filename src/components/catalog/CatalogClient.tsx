@@ -105,6 +105,18 @@ export function CatalogClient({ cards }: { cards: CatalogCardType[] }) {
     });
   }
 
+  async function handleToggleFavorite(slug: string) {
+    const card = cards.find((c) => c.slug === slug);
+    if (!card) return;
+    const next = !card.isFavorite;
+    setCards((prev) => prev.map((c) => (c.slug === slug ? { ...c, isFavorite: next } : c)));
+    await fetch(`/api/contracts/${encodeURIComponent(slug)}/preferences`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isFavorite: next }),
+    });
+  }
+
   const accessibleCount = useMemo(() => cards.filter((c) => c.accessible).length, [cards]);
   const favoriteCount = useMemo(() => cards.filter((c) => c.isFavorite).length, [cards]);
 
@@ -290,7 +302,7 @@ export function CatalogClient({ cards }: { cards: CatalogCardType[] }) {
 
           <ul role="list" className="catalog-grid">
             {renderedCards.map((card) => (
-              <CatalogCard key={card.slug} card={card} onTogglePin={() => handleTogglePin(card.slug)} />
+              <CatalogCard key={card.slug} card={card} onTogglePin={() => handleTogglePin(card.slug)} onToggleFavorite={() => handleToggleFavorite(card.slug)} />
             ))}
           </ul>
 

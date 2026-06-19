@@ -51,13 +51,30 @@ function PinButton({ pinned, onToggle }: { pinned: boolean; onToggle: () => void
       aria-label={pinned ? "Unpin" : "Pin to top"}
     >
       <svg width="14" height="14" viewBox="0 0 24 24" fill={pinned ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 2 L15 9 L22 9 L16.5 14 L18 22 L12 18 L6 22 L7.5 14 L2 9 L9 9 Z" />
+        <path d="M12 3a4 4 0 0 0-4 4c0 2 1 3.5 2 4.5V21a2 2 0 0 0 4 0v-9.5c1-1 2-2.5 2-4.5a4 4 0 0 0-4-4z" />
+        <path d="M8 21h8" />
       </svg>
     </button>
   );
 }
 
-export function CatalogCard({ card, onTogglePin }: { card: CatalogCardType; onTogglePin?: () => void }) {
+function FavoriteButton({ favorited, onToggle }: { favorited: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); e.preventDefault(); onToggle(); }}
+      className="catalog-card__fav"
+      title={favorited ? "Remove from favorites" : "Add to favorites"}
+      aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
+    >
+      <svg width="12" height="12" viewBox="0 0 24 24" fill={favorited ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+      </svg>
+    </button>
+  );
+}
+
+export function CatalogCard({ card, onTogglePin, onToggleFavorite }: { card: CatalogCardType; onTogglePin?: () => void; onToggleFavorite?: () => void }) {
   const [hovered, setHovered] = useState(false);
 
   if (!card.accessible) {
@@ -81,12 +98,8 @@ export function CatalogCard({ card, onTogglePin }: { card: CatalogCardType; onTo
               <div className="catalog-card__meta">
                 <span className="catalog-card__badge">{humanize(card.maturity)}</span>
                 <span className="catalog-card__badge catalog-card__badge--subtle">{humanize(card.domain)}</span>
-                {card.isFavorite ? (
-                  <span className="catalog-card__badge catalog-card__badge--favorite" title="Favorite">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                    </svg>
-                  </span>
+                {card.isFavorite !== undefined ? (
+                  <FavoriteButton favorited={card.isFavorite} onToggle={() => onToggleFavorite?.()} />
                 ) : null}
               </div>
               <span className="catalog-card__version">v{card.version}</span>
@@ -127,12 +140,8 @@ export function CatalogCard({ card, onTogglePin }: { card: CatalogCardType; onTo
           <div className="catalog-card__meta">
             <span className="catalog-card__badge">{humanize(card.maturity)}</span>
             <span className="catalog-card__badge catalog-card__badge--subtle">{humanize(card.domain)}</span>
-            {card.isFavorite ? (
-              <span className="catalog-card__badge catalog-card__badge--favorite" title="Favorite">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                </svg>
-              </span>
+            {card.isFavorite !== undefined ? (
+              <FavoriteButton favorited={card.isFavorite} onToggle={() => onToggleFavorite?.()} />
             ) : null}
           </div>
           <span className="catalog-card__version">v{card.version}</span>
