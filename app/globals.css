@@ -1128,16 +1128,42 @@ a:has(> .kpi-card) {
   gap: 0.55rem;
 }
 
+.catalog-filter-group__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+}
+
 .catalog-filter-group__label,
 .catalog-results__meta {
   font-size: 0.72rem;
   color: var(--ui-text-soft);
 }
 
+.catalog-filter-group__chevron {
+  width: 14px;
+  height: 14px;
+  color: #9ca3af;
+  transition: transform 0.2s ease;
+}
+
+.catalog-filter-group__chevron.collapsed {
+  transform: rotate(-90deg);
+}
+
 .catalog-filter-stack {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  overflow: hidden;
+  transition: max-height 0.25s ease, opacity 0.2s ease;
 }
 
 .catalog-filter-pill {

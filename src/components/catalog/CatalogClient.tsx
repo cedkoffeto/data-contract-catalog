@@ -37,6 +37,15 @@ export function CatalogClient({ cards: initialCards }: { cards: CatalogCardType[
     () => new Set(cards.filter((c) => c.isPinned).map((c) => c.slug)),
   );
   const [subscribedSlugs, setSubscribedSlugs] = useState<Set<string>>(new Set());
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+
+  function toggleGroup(name: string) {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name); else next.add(name);
+      return next;
+    });
+  }
 
   useEffect(() => {
     fetch("/api/subscriptions")
@@ -260,31 +269,13 @@ export function CatalogClient({ cards: initialCards }: { cards: CatalogCardType[
           </div>
 
           <div className="catalog-filter-group">
-            <span className="catalog-filter-group__label">Context</span>
-            <div className="catalog-filter-stack">
-              <button
-                className={selectedContext === ALL_CONTEXTS ? "catalog-filter-pill is-active" : "catalog-filter-pill"}
-                onClick={() => setSelectedContext(ALL_CONTEXTS)}
-                type="button"
-              >
-                All contexts
-              </button>
-              {contexts.map((context) => (
-                <button
-                  key={context}
-                  className={selectedContext === context ? "catalog-filter-pill is-active" : "catalog-filter-pill"}
-                  onClick={() => setSelectedContext(selectedContext === context ? ALL_CONTEXTS : context)}
-                  type="button"
-                >
-                  {humanize(context)}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="catalog-filter-group">
-            <span className="catalog-filter-group__label">Maturity</span>
-            <div className="catalog-filter-stack">
+            <button type="button" className="catalog-filter-group__header" onClick={() => toggleGroup("maturity")}>
+              <span className="catalog-filter-group__label">Maturity</span>
+              <svg className={`catalog-filter-group__chevron${collapsedGroups.has("maturity") ? " collapsed" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+            <div className="catalog-filter-stack" style={{ maxHeight: collapsedGroups.has("maturity") ? "0" : undefined, opacity: collapsedGroups.has("maturity") ? 0 : 1 }}>
               <button
                 className={selectedMaturity === "all" ? "catalog-filter-pill is-active" : "catalog-filter-pill"}
                 onClick={() => setSelectedMaturity("all")}
@@ -306,14 +297,49 @@ export function CatalogClient({ cards: initialCards }: { cards: CatalogCardType[
           </div>
 
           <div className="catalog-filter-group">
-            <span className="catalog-filter-group__label">Overview</span>
-            <div className="catalog-filter-summary">
-              {stats.map((stat) => (
-                <div key={stat.label} className="catalog-filter-summary__item">
-                  <strong>{stat.value}</strong>
-                  <span>{stat.label}</span>
-                </div>
+            <button type="button" className="catalog-filter-group__header" onClick={() => toggleGroup("context")}>
+              <span className="catalog-filter-group__label">Context</span>
+              <svg className={`catalog-filter-group__chevron${collapsedGroups.has("context") ? " collapsed" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+            <div className="catalog-filter-stack" style={{ maxHeight: collapsedGroups.has("context") ? "0" : undefined, opacity: collapsedGroups.has("context") ? 0 : 1 }}>
+              <button
+                className={selectedContext === ALL_CONTEXTS ? "catalog-filter-pill is-active" : "catalog-filter-pill"}
+                onClick={() => setSelectedContext(ALL_CONTEXTS)}
+                type="button"
+              >
+                All contexts
+              </button>
+              {contexts.map((context) => (
+                <button
+                  key={context}
+                  className={selectedContext === context ? "catalog-filter-pill is-active" : "catalog-filter-pill"}
+                  onClick={() => setSelectedContext(selectedContext === context ? ALL_CONTEXTS : context)}
+                  type="button"
+                >
+                  {humanize(context)}
+                </button>
               ))}
+            </div>
+          </div>
+
+          <div className="catalog-filter-group">
+            <button type="button" className="catalog-filter-group__header" onClick={() => toggleGroup("overview")}>
+              <span className="catalog-filter-group__label">Overview</span>
+              <svg className={`catalog-filter-group__chevron${collapsedGroups.has("overview") ? " collapsed" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+            <div className="catalog-filter-stack" style={{ maxHeight: collapsedGroups.has("overview") ? "0" : undefined, opacity: collapsedGroups.has("overview") ? 0 : 1 }}>
+              <div className="catalog-filter-summary">
+                {stats.map((stat) => (
+                  <div key={stat.label} className="catalog-filter-summary__item">
+                    <strong>{stat.value}</strong>
+                    <span>{stat.label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </aside>
