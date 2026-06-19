@@ -68,6 +68,9 @@ export function RequestAccessButton({
     setOpen(false);
     setMessage("");
     setRequestedPermission("reader");
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
   }
 
   async function handleSubmit() {
