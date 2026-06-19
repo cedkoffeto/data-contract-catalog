@@ -288,7 +288,10 @@ export function ContractPageClient({
                     className={`catalog-secondary-link ${isFavorite ? "text-orange-700" : ""}`}
                     onClick={() => void handleTogglePreference("isFavorite")}
                   >
-                    {isFavorite ? "★ Favorited" : "☆ Favorite"}
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill={isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    </svg>
+                    {isFavorite ? "Favorited" : "Favorite"}
                   </button>
                 ) : null}
                 {userId ? (
@@ -297,6 +300,10 @@ export function ContractPageClient({
                     className={`catalog-secondary-link ${isPinned ? "text-orange-700" : ""}`}
                     onClick={() => void handleTogglePreference("isPinned")}
                   >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill={isPinned ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                      <line x1="4" y1="22" x2="4" y2="15" />
+                    </svg>
                     {isPinned ? "Pinned" : "Pin"}
                   </button>
                 ) : null}
@@ -310,14 +317,29 @@ export function ContractPageClient({
                   />
                 ) : (
                   <button className="catalog-secondary-link catalog-secondary-link--button" disabled type="button">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                    </svg>
                     Subscribe
                   </button>
                 )}
                 <YamlDialogButton yamlRaw={displayedYamlRaw} />
                 <a className="catalog-secondary-link" href={`/api/contracts/${encodeURIComponent(slug)}/export?type=csv`}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
                   Export CSV
                 </a>
                 <a className="catalog-secondary-link" href={`/api/contracts/${encodeURIComponent(slug)}/export?type=pdf`} target="_blank" rel="noreferrer">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <path d="M9 15h6" />
+                    <path d="M12 12v6" />
+                  </svg>
                   Export PDF
                 </a>
               </div>
