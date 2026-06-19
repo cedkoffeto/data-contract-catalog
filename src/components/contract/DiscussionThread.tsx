@@ -49,6 +49,20 @@ function renderBody(body: string) {
   });
 }
 
+const USER_COLORS = [
+  "bg-purple-50", "bg-green-50", "bg-yellow-50", "bg-pink-50",
+  "bg-indigo-50", "bg-teal-50", "bg-rose-50", "bg-cyan-50",
+  "bg-lime-50", "bg-amber-50", "bg-violet-50", "bg-emerald-50",
+];
+
+function getUserBgColor(userId: string): string {
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) {
+    hash = ((hash << 5) - hash) + userId.charCodeAt(i);
+  }
+  return USER_COLORS[Math.abs(hash) % USER_COLORS.length];
+}
+
 function Avatar({ name }: { name: string }) {
   return (
     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-100 text-xs font-bold text-orange-700">
@@ -60,12 +74,18 @@ function Avatar({ name }: { name: string }) {
 function CommentBubble({
   comment,
   parentUser,
+  isCurrentUser,
+  userId,
+  onReply,
 }: {
   comment: ContractComment;
   parentUser?: string;
+  isCurrentUser: boolean;
+  userId?: string;
+  onReply?: () => void;
 }) {
   return (
-    <div className="group flex gap-3">
+    <div className={`group flex gap-3 rounded-xl px-3 py-2 ${isCurrentUser ? "bg-blue-50" : getUserBgColor(comment.userId)}`}>
       <Avatar name={comment.userId} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
@@ -77,10 +97,21 @@ function CommentBubble({
           ) : null}
           <span className="text-xs text-gray-400">{timeAgo(comment.createdAt)}</span>
         </div>
-        <div className="mt-1 rounded-2xl bg-gray-50 px-3 py-2 text-sm leading-6 text-gray-700">
+        <div className="mt-0.5 rounded-xl bg-white/70 px-3 py-2 text-sm leading-6 text-gray-700">
           {renderBody(comment.body)}
         </div>
         {comment.editedAt ? <p className="mt-0.5 text-[11px] text-gray-400">Edited</p> : null}
+        {userId ? (
+          <div className="mt-1 flex justify-end">
+            <button
+              type="button"
+              onClick={onReply}
+              className="text-xs font-semibold text-orange-600 hover:text-orange-800"
+            >
+              {t("reply")}
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -90,22 +121,39 @@ function InlineReplyForm({
   comment,
   slug,
   userId,
+  users,
   onClose,
   onPosted,
 }: {
   comment: ContractComment;
   slug: string;
   userId?: string;
+  users: UserProfile[];
   onClose: () => void;
   onPosted: () => void;
 }) {
   const [body, setBody] = useState("");
   const [saving, setSaving] = useState(false);
+  const [mentionSearch, setMentionSearch] = useState("");
+  const [mentionStart, setMentionStart] = useState<number | null>(null);
+  const [mentionEnd, setMentionEnd] = useState<number | null>(null);
+  const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     window.setTimeout(() => textareaRef.current?.focus(), 0);
   }, []);
+
+  const filteredUsers = useMemo(
+    () =>
+      users.filter((user) => {
+        if (!mentionSearch) return true;
+        return [user.displayName, user.userId, user.firstName, user.lastName].some((value) =>
+          value.toLowerCase().includes(mentionSearch.toLowerCase()),
+        );
+      }),
+    [users, mentionSearch],
+  );
 
   async function handlePost() {
     if (!body.trim() || !userId) return;
@@ -126,28 +174,125 @@ function InlineReplyForm({
     }
   }
 
+  function selectMention(user: UserProfile | undefined) {
+    if (!user || mentionStart === null || mentionEnd === null) return;
+    const nextBody = `${body.slice(0, mentionStart)}@${user.userId}${body.slice(mentionEnd)}`;
+    setBody(nextBody);
+    setMentionStart(null);
+    setMentionEnd(null);
+    setMentionSearch("");
+    setSelectedMentionIndex(0);
+    window.setTimeout(() => textareaRef.current?.focus(), 0);
+  }
+
+  function handleTextChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
+    const value = event.target.value;
+    const cursor = event.target.selectionStart;
+    setBody(value);
+
+    const beforeCursor = value.slice(0, cursor);
+    const match = beforeCursor.match(/@([A-Za-z0-9_.-]*)$/);
+    if (match) {
+      const start = cursor - match[0].length;
+      setMentionStart(start);
+      setMentionEnd(cursor);
+      setMentionSearch(match[1]);
+      setSelectedMentionIndex(0);
+      return;
+    }
+
+    setMentionStart(null);
+    setMentionEnd(null);
+    setMentionSearch("");
+  }
+
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
       event.preventDefault();
       void handlePost();
+      return;
     }
     if (event.key === "Escape") {
       event.preventDefault();
+      if (mentionStart !== null) {
+        setMentionStart(null);
+        setMentionEnd(null);
+        setMentionSearch("");
+        setSelectedMentionIndex(0);
+        return;
+      }
       onClose();
+      return;
+    }
+
+    if (mentionStart === null || mentionEnd === null || filteredUsers.length === 0) return;
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setSelectedMentionIndex((current) => Math.min(current + 1, filteredUsers.length - 1));
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setSelectedMentionIndex((current) => Math.max(current - 1, 0));
+    }
+    if (event.key === "Enter" && mentionStart !== null) {
+      event.preventDefault();
+      selectMention(filteredUsers[selectedMentionIndex]);
     }
   }
 
   return (
-    <div className="ml-8 border-l-2 border-orange-200 pl-4">
+    <div className="relative ml-8 border-l-2 border-orange-200 pl-4">
       <textarea
         ref={textareaRef}
         className="mt-2 w-full resize-none rounded-xl border border-gray-200 bg-white p-3 text-sm leading-6 text-gray-900 outline-none"
         rows={2}
         placeholder={t("replyPlaceholder")}
         value={body}
-        onChange={(e) => setBody(e.target.value)}
+        onChange={handleTextChange}
         onKeyDown={handleKeyDown}
       />
+
+      {mentionStart !== null && mentionEnd !== null && filteredUsers.length > 0 ? (
+        <div
+          className="absolute z-20 w-72 overflow-hidden bg-white shadow-xl"
+          style={{ top: 56, maxHeight: "min(200px, 40vh)" }}
+        >
+          <div className="overflow-y-auto" style={{ maxHeight: "inherit" }}>
+            {filteredUsers.map((user, index) => {
+              const isActive = index === selectedMentionIndex;
+              return (
+                <button
+                  key={user.userId}
+                  type="button"
+                  className={`flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition ${
+                    isActive ? "bg-orange-50" : "hover:bg-gray-50"
+                  }`}
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                    selectMention(user);
+                  }}
+                >
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-100 text-xs font-bold text-orange-700">
+                    {getInitials(user.displayName)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span
+                      className={`block truncate ${
+                        isActive ? "font-semibold text-orange-700" : "font-medium text-gray-900"
+                      }`}
+                    >
+                      {user.displayName}
+                    </span>
+                    <span className="block truncate text-xs text-gray-400">@{user.userId}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
       <div className="mt-2 flex items-center justify-between">
         <p className="text-xs text-gray-400">{t("useMentionHint")}</p>
         <div className="flex gap-2">
@@ -542,39 +687,29 @@ export function DiscussionThread({
               if (!comment) return null;
               return (
                 <div key={`comment-${comment.id}`} id={`comment-${comment.id}`} className="space-y-2">
-                  <CommentBubble comment={comment} />
-                  {userId ? (
-                    <div className="ml-8">
-                      <button
-                        type="button"
-                        onClick={() => setReplyingTo(replyingTo?.id === comment.id ? null : comment)}
-                        className="text-xs font-semibold text-blue-700 hover:text-blue-900"
-                      >
-                        {t("reply")}
-                      </button>
-                    </div>
-                  ) : null}
+                  <CommentBubble
+                    comment={comment}
+                    isCurrentUser={comment.userId === userId}
+                    userId={userId}
+                    onReply={() => setReplyingTo(replyingTo?.id === comment.id ? null : comment)}
+                  />
                   {repliesByParentId[comment.id]?.map((reply) => {
                     const parent = commentMap.get(reply.parentId!);
                     return (
                       <div key={`reply-${reply.id}`} className="ml-8 border-l-2 border-orange-200 pl-4">
-                        <CommentBubble comment={reply} parentUser={parent?.userId} />
-                        {userId ? (
-                          <div className="mt-1">
-                            <button
-                              type="button"
-                              onClick={() => setReplyingTo(replyingTo?.id === reply.id ? null : reply)}
-                              className="text-xs font-semibold text-blue-700 hover:text-blue-900"
-                            >
-                              {t("reply")}
-                            </button>
-                          </div>
-                        ) : null}
+                        <CommentBubble
+                          comment={reply}
+                          parentUser={parent?.userId}
+                          isCurrentUser={reply.userId === userId}
+                          userId={userId}
+                          onReply={() => setReplyingTo(replyingTo?.id === reply.id ? null : reply)}
+                        />
                         {replyingTo?.id === reply.id ? (
                           <InlineReplyForm
                             comment={reply}
                             slug={slug}
                             userId={userId}
+                            users={users}
                             onClose={() => setReplyingTo(null)}
                             onPosted={() => { setReplyingTo(null); void fetchThread(); }}
                           />
@@ -587,6 +722,7 @@ export function DiscussionThread({
                       comment={comment}
                       slug={slug}
                       userId={userId}
+                      users={users}
                       onClose={() => setReplyingTo(null)}
                       onPosted={() => { setReplyingTo(null); void fetchThread(); }}
                     />
