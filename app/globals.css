@@ -1359,8 +1359,8 @@ body[data-ra-modal] [data-ra-overlay] {
 }
 
 .catalog-card__badge--favorite {
-  background: #fef3c7;
-  color: #b45309;
+  background: var(--ui-primary);
+  color: #fff;
   padding: 0.3rem 0.35rem;
 }
 

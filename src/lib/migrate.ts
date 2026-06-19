@@ -320,6 +320,7 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
   {
     id: "012_remove_is_pinned",
     sql: `
+      DROP INDEX IF EXISTS idx_user_contract_preferences_pinned;
       ALTER TABLE user_contract_preferences DROP COLUMN is_pinned;
     `,
   },
