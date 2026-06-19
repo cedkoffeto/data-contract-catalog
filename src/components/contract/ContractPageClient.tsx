@@ -5,9 +5,8 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import yaml from "js-yaml";
 
 import { ContractBody } from "@/src/components/contract/ContractBody";
-import { ContractComments } from "@/src/components/contract/ContractComments";
+import { DiscussionThread } from "@/src/components/contract/DiscussionThread";
 import { ContractHeader } from "@/src/components/contract/ContractHeader";
-import { ContractIssues } from "@/src/components/contract/ContractIssues";
 import { ContractDiffDialog } from "@/src/components/contract/ContractDiffDialog";
 import { SubscribeModal } from "@/src/components/contract/SubscribeModal";
 import { YamlDialogButton } from "@/src/components/contract/YamlDialogButton";
@@ -63,7 +62,7 @@ export function ContractPageClient({
   const [commentCount, setCommentCount] = useState(0);
   const [issueCount, setIssueCount] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [activeTab, setActiveTab] = useState<"details" | "comments" | "issues">("details");
+  const [activeTab, setActiveTab] = useState<"details" | "discussion">("details");
 
   useEffect(() => {
     if (!userId) {
@@ -140,19 +139,11 @@ export function ContractPageClient({
     setIsFavorite(Boolean(result?.preferences?.isFavorite));
   }
 
-  function TabIcon({ name }: { name: "details" | "comments" | "issues" }) {
-    if (name === "comments") {
+  function TabIcon({ name }: { name: "details" | "discussion" }) {
+    if (name === "discussion") {
       return (
         <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
           <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3.75h6.75M21 12c0 4.142-3.582 7.5-8 7.5a8.8 8.8 0 0 1-2.25-.29L6 20.25l.9-3.15A7.05 7.05 0 0 1 5 12c0-4.142 3.582-7.5 8-7.5s8 3.358 8 7.5Z" />
-        </svg>
-      );
-    }
-
-    if (name === "issues") {
-      return (
-        <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0-5.25V9m0 12a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
         </svg>
       );
     }
@@ -164,10 +155,10 @@ export function ContractPageClient({
     );
   }
 
-  function ContractTab({ id, label, count, icon }: { id: "details" | "comments" | "issues"; label: string; count?: number; icon: "details" | "comments" | "issues" }) {
+  function ContractTab({ id, label, count, icon }: { id: "details" | "discussion"; label: string; count?: number; icon: "details" | "discussion" }) {
     const isActive = activeTab === id;
     const isFirst = id === "details";
-    const isLast = id === "issues";
+    const isLast = id === "discussion";
     const clipPath = isFirst
       ? "polygon(0 0, 92% 0, 100% 100%, 0 100%)"
       : isLast
@@ -243,18 +234,14 @@ export function ContractPageClient({
                 <div className="sticky top-0 z-10 mb-4 border-b border-gray-200 bg-white/95 shadow-sm backdrop-blur">
                   <div role="tablist" aria-label="Contract sections" className="flex overflow-x-auto">
                     <ContractTab id="details" label="Details" icon="details" />
-                    <ContractTab id="comments" label="Comments" count={commentCount} icon="comments" />
-                    <ContractTab id="issues" label="Issues" count={issueCount} icon="issues" />
+                    <ContractTab id="discussion" label="Discussion" count={commentCount + issueCount} icon="discussion" />
                   </div>
                 </div>
                 <div className={activeTab === "details" ? "" : "hidden"}>
                   <ContractBody data={displayedData} slug={slug} userId={userId} />
                 </div>
-                <div className={activeTab === "comments" ? "" : "hidden"}>
-                  <ContractComments slug={slug} userId={userId} enabled={activeTab === "comments"} onCommentCountChange={setCommentCount} />
-                </div>
-                <div className={activeTab === "issues" ? "" : "hidden"}>
-                  <ContractIssues slug={slug} userId={userId} canAdmin={canAdmin} enabled={activeTab === "issues"} />
+                <div className={activeTab === "discussion" ? "" : "hidden"}>
+                  <DiscussionThread slug={slug} userId={userId} canAdmin={canAdmin} enabled={activeTab === "discussion"} onCommentCountChange={setCommentCount} onIssueCountChange={setIssueCount} />
                 </div>
               </div>
             </div>

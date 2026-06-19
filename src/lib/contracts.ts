@@ -11,8 +11,8 @@ import type { CatalogCard, ContractFile, DataContract, EditorRepositoryFile } fr
 const contractsRoot = process.env.CONTRACTS_PATH ?? path.join(process.cwd(), "contracts");
 const contractsCache: { expiresAt: number; value: ContractFile[] } = { expiresAt: 0, value: [] };
 const cardsCache: { expiresAt: number; value: CatalogCard[] } = { expiresAt: 0, value: [] };
-const CONTRACTS_CACHE_TTL_MS = 60_000;
-const CARDS_CACHE_TTL_MS = 60_000;
+const CONTRACTS_CACHE_TTL_MS = 300_000;
+const CARDS_CACHE_TTL_MS = 300_000;
 
 type GitLabTreeItem = {
   id?: string;

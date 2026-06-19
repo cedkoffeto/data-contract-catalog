@@ -118,6 +118,7 @@ export function CatalogClient({ cards: initialCards }: { cards: CatalogCardType[
       if (next) nextSet.add(slug); else nextSet.delete(slug);
       return nextSet;
     });
+    setCards((prev) => prev.map((c) => (c.slug === slug ? { ...c, isPinned: next } : c)));
     await fetch(`/api/contracts/${encodeURIComponent(slug)}/preferences`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
