@@ -4417,3 +4417,8 @@ body[data-ra-modal] [data-ra-overlay] {
   font-size: 0.8rem;
   color: var(--ui-text-soft);
 }
+
+@keyframes skeleton-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
