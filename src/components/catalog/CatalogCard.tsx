@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 
 import { RequestAccessButton } from "@/src/components/catalog/RequestAccessButton";
+import { RequestEditorUpgrade } from "@/src/components/contract/RequestEditorUpgrade";
 import type { CatalogCard as CatalogCardType } from "@/src/lib/types";
 
 function humanize(value: string): string {
@@ -198,6 +199,7 @@ export function CatalogCard({ card, onTogglePin, onToggleFavorite, onToggleSubsc
             <p className="catalog-card__owner">{card.owner || "Platform team"}</p>
             <span className="catalog-card__owner-label">Owner</span>
           </div>
+          <RequestEditorUpgrade slug={card.slug} domain={card.domain} compact />
         </div>
       </Link>
     </li>

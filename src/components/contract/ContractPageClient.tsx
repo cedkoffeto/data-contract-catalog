@@ -8,6 +8,7 @@ import { ContractBody } from "@/src/components/contract/ContractBody";
 import { DiscussionThread } from "@/src/components/contract/DiscussionThread";
 import { ContractHeader } from "@/src/components/contract/ContractHeader";
 import { ContractDiffDialog } from "@/src/components/contract/ContractDiffDialog";
+import { RequestEditorUpgrade } from "@/src/components/contract/RequestEditorUpgrade";
 import { SubscribeButton } from "@/src/components/contract/SubscribeModal";
 import { YamlDialogButton } from "@/src/components/contract/YamlDialogButton";
 import type { ContractHistoryEntry, DataContract } from "@/src/lib/types";
@@ -257,14 +258,17 @@ export function ContractPageClient({
                     Open editor
                   </a>
                 ) : (
-                  <button
-                    className="catalog-primary-link catalog-primary-link--disabled"
-                    disabled
-                    title="Vous n'avez pas les droits editor ou admin pour modifier ce contrat"
-                    type="button"
-                  >
-                    Open editor
-                  </button>
+                  <>
+                    <button
+                      className="catalog-primary-link catalog-primary-link--disabled"
+                      disabled
+                      title="Vous n'avez pas les droits editor ou admin pour modifier ce contrat"
+                      type="button"
+                    >
+                      Open editor
+                    </button>
+                    {userId ? <RequestEditorUpgrade slug={slug} domain={asset?.domain} context={asset?.context} /> : null}
+                  </>
                 )}
                 {userId ? (
                   <button

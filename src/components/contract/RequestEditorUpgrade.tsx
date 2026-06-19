@@ -1,0 +1,145 @@
+"use client";
+
+import { useState } from "react";
+import { createPortal } from "react-dom";
+
+function CloseIcon() {
+  return (
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  );
+}
+
+export function RequestEditorUpgrade({
+  slug,
+  domain,
+  context,
+  compact,
+}: {
+  slug: string;
+  domain?: string;
+  context?: string;
+  compact?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const [done, setDone] = useState(false);
+
+  async function handleSubmit() {
+    setSending(true);
+    try {
+      await fetch("/api/access-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          domain: domain || "",
+          context: context || "",
+          dataContract: slug,
+          requestedPermission: "editor",
+          message,
+        }),
+      });
+      setDone(true);
+    } catch {
+      // silent
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); e.preventDefault(); setOpen(true); }}
+        className={compact
+          ? "text-xs font-semibold text-orange-600 hover:text-orange-800"
+          : "catalog-secondary-link catalog-secondary-link--button"
+        }
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2Zm10-10V7a4 4 0 0 0-8 0v4h8Z" />
+        </svg>
+        {compact ? "Request editor" : "Request editor access"}
+      </button>
+
+      {open && createPortal(
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center"
+          style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
+          onClick={() => { setOpen(false); setDone(false); setMessage(""); }}
+        >
+          <div
+            className="flex max-h-[60vh] flex-col rounded-lg bg-white shadow-xl"
+            style={{ width: "min(50vw, 600px)", resize: "both", overflow: "hidden" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
+              <div className="flex items-center gap-2">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2Zm10-10V7a4 4 0 0 0-8 0v4h8Z" />
+                </svg>
+                <h3 className="text-sm font-semibold text-gray-900">Request editor access</h3>
+              </div>
+              <button className="editor-close-button" onClick={() => { setOpen(false); setDone(false); setMessage(""); }} aria-label="Close">
+                <CloseIcon />
+              </button>
+            </div>
+
+            {done ? (
+              <div className="flex flex-1 flex-col items-center justify-center px-4 py-6 text-center">
+                <p className="text-sm font-medium text-green-600">Request sent to administrators.</p>
+                <button
+                  type="button"
+                  onClick={() => { setOpen(false); setDone(false); setMessage(""); }}
+                  className="mt-3 rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
+                >
+                  Close
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="flex-1 overflow-y-auto px-4 py-3">
+                  <p className="text-sm text-gray-700">
+                    You already have <strong>reader</strong> access. Request an upgrade to <strong>editor</strong> to modify this contract.
+                  </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-x-6 text-xs text-gray-400">
+                    {domain && <span className="flex items-center gap-1">Domain: <span className="catalog-card__badge">{domain}</span></span>}
+                    {context && <span className="flex items-center gap-1">Context: <span className="catalog-card__badge catalog-card__badge--subtle">{context}</span></span>}
+                    <span className="flex items-center gap-1">Contract: <span className="catalog-card__badge" style={{ backgroundColor: "#fffbeb", color: "#854d0e" }}>{slug}</span></span>
+                  </div>
+
+                  <textarea
+                    className="mt-3 w-full rounded-md border px-3 py-2 text-sm text-gray-900"
+                    rows={3}
+                    placeholder="Why do you need editor access? (min. 3 characters)"
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    style={{ borderColor: "#e5e7eb" }}
+                  />
+                  {message.trim() && message.trim().length < 3 && (
+                    <p className="mt-1 text-xs text-red-500">Minimum 3 characters required</p>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-end gap-2 border-t border-gray-100 px-4 py-2">
+                  <button
+                    onClick={handleSubmit}
+                    disabled={sending || message.trim().length < 3}
+                    className="rounded px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+                    style={{ backgroundColor: "var(--ui-primary)" }}
+                  >
+                    {sending ? "Sending\u2026" : "Send request"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
+  );
+}
