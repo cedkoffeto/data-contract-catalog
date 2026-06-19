@@ -120,20 +120,14 @@ export function CatalogCard({ card, onTogglePin, onToggleFavorite, onToggleSubsc
   onToggleSubscription?: () => void;
   isSubscribed?: boolean;
 }) {
-  const [hovered, setHovered] = useState(false);
-
   if (!card.accessible) {
     return (
       <li
-        className="catalog-card-listing"
+        className="catalog-card-listing group"
         data-accessible="false"
         data-search={card.searchData}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
       >
-        <div
-          className={`relative rounded-xl transition-shadow duration-300 ${hovered ? "shadow-[0_8px_30px_rgba(249,115,22,0.15)]" : "shadow-none"}`}
-        >
+        <div className="relative rounded-xl transition-shadow duration-300 group-hover:shadow-[0_8px_30px_rgba(249,115,22,0.15)]">
           <div
             aria-disabled="true"
             className="catalog-card catalog-card--disabled"
@@ -164,8 +158,8 @@ export function CatalogCard({ card, onTogglePin, onToggleFavorite, onToggleSubsc
             </div>
           </div>
 
-          <div data-ra-overlay className={`absolute inset-0 z-10 flex cursor-default items-center justify-center rounded-xl bg-white/70 backdrop-blur-sm transition-all duration-300 ease-out ${hovered ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
-            <div onClick={(e) => e.stopPropagation()} className={`transition-all duration-300 ease-out ${hovered ? "translate-y-0 opacity-100 delay-100" : "translate-y-4 opacity-0"}`}>
+          <div data-ra-overlay className="absolute inset-0 z-10 flex cursor-default items-center justify-center rounded-xl bg-white/70 backdrop-blur-sm transition-all duration-300 ease-out opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto">
+            <div className="transition-all duration-300 ease-out translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 group-hover:delay-100">
               <RequestAccessButton slug={card.slug} domain={card.domain} context={card.context} accessRequestStatus={card.accessRequestStatus} />
             </div>
           </div>
