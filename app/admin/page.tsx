@@ -123,6 +123,8 @@ export default function AdminDashboard() {
 
       <AccessRequestsSection />
 
+      <ChangeRequestsSection />
+
       <div>
         <h2 className="mb-3 text-base font-semibold text-gray-900">Audit Log</h2>
         <div className="mb-3 flex items-center gap-3">
@@ -220,6 +222,169 @@ export default function AdminDashboard() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function ChangeRequestsSection() {
+  const [requests, setRequests] = useState<Array<{
+    id: number;
+    contract_slug: string;
+    editor_id: string;
+    yaml_content: string;
+    status: string;
+    gitlab_mr_url: string;
+    rejection_reason: string;
+    created_at: string;
+    resolved_at: string | null;
+    resolved_by: string | null;
+  }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [rejectReasons, setRejectReasons] = useState<Record<number, string>>({});
+  const [actionLoading, setActionLoading] = useState<Record<number, string>>({});
+
+  const fetchRequests = useCallback(async () => {
+    try {
+      const res = await fetch("/api/change-requests");
+      if (res.ok) setRequests((await res.json()).items ?? []);
+    } catch { /* silent */ } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRequests();
+  }, [fetchRequests]);
+
+  async function handleApprove(id: number) {
+    setActionLoading((prev) => ({ ...prev, [id]: "approve" }));
+    try {
+      await fetch(`/api/change-requests/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "approve" }),
+      });
+      await fetchRequests();
+    } catch { /* silent */ } finally {
+      setActionLoading((prev) => { const n = { ...prev }; delete n[id]; return n; });
+    }
+  }
+
+  async function handleReject(id: number) {
+    const reason = rejectReasons[id]?.trim();
+    if (!reason || reason.length < 3) return;
+    setActionLoading((prev) => ({ ...prev, [id]: "reject" }));
+    try {
+      await fetch(`/api/change-requests/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reject", rejectionReason: reason }),
+      });
+      setRejectReasons((prev) => { const n = { ...prev }; delete n[id]; return n; });
+      await fetchRequests();
+    } catch { /* silent */ } finally {
+      setActionLoading((prev) => { const n = { ...prev }; delete n[id]; return n; });
+    }
+  }
+
+  if (loading) return null;
+
+  return (
+    <div>
+      <h2 className="mb-3 text-base font-semibold text-gray-900">
+        Change Requests
+        {requests.filter((r) => r.status === "pending").length > 0 && (
+          <span className="text-sm font-normal text-gray-400">
+            {" "}({requests.filter((r) => r.status === "pending").length} pending)
+          </span>
+        )}
+      </h2>
+      {requests.length === 0 ? (
+        <div className="rounded-lg border bg-white py-8 text-center text-sm text-gray-400">No change requests yet.</div>
+      ) : (
+        <div className="overflow-x-auto rounded-lg border shadow-lg">
+          <table className="min-w-full divide-y divide-gray-200 bg-white text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                {["ID", "Contract", "Editor", "Status", "MR URL", "Rejection", "Created", "Actions"].map((label) => (
+                  <th key={label} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{label}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {requests.map((r) => (
+                <tr key={r.id}>
+                  <td className="px-4 py-3 text-xs text-gray-500">#{r.id}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-gray-900">{r.contract_slug}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-gray-600">{r.editor_id}</td>
+                  <td className="px-4 py-3">
+                    <span className={`rounded px-2 py-0.5 text-xs font-medium ${
+                      r.status === "pending" ? "bg-yellow-50 text-yellow-700" :
+                      r.status === "approved" ? "bg-green-50 text-green-700" :
+                      "bg-red-50 text-red-700"
+                    }`}>
+                      {r.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {r.gitlab_mr_url ? (
+                      <a href={r.gitlab_mr_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">
+                        View MR
+                      </a>
+                    ) : (
+                      <span className="text-xs text-gray-400">{"\u2014"}</span>
+                    )}
+                  </td>
+                  <td className="max-w-[150px] truncate px-4 py-3 text-xs text-gray-500">
+                    {r.rejection_reason || "\u2014"}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-gray-500">
+                    {new Date(r.created_at).toLocaleString()}
+                  </td>
+                  <td className="px-4 py-3">
+                    {r.status === "pending" ? (
+                      <div className="flex flex-col gap-1">
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => handleApprove(r.id)}
+                            disabled={actionLoading[r.id] === "approve"}
+                            className="rounded bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 hover:bg-green-100 disabled:opacity-50"
+                          >
+                            {actionLoading[r.id] === "approve" ? "Merging\u2026" : "Approve"}
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (rejectReasons[r.id]?.trim().length >= 3) {
+                                void handleReject(r.id);
+                              }
+                            }}
+                            disabled={actionLoading[r.id] === "reject" || (rejectReasons[r.id]?.trim().length ?? 0) < 3}
+                            className="rounded bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
+                          >
+                            {actionLoading[r.id] === "reject" ? "Rejecting\u2026" : "Reject"}
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="Rejection reason (min. 3 chars)"
+                          value={rejectReasons[r.id] ?? ""}
+                          onChange={(e) => setRejectReasons((prev) => ({ ...prev, [r.id]: e.target.value }))}
+                          className="w-full rounded border px-2 py-1 text-xs text-gray-900 outline-none"
+                          style={{ borderColor: "#d1d5db" }}
+                        />
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-400">
+                        {r.resolved_by ? `by ${r.resolved_by}` : "\u2014"}
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
