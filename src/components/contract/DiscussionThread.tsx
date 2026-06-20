@@ -34,12 +34,12 @@ function getInitials(name: string) {
 }
 
 function renderBody(body: string) {
-  const parts = body.split(/(@[\p{L}\p{N}_.-]+)/gu);
+  const parts = body.split(/(@[\p{L}\p{N}_. -]+)/gu);
   return parts.map((part, index) => {
-    if (/^@[\p{L}\p{N}_.-]+$/u.test(part)) {
+    if (/^@[\p{L}\p{N}_. -]+$/u.test(part)) {
       return (
-        <span key={`${part}-${index}`} className="rounded bg-blue-50 px-1 font-semibold text-blue-700">
-          {part}
+        <span key={`${part}-${index}`} className="rounded bg-orange-50 px-1 font-semibold text-orange-700">
+          {part.trimEnd()}
         </span>
       );
     }
@@ -298,7 +298,9 @@ function InlineReplyForm({
 
   function selectMention(user: UserProfile | undefined) {
     if (!user || mentionStart === null || mentionEnd === null) return;
-    const nextBody = `${body.slice(0, mentionStart)}@${user.userId}${body.slice(mentionEnd)}`;
+    const suffix = body.slice(mentionEnd);
+    const trailing = suffix.startsWith(" ") ? "" : " ";
+    const nextBody = `${body.slice(0, mentionStart)}@${user.firstName} ${user.lastName}${trailing}${suffix}`;
     setBody(nextBody);
     setMentionStart(null);
     setMentionEnd(null);
@@ -680,7 +682,9 @@ export function DiscussionThread({
 
   function selectMention(user: UserProfile | undefined) {
     if (!user || mentionStart === null || mentionEnd === null) return;
-    const nextBody = `${body.slice(0, mentionStart)}@${user.userId}${body.slice(mentionEnd)}`;
+    const suffix = body.slice(mentionEnd);
+    const trailing = suffix.startsWith(" ") ? "" : " ";
+    const nextBody = `${body.slice(0, mentionStart)}@${user.firstName} ${user.lastName}${trailing}${suffix}`;
     setBody(nextBody);
     setMentionStart(null);
     setMentionEnd(null);
