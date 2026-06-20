@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+
 import type { ContractComment, ContractIssue, UserProfile } from "@/src/lib/types";
 import { t } from "@/src/lib/i18n";
+import { useClickOutside } from "@/src/hooks/useClickOutside";
 
 const STATUSES = ["open", "fixed", "false_alert"] as const;
 
@@ -276,6 +278,10 @@ function InlineReplyForm({
     const cursor = event.target.selectionStart;
     setBody(value);
 
+    const el = event.target;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+
     const beforeCursor = value.slice(0, cursor);
     const match = beforeCursor.match(/@([\p{L}\p{N}_.-]*)$/u);
     if (match) {
@@ -348,18 +354,18 @@ function InlineReplyForm({
 
       {mentionStart !== null && mentionEnd !== null && filteredUsers.length > 0 ? (
         <div
-          className="absolute z-20 w-72 overflow-hidden bg-white shadow-xl"
-          style={{ top: 56, maxHeight: "min(200px, 40vh)" }}
+          className="absolute z-50 w-72 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl"
+          style={{ bottom: 40, maxHeight: "min(200px, 40vh)" }}
         >
-          <div className="overflow-y-auto" style={{ maxHeight: "inherit" }}>
+          <div className="overflow-y-auto py-1 mention-scroll" style={{ maxHeight: "inherit" }}>
             {filteredUsers.map((user, index) => {
               const isActive = index === selectedMentionIndex;
               return (
                 <button
                   key={user.userId}
                   type="button"
-                  className={`flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition ${
-                    isActive ? "bg-orange-50" : "hover:bg-gray-50"
+                  className={`flex w-full items-center gap-3 px-4 py-2 text-left text-sm transition-colors ${
+                    isActive ? "bg-orange-50" : "hover:bg-orange-50"
                   }`}
                   onMouseDown={(event) => {
                     event.preventDefault();
@@ -369,15 +375,15 @@ function InlineReplyForm({
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-100 text-xs font-bold text-orange-700">
                     {getInitials(user.displayName)}
                   </div>
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 flex-1 overflow-hidden">
                     <span
                       className={`block truncate ${
-                        isActive ? "font-semibold text-orange-700" : "font-medium text-gray-900"
+                        isActive ? "font-semibold text-orange-700" : "font-medium text-slate-900"
                       }`}
                     >
                       {user.displayName}
                     </span>
-                    <span className="block truncate text-xs text-gray-400">@{user.userId}</span>
+                    <span className="block truncate text-xs text-slate-500">@{user.userId}</span>
                   </div>
                 </button>
               );
@@ -511,6 +517,7 @@ export function DiscussionThread({
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const composerRef = useRef<HTMLDivElement>(null);
 
   const fetchThread = useCallback(async () => {
     setLoading(true);
@@ -558,15 +565,21 @@ export function DiscussionThread({
 
   function calculateMentionTop(value: string, cursor: number) {
     const lineHeight = 24;
-    const topPadding = 14;
+    const padding = 14;
+    const totalLines = value.split("\n").length;
     const linesBeforeCursor = value.slice(0, cursor).split("\n").length;
-    setMentionTop(Math.min(topPadding + (linesBeforeCursor - 1) * lineHeight, 180));
+    const linesAfterCursor = totalLines - linesBeforeCursor + 1;
+    setMentionTop(padding + (linesAfterCursor - 1) * lineHeight);
   }
 
   function handleTextChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
     const value = event.target.value;
     const cursor = event.target.selectionStart;
     setBody(value);
+
+    const el = event.target;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
 
     if (composerMode === "issue") {
       setMentionStart(null);
@@ -772,6 +785,14 @@ export function DiscussionThread({
     [users, mentionSearch],
   );
 
+  useClickOutside(composerRef, () => {
+    if (mentionStart !== null && mentionEnd !== null) {
+      setMentionStart(null);
+      setMentionEnd(null);
+      setMentionSearch("");
+    }
+  }, mentionStart !== null && mentionEnd !== null && filteredUsers.length > 0);
+
   function renderCommentTree(node: CommentNode, parentUserId?: string): React.ReactNode {
     const isReplyingToThis = replyingTo?.id === node.id;
     return (
@@ -812,11 +833,20 @@ export function DiscussionThread({
       {loading ? (
         <p className="rounded-xl border bg-white px-4 py-6 text-sm text-gray-500 shadow-sm">{t("loadingDiscussion")}</p>
       ) : threadItems.length === 0 ? (
-        <div className="rounded-2xl border border-dashed bg-white px-4 py-8 text-center text-sm text-gray-500 shadow-sm">
-          {t("noComments")}
-        </div>
+        <>
+          <div className="mb-3">
+            <h2 className="text-base font-semibold text-gray-900">Discussion</h2>
+          </div>
+          <div className="rounded-2xl border border-dashed bg-white px-4 py-8 text-center text-sm text-gray-500 shadow-sm">
+            {t("noComments")}
+          </div>
+        </>
       ) : (
-        <div className="space-y-4">
+        <>
+          <div className="mb-3">
+            <h2 className="text-base font-semibold text-gray-900">Discussion</h2>
+          </div>
+          <div className="space-y-4">
           {threadItems.map((item) => {
             if (item.type === "comment") {
               const node = rootCommentMap.get(item.id);
@@ -838,56 +868,59 @@ export function DiscussionThread({
             );
           })}
         </div>
+        </>
       )}
 
-      <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-        <div className="mb-3">
-          <h2 className="text-base font-semibold text-gray-900">{t("commentsTitle")}</h2>
-          {t("commentsSubtitle") ? <p className="mt-1 text-sm text-gray-500">{t("commentsSubtitle")}</p> : null}
-        </div>
-
-        {userId ? (
-          <div className="mb-3 flex gap-1">
-            <button
-              type="button"
-              onClick={() => {
-                setComposerMode("comment");
-              }} 
-              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
-                composerMode === "comment"
-                  ? "bg-orange-100 text-orange-800"
-                  : "text-gray-500 hover:bg-gray-100"
-              }`}
-            >
-              {t("addComment")}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setComposerMode("issue");
-              }} 
-              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
-                composerMode === "issue"
-                  ? "bg-red-100 text-red-800"
-                  : "text-gray-500 hover:bg-gray-100"
-              }`}
-            >
-              {t("reportIssue")}
-            </button>
-          </div>
-        ) : null}
+      <div ref={composerRef} className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
 
         {userId ? (
           <form className="relative" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
+            <div className="mb-3 flex items-center justify-between">
+              <div className="inline-flex rounded-full border p-0.5" style={{ backgroundColor: "rgba(249, 115, 22, 0.08)", borderColor: "rgba(249, 115, 22, 0.22)" }}>
+                <button
+                  type="button"
+                  onClick={() => setComposerMode("comment")}
+                  className={`inline-flex items-center rounded px-2.5 py-1 text-xs font-bold transition-colors ${
+                    composerMode === "comment"
+                      ? "text-white"
+                      : "text-amber-800"
+                  }`}
+                  style={composerMode === "comment" ? { backgroundColor: "var(--ui-primary)" } : { backgroundColor: "transparent" }}
+                >
+                  <svg className="mr-1 h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M7.5 8.25h9m-9 3.75h6.75m-6.75 3.75h3.75M21 12c0 4.142-3.582 7.5-8 7.5a8.8 8.8 0 0 1-2.25-.29L6 20.25l.9-3.15A7.05 7.05 0 0 1 5 12c0-4.142 3.582-7.5 8-7.5s8 3.358 8 7.5Z" />
+                  </svg>
+                  {t("addComment")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setComposerMode("issue")}
+                  className={`inline-flex items-center rounded px-2.5 py-1 text-xs font-bold transition-colors ${
+                    composerMode === "issue"
+                      ? "text-white"
+                      : "text-amber-800"
+                  }`}
+                  style={composerMode === "issue" ? { backgroundColor: "#dc2626" } : { backgroundColor: "transparent" }}
+                >
+                  <svg className="mr-1 h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 9v3.75m0-5.25V9m0 12a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
+                  </svg>
+                  {t("reportIssue")}
+                </button>
+              </div>
+              <p className="text-xs text-slate-400">
+                {composerMode === "issue" ? t("reportIssueHint") : t("useMentionHint")}
+              </p>
+            </div>
             <div
               className={`rounded-2xl border bg-gray-50 p-3 ${
-                composerMode === "issue" ? "border-red-200 bg-red-50/30" : ""
+                composerMode === "issue" ? "border-red-300 bg-red-50/30" : "border-gray-200"
               }`}
             >
               <textarea
                 ref={textareaRef}
-                className="w-full resize-none bg-transparent text-sm leading-6 text-gray-900 outline-none"
-                rows={4}
+                className="w-full resize-none overflow-hidden bg-transparent text-sm leading-6 text-gray-900 outline-none"
+                rows={3}
                 placeholder={
                   composerMode === "issue"
                     ? t("issuePlaceholder")
@@ -901,18 +934,18 @@ export function DiscussionThread({
 
             {composerMode === "comment" && mentionStart !== null && mentionEnd !== null && filteredUsers.length > 0 ? (
               <div
-                className="absolute z-20 w-72 overflow-hidden bg-white shadow-xl"
-                style={{ top: mentionTop, maxHeight: "min(240px, 40vh)" }}
+                className="absolute z-50 w-72 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl"
+                style={{ bottom: mentionTop, maxHeight: "min(240px, 40vh)" }}
               >
-                <div className="overflow-y-auto" style={{ maxHeight: "inherit" }}>
+                <div className="overflow-y-auto py-1 mention-scroll" style={{ maxHeight: "inherit" }}>
                   {filteredUsers.map((user, index) => {
                     const isActive = index === selectedMentionIndex;
                     return (
                       <button
                         key={user.userId}
                         type="button"
-                        className={`flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition ${
-                          isActive ? "bg-orange-50" : "hover:bg-gray-50"
+                        className={`flex w-full items-center gap-3 px-4 py-2 text-left text-sm transition-colors ${
+                          isActive ? "bg-orange-50" : "hover:bg-orange-50"
                         }`}
                         onMouseDown={(event) => {
                           event.preventDefault();
@@ -922,15 +955,15 @@ export function DiscussionThread({
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-100 text-xs font-bold text-orange-700">
                           {getInitials(user.displayName)}
                         </div>
-                        <div className="min-w-0 flex-1">
+                        <div className="min-w-0 flex-1 overflow-hidden">
                           <span
                             className={`block truncate ${
-                              isActive ? "font-semibold text-orange-700" : "font-medium text-gray-900"
+                              isActive ? "font-semibold text-orange-700" : "font-medium text-slate-900"
                             }`}
                           >
                             {user.displayName}
                           </span>
-                          <span className="block truncate text-xs text-gray-400">@{user.userId}</span>
+                          <span className="block truncate text-xs text-slate-500">@{user.userId}</span>
                         </div>
                       </button>
                     );
