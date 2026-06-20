@@ -5,7 +5,6 @@ import { canWrite, getUserPermissions, type Permission } from "@/src/lib/rbac";
 import type { CatalogCard } from "@/src/lib/types";
 import { auth } from "@/src/auth";
 import { query } from "@/src/lib/db";
-import { getPinnedSlugs } from "@/src/lib/preferences";
 
 export default async function HomePage() {
   const session = await auth();
@@ -21,18 +20,16 @@ export default async function HomePage() {
     return <CatalogPage cards={[]} />;
   }
 
-  const [accessible, pendingRows, favoriteSlugs, pinnedSlugs] = await Promise.all([
+  const [accessible, pendingRows, { favoriteSlugs, pinnedSlugs }] = await Promise.all([
     getAccessibleSlugs(userId, permissions, cards),
     query<{ data_contract: string }>(
       "SELECT DISTINCT data_contract FROM access_requests WHERE user_id = ? AND status = 'pending'",
       [userId],
     ),
-    getPreferenceSlugs(userId, "is_favorite"),
-    getPinnedSlugs(userId),
+    getPreferredSlugs(userId),
   ]);
 
   const pendingSlugs = new Set(pendingRows.map((r) => r.data_contract));
-  const pinnedSet = new Set(pinnedSlugs);
 
   const canRequestUpgrade = !canWrite(permissions);
 
@@ -41,15 +38,21 @@ export default async function HomePage() {
     accessible: accessible.has(card.slug),
     accessRequestStatus: pendingSlugs.has(card.slug) ? "pending" as const : undefined,
     isFavorite: favoriteSlugs.has(card.slug),
-    isPinned: pinnedSet.has(card.slug),
+    isPinned: pinnedSlugs.has(card.slug),
   }));
   return <CatalogPage cards={annotated} canRequestUpgrade={canRequestUpgrade} />;
 }
 
-async function getPreferenceSlugs(userId: string, column: string): Promise<Set<string>> {
-  const rows = await query<{ contract_slug: string }>(
-    `SELECT contract_slug FROM user_contract_preferences WHERE user_id = ? AND ${column} = 1`,
+async function getPreferredSlugs(userId: string): Promise<{ favoriteSlugs: Set<string>; pinnedSlugs: Set<string> }> {
+  const rows = await query<{ contract_slug: string; is_favorite: number; is_pinned: number }>(
+    `SELECT contract_slug, is_favorite, is_pinned FROM user_contract_preferences WHERE user_id = ? AND (is_favorite = 1 OR is_pinned = 1)`,
     [userId],
   );
-  return new Set(rows.map((r) => r.contract_slug));
+  const favoriteSlugs = new Set<string>();
+  const pinnedSlugs = new Set<string>();
+  for (const row of rows) {
+    if (row.is_favorite) favoriteSlugs.add(row.contract_slug);
+    if (row.is_pinned) pinnedSlugs.add(row.contract_slug);
+  }
+  return { favoriteSlugs, pinnedSlugs };
 }

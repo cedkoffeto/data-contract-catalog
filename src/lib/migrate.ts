@@ -338,6 +338,14 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
     `,
   },
   {
+    id: "016_catalog_indexes",
+    sql: `
+      CREATE INDEX IF NOT EXISTS idx_access_policies_user_global
+        ON access_policies(user_id)
+        WHERE domain_scope IS NULL AND context_scope IS NULL AND data_contract_scope IS NULL;
+    `,
+  },
+  {
     id: "014_contract_change_requests",
     sql: `
       CREATE TABLE IF NOT EXISTS contract_change_requests (
