@@ -1443,13 +1443,28 @@ body[data-ra-modal] [data-ra-overlay] {
 .catalog-card__fav.favorited:hover {
   background: #ea580c;
   color: #fff;
+  width: max-content;
+  padding: 0 6px;
+}
+
+.catalog-card__fav.favorited:hover svg {
+  display: none;
+}
+
+.catalog-card__fav.favorited:hover::after {
+  content: "Remove from favorites";
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .catalog-card__fav svg {
   display: block;
 }
 
-.catalog-card--disabled .catalog-card__fav {
+.catalog-card--disabled .catalog-card__fav,
+.catalog-card--disabled .catalog-card__fav::after {
   opacity: 0.4;
   pointer-events: none;
 }
@@ -1575,13 +1590,28 @@ body[data-ra-modal] [data-ra-overlay] {
 .catalog-card__sub.subscribed:hover {
   background: #4b5563;
   color: #fff;
+  width: max-content;
+  padding: 0 6px;
+}
+
+.catalog-card__sub.subscribed:hover svg {
+  display: none;
+}
+
+.catalog-card__sub.subscribed:hover::after {
+  content: "Unsubscribe";
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .catalog-card__sub svg {
   display: block;
 }
 
-.catalog-card--disabled .catalog-card__sub {
+.catalog-card--disabled .catalog-card__sub,
+.catalog-card--disabled .catalog-card__sub::after {
   opacity: 0.4;
   pointer-events: none;
 }
