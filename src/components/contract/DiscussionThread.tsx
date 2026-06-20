@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
+import getCaretCoordinates from "textarea-caret";
 
 import type { ContractComment, ContractIssue, UserProfile } from "@/src/lib/types";
 import { t } from "@/src/lib/i18n";
@@ -227,6 +227,8 @@ function InlineReplyForm({
   const [mentionEnd, setMentionEnd] = useState<number | null>(null);
   const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const mentionRef = useRef<HTMLDivElement>(null);
+  const caretPosRef = useRef({ top: 0, left: 0, height: 0 });
 
   useEffect(() => {
     window.setTimeout(() => textareaRef.current?.focus(), 0);
@@ -242,6 +244,38 @@ function InlineReplyForm({
       }),
     [users, mentionSearch],
   );
+
+  const replyShowMention = mentionStart !== null && mentionEnd !== null && filteredUsers.length > 0;
+
+  useEffect(() => {
+    if (!replyShowMention || !mentionRef.current || !textareaRef.current) return;
+
+    const textarea = textareaRef.current;
+
+    function position() {
+      if (!mentionRef.current) return;
+      const textareaRect = textarea.getBoundingClientRect();
+      const caret = caretPosRef.current;
+      const POPOVER_HEIGHT = 200;
+      const GAP = 8;
+
+      let top = textareaRect.top + caret.top - POPOVER_HEIGHT - GAP;
+      const left = textareaRect.left + caret.left;
+
+      if (top < 0) {
+        top = textareaRect.top + caret.top + caret.height + GAP;
+      }
+
+      mentionRef.current.style.top = `${top}px`;
+      mentionRef.current.style.left = `${left}px`;
+      mentionRef.current.style.setProperty("position", "fixed");
+      mentionRef.current.style.setProperty("background", "white", "important");
+    }
+
+    position();
+    window.addEventListener("scroll", position, { passive: true });
+    return () => window.removeEventListener("scroll", position);
+  }, [replyShowMention]);
 
   async function handlePost() {
     if (!body.trim() || !userId) return;
@@ -290,6 +324,8 @@ function InlineReplyForm({
       setMentionEnd(cursor);
       setMentionSearch(match[1]);
       setSelectedMentionIndex(0);
+      const caret = getCaretCoordinates(el, cursor);
+      caretPosRef.current = { top: caret.top, left: caret.left, height: caret.height };
       return;
     }
 
@@ -352,12 +388,13 @@ function InlineReplyForm({
         onKeyDown={handleKeyDown}
       />
 
-      {mentionStart !== null && mentionEnd !== null && filteredUsers.length > 0 ? (
+      {replyShowMention ? (
         <div
-          className="absolute z-50 w-72 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl"
-          style={{ bottom: 40, maxHeight: "min(200px, 40vh)" }}
+          ref={mentionRef}
+          className="z-50 w-72 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl"
+          style={{ position: "fixed", maxHeight: "min(200px, 40vh)" }}
         >
-          <div className="overflow-y-auto py-1 mention-scroll" style={{ maxHeight: "inherit" }}>
+          <div className="overflow-y-auto bg-white py-1 mention-scroll" style={{ maxHeight: "inherit" }}>
             {filteredUsers.map((user, index) => {
               const isActive = index === selectedMentionIndex;
               return (
@@ -508,7 +545,6 @@ export function DiscussionThread({
   const [mentionSearch, setMentionSearch] = useState("");
   const [mentionStart, setMentionStart] = useState<number | null>(null);
   const [mentionEnd, setMentionEnd] = useState<number | null>(null);
-  const [mentionTop, setMentionTop] = useState(16);
   const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
   const [replyingTo, setReplyingTo] = useState<ContractComment | null>(null);
   const [loading, setLoading] = useState(false);
@@ -563,14 +599,8 @@ export function DiscussionThread({
     window.setTimeout(() => textareaRef.current?.focus(), 0);
   }
 
-  function calculateMentionTop(value: string, cursor: number) {
-    const lineHeight = 24;
-    const padding = 14;
-    const totalLines = value.split("\n").length;
-    const linesBeforeCursor = value.slice(0, cursor).split("\n").length;
-    const linesAfterCursor = totalLines - linesBeforeCursor + 1;
-    setMentionTop(padding + (linesAfterCursor - 1) * lineHeight);
-  }
+  const mentionRef = useRef<HTMLDivElement>(null);
+  const caretPosRef = useRef({ top: 0, left: 0, height: 0 });
 
   function handleTextChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
     const value = event.target.value;
@@ -595,7 +625,8 @@ export function DiscussionThread({
       setMentionStart(start);
       setMentionEnd(cursor);
       setMentionSearch(match[1]);
-      calculateMentionTop(value, cursor);
+      const caret = getCaretCoordinates(el, cursor);
+      caretPosRef.current = { top: caret.top, left: caret.left, height: caret.height };
       return;
     }
 
@@ -612,7 +643,7 @@ export function DiscussionThread({
         if (!saving && body.trim()) void handleSubmit();
         return;
       }
-      if (mentionStart !== null) {
+      if (composerMode === "comment" && mentionStart !== null) {
         event.preventDefault();
         selectMention(filteredUsers[selectedMentionIndex]);
         return;
@@ -785,13 +816,45 @@ export function DiscussionThread({
     [users, mentionSearch],
   );
 
+  const showMention = composerMode === "comment" && mentionStart !== null && mentionEnd !== null && filteredUsers.length > 0;
+
+  useEffect(() => {
+    if (!showMention || !mentionRef.current || !textareaRef.current) return;
+
+    const textarea = textareaRef.current;
+
+    function position() {
+      if (!mentionRef.current) return;
+      const textareaRect = textarea.getBoundingClientRect();
+      const caret = caretPosRef.current;
+      const POPOVER_HEIGHT = 240;
+      const GAP = 8;
+
+      let top = textareaRect.top + caret.top - POPOVER_HEIGHT - GAP;
+      const left = textareaRect.left + caret.left;
+
+      if (top < 0) {
+        top = textareaRect.top + caret.top + caret.height + GAP;
+      }
+
+      mentionRef.current.style.top = `${top}px`;
+      mentionRef.current.style.left = `${left}px`;
+      mentionRef.current.style.setProperty("position", "fixed");
+      mentionRef.current.style.setProperty("background", "white", "important");
+    }
+
+    position();
+    window.addEventListener("scroll", position, { passive: true });
+    return () => window.removeEventListener("scroll", position);
+  }, [showMention]);
+
   useClickOutside(composerRef, () => {
     if (mentionStart !== null && mentionEnd !== null) {
       setMentionStart(null);
       setMentionEnd(null);
       setMentionSearch("");
     }
-  }, mentionStart !== null && mentionEnd !== null && filteredUsers.length > 0);
+  }, showMention);
 
   function renderCommentTree(node: CommentNode, parentUserId?: string): React.ReactNode {
     const isReplyingToThis = replyingTo?.id === node.id;
@@ -894,7 +957,7 @@ export function DiscussionThread({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setComposerMode("issue")}
+                  onClick={() => { setComposerMode("issue"); setMentionStart(null); setMentionEnd(null); setMentionSearch(""); }}
                   className={`inline-flex items-center rounded px-2.5 py-1 text-xs font-bold transition-colors ${
                     composerMode === "issue"
                       ? "text-white"
@@ -932,12 +995,13 @@ export function DiscussionThread({
               />
             </div>
 
-            {composerMode === "comment" && mentionStart !== null && mentionEnd !== null && filteredUsers.length > 0 ? (
+            {showMention ? (
               <div
-                className="absolute z-50 w-72 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl"
-                style={{ bottom: mentionTop, maxHeight: "min(240px, 40vh)" }}
+                ref={mentionRef}
+                className="z-50 w-72 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl"
+                style={{ position: "fixed", maxHeight: "min(240px, 40vh)" }}
               >
-                <div className="overflow-y-auto py-1 mention-scroll" style={{ maxHeight: "inherit" }}>
+                <div className="overflow-y-auto bg-white py-1 mention-scroll" style={{ maxHeight: "inherit" }}>
                   {filteredUsers.map((user, index) => {
                     const isActive = index === selectedMentionIndex;
                     return (
