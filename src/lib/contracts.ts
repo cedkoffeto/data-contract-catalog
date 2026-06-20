@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 
 import yaml from "js-yaml";
 
@@ -9,7 +10,7 @@ import { getGitSourceRef } from "@/src/lib/git-source";
 import type { CatalogCard, ContractFile, DataContract, EditorRepositoryFile } from "@/src/lib/types";
 
 const contractsRoot = process.env.CONTRACTS_PATH ?? path.join(process.cwd(), "contracts");
-const contractsCache: { expiresAt: number; value: ContractFile[] } = { expiresAt: 0, value: [] };
+const contractsCache: { expiresAt: number; value: ContractFile[]; treeHash: string } = { expiresAt: 0, value: [], treeHash: "" };
 const cardsCache: { expiresAt: number; value: CatalogCard[] } = { expiresAt: 0, value: [] };
 const slugToPathCache: { expiresAt: number; map: Map<string, string> } = { expiresAt: 0, map: new Map() };
 const CONTRACTS_CACHE_TTL_MS = 3_600_000;
@@ -436,29 +437,13 @@ export async function getLocalContracts(): Promise<ContractFile[]> {
   return readLocalContracts();
 }
 
-async function getGitLabContracts(): Promise<ContractFile[]> {
+async function getGitLabContracts(yamlEntries: GitLabTreeItem[]): Promise<ContractFile[]> {
   const client = getGitLabClient();
-  if (!client) {
+  if (!client || yamlEntries.length === 0) {
     return readLocalContracts();
   }
 
-  console.info("[gitlab.contracts] Fetching tree", {
-    projectId: client.projectId,
-    ref: client.ref,
-  });
-
-  const tree = await readGitLabTree(client.projectId, client.ref, "contracts");
-
-  if (tree.length === 0) {
-    console.warn("[gitlab.contracts] Tree empty, falling back to local contracts");
-    return readLocalContracts();
-  }
-
-  const yamlEntries = tree.filter(
-    (entry) => entry.type === "blob" && /\.(yaml|yml)$/i.test(entry.path),
-  );
-
-  console.info("[gitlab.contracts] YAML files to fetch:", yamlEntries.length);
+  console.info("[gitlab.contracts] Fetching", yamlEntries.length, "files in batches of 50");
 
   const records: Array<{ path: string; fullPath: string; yamlRaw: string }> = [];
   const BATCH_SIZE = 50;
@@ -486,7 +471,7 @@ async function getGitLabContracts(): Promise<ContractFile[]> {
     }
   }
 
-  console.info("[gitlab.contracts] Fetched files:", records.length);
+  console.info("[gitlab.contracts] Fetched files:", records.length, "/", yamlEntries.length);
 
   if (records.length === 0) {
     console.warn("[gitlab.contracts] All file fetches failed, falling back to local contracts");
@@ -494,11 +479,8 @@ async function getGitLabContracts(): Promise<ContractFile[]> {
   }
 
   const contracts = await buildContractsFromRecords(records);
-  console.info("[gitlab.contracts] Parsed contracts", {
-    projectId: client.projectId,
-    ref: client.ref,
-    count: contracts.length,
-  });
+  console.info("[gitlab.contracts] Parsed contracts:",
+    contracts.length, "/", yamlEntries.length);
 
   return contracts;
 }
@@ -594,18 +576,69 @@ async function getSingleContractFromGitLab(slug: string): Promise<ContractFile |
 
 export async function getContracts(): Promise<ContractFile[]> {
   const now = Date.now();
+
+  if (hasGitLabContractsConfig()) {
+    const client = getGitLabClient();
+    if (!client) return readLocalContracts();
+
+    console.info("[gitlab.contracts] Fetching tree for hash check", {
+      projectId: client.projectId,
+      ref: client.ref,
+    });
+
+    const tree = await readGitLabTree(client.projectId, client.ref, "contracts");
+    if (tree.length === 0) {
+      console.warn("[gitlab.contracts] Tree empty, falling back to local contracts");
+      return readLocalContracts();
+    }
+
+    const yamlEntries = tree.filter(
+      (entry) => entry.type === "blob" && /\.(yaml|yml)$/i.test(entry.path),
+    );
+
+    const treeHash = computeTreeHash(yamlEntries);
+
+    if (contractsCache.value.length > 0 && contractsCache.treeHash === treeHash && contractsCache.expiresAt > now) {
+      console.info("[gitlab.contracts] Tree unchanged, using cached contracts");
+      return contractsCache.value;
+    }
+
+    const contracts = await getGitLabContracts(yamlEntries);
+
+    if (contracts.length !== yamlEntries.length) {
+      console.warn(
+        `[gitlab.contracts] Contract count mismatch: ${contracts.length} contracts vs ${yamlEntries.length} YAML files in tree`,
+      );
+    }
+
+    contractsCache.value = contracts;
+    contractsCache.treeHash = treeHash;
+    contractsCache.expiresAt = now + CONTRACTS_CACHE_TTL_MS;
+    if (contracts.length > 0) {
+      populateSlugToPathCache(contracts.map((c) => ({ fullPath: c.fullPath })));
+    }
+    return contracts;
+  }
+
   if (contractsCache.value.length > 0 && contractsCache.expiresAt > now) {
     return contractsCache.value;
   }
 
-  const contracts = hasGitLabContractsConfig() ? await getGitLabContracts() : await readLocalContracts();
+  const contracts = await readLocalContracts();
   contractsCache.value = contracts;
-  contractsCache.expiresAt = Date.now() + CONTRACTS_CACHE_TTL_MS;
-  // Also warm slug→path mapping from the fetched contracts
+  contractsCache.expiresAt = now + CONTRACTS_CACHE_TTL_MS;
   if (contracts.length > 0) {
     populateSlugToPathCache(contracts.map((c) => ({ fullPath: c.fullPath })));
   }
   return contracts;
+}
+
+function computeTreeHash(entries: Array<{ path: string; id?: string }>): string {
+  const hash = crypto.createHash("sha256");
+  for (const e of entries) {
+    hash.update(`${e.path}\0${e.id ?? ""}\0`);
+  }
+  return hash.digest("hex");
 }
 
 export async function getContractBySlug(slug: string): Promise<ContractFile | undefined> {
