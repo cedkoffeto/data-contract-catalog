@@ -356,9 +356,13 @@ function listRepositoryTextFiles(dir: string): string[] {
   return files;
 }
 
-function buildContractsFromRecords(
+function yieldToEventLoop(): Promise<void> {
+  return new Promise((resolve) => setImmediate(resolve));
+}
+
+async function buildContractsFromRecords(
   records: Array<{ path: string; fullPath: string; yamlRaw: string }>
-): ContractFile[] {
+): Promise<ContractFile[]> {
   const stemCount = new Map<string, number>();
   const slugCount = new Map<string, number>();
   const valid: Array<{ record: typeof records[number]; slug: string; data: DataContract }> = [];
@@ -368,22 +372,26 @@ function buildContractsFromRecords(
     stemCount.set(stem, (stemCount.get(stem) ?? 0) + 1);
   }
 
-  for (const record of records) {
-    const stem = path.basename(record.path, path.extname(record.path));
-    const maturity = record.path.split("/")[1] ?? path.basename(path.dirname(record.path));
-    const isDuplicateStem = (stemCount.get(stem) ?? 0) > 1;
-    const slug = isDuplicateStem ? `${maturity}-${stem}` : stem;
-    let data: DataContract;
-    try {
-      data = (yaml.load(record.yamlRaw) as DataContract) ?? {};
-    } catch {
-      console.warn(`[contracts] Skipping malformed contract: ${record.path}`);
-      continue;
+  const CHUNK_SIZE = 50;
+  for (let i = 0; i < records.length; i += CHUNK_SIZE) {
+    const chunk = records.slice(i, i + CHUNK_SIZE);
+    for (const record of chunk) {
+      const stem = path.basename(record.path, path.extname(record.path));
+      const maturity = record.path.split("/")[1] ?? path.basename(path.dirname(record.path));
+      const isDuplicateStem = (stemCount.get(stem) ?? 0) > 1;
+      const slug = isDuplicateStem ? `${maturity}-${stem}` : stem;
+      let data: DataContract;
+      try {
+        data = (yaml.load(record.yamlRaw) as DataContract) ?? {};
+      } catch {
+        console.warn(`[contracts] Skipping malformed contract: ${record.path}`);
+        continue;
+      }
+
+      slugCount.set(slug, (slugCount.get(slug) ?? 0) + 1);
+      valid.push({ record, slug, data });
     }
-
-    slugCount.set(slug, (slugCount.get(slug) ?? 0) + 1);
-
-    valid.push({ record, slug, data });
+    await yieldToEventLoop();
   }
 
   const contracts = valid.map(({ record, slug, data }) => {
@@ -402,7 +410,7 @@ function buildContractsFromRecords(
   }).sort((left, right) => left.slug.localeCompare(right.slug));
 }
 
-function readLocalContracts(): ContractFile[] {
+async function readLocalContracts(): Promise<ContractFile[]> {
   const allFiles = listYamlFiles(contractsRoot).sort();
   const records = allFiles.map((fullPath) => ({
     path: path.relative(process.cwd(), fullPath).replace(/\\/g, "/"),
@@ -485,7 +493,7 @@ async function getGitLabContracts(): Promise<ContractFile[]> {
     return readLocalContracts();
   }
 
-  const contracts = buildContractsFromRecords(records);
+  const contracts = await buildContractsFromRecords(records);
   console.info("[gitlab.contracts] Parsed contracts", {
     projectId: client.projectId,
     ref: client.ref,
@@ -548,7 +556,7 @@ async function fetchSingleContractFile(fullPath: string): Promise<ContractFile |
     const rawContent = file.content ?? "";
     const yamlRaw = file.encoding === "base64" ? Buffer.from(rawContent, "base64").toString("utf-8") : rawContent;
     const record = { path: fullPath, fullPath, yamlRaw };
-    const contracts = buildContractsFromRecords([record]);
+    const contracts = await buildContractsFromRecords([record]);
     return contracts[0];
   } catch {
     return undefined;
@@ -590,7 +598,7 @@ export async function getContracts(): Promise<ContractFile[]> {
     return contractsCache.value;
   }
 
-  const contracts = hasGitLabContractsConfig() ? await getGitLabContracts() : readLocalContracts();
+  const contracts = hasGitLabContractsConfig() ? await getGitLabContracts() : await readLocalContracts();
   contractsCache.value = contracts;
   contractsCache.expiresAt = Date.now() + CONTRACTS_CACHE_TTL_MS;
   // Also warm slug→path mapping from the fetched contracts
@@ -617,7 +625,7 @@ export async function getContractBySlug(slug: string): Promise<ContractFile | un
   const contract = contracts.find((candidate) => candidate.slug === normalizedSlug);
   if (contract) return contract;
 
-  return readLocalContracts().find((candidate) => getLocalContractCandidates(candidate).includes(normalizedSlug));
+  return (await readLocalContracts()).find((candidate) => getLocalContractCandidates(candidate).includes(normalizedSlug));
 }
 
 function getOwnerName(data: DataContract): string {
