@@ -36,7 +36,7 @@ type RepositoryFolderFile = {
   kind: EditorRepositoryFile["kind"];
 };
 
-const GITLAB_TREE_PAGE_SIZE = 1000;
+const GITLAB_TREE_PAGE_SIZE = 100;
 
 function hasGitLabContractsConfig() {
   return Boolean(
@@ -364,6 +364,7 @@ function yieldToEventLoop(): Promise<void> {
 function getPathMaturity(filePath: string): string {
   const parts = filePath.split("/");
   // Supports: contracts/{maturity}/file.yaml  OR  contracts/published/{maturity}/file.yaml
+  console.warn("__DEBUG getPathMaturity filePath", filePath);
   if (parts[1] === "published" && parts.length >= 4) return parts[2];
   if (parts[1] === "draft") return "";
   return parts[1] ?? path.basename(path.dirname(filePath));
@@ -531,6 +532,7 @@ async function buildSlugToPathMapFromTree(): Promise<Map<string, string>> {
   const stemCounts = computeStemCounts(yamlPaths);
   const map = new Map<string, string>();
   for (const p of yamlPaths) {
+    console.warn("__DEBUG buildSlugToPathMapFromTree yamlPaths", p);
     const slug = computeContractSlug(p, stemCounts);
     map.set(slug, p);
   }
@@ -600,7 +602,7 @@ export async function getContracts(): Promise<ContractFile[]> {
       return readLocalContracts();
     }
 
-    console.warn("[gitlab.contracts] tree fetched", tree);
+    console.warn("__DEBUG [gitlab.contracts] tree fetched", tree);
     const yamlEntries = tree.filter(
       (entry) => entry.type === "blob" && /\.(yaml|yml)$/i.test(entry.path),
     );
