@@ -33,13 +33,16 @@ function getInitials(name: string) {
   return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
 }
 
-function renderBody(body: string) {
-  const parts = body.split(/(@[\p{L}\p{N}_. -]+)/gu);
+function renderBody(body: string, userMap?: Map<string, UserProfile>) {
+  const parts = body.split(/(@[\p{L}\p{N}_.]+)/gu);
   return parts.map((part, index) => {
-    if (/^@[\p{L}\p{N}_. -]+$/u.test(part)) {
+    if (/^@[\p{L}\p{N}_.]+$/u.test(part)) {
+      const userId = part.slice(1);
+      const user = userMap?.get(userId);
+      const displayName = user ? `${user.firstName} ${user.lastName}` : part;
       return (
         <span key={`${part}-${index}`} className="rounded bg-orange-50 px-1 font-semibold text-orange-700">
-          {part.trimEnd()}
+          {displayName}
         </span>
       );
     }
@@ -108,6 +111,7 @@ function CommentItem({
   parentUser,
   isCurrentUser,
   userId,
+  users,
   onReply,
   onDelete,
 }: {
@@ -115,11 +119,13 @@ function CommentItem({
   parentUser?: string;
   isCurrentUser: boolean;
   userId?: string;
+  users: UserProfile[];
   onReply?: () => void;
   onDelete?: () => void;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const userMap = useMemo(() => new Map(users.map((u) => [u.userId, u])), [users]);
 
   const handleDelete = async () => {
     if (deleting || !onDelete) return;
@@ -183,7 +189,7 @@ function CommentItem({
             ) : null}
           </div>
         </div>
-        <div className="comment-item__text">{renderBody(comment.body)}</div>
+        <div className="comment-item__text">{renderBody(comment.body, userMap)}</div>
         {comment.editedAt ? <span className="meta">Edited</span> : null}
         {userId ? (
           <div className="comment-item__actions" style={{ padding: "6px 0", display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8 }}>
@@ -300,7 +306,7 @@ function InlineReplyForm({
     if (!user || mentionStart === null || mentionEnd === null) return;
     const suffix = body.slice(mentionEnd);
     const trailing = suffix.startsWith(" ") ? "" : " ";
-    const nextBody = `${body.slice(0, mentionStart)}@${user.firstName} ${user.lastName}${trailing}${suffix}`;
+    const nextBody = `${body.slice(0, mentionStart)}@${user.userId}${trailing}${suffix}`;
     setBody(nextBody);
     setMentionStart(null);
     setMentionEnd(null);
@@ -684,7 +690,7 @@ export function DiscussionThread({
     if (!user || mentionStart === null || mentionEnd === null) return;
     const suffix = body.slice(mentionEnd);
     const trailing = suffix.startsWith(" ") ? "" : " ";
-    const nextBody = `${body.slice(0, mentionStart)}@${user.firstName} ${user.lastName}${trailing}${suffix}`;
+    const nextBody = `${body.slice(0, mentionStart)}@${user.userId}${trailing}${suffix}`;
     setBody(nextBody);
     setMentionStart(null);
     setMentionEnd(null);
@@ -869,6 +875,7 @@ export function DiscussionThread({
           parentUser={parentUserId}
           isCurrentUser={node.userId === userId}
           userId={userId}
+          users={users}
           onReply={() => setReplyingTo(isReplyingToThis ? null : node)}
           onDelete={node.userId === userId ? () => handleDeleteComment(node.id) : undefined}
         />

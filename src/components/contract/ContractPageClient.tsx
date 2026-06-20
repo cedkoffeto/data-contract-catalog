@@ -72,7 +72,12 @@ export function ContractPageClient({
   const [commentCount, setCommentCount] = useState(initialCommentCount);
   const [issueCount, setIssueCount] = useState(initialIssueCount);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [activeTab, setActiveTab] = useState<"details" | "discussion">("details");
+  const [activeTab, setActiveTab] = useState<"details" | "discussion">(() => {
+    if (typeof window !== "undefined" && window.location.hash.startsWith("#comment-")) {
+      return "discussion";
+    }
+    return "details";
+  });
 
   useEffect(() => {
     if (!userId) {
