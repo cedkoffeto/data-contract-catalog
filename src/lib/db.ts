@@ -1,12 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import initSqlJs, { type SqlValue } from "sql.js";
+import initSqlJs, { type SqlValue, type Database } from "sql.js";
 
 const DB_PATH = process.env.DB_PATH ?? path.join(process.cwd(), "prisma", "data", "rbac.db");
 
 let _SQL: Awaited<ReturnType<typeof initSqlJs>> | null = null;
-let _db: Awaited<ReturnType<typeof initSqlJs>>["Database"] | null = null;
+let _db: Database | null = null;
 let _dbMtime = 0;
 
 async function getSqlModule() {
@@ -42,10 +42,27 @@ async function getDb() {
   return _db;
 }
 
-function persistDb(db: Awaited<ReturnType<typeof initSqlJs>>["Database"]) {
+function persistDb(db: Database) {
   const data = db.export();
   fs.writeFileSync(DB_PATH, Buffer.from(data));
   _dbMtime = dbPathMtime();
+}
+
+/** INSERT with RETURNING — atomic insert + read, avoids last_insert_rowid() race conditions. */
+export async function insertReturning<T = Record<string, unknown>>(
+  sql: string,
+  params?: SqlValue[]
+): Promise<T[]> {
+  const db = await getDb();
+  const stmt = db.prepare(sql);
+  if (params) stmt.bind(params);
+  const results: T[] = [];
+  while (stmt.step()) {
+    results.push(stmt.getAsObject() as T);
+  }
+  stmt.free();
+  persistDb(db);
+  return results;
 }
 
 export async function query<T = Record<string, unknown>>(

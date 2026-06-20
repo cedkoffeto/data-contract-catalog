@@ -9,7 +9,9 @@ export async function ContractPage({
   historyEntries,
   userId,
   canEdit,
-  canAdmin
+  canAdmin,
+  initialCommentCount,
+  initialIssueCount,
 }: {
   data: DataContract;
   slug: string;
@@ -18,10 +20,12 @@ export async function ContractPage({
   userId?: string;
   canEdit: boolean;
   canAdmin: boolean;
+  initialCommentCount: number;
+  initialIssueCount: number;
 }) {
   return (
     <PageShell footerVersion="">
-      <ContractPageClient data={data} historyEntries={historyEntries} slug={slug} yamlRaw={yamlRaw} userId={userId} canEdit={canEdit} canAdmin={canAdmin} />
+      <ContractPageClient data={data} historyEntries={historyEntries} slug={slug} yamlRaw={yamlRaw} userId={userId} canEdit={canEdit} canAdmin={canAdmin} initialCommentCount={initialCommentCount} initialIssueCount={initialIssueCount} />
     </PageShell>
   );
 }

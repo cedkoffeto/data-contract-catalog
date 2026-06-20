@@ -38,20 +38,24 @@ function formatHistoryMeta(value: string) {
 
 export function ContractPageClient({
   data,
-  historyEntries,
   slug,
   yamlRaw,
+  historyEntries,
   userId,
   canEdit,
-  canAdmin
+  canAdmin,
+  initialCommentCount = 0,
+  initialIssueCount = 0,
 }: {
   data: DataContract;
-  historyEntries: ContractHistoryEntry[];
   slug: string;
   yamlRaw: string;
+  historyEntries: ContractHistoryEntry[];
   userId?: string;
   canEdit: boolean;
   canAdmin: boolean;
+  initialCommentCount?: number;
+  initialIssueCount?: number;
 }) {
   const [activeVersion, setActiveVersion] = useState<{
     entry: ContractHistoryEntry;
@@ -65,8 +69,8 @@ export function ContractPageClient({
 
   const [subscribed, setSubscribed] = useState(false);
   const [loadingSubscription, setLoadingSubscription] = useState(true);
-  const [commentCount, setCommentCount] = useState(0);
-  const [issueCount, setIssueCount] = useState(0);
+  const [commentCount, setCommentCount] = useState(initialCommentCount);
+  const [issueCount, setIssueCount] = useState(initialIssueCount);
   const [isFavorite, setIsFavorite] = useState(false);
   const [activeTab, setActiveTab] = useState<"details" | "discussion">("details");
 
@@ -176,12 +180,14 @@ export function ContractPageClient({
         role="tab"
         aria-selected={isActive}
         onClick={() => setActiveTab(id)}
-        className={`group relative flex min-w-max items-center gap-2 px-6 py-2.5 text-sm font-bold transition hover:-translate-y-px focus:outline-none ${isFirst ? "ml-0" : "-ml-px"} ${isActive ? "z-20" : "z-10"}`}
+        className={`group relative flex min-w-max items-center gap-2 px-6 text-sm font-bold transition hover:-translate-y-px focus:outline-none ${isFirst ? "ml-0" : "-ml-px"} ${isActive ? "z-20" : "z-10"}`}
         style={{
           clipPath,
           backgroundColor: isActive ? "#f97316" : "#f8fafc",
           color: isActive ? "#ffffff" : "#64748b",
           boxShadow: isActive ? "0 8px 18px rgba(249, 115, 22, 0.22)" : "0 1px 2px rgba(15, 23, 42, 0.06)",
+          paddingTop: "10.1px",
+          paddingBottom: "10.1px",
         }}
       >
         <span className={isActive ? "text-white" : "text-gray-400 group-hover:text-gray-600"}>
@@ -189,7 +195,10 @@ export function ContractPageClient({
         </span>
         {label}
         {count !== undefined ? (
-          <span className={`rounded-full px-1.5 py-0.5 text-[11px] font-bold ${isActive ? "bg-white text-orange-700" : "bg-gray-200 text-gray-600 group-hover:bg-gray-300"}`}>
+          <span
+            className={`rounded-full px-1.5 py-0.5 text-[11px] font-bold ${isActive ? "text-orange-700" : "bg-gray-200 text-gray-600 group-hover:bg-gray-300"}`}
+            style={isActive ? { backgroundColor: "#ffffff" } : undefined}
+          >
             {count}
           </span>
         ) : null}
@@ -247,7 +256,7 @@ export function ContractPageClient({
                   <ContractBody data={displayedData} slug={slug} userId={userId} />
                 </div>
                 <div className={activeTab === "discussion" ? "" : "hidden"}>
-                  <DiscussionThread slug={slug} userId={userId} canAdmin={canAdmin} enabled={activeTab === "discussion"} onCommentCountChange={setCommentCount} onIssueCountChange={setIssueCount} />
+                  <DiscussionThread slug={slug} userId={userId} canAdmin={canAdmin} onCommentCountChange={setCommentCount} onIssueCountChange={setIssueCount} />
                 </div>
               </div>
             </div>

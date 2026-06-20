@@ -1,0 +1,56 @@
+export const dynamic = "force-dynamic";
+import { NextResponse } from "next/server";
+
+import { auth } from "@/src/auth";
+import { listContractComments } from "@/src/lib/comments";
+import { getContractBySlug } from "@/src/lib/contracts";
+import { listContractIssues } from "@/src/lib/issues";
+import { authorize } from "@/src/lib/access-control";
+import { requireApiAuth } from "@/src/lib/require-auth";
+import { getUserPermissions } from "@/src/lib/rbac";
+import { listUserProfiles, upsertUserProfile } from "@/src/lib/users";
+
+export async function GET(_: Request, { params }: { params: Promise<{ slug: string }> }) {
+  const unauthorized = await requireApiAuth();
+  if (unauthorized) return unauthorized;
+
+  const session = await auth();
+  const userId = session?.user?.name;
+  if (!userId) {
+    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+  }
+
+  const { slug } = await params;
+
+  const contract = await getContractBySlug(slug);
+  if (!contract) {
+    return NextResponse.json({ error: "Contract not found" }, { status: 404 });
+  }
+
+  const permissions = await getUserPermissions(userId);
+  if (!permissions.includes("admin")) {
+    const allowed = await authorize(
+      userId,
+      contract.data.asset?.domain ?? "",
+      contract.data.asset?.context ?? "",
+      "read",
+      slug,
+    );
+    if (!allowed) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
+
+  const extra = session.user as Record<string, unknown>;
+  const firstName = typeof extra.givenName === "string" ? extra.givenName : "";
+  const lastName = typeof extra.familyName === "string" ? extra.familyName : "";
+  await upsertUserProfile({ userId, firstName, lastName });
+
+  const [comments, issues, users] = await Promise.all([
+    listContractComments(slug),
+    listContractIssues(slug),
+    listUserProfiles(""),
+  ]);
+
+  return NextResponse.json({ comments, issues, users });
+}

@@ -332,6 +332,12 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
     `,
   },
   {
+    id: "015_comment_hierarchy_index",
+    sql: `
+      CREATE INDEX IF NOT EXISTS idx_contract_comments_parent_id_id ON contract_comments(parent_id, id);
+    `,
+  },
+  {
     id: "014_contract_change_requests",
     sql: `
       CREATE TABLE IF NOT EXISTS contract_change_requests (

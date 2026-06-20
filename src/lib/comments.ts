@@ -1,4 +1,4 @@
-import { execute, query } from "@/src/lib/db";
+import { execute, get, insertReturning, query } from "@/src/lib/db";
 import { createNotification } from "@/src/lib/notifications";
 import type { ContractComment } from "@/src/lib/types";
 
@@ -73,6 +73,46 @@ export async function notifyMentionedUsers(params: {
   );
 }
 
+export async function getDiscussionSummary(contractSlug: string): Promise<{ commentCount: number; issueCount: number }> {
+  const [commentRow] = await query<{ cnt: number }>(
+    `SELECT COUNT(*) as cnt FROM contract_comments WHERE contract_slug = ?`,
+    [contractSlug],
+  );
+  const [issueRow] = await query<{ cnt: number }>(
+    `SELECT COUNT(*) as cnt FROM contract_issues WHERE contract_slug = ?`,
+    [contractSlug],
+  );
+  return { commentCount: commentRow?.cnt ?? 0, issueCount: issueRow?.cnt ?? 0 };
+}
+
+export async function deleteContractComment(commentId: number, userId: string): Promise<void> {
+  const row = await get<{ user_id: string }>(
+    `SELECT user_id FROM contract_comments WHERE id = ?`,
+    [commentId],
+  );
+
+  if (!row) {
+    throw new Error("Comment not found");
+  }
+
+  if (row.user_id !== userId) {
+    throw new Error("Not authorized to delete this comment");
+  }
+
+  const childIds = (await query<{ id: number }>(
+    `SELECT id FROM contract_comments WHERE parent_id = ?`,
+    [commentId],
+  )).map((r) => r.id);
+
+  await execute(`DELETE FROM comment_mentions WHERE comment_id = ?`, [commentId]);
+  if (childIds.length > 0) {
+    const placeholders = childIds.map(() => "?").join(",");
+    await execute(`DELETE FROM comment_mentions WHERE comment_id IN (${placeholders})`, childIds);
+    await execute(`DELETE FROM contract_comments WHERE id IN (${placeholders})`, childIds);
+  }
+  await execute(`DELETE FROM contract_comments WHERE id = ?`, [commentId]);
+}
+
 export async function createContractComment(params: {
   contractSlug: string;
   userId: string;
@@ -80,16 +120,7 @@ export async function createContractComment(params: {
   parentId?: number | null;
   targetField?: string | null;
 }): Promise<ContractComment> {
-  await execute(
-    `INSERT INTO contract_comments (contract_slug, user_id, body, parent_id, target_field)
-     VALUES (?, ?, ?, ?, ?)`,
-    [params.contractSlug, params.userId, params.body, params.parentId ?? null, params.targetField ?? null],
-  );
-
-  const rows = await query<{ id: number }>("SELECT last_insert_rowid() AS id");
-  const id = rows[0]?.id ?? 0;
-
-  const created = await query<{
+  const rows = await insertReturning<{
     id: number;
     contract_slug: string;
     user_id: string;
@@ -99,13 +130,13 @@ export async function createContractComment(params: {
     created_at: string;
     edited_at: string | null;
   }>(
-    `SELECT id, contract_slug, user_id, body, parent_id, target_field, created_at, edited_at
-     FROM contract_comments
-     WHERE id = ?`,
-    [id],
+    `INSERT INTO contract_comments (contract_slug, user_id, body, parent_id, target_field)
+     VALUES (?, ?, ?, ?, ?)
+     RETURNING id, contract_slug, user_id, body, parent_id, target_field, created_at, edited_at`,
+    [params.contractSlug, params.userId, params.body, params.parentId ?? null, params.targetField ?? null],
   );
 
-  const row = created[0];
+  const row = rows[0];
   if (!row) {
     throw new Error("Unable to load created comment");
   }

@@ -7,25 +7,21 @@ import { t } from "@/src/lib/i18n";
 
 const STATUSES = ["open", "fixed", "false_alert"] as const;
 
-function timeAgo(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
+function formatDate(value: string): string {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
   const now = Date.now();
-  const diff = now - date.getTime();
+  const diff = now - d.getTime();
   const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return "just now";
+  if (minutes < 1) return "Just now";
   if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
+  if (days < 2) return `Yesterday`;
   if (days < 7) return `${days}d ago`;
-  const weeks = Math.floor(days / 7);
-  if (weeks < 4) return `${weeks}w ago`;
-  return new Intl.DateTimeFormat("en", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(date);
+  return `${pad(d.getMonth() + 1)}/${pad(d.getDate())}/${d.getFullYear()}`;
 }
 
 function getInitials(name: string) {
@@ -55,12 +51,46 @@ const USER_COLORS = [
   "bg-lime-50", "bg-amber-50", "bg-violet-50", "bg-emerald-50",
 ];
 
+const USER_COLORS_HEX = [
+  "#faf5ff", "#f0fdf4", "#fefce8", "#fdf2f8",
+  "#eef2ff", "#f0fdfa", "#fff1f2", "#ecfeff",
+  "#f7fee7", "#fffbeb", "#f5f3ff", "#ecfdf5",
+];
+
 function getUserBgColor(userId: string): string {
   let hash = 0;
   for (let i = 0; i < userId.length; i++) {
     hash = ((hash << 5) - hash) + userId.charCodeAt(i);
   }
   return USER_COLORS[Math.abs(hash) % USER_COLORS.length];
+}
+
+function getUserBgHex(userId: string): string {
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) {
+    hash = ((hash << 5) - hash) + userId.charCodeAt(i);
+  }
+  return USER_COLORS_HEX[Math.abs(hash) % USER_COLORS_HEX.length];
+}
+
+type CommentNode = ContractComment & { replies: CommentNode[] };
+
+function parseCommentsToTree(flatComments: ContractComment[]): CommentNode[] {
+  const map = new Map<number, CommentNode>();
+  const roots: CommentNode[] = [];
+
+  for (const c of flatComments) {
+    map.set(c.id, { ...c, replies: [] });
+  }
+  for (const c of flatComments) {
+    const node = map.get(c.id)!;
+    if (c.parentId && map.has(c.parentId)) {
+      map.get(c.parentId)!.replies.push(node);
+    } else {
+      roots.push(node);
+    }
+  }
+  return roots;
 }
 
 function Avatar({ name }: { name: string }) {
@@ -71,38 +101,91 @@ function Avatar({ name }: { name: string }) {
   );
 }
 
-function CommentBubble({
+function CommentItem({
   comment,
   parentUser,
   isCurrentUser,
   userId,
   onReply,
+  onDelete,
 }: {
   comment: ContractComment;
   parentUser?: string;
   isCurrentUser: boolean;
   userId?: string;
   onReply?: () => void;
+  onDelete?: () => void;
 }) {
+  const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (deleting || !onDelete) return;
+    setDeleting(true);
+    try {
+      await onDelete();
+    } finally {
+      setDeleting(false);
+      setConfirming(false);
+    }
+  };
+
   return (
-    <div className={`group flex gap-3 rounded-xl px-3 py-2 ${isCurrentUser ? "bg-blue-50" : getUserBgColor(comment.userId)}`}>
-      <Avatar name={comment.userId} />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-gray-900">{comment.userId}</span>
-          {parentUser ? (
-            <span className="text-xs text-gray-400">
-              In reply to <span className="font-medium text-gray-500">@{parentUser}</span>
-            </span>
-          ) : null}
-          <span className="text-xs text-gray-400">{timeAgo(comment.createdAt)}</span>
+    <div className="comment-item group/comment">
+      <div className="comment-item__avatar">
+        <Avatar name={comment.userId} />
+      </div>
+      <div className="comment-item__body" style={{ backgroundColor: `${getUserBgHex(comment.userId)}80`, marginLeft: 4, marginRight: 4, padding: "6px 8px" }}>
+        <div className="comment-item__heading">
+          <div className="flex items-center gap-2">
+            <strong>{comment.userId}</strong>
+            {parentUser ? (
+              <span className="meta">
+                In reply to <span className="font-medium text-gray-500">@{parentUser}</span>
+              </span>
+            ) : null}
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="meta">{formatDate(comment.createdAt)}</span>
+            {isCurrentUser && !confirming ? (
+              <button
+                type="button"
+                onClick={() => setConfirming(true)}
+                className="text-slate-400 hover:text-red-500 opacity-0 group-hover/comment:opacity-100 transition-opacity"
+                title="Delete"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                </svg>
+              </button>
+            ) : null}
+            {isCurrentUser && confirming ? (
+              <span className="flex items-center gap-1.5 text-xs">
+                <span className="text-gray-500">Delete?</span>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="font-bold text-red-600 hover:text-red-800 disabled:opacity-30"
+                >
+                  &#10003;
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirming(false)}
+                  disabled={deleting}
+                  className="font-bold text-gray-500 hover:text-gray-700 disabled:opacity-30"
+                >
+                  &#10005;
+                </button>
+              </span>
+            ) : null}
+          </div>
         </div>
-        <div className="mt-0.5 rounded-xl bg-white/70 px-3 py-2 text-sm leading-6 text-gray-700">
-          {renderBody(comment.body)}
-        </div>
-        {comment.editedAt ? <p className="mt-0.5 text-[11px] text-gray-400">Edited</p> : null}
+        <div className="comment-item__text">{renderBody(comment.body)}</div>
+        {comment.editedAt ? <span className="meta">Edited</span> : null}
         {userId ? (
-          <div className="mt-1 flex justify-end">
+          <div className="comment-item__actions">
             <button
               type="button"
               onClick={onReply}
@@ -249,10 +332,10 @@ function InlineReplyForm({
   }
 
   return (
-    <div className="relative ml-8 border-l-2 border-orange-200 pl-4">
+    <div style={{ marginLeft: "20px", paddingLeft: "24px", paddingTop: "0.25rem", paddingBottom: "0.25rem" }}>
       <textarea
         ref={textareaRef}
-        className="mt-2 w-full resize-none rounded-xl border border-gray-200 bg-white p-3 text-sm leading-6 text-gray-900 outline-none"
+        className="w-full resize-none rounded-lg border border-gray-200 bg-white p-2.5 text-sm leading-5 text-gray-900 outline-none"
         rows={2}
         placeholder={t("replyPlaceholder")}
         value={body}
@@ -300,13 +383,13 @@ function InlineReplyForm({
         </div>
       ) : null}
 
-      <div className="mt-2 flex items-center justify-between">
+      <div style={{ marginTop: "0.4rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <p className="text-xs text-gray-400">{t("useMentionHint")}</p>
-        <div className="flex gap-2">
+        <div style={{ display: "flex", gap: "0.5rem" }}>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl px-3 py-2 text-xs font-bold text-gray-500 hover:bg-gray-100"
+            className="rounded-lg px-2.5 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100"
           >
             {t("cancel")}
           </button>
@@ -314,7 +397,7 @@ function InlineReplyForm({
             type="button"
             onClick={handlePost}
             disabled={saving || !body.trim()}
-            className="rounded-xl px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
+            className="rounded-lg px-2.5 py-1.5 text-xs font-bold text-white disabled:opacity-50"
             style={{ backgroundColor: "var(--ui-primary)" }}
           >
             {saving ? t("posting") : t("reply")}
@@ -347,24 +430,32 @@ function IssueCard({
     false_alert: "False alert",
   };
 
+  const iconColors: Record<string, string> = {
+    open: "bg-red-50 text-red-600",
+    fixed: "bg-green-50 text-green-600",
+    false_alert: "bg-gray-50 text-gray-600",
+  };
+
   return (
-    <div className="flex gap-3">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-50 text-xs font-bold text-red-600">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 9v3.75m0-5.25V9m0 12a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
-        </svg>
+    <div className="comment-item" style={{ paddingTop: "10px", paddingBottom: "10px" }}>
+      <div className="comment-item__avatar">
+        <div className={`flex h-8 w-8 items-center justify-center rounded-full ${iconColors[issue.status]}`}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 9v3.75m0-5.25V9m0 12a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
+          </svg>
+        </div>
       </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-gray-900">{issue.userId}</span>
+      <div className="comment-item__body">
+        <div className="comment-item__heading">
+          <strong>{issue.userId}</strong>
           <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${statusColors[issue.status]}`}>
             {statusLabels[issue.status]}
           </span>
-          <span className="text-xs text-gray-400">{timeAgo(issue.createdAt)}</span>
+          <span className="meta">{formatDate(issue.createdAt)}</span>
         </div>
-        <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-gray-700">{issue.body}</p>
+        <div className="comment-item__text" style={{ whiteSpace: "pre-wrap" }}>{issue.body}</div>
         {canAdmin ? (
-          <div className="mt-2 flex gap-1.5">
+          <div className="comment-item__actions">
             {STATUSES.map((status) => (
               <button
                 key={status}
@@ -391,14 +482,12 @@ export function DiscussionThread({
   slug,
   userId,
   canAdmin,
-  enabled,
   onCommentCountChange,
   onIssueCountChange,
 }: {
   slug: string;
   userId?: string;
   canAdmin: boolean;
-  enabled?: boolean;
   onCommentCountChange?: (count: number) => void;
   onIssueCountChange?: (count: number) => void;
 }) {
@@ -424,41 +513,26 @@ export function DiscussionThread({
     setLoading(true);
     setError(null);
     try {
-      const [commentsRes, issuesRes] = await Promise.all([
-        fetch(`/api/contracts/${encodeURIComponent(slug)}/comments`),
-        fetch(`/api/contracts/${encodeURIComponent(slug)}/issues`),
-      ]);
-      if (!commentsRes.ok) throw new Error("Unable to load discussion");
-      const commentsPayload = (await commentsRes.json()) as { comments: ContractComment[] };
-      const issuesPayload = (await issuesRes.json()) as { issues: ContractIssue[] };
-      setComments(commentsPayload.comments);
-      setIssues(issuesPayload.issues);
+      const res = await fetch(`/api/contracts/${encodeURIComponent(slug)}/discussion-data`);
+      if (!res.ok) throw new Error("Unable to load discussion");
+      const payload = (await res.json()) as {
+        comments: ContractComment[];
+        issues: ContractIssue[];
+        users: UserProfile[];
+      };
+      setComments(payload.comments);
+      setIssues(payload.issues);
+      setUsers(payload.users);
+      setSelectedMentionIndex(0);
       setLoaded(true);
-      onCommentCountChange?.(commentsPayload.comments.length);
-      onIssueCountChange?.(issuesPayload.issues.length);
+      onCommentCountChange?.(payload.comments.length);
+      onIssueCountChange?.(payload.issues.length);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load discussion");
     } finally {
       setLoading(false);
     }
   }, [slug, onCommentCountChange, onIssueCountChange]);
-
-  const fetchUsers = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/users`);
-      if (!res.ok) return;
-      const payload = (await res.json()) as { users: UserProfile[] };
-      setUsers(payload.users);
-      setSelectedMentionIndex(0);
-    } catch {
-      setUsers([]);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!userId) return;
-    void fetchUsers();
-  }, [fetchUsers, userId]);
 
   useEffect(() => {
     if (loaded) return;
@@ -636,6 +710,23 @@ export function DiscussionThread({
     }
   }
 
+  async function handleDeleteComment(commentId: number) {
+    try {
+      const res = await fetch(`/api/contracts/${slug}/comments`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ commentId }),
+      });
+      if (!res.ok) {
+        const payload = (await res.json()) as { error?: string };
+        throw new Error(payload.error ?? "Unable to delete comment");
+      }
+      await fetchThread();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to delete comment");
+    }
+  }
+
   async function handleSubmit() {
     if (composerMode === "comment") {
       await submitComment();
@@ -644,24 +735,13 @@ export function DiscussionThread({
     }
   }
 
-  const topComments = useMemo(
-    () => comments.filter((comment) => !comment.parentId),
-    [comments],
-  );
+  const commentTree = useMemo(() => parseCommentsToTree(comments), [comments]);
 
-  const repliesByParentId = useMemo(() => {
-    return comments.reduce<Record<number, ContractComment[]>>((acc, comment) => {
-      if (!comment.parentId) return acc;
-      acc[comment.parentId] = [...(acc[comment.parentId] ?? []), comment];
-      return acc;
-    }, {});
-  }, [comments]);
-
-  const commentMap = useMemo(() => {
-    const map = new Map<number, ContractComment>();
-    comments.forEach((c) => map.set(c.id, c));
+  const rootCommentMap = useMemo(() => {
+    const map = new Map<number, CommentNode>();
+    commentTree.forEach((c) => map.set(c.id, c));
     return map;
-  }, [comments]);
+  }, [commentTree]);
 
   const issueMap = useMemo(() => {
     const map = new Map<number, ContractIssue>();
@@ -671,12 +751,12 @@ export function DiscussionThread({
 
   const threadItems = useMemo(() => {
     const items: Array<{ type: "comment" | "issue"; id: number; createdAt: string }> = [
-      ...topComments.map((c) => ({ type: "comment" as const, id: c.id, createdAt: c.createdAt })),
+      ...commentTree.map((c) => ({ type: "comment" as const, id: c.id, createdAt: c.createdAt })),
       ...issues.map((i) => ({ type: "issue" as const, id: i.id, createdAt: i.createdAt })),
     ];
     items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return items;
-  }, [topComments, issues]);
+  }, [commentTree, issues]);
 
   const filteredUsers = useMemo(
     () =>
@@ -689,21 +769,21 @@ export function DiscussionThread({
     [users, mentionSearch],
   );
 
-  function renderCommentTree(comment: ContractComment, depth: number): React.ReactNode {
-    const replies = repliesByParentId[comment.id] ?? [];
-    const isReplyingToThis = replyingTo?.id === comment.id;
-    const bubble = (
-      <div key={`comment-${comment.id}`} id={`comment-${comment.id}`} className="space-y-2">
-        <CommentBubble
-          comment={comment}
-          parentUser={depth > 0 ? commentMap.get(comment.parentId!)?.userId : undefined}
-          isCurrentUser={comment.userId === userId}
+  function renderCommentTree(node: CommentNode, parentUserId?: string): React.ReactNode {
+    const isReplyingToThis = replyingTo?.id === node.id;
+    return (
+      <div key={`comment-${node.id}`} id={`comment-${node.id}`} className="comment-thread">
+        <CommentItem
+          comment={node}
+          parentUser={parentUserId}
+          isCurrentUser={node.userId === userId}
           userId={userId}
-          onReply={() => setReplyingTo(isReplyingToThis ? null : comment)}
+          onReply={() => setReplyingTo(isReplyingToThis ? null : node)}
+          onDelete={node.userId === userId ? () => handleDeleteComment(node.id) : undefined}
         />
         {isReplyingToThis ? (
           <InlineReplyForm
-            comment={comment}
+            comment={node}
             slug={slug}
             userId={userId}
             users={users}
@@ -711,13 +791,13 @@ export function DiscussionThread({
             onPosted={() => { setReplyingTo(null); void fetchThread(); }}
           />
         ) : null}
-        {replies.map((reply) => renderCommentTree(reply, depth + 1))}
+        {node.replies.length > 0 ? (
+          <div className="comment-replies">
+            {node.replies.map((reply) => renderCommentTree(reply, node.userId))}
+          </div>
+        ) : null}
       </div>
     );
-    if (depth > 0) {
-      return <div className="ml-8 border-l-2 border-orange-200 pl-4">{bubble}</div>;
-    }
-    return bubble;
   }
 
   return (
@@ -736,19 +816,15 @@ export function DiscussionThread({
         <div className="space-y-4">
           {threadItems.map((item) => {
             if (item.type === "comment") {
-              const comment = commentMap.get(item.id);
-              if (!comment) return null;
-              return renderCommentTree(comment, 0);
+              const node = rootCommentMap.get(item.id);
+              if (!node) return null;
+              return renderCommentTree(node);
             }
 
             const issue = issueMap.get(item.id);
             if (!issue) return null;
             return (
-              <div
-                key={`issue-${issue.id}`}
-                id={`issue-${issue.id}`}
-                className="rounded-xl border border-red-100 bg-red-50/30 p-3"
-              >
+              <div key={`issue-${issue.id}`} id={`issue-${issue.id}`}>
                 <IssueCard
                   issue={issue}
                   canAdmin={canAdmin}

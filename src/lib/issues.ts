@@ -1,4 +1,4 @@
-import { execute, query } from "@/src/lib/db";
+import { execute, insertReturning, query } from "@/src/lib/db";
 import type { ContractIssue } from "@/src/lib/types";
 
 export const ISSUE_STATUSES = ["open", "fixed", "false_alert"] as const;
@@ -68,16 +68,7 @@ export async function createContractIssue(params: {
   userId: string;
   body: string;
 }): Promise<ContractIssue> {
-  await execute(
-    `INSERT INTO contract_issues (contract_slug, user_id, body)
-     VALUES (?, ?, ?)`,
-    [params.contractSlug, params.userId, params.body],
-  );
-
-  const rows = await query<{ id: number }>("SELECT last_insert_rowid() AS id");
-  const id = rows[0]?.id ?? 0;
-
-  const created = await query<{
+  const rows = await insertReturning<{
     id: number;
     contract_slug: string;
     user_id: string;
@@ -86,13 +77,13 @@ export async function createContractIssue(params: {
     created_at: string;
     resolved_at: string | null;
   }>(
-    `SELECT id, contract_slug, user_id, body, status, created_at, resolved_at
-     FROM contract_issues
-     WHERE id = ?`,
-    [id],
+    `INSERT INTO contract_issues (contract_slug, user_id, body)
+     VALUES (?, ?, ?)
+     RETURNING id, contract_slug, user_id, body, status, created_at, resolved_at`,
+    [params.contractSlug, params.userId, params.body],
   );
 
-  const row = created[0];
+  const row = rows[0];
   if (!row) {
     throw new Error("Unable to load created issue");
   }

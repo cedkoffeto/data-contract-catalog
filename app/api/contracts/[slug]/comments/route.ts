@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 
 import { auth } from "@/src/auth";
-import { createContractComment, extractMentionedUserIds, listContractComments, notifyMentionedUsers, recordCommentMentions } from "@/src/lib/comments";
+import { createContractComment, deleteContractComment, extractMentionedUserIds, listContractComments, notifyMentionedUsers, recordCommentMentions } from "@/src/lib/comments";
 import { getContractBySlug } from "@/src/lib/contracts";
 import { authorize } from "@/src/lib/access-control";
 import { requireApiAuth } from "@/src/lib/require-auth";
@@ -50,6 +50,37 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
 
   const comments = await listContractComments(slug);
   return NextResponse.json({ comments });
+}
+
+export async function DELETE(request: Request, { params }: { params: Promise<{ slug: string }> }) {
+  const unauthorized = await requireApiAuth();
+  if (unauthorized) return unauthorized;
+
+  const session = await auth();
+  const userId = session?.user?.name;
+  if (!userId) {
+    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+  }
+
+  const { slug } = await params;
+  const forbidden = await ensureCanReadContract(slug, userId);
+  if (forbidden) return forbidden;
+
+  const body = (await request.json()) as { commentId?: number };
+  const commentId = body.commentId;
+
+  if (typeof commentId !== "number") {
+    return NextResponse.json({ error: "commentId is required" }, { status: 400 });
+  }
+
+  try {
+    await deleteContractComment(commentId, userId);
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to delete comment";
+    const status = message === "Comment not found" ? 404 : 403;
+    return NextResponse.json({ error: message }, { status });
+  }
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
