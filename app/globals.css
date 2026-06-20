@@ -1482,13 +1482,24 @@ body[data-ra-modal] [data-ra-overlay] {
 }
 
 .catalog-card__pin.pinned {
-  background: #374151;
+  background: #f7b517;
   color: #fff;
 }
 
 .catalog-card__pin.pinned:hover {
-  background: #4b5563;
+  background: #e0a314;
   color: #fff;
+}
+
+.catalog-card__pin.pinned:hover svg {
+  display: none;
+}
+
+.catalog-card__pin.pinned:hover::after {
+  content: "Unpin";
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .catalog-card__pin svg {
