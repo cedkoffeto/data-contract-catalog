@@ -135,7 +135,7 @@ function CommentItem({
       <div className="comment-item__avatar">
         <Avatar name={comment.userId} />
       </div>
-      <div className="comment-item__body" style={{ backgroundColor: `${getUserBgHex(comment.userId)}80`, marginLeft: 4, marginRight: 4, padding: "6px 8px" }}>
+      <div className="comment-item__body" style={{ backgroundColor: "#f8fafc", borderRadius: 8, padding: "6px 8px" }}>
         <div className="comment-item__heading">
           <div className="flex items-center gap-2">
             <strong>{comment.userId}</strong>
@@ -146,7 +146,6 @@ function CommentItem({
             ) : null}
           </div>
           <div className="flex items-center gap-3">
-            <span className="meta">{formatDate(comment.createdAt)}</span>
             {isCurrentUser && !confirming ? (
               <button
                 type="button"
@@ -185,12 +184,16 @@ function CommentItem({
         <div className="comment-item__text">{renderBody(comment.body)}</div>
         {comment.editedAt ? <span className="meta">Edited</span> : null}
         {userId ? (
-          <div className="comment-item__actions">
+          <div className="comment-item__actions" style={{ padding: "6px 0", display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8 }}>
+            <span className="meta" style={{ fontSize: 10 }}>{new Date(comment.createdAt).toLocaleString()} [<strong>{formatDate(comment.createdAt)}</strong>]</span>
             <button
               type="button"
               onClick={onReply}
-              className="text-xs font-semibold text-orange-600 hover:text-orange-800"
+              className="flex items-center gap-1 text-xs font-semibold text-orange-600 hover:text-orange-800"
             >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 10h10a8 8 0 0 1 8 8v2M3 10l6 6m-6-6 6-6" />
+              </svg>
               {t("reply")}
             </button>
           </div>
@@ -451,7 +454,7 @@ function IssueCard({
           <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${statusColors[issue.status]}`}>
             {statusLabels[issue.status]}
           </span>
-          <span className="meta">{formatDate(issue.createdAt)}</span>
+          <span className="meta">{new Date(issue.createdAt).toLocaleString()} [<strong>{formatDate(issue.createdAt)}</strong>]</span>
         </div>
         <div className="comment-item__text" style={{ whiteSpace: "pre-wrap" }}>{issue.body}</div>
         {canAdmin ? (
