@@ -1,8 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import zlib from "node:zlib";
 
-import * as tar from "tar";
 import yaml from "js-yaml";
 
 import { Gitlab } from "@gitbeaker/rest";
@@ -436,59 +434,54 @@ async function getGitLabContracts(): Promise<ContractFile[]> {
     return readLocalContracts();
   }
 
-  console.info("[gitlab.contracts] Fetching archive", {
+  console.info("[gitlab.contracts] Fetching tree", {
     projectId: client.projectId,
     ref: client.ref,
   });
 
-  const archiveResponse = await client.api.Repositories.showArchive(client.projectId, {
-    fileType: "tar.gz",
-    sha: client.ref,
-    path: "contracts",
-  });
+  const tree = await readGitLabTree(client.projectId, client.ref, "contracts");
 
-  const archiveBlob = Array.isArray(archiveResponse) ? archiveResponse[0] : archiveResponse;
-  if (!archiveBlob) {
-    console.warn("[gitlab.contracts] Archive empty, falling back to local contracts");
+  if (tree.length === 0) {
+    console.warn("[gitlab.contracts] Tree empty, falling back to local contracts");
     return readLocalContracts();
   }
 
-  const arrayBuffer = await archiveBlob.arrayBuffer();
-  const gunzipped = zlib.gunzipSync(Buffer.from(arrayBuffer));
+  const yamlEntries = tree.filter(
+    (entry) => entry.type === "blob" && /\.(yaml|yml)$/i.test(entry.path),
+  );
+
+  console.info("[gitlab.contracts] YAML files to fetch:", yamlEntries.length);
 
   const records: Array<{ path: string; fullPath: string; yamlRaw: string }> = [];
+  const BATCH_SIZE = 50;
 
-  const parser = new tar.Parser({
-    filter: (filePath: string) => /\.(yaml|yml)$/i.test(filePath),
-    onentry: (entry: tar.ReadEntry) => {
-      const chunks: Buffer[] = [];
-      entry.on("data", (chunk: Buffer) => chunks.push(chunk));
-      entry.on("end", () => {
-        const relativePath = entry.path.replace(/^[^/]+\//, "");
-        records.push({
-          path: relativePath,
-          fullPath: relativePath,
-          yamlRaw: Buffer.concat(chunks).toString("utf-8"),
-        });
-      });
-      entry.resume();
-    },
-  });
+  for (let i = 0; i < yamlEntries.length; i += BATCH_SIZE) {
+    const batch = yamlEntries.slice(i, i + BATCH_SIZE);
+    const results = await Promise.allSettled(
+      batch.map(async (entry) => {
+        const file = (await client.api.RepositoryFiles.show(
+          client.projectId,
+          entry.path,
+          client.ref,
+        )) as GitLabRepositoryFile;
+        const rawContent = file.content ?? "";
+        const yamlRaw =
+          file.encoding === "base64"
+            ? Buffer.from(rawContent, "base64").toString("utf-8")
+            : rawContent;
+        return { path: entry.path, fullPath: entry.path, yamlRaw };
+      }),
+    );
 
-  await new Promise<void>((resolve, reject) => {
-    parser.on("close", resolve);
-    parser.on("error", reject);
-    parser.end(gunzipped);
-  });
+    for (const r of results) {
+      if (r.status === "fulfilled") records.push(r.value);
+    }
+  }
 
-  console.info("[gitlab.contracts] Archive extracted", {
-    projectId: client.projectId,
-    ref: client.ref,
-    count: records.length,
-  });
+  console.info("[gitlab.contracts] Fetched files:", records.length);
 
   if (records.length === 0) {
-    console.warn("[gitlab.contracts] No YAML files in archive, falling back to local contracts");
+    console.warn("[gitlab.contracts] All file fetches failed, falling back to local contracts");
     return readLocalContracts();
   }
 
