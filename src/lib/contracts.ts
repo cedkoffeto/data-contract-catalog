@@ -361,6 +361,14 @@ function yieldToEventLoop(): Promise<void> {
   return new Promise((resolve) => setImmediate(resolve));
 }
 
+function getPathMaturity(filePath: string): string {
+  const parts = filePath.split("/");
+  // Supports: contracts/{maturity}/file.yaml  OR  contracts/published/{maturity}/file.yaml
+  if (parts[1] === "published" && parts.length >= 4) return parts[2];
+  if (parts[1] === "draft") return "";
+  return parts[1] ?? path.basename(path.dirname(filePath));
+}
+
 async function buildContractsFromRecords(
   records: Array<{ path: string; fullPath: string; yamlRaw: string }>
 ): Promise<ContractFile[]> {
@@ -378,7 +386,7 @@ async function buildContractsFromRecords(
     const chunk = records.slice(i, i + CHUNK_SIZE);
     for (const record of chunk) {
       const stem = path.basename(record.path, path.extname(record.path));
-      const maturity = record.path.split("/")[1] ?? path.basename(path.dirname(record.path));
+      const maturity = getPathMaturity(record.path);
       const isDuplicateStem = (stemCount.get(stem) ?? 0) > 1;
       const slug = isDuplicateStem ? `${maturity}-${stem}` : stem;
       let data: DataContract;
@@ -396,7 +404,7 @@ async function buildContractsFromRecords(
   }
 
   const contracts = valid.map(({ record, slug, data }) => {
-    return { slug, stem: path.basename(record.path, path.extname(record.path)), maturity: record.path.split("/")[1] ?? path.basename(path.dirname(record.path)), fullPath: record.fullPath, yamlRaw: record.yamlRaw, data } satisfies ContractFile;
+    return { slug, stem: path.basename(record.path, path.extname(record.path)), maturity: getPathMaturity(record.path), fullPath: record.fullPath, yamlRaw: record.yamlRaw, data } satisfies ContractFile;
   });
 
   const seen = new Map<string, number>();
@@ -487,7 +495,7 @@ async function getGitLabContracts(yamlEntries: GitLabTreeItem[]): Promise<Contra
 
 function computeContractSlug(fullPath: string, stemCounts: Map<string, number>): string {
   const stem = path.basename(fullPath, path.extname(fullPath));
-  const maturity = fullPath.split("/")[1] ?? path.basename(path.dirname(fullPath));
+  const maturity = getPathMaturity(fullPath);
   const isDuplicateStem = (stemCounts.get(stem) ?? 0) > 1;
   return isDuplicateStem ? `${maturity}-${stem}` : stem;
 }
@@ -592,6 +600,7 @@ export async function getContracts(): Promise<ContractFile[]> {
       return readLocalContracts();
     }
 
+    console.warn("[gitlab.contracts] tree fetched", tree);
     const yamlEntries = tree.filter(
       (entry) => entry.type === "blob" && /\.(yaml|yml)$/i.test(entry.path),
     );
