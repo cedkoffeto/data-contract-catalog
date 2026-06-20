@@ -50,9 +50,9 @@ async function getPreferredSlugs(userId: string): Promise<{ favoriteSlugs: Set<s
   );
   const favoriteSlugs = new Set<string>();
   const pinnedSlugs = new Set<string>();
-  for (const row of rows) {
-    if (row.is_favorite) favoriteSlugs.add(row.contract_slug);
-    if (row.is_pinned) pinnedSlugs.add(row.contract_slug);
+  for (const { contract_slug, is_favorite, is_pinned } of rows) {
+    if (is_favorite) favoriteSlugs.add(contract_slug);
+    if (is_pinned) pinnedSlugs.add(contract_slug);
   }
   return { favoriteSlugs, pinnedSlugs };
 }
