@@ -106,7 +106,7 @@ export async function updateContractIssueStatus(id: number, status: IssueStatus)
     `UPDATE contract_issues
      SET status = ?, resolved_at = ?
      WHERE id = ?`,
-    [status, resolvedAt],
+    [status, resolvedAt, id],
   );
 
   const rows = await query<{
