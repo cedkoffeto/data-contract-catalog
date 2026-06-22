@@ -804,11 +804,9 @@ export function DiscussionThread({
         const payload = (await res.json()) as { error?: string };
         throw new Error(payload.error ?? "Unable to delete comment");
       }
-      setComments((prev) => {
-        const next = prev.filter((c) => c.id !== commentId);
-        onCommentCountChange?.(next.length);
-        return next;
-      });
+      const afterDelete = comments.filter((c) => c.id !== commentId);
+      setComments(afterDelete);
+      onCommentCountChange?.(afterDelete.length);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to delete comment");
     }
