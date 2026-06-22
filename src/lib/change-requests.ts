@@ -34,7 +34,56 @@ export async function createChangeRequest(params: {
   const rows = await query<Record<string, unknown>>(
     "SELECT * FROM contract_change_requests WHERE id = last_insert_rowid()",
   );
-  return toChangeRequest(rows[0]);
+  const cr = toChangeRequest(rows[0]);
+
+  // Create GitLab branch, commit, and MR
+  try {
+    const { api, config } = getGitLabClient();
+    const filePath = await getGitLabContractFilePath(cr.contractSlug);
+    const branchName = `change-${cr.contractSlug}-${cr.id}`;
+
+    await api.Branches.create(config.projectId, branchName, config.ref);
+
+    await api.RepositoryFiles.edit(
+      config.projectId,
+      filePath,
+      branchName,
+      cr.yamlContent,
+      `Update contract ${cr.contractSlug} (change request #${cr.id})`,
+    );
+
+    const mr = await api.MergeRequests.create(
+      config.projectId,
+      branchName,
+      config.ref,
+      `[Change Request #${cr.id}] Update ${cr.contractSlug}`,
+      { description: `Change request #${cr.id} by ${cr.editorId}` },
+    );
+
+    const mrId = mr.iid as number;
+    const mrUrl = (mr.web_url as string) ?? "";
+
+    await updateChangeRequestStatus({
+      id: cr.id,
+      status: "pending",
+      resolvedBy: cr.editorId,
+      gitlabMrId: mrId,
+      gitlabMrUrl: mrUrl,
+    });
+
+    return { ...cr, gitlabMrId: mrId, gitlabMrUrl: mrUrl };
+  } catch (error) {
+    // If MR creation fails, keep the CR in DB for logging but mark as rejected
+    const msg = error instanceof Error ? error.message : "Unknown error";
+    console.error("[change-requests] MR creation failed:", msg);
+    await updateChangeRequestStatus({
+      id: cr.id,
+      status: "rejected",
+      resolvedBy: "system",
+      rejectionReason: `MR creation failed: ${msg}`,
+    });
+    return { ...cr, status: "rejected", rejectionReason: `MR creation failed: ${msg}` };
+  }
 }
 
 export async function listChangeRequests(
@@ -101,62 +150,31 @@ export async function updateChangeRequestStatus(params: {
   );
 }
 
-export async function approveChangeRequest(
+export async function mergeChangeRequest(
   id: number,
   resolverId: string,
 ): Promise<{ success: boolean; error?: string }> {
   const cr = await getChangeRequest(id);
   if (!cr) return { success: false, error: "Change request not found" };
   if (cr.status !== "pending") return { success: false, error: "Change request is not pending" };
-
-  const branchName = `change-${cr.contractSlug}-${cr.id}`;
+  if (!cr.gitlabMrId) return { success: false, error: "No GitLab MR associated with this change request" };
 
   try {
-    const { api, config } = getGitLabClient();
-    const filePath = await getGitLabContractFilePath(cr.contractSlug);
+    const { api: gitlab } = getGitLabClient();
+    await gitlab.MergeRequests.accept(cr.gitlabMrId, { shouldRemoveSourceBranch: true });
 
-    // 1. Create branch from main
-    await api.Branches.create(config.projectId, branchName, config.ref);
-
-    // 2. Edit the file on the new branch
-    await api.RepositoryFiles.edit(
-      config.projectId,
-      filePath,
-      branchName,
-      cr.yamlContent,
-      `Update contract ${cr.contractSlug} (change request #${cr.id})`,
-    );
-
-    // 3. Create merge request
-    const mr = await api.MergeRequests.create(
-      config.projectId,
-      branchName,
-      config.ref,
-      `[Change Request #${cr.id}] Update ${cr.contractSlug}`,
-      { description: `Change request #${cr.id} by ${cr.editorId}` },
-    );
-
-    // 4. Accept (merge) the MR
-    const merged = await api.MergeRequests.accept(
-      config.projectId,
-      mr.iid,
-      { shouldRemoveSourceBranch: true },
-    );
-
-    // 5. Update DB
     await updateChangeRequestStatus({
       id,
       status: "approved",
       resolvedBy: resolverId,
-      gitlabMrId: mr.iid as number,
-      gitlabMrUrl: merged.web_url ?? "",
     });
 
     return { success: true };
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "Unknown error during approval";
-    console.error("[change-requests] Approve failed:", msg);
-    return { success: false, error: msg };
+    const msg = error instanceof Error ? error.message : "Unknown error during merge";
+    const isConflict = msg.toLowerCase().includes("conflict") || msg.toLowerCase().includes("merge conflict");
+    console.error("[change-requests] Merge failed:", msg);
+    return { success: false, error: isConflict ? "Conflit détecté, merci de merger manuellement sur GitLab" : msg };
   }
 }
 
@@ -168,6 +186,17 @@ export async function rejectChangeRequest(
   const cr = await getChangeRequest(id);
   if (!cr) return { success: false, error: "Change request not found" };
   if (cr.status !== "pending") return { success: false, error: "Change request is not pending" };
+
+  // Close the GitLab MR if it exists
+  if (cr.gitlabMrId) {
+    try {
+      const { api: gitlab } = getGitLabClient();
+      await gitlab.MergeRequests.edit(cr.gitlabMrId, { state_event: "close" });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Unknown error";
+      console.error("[change-requests] Failed to close MR:", msg);
+    }
+  }
 
   await updateChangeRequestStatus({
     id,
