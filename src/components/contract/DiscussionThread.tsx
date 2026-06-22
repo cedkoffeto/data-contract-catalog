@@ -507,22 +507,13 @@ function IssueCard({
     ),
   };
 
-  const iconColors: Record<string, string> = {
-    open: "bg-red-50 text-red-600",
-    fixed: "bg-green-50 text-green-600",
-    false_alert: "bg-gray-50 text-gray-600",
-  };
 
   return (
     <div className="comment-item" style={{ paddingTop: "10px", paddingBottom: "10px" }}>
       <div className="comment-item__avatar">
-        <div className={`flex h-8 w-8 items-center justify-center rounded-full ${iconColors[issue.status]}`}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 9v3.75m0-5.25V9m0 12a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
-          </svg>
-        </div>
+        <Avatar name={issue.userId} />
       </div>
-      <div className="comment-item__body">
+      <div className="comment-item__body" style={{ backgroundColor: "#f8fafc", borderRadius: 8, padding: "6px 8px" }}>
         <div className="comment-item__heading">
           <strong>{issue.userId}</strong>
           <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-bold ${statusColors[issue.status]}`}>
