@@ -81,8 +81,8 @@ Update data contract ${contractName} - ${date}`);
       <div className="yaml-sheet__panel yaml-sheet__panel--commit">
         <div className="yaml-sheet__header">
           <div>
-            <p className="yaml-sheet__eyebrow">Git commit</p>
-            <h3 id={`commit-sheet-title-${id}`}>Submit contract</h3>
+            <p className="yaml-sheet__eyebrow">Proposer une modification</p>
+            <h3 id={`commit-sheet-title-${id}`}>Proposer la modification</h3>
           </div>
 
           <div className="yaml-sheet__header-actions">
@@ -93,7 +93,7 @@ Update data contract ${contractName} - ${date}`);
               Generate
             </button>
             <button className="editor-primary-button" disabled={saving || !message.trim()} onClick={handleConfirm} type="button">
-              {saving ? "Submitting..." : "Submit"}
+              {saving ? "Proposing..." : "Proposer"}
             </button>
           </div>
         </div>

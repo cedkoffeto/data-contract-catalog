@@ -1115,23 +1115,28 @@ export function ContractEditorClient({
       selectedDocument.data as unknown as Record<string, unknown>
     );
     setCommitModal({ contractSlug: selectedDocument.contractSlug, contractName: selectedDocument.name, diff });
+    setWorkspaceMessage("Review your changes before proposing");
   }
 
   async function handleCommitConfirm(message: string) {
     if (!commitModal) return;
 
-    setWorkspaceMessage("Submitting...");
+    setWorkspaceMessage("Proposing change...");
 
-    const res = await fetch(`/api/contracts/${commitModal.contractSlug}/submit`, {
+    const res = await fetch(`/api/contracts/${commitModal.contractSlug}/change-requests`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: selectedDocument.content, commitMessage: message }),
+      body: JSON.stringify({ yamlContent: selectedDocument.content }),
     });
 
-    const payload = (await res.json()) as { error?: string };
+    const payload = (await res.json()) as { error?: string; changeRequest?: { id: number; gitlabMrUrl: string; status: string } };
 
     if (!res.ok) {
-      throw new Error(payload.error ?? "Submission failed");
+      throw new Error(payload.error ?? "Failed to create change request");
+    }
+
+    if (payload.changeRequest?.status === "rejected") {
+      throw new Error(payload.changeRequest.gitlabMrUrl || "Failed to create MR on GitLab");
     }
 
     updateDocument((document) => ({
@@ -1140,7 +1145,11 @@ export function ContractEditorClient({
       isDirty: false,
     }));
 
-    setWorkspaceMessage("Contract submitted successfully");
+    setWorkspaceMessage(
+      payload.changeRequest?.gitlabMrUrl
+        ? `Change request #${payload.changeRequest.id} submitted — MR: ${payload.changeRequest.gitlabMrUrl}`
+        : "Change request submitted, pending review",
+    );
   }
 
   async function handleCopy() {
@@ -1794,7 +1803,7 @@ export function ContractEditorClient({
                     disabled={hasBlockingErrors}
                     title={hasBlockingErrors ? "Fix validation errors before submitting" : "Submit contract"}
                   >
-                    Submit contract
+                    Proposer la modification
                   </button>
                 </>
               ) : (
