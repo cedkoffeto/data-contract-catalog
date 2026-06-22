@@ -513,7 +513,7 @@ function IssueCard({
       <div className="comment-item__avatar">
         <Avatar name={issue.userId} />
       </div>
-      <div className="comment-item__body" style={{ backgroundColor: "#f8fafc", borderRadius: 8, padding: "6px 8px" }}>
+      <div className="comment-item__body" style={{ backgroundColor: "#fef2f2", borderRadius: 8, padding: "6px 8px" }}>
         <div className="comment-item__heading">
           <strong>{issue.userId}</strong>
           <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-bold ${statusColors[issue.status]}`}>
