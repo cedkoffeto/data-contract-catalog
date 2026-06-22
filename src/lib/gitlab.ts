@@ -141,6 +141,19 @@ export async function findGitLabMergeRequestByBranch(branchName: string) {
   return null;
 }
 
+export async function acceptMergeRequest(mrIid: number) {
+  const { api, config } = getGitLabClient();
+  const mr = await api.MergeRequests.accept(config.projectId, mrIid, {
+    shouldRemoveSourceBranch: true,
+  });
+  return mr as { web_url: string };
+}
+
+export async function closeMergeRequest(mrIid: number) {
+  const { api, config } = getGitLabClient();
+  await api.MergeRequests.edit(config.projectId, mrIid, { state_event: "close" });
+}
+
 export async function getGitLabFileLastCommitSha(slug: string): Promise<string> {
   const { api, config } = getGitLabClient();
   const filePath = await getGitLabContractFilePath(slug);
