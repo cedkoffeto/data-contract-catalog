@@ -542,7 +542,7 @@ function IssueCard({
                     key={status}
                     type="button"
                     disabled={updatingId === issue.id}
-                    className="inline-flex items-center gap-1 rounded px-2.5 py-1 text-[11px] font-bold transition-colors disabled:opacity-50"
+                    className="inline-flex items-center gap-1 rounded px-2.5 py-1 text-xs font-bold transition-colors disabled:opacity-50"
                     style={{
                       backgroundColor: issue.status === status ? activeBg : "transparent",
                       color: issue.status === status ? "#fff" : activeBg,
