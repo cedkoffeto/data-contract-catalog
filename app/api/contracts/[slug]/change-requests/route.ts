@@ -6,6 +6,7 @@ import { authorize } from "@/src/lib/access-control";
 import { createChangeRequest, listChangeRequests } from "@/src/lib/change-requests";
 import { getContractBySlug } from "@/src/lib/contracts";
 import { getGitLabFileLastCommitSha } from "@/src/lib/gitlab";
+import { createNotification } from "@/src/lib/notifications";
 import { requireApiAuth } from "@/src/lib/require-auth";
 import { getUserPermissions } from "@/src/lib/rbac";
 
@@ -96,6 +97,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     yamlContent,
     originalSha,
   });
+
+  // Notify the editor about the created MR
+  if (cr.status === "pending" && cr.gitlabMrUrl) {
+    await createNotification({
+      userId: cr.editorId,
+      contractSlug: cr.contractSlug,
+      type: "change_request_created",
+      title: "Change request submitted",
+      message: `Your change request #${cr.id} for ${cr.contractSlug} has been submitted. Merge request: ${cr.gitlabMrUrl}`,
+      metadata: { changeRequestId: cr.id, gitlabMrUrl: cr.gitlabMrUrl },
+    });
+  }
 
   return NextResponse.json({ changeRequest: cr }, { status: 201 });
 }
