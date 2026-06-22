@@ -534,22 +534,27 @@ function IssueCard({
         <div className="comment-item__text" style={{ whiteSpace: "pre-wrap" }}>{issue.body}</div>
         {canAdmin ? (
           <div className="comment-item__actions">
-            {STATUSES.map((status) => (
-              <button
-                key={status}
-                type="button"
-                disabled={updatingId === issue.id}
-                className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-bold transition ${
-                  issue.status === status
-                    ? "border-gray-900 bg-gray-900 text-white"
-                    : "border-gray-200 text-gray-600 hover:bg-gray-50"
-                } disabled:opacity-50`}
-                onClick={() => onStatusChange(issue, status)}
-              >
-                {statusIcons[status]}
-                {statusLabels[status]}
-              </button>
-            ))}
+            <div className="inline-flex rounded-full border p-0.5" style={{ backgroundColor: "rgba(0,0,0,0.04)" }}>
+              {STATUSES.map((status) => {
+                const activeBg = status === "open" ? "#1f2937" : status === "fixed" ? "#16a34a" : "#6b7280";
+                return (
+                  <button
+                    key={status}
+                    type="button"
+                    disabled={updatingId === issue.id}
+                    className="inline-flex items-center gap-1 rounded px-2.5 py-1 text-[11px] font-bold transition-colors disabled:opacity-50"
+                    style={{
+                      backgroundColor: issue.status === status ? activeBg : "transparent",
+                      color: issue.status === status ? "#fff" : activeBg,
+                    }}
+                    onClick={() => onStatusChange(issue, status)}
+                  >
+                    {statusIcons[status]}
+                    {statusLabels[status]}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         ) : null}
       </div>

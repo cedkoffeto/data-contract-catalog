@@ -199,26 +199,29 @@ export function ContractIssues({
                 <time className="shrink-0 text-xs text-gray-400">{formatDate(issue.createdAt)}</time>
               </div>
 
-              {canAdmin ? (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {STATUSES.map((status) => (
+          {canAdmin ? (
+            <div className="mt-4 inline-flex rounded-full border p-0.5" style={{ backgroundColor: "rgba(0,0,0,0.04)" }}>
+              {STATUSES.map((status) => {
+                const activeBg = status === "open" ? "#1f2937" : status === "fixed" ? "#16a34a" : "#6b7280";
+                return (
                   <button
                     key={status}
                     type="button"
                     disabled={updatingId === issue.id}
-                    className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-bold ${
-                      issue.status === status
-                        ? "border-gray-900 bg-gray-900 text-white"
-                        : "border-gray-200 text-gray-600 hover:bg-gray-50"
-                    } disabled:opacity-50`}
+                    className="inline-flex items-center gap-1 rounded px-3 py-1 text-xs font-bold transition-colors disabled:opacity-50"
+                    style={{
+                      backgroundColor: issue.status === status ? activeBg : "transparent",
+                      color: issue.status === status ? "#fff" : activeBg,
+                    }}
                     onClick={() => void handleStatusChange(issue, status)}
                   >
                     {statusIcon(status)}
                     {statusLabel(status)}
                   </button>
-                ))}
-              </div>
-              ) : null}
+                );
+              })}
+            </div>
+          ) : null}
             </article>
           ))}
         </div>
