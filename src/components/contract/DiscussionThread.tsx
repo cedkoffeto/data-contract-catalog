@@ -784,7 +784,8 @@ export function DiscussionThread({
         const payload = (await res.json()) as { error?: string };
         throw new Error(payload.error ?? "Unable to update issue");
       }
-      await fetchThread();
+      // Optimistic update: update issue in local state without refetching everything
+      setIssues((prev) => prev.map((i) => (i.id === issue.id ? { ...i, status } : i)));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to update issue");
     } finally {
