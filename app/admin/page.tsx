@@ -242,6 +242,7 @@ function ChangeRequestsSection() {
   const [loading, setLoading] = useState(true);
   const [rejectReasons, setRejectReasons] = useState<Record<number, string>>({});
   const [actionLoading, setActionLoading] = useState<Record<number, string>>({});
+  const [mergeError, setMergeError] = useState<string | null>(null);
 
   const fetchRequests = useCallback(async () => {
     try {
@@ -256,17 +257,23 @@ function ChangeRequestsSection() {
     fetchRequests();
   }, [fetchRequests]);
 
-  async function handleApprove(id: number) {
-    setActionLoading((prev) => ({ ...prev, [id]: "approve" }));
+  async function handleMerge(id: number) {
+    setMergeError(null);
+    setActionLoading((prev) => ({ ...prev, [id]: "merge" }));
     try {
       const res = await fetch(`/api/change-requests/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "approve" }),
+        body: JSON.stringify({ action: "merge" }),
       });
-      if (!res.ok) throw new Error((await res.json()).error ?? "Failed to approve");
+      if (!res.ok) {
+        const err = (await res.json()).error ?? "Failed to merge";
+        throw new Error(err);
+      }
       await fetchRequests();
-    } catch { /* silent */ } finally {
+    } catch (e) {
+      setMergeError(e instanceof Error ? e.message : "Merge failed");
+    } finally {
       setActionLoading((prev) => { const n = { ...prev }; delete n[id]; return n; });
     }
   }
@@ -274,6 +281,7 @@ function ChangeRequestsSection() {
   async function handleReject(id: number) {
     const reason = rejectReasons[id]?.trim();
     if (!reason || reason.length < 3) return;
+    setMergeError(null);
     setActionLoading((prev) => ({ ...prev, [id]: "reject" }));
     try {
       const res = await fetch(`/api/change-requests/${id}`, {
@@ -301,6 +309,9 @@ function ChangeRequestsSection() {
           </span>
         )}
       </h2>
+      {mergeError ? (
+        <div className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{mergeError}</div>
+      ) : null}
       {requests.length === 0 ? (
         <div className="rounded-lg border bg-white py-8 text-center text-sm text-gray-400">No change requests yet.</div>
       ) : (
@@ -348,11 +359,11 @@ function ChangeRequestsSection() {
                       <div className="flex flex-col gap-1">
                         <div className="flex gap-1">
                           <button
-                            onClick={() => handleApprove(r.id)}
-                            disabled={actionLoading[r.id] === "approve"}
+                            onClick={() => void handleMerge(r.id)}
+                            disabled={actionLoading[r.id] === "merge"}
                             className="rounded bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 hover:bg-green-100 disabled:opacity-50"
                           >
-                            {actionLoading[r.id] === "approve" ? "Merging\u2026" : "Approve"}
+                            {actionLoading[r.id] === "merge" ? "Merging\u2026" : "Merge"}
                           </button>
                           <button
                             onClick={() => {
