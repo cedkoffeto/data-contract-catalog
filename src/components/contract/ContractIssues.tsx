@@ -30,6 +30,33 @@ function statusClass(status: ContractIssue["status"]) {
   return "bg-orange-50 text-orange-700";
 }
 
+function statusIcon(status: ContractIssue["status"]) {
+  if (status === "fixed") {
+    return (
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="9 12 11 14 15 10" />
+      </svg>
+    );
+  }
+  if (status === "false_alert") {
+    return (
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="8" y1="8" x2="16" y2="16" />
+        <line x1="8" y1="16" x2="16" y2="8" />
+      </svg>
+    );
+  }
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  );
+}
+
 export function ContractIssues({
   slug,
   userId,
@@ -162,7 +189,8 @@ export function ContractIssues({
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="text-sm font-semibold text-gray-900">{issue.userId}</h3>
-                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${statusClass(issue.status)}`}>
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ${statusClass(issue.status)}`}>
+                      {statusIcon(issue.status)}
                       {statusLabel(issue.status)}
                     </span>
                   </div>
@@ -172,19 +200,24 @@ export function ContractIssues({
               </div>
 
               {canAdmin ? (
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {STATUSES.map((status) => (
-                    <button
-                      key={status}
-                      type="button"
-                      disabled={updatingId === issue.id}
-                      className={`rounded-full border px-3 py-1 text-xs font-bold ${issue.status === status ? "border-gray-900 bg-gray-900 text-white" : "border-gray-200 text-gray-600 hover:bg-gray-50"} disabled:opacity-50`}
-                      onClick={() => void handleStatusChange(issue, status)}
-                    >
-                      {statusLabel(status)}
-                    </button>
-                  ))}
-                </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {STATUSES.map((status) => (
+                  <button
+                    key={status}
+                    type="button"
+                    disabled={updatingId === issue.id}
+                    className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-bold ${
+                      issue.status === status
+                        ? "border-gray-900 bg-gray-900 text-white"
+                        : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                    } disabled:opacity-50`}
+                    onClick={() => void handleStatusChange(issue, status)}
+                  >
+                    {statusIcon(status)}
+                    {statusLabel(status)}
+                  </button>
+                ))}
+              </div>
               ) : null}
             </article>
           ))}

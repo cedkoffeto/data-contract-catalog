@@ -484,6 +484,29 @@ function IssueCard({
     false_alert: "False alert",
   };
 
+  const statusIcons: Record<string, React.ReactNode> = {
+    open: (
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+        <line x1="12" y1="9" x2="12" y2="13" />
+        <line x1="12" y1="17" x2="12.01" y2="17" />
+      </svg>
+    ),
+    fixed: (
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="9 12 11 14 15 10" />
+      </svg>
+    ),
+    false_alert: (
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="8" y1="8" x2="16" y2="16" />
+        <line x1="8" y1="16" x2="16" y2="8" />
+      </svg>
+    ),
+  };
+
   const iconColors: Record<string, string> = {
     open: "bg-red-50 text-red-600",
     fixed: "bg-green-50 text-green-600",
@@ -502,7 +525,8 @@ function IssueCard({
       <div className="comment-item__body">
         <div className="comment-item__heading">
           <strong>{issue.userId}</strong>
-          <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${statusColors[issue.status]}`}>
+          <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-bold ${statusColors[issue.status]}`}>
+            {statusIcons[issue.status]}
             {statusLabels[issue.status]}
           </span>
           <span className="meta">{new Date(issue.createdAt).toLocaleString()} [<strong>{formatDate(issue.createdAt)}</strong>]</span>
@@ -515,13 +539,14 @@ function IssueCard({
                 key={status}
                 type="button"
                 disabled={updatingId === issue.id}
-                className={`rounded-full border px-2.5 py-0.5 text-[11px] font-bold transition ${
+                className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-bold transition ${
                   issue.status === status
                     ? "border-gray-900 bg-gray-900 text-white"
                     : "border-gray-200 text-gray-600 hover:bg-gray-50"
                 } disabled:opacity-50`}
                 onClick={() => onStatusChange(issue, status)}
               >
+                {statusIcons[status]}
                 {statusLabels[status]}
               </button>
             ))}
@@ -568,7 +593,10 @@ export function DiscussionThread({
     setError(null);
     try {
       const res = await fetch(`/api/contracts/${encodeURIComponent(slug)}/discussion-data`);
-      if (!res.ok) throw new Error("Unable to load discussion");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { error?: string }).error ?? "Unable to load discussion");
+      }
       const payload = (await res.json()) as {
         comments: ContractComment[];
         issues: ContractIssue[];

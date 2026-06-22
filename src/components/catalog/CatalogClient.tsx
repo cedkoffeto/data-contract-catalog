@@ -25,6 +25,8 @@ function humanize(value: string): string {
 
 export function CatalogClient({ cards: initialCards, canRequestUpgrade }: { cards: CatalogCardType[]; canRequestUpgrade?: boolean }) {
   const [cards, setCards] = useState(initialCards);
+  const cardsRef = useRef(cards);
+  cardsRef.current = cards;
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
@@ -38,9 +40,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade }: { card
   const [selectedMaturities, setSelectedMaturities] = useState<Set<string>>(new Set());
   const [showOnlyAccessible, setShowOnlyAccessible] = useState(false);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-  const [pinnedSlugs, setPinnedSlugs] = useState<Set<string>>(
-    () => new Set(cards.filter((c) => c.isPinned).map((c) => c.slug)),
-  );
+
   const [subscribedSlugs, setSubscribedSlugs] = useState<Set<string>>(new Set());
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
@@ -88,24 +88,19 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade }: { card
         return matchesSearch && matchesDomain && matchesContext && matchesMaturity && matchesAccessible && matchesFavorite;
       })
       .sort((a, b) => {
-        const aPinned = pinnedSlugs.has(a.slug) ? 0 : 1;
-        const bPinned = pinnedSlugs.has(b.slug) ? 0 : 1;
+        const aPinned = a.isPinned ? 0 : 1;
+        const bPinned = b.isPinned ? 0 : 1;
         if (aPinned !== bPinned) return aPinned - bPinned;
         const aFav = a.isFavorite ? 0 : 1;
         const bFav = b.isFavorite ? 0 : 1;
         if (aFav !== bFav) return aFav - bFav;
         return a.title.localeCompare(b.title);
       });
-  }, [cards, debouncedSearch, selectedDomain, selectedContexts, selectedMaturities, showOnlyAccessible, showFavoritesOnly, pinnedSlugs]);
+  }, [cards, debouncedSearch, selectedDomain, selectedContexts, selectedMaturities, showOnlyAccessible, showFavoritesOnly]);
 
   const handleTogglePin = useCallback(async (slug: string) => {
-    let next = false;
-    setPinnedSlugs((prev) => {
-      next = !prev.has(slug);
-      const nextSet = new Set(prev);
-      if (next) nextSet.add(slug); else nextSet.delete(slug);
-      return nextSet;
-    });
+    const card = cardsRef.current.find((c) => c.slug === slug);
+    const next = !card?.isPinned;
     setCards((prev) => prev.map((c) => (c.slug === slug ? { ...c, isPinned: next } : c)));
     await fetch(`/api/contracts/${encodeURIComponent(slug)}/preferences`, {
       method: "POST",
@@ -115,12 +110,9 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade }: { card
   }, []);
 
   const handleToggleFavorite = useCallback(async (slug: string) => {
-    let next = false;
-    setCards((prev) => {
-      const card = prev.find((c) => c.slug === slug);
-      next = !card?.isFavorite;
-      return prev.map((c) => (c.slug === slug ? { ...c, isFavorite: next } : c));
-    });
+    const card = cardsRef.current.find((c) => c.slug === slug);
+    const next = !card?.isFavorite;
+    setCards((prev) => prev.map((c) => (c.slug === slug ? { ...c, isFavorite: next } : c)));
     await fetch(`/api/contracts/${encodeURIComponent(slug)}/preferences`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
