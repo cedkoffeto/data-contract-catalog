@@ -154,6 +154,7 @@ function CommentItem({
             ) : null}
           </div>
           <div className="flex items-center gap-3">
+            <span className="meta" style={{ fontSize: 10 }}>{new Date(comment.createdAt).toLocaleString()} [<strong>{formatDate(comment.createdAt)}</strong>]</span>
             {isCurrentUser && !confirming ? (
               <button
                 type="button"
@@ -193,7 +194,6 @@ function CommentItem({
         {comment.editedAt ? <span className="meta">Edited</span> : null}
         {userId ? (
           <div className="comment-item__actions" style={{ padding: "6px 0", display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8 }}>
-            <span className="meta" style={{ fontSize: 10 }}>{new Date(comment.createdAt).toLocaleString()} [<strong>{formatDate(comment.createdAt)}</strong>]</span>
             <button
               type="button"
               onClick={onReply}
@@ -581,6 +581,7 @@ export function DiscussionThread({
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<"all" | "comments" | "issues">("all");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const composerRef = useRef<HTMLDivElement>(null);
 
@@ -839,6 +840,11 @@ export function DiscussionThread({
     return items;
   }, [commentTree, issues]);
 
+  const filteredItems = useMemo(() => {
+    if (typeFilter === "all") return threadItems;
+    return threadItems.filter((item) => item.type === typeFilter.slice(0, -1));
+  }, [threadItems, typeFilter]);
+
   const filteredUsers = useMemo(
     () =>
       users.filter((user) => {
@@ -930,22 +936,54 @@ export function DiscussionThread({
 
       {loading ? (
         <p className="rounded-xl border bg-white px-4 py-6 text-sm text-gray-500 shadow-sm">{t("loadingDiscussion")}</p>
-      ) : threadItems.length === 0 ? (
+      ) : filteredItems.length === 0 ? (
         <>
-          <div className="mb-3">
+          <div className="mb-3 flex items-center justify-between">
             <h2 className="text-base font-semibold text-gray-900">Discussion</h2>
+            <div className="inline-flex rounded-full border p-0.5" style={{ backgroundColor: "rgba(0,0,0,0.04)" }}>
+              {(["all", "comments", "issues"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setTypeFilter(mode)}
+                  className="inline-flex items-center rounded px-2.5 py-1 text-xs font-bold transition-colors"
+                  style={{
+                    backgroundColor: typeFilter === mode ? "#1f2937" : "transparent",
+                    color: typeFilter === mode ? "#fff" : "#374151",
+                  }}
+                >
+                  {mode === "all" ? "Tout" : mode === "comments" ? "Commentaires" : "Issues"}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="rounded-2xl border border-dashed bg-white px-4 py-8 text-center text-sm text-gray-500 shadow-sm">
-            {t("noComments")}
+            {threadItems.length === 0 ? t("noComments") : "Aucun élément ne correspond au filtre"}
           </div>
         </>
       ) : (
         <>
-          <div className="mb-3">
+          <div className="mb-3 flex items-center justify-between">
             <h2 className="text-base font-semibold text-gray-900">Discussion</h2>
+            <div className="inline-flex rounded-full border p-0.5" style={{ backgroundColor: "rgba(0,0,0,0.04)" }}>
+              {(["all", "comments", "issues"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setTypeFilter(mode)}
+                  className="inline-flex items-center rounded px-2.5 py-1 text-xs font-bold transition-colors"
+                  style={{
+                    backgroundColor: typeFilter === mode ? "#1f2937" : "transparent",
+                    color: typeFilter === mode ? "#fff" : "#374151",
+                  }}
+                >
+                  {mode === "all" ? "Tout" : mode === "comments" ? "Commentaires" : "Issues"}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="space-y-4">
-          {threadItems.map((item) => {
+          {filteredItems.map((item) => {
             if (item.type === "comment") {
               const node = rootCommentMap.get(item.id);
               if (!node) return null;
