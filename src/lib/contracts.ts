@@ -57,7 +57,8 @@ function getGitLabClient() {
   return {
     api: new Gitlab({
       host: baseUrl.replace(/\/$/, ""),
-      token
+      token,
+      queryTimeout: 8000,
     }),
     projectId,
     ref
@@ -171,8 +172,8 @@ function getEditorFileKind(filePath: string): EditorRepositoryFile["kind"] {
   return "yaml";
 }
 
-const RETRY_MAX = 2;
-const RETRY_DELAY_MS = 1500;
+const RETRY_MAX = 1;
+const RETRY_DELAY_MS = 1000;
 
 async function retryOnTimeout<T>(fn: () => Promise<T>): Promise<T> {
   for (let attempt = 0; ; attempt++) {
@@ -364,7 +365,6 @@ function yieldToEventLoop(): Promise<void> {
 function getPathMaturity(filePath: string): string {
   const parts = filePath.split("/");
   // Supports: contracts/{maturity}/file.yaml  OR  contracts/published/{maturity}/file.yaml
-  console.warn("__DEBUG getPathMaturity filePath", filePath);
   if (parts[1] === "published" && parts.length >= 4) return parts[2];
   if (parts[1] === "draft") return "";
   return parts[1] ?? path.basename(path.dirname(filePath));
@@ -532,7 +532,6 @@ async function buildSlugToPathMapFromTree(): Promise<Map<string, string>> {
   const stemCounts = computeStemCounts(yamlPaths);
   const map = new Map<string, string>();
   for (const p of yamlPaths) {
-    console.warn("__DEBUG buildSlugToPathMapFromTree yamlPaths", p);
     const slug = computeContractSlug(p, stemCounts);
     map.set(slug, p);
   }
@@ -602,7 +601,6 @@ export async function getContracts(): Promise<ContractFile[]> {
       return readLocalContracts();
     }
 
-    console.warn("__DEBUG [gitlab.contracts] tree fetched", tree);
     const yamlEntries = tree.filter(
       (entry) => entry.type === "blob" && /\.(yaml|yml)$/i.test(entry.path),
     );

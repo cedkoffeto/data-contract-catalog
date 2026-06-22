@@ -98,7 +98,8 @@ export function getGitLabClient() {
   return {
     api: new Gitlab({
       host: config.baseUrl,
-      token: config.token
+      token: config.token,
+      queryTimeout: 8000,
     }),
     config
   };
