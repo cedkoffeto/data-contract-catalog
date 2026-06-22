@@ -154,7 +154,7 @@ function CommentItem({
             ) : null}
           </div>
           <div className="flex items-center gap-3">
-            <span className="meta" style={{ fontSize: 10 }}>{new Date(comment.createdAt).toLocaleString()} [<strong>{formatDate(comment.createdAt)}</strong>]</span>
+            <span className="meta">{new Date(comment.createdAt).toLocaleString()} [<strong>{formatDate(comment.createdAt)}</strong>]</span>
             {isCurrentUser && !confirming ? (
               <button
                 type="button"
