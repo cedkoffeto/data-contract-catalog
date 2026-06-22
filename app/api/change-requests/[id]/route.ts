@@ -2,8 +2,9 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 
 import { auth } from "@/src/auth";
-import { approveChangeRequest, getChangeRequest, rejectChangeRequest } from "@/src/lib/change-requests";
+import { mergeChangeRequest, getChangeRequest, rejectChangeRequest } from "@/src/lib/change-requests";
 import { createNotification } from "@/src/lib/notifications";
+import { getSubscribers } from "@/src/lib/subscriptions";
 import { requireApiAuth } from "@/src/lib/require-auth";
 import { getUserPermissions } from "@/src/lib/rbac";
 
@@ -31,26 +32,41 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const body = (await request.json()) as { action: string; rejectionReason?: string };
   const { action, rejectionReason } = body;
 
-  if (action === "approve") {
+  if (action === "merge") {
     const cr = await getChangeRequest(changeRequestId);
     if (!cr) {
       return NextResponse.json({ error: "Change request not found" }, { status: 404 });
     }
 
-    const result = await approveChangeRequest(changeRequestId, userId);
+    const result = await mergeChangeRequest(changeRequestId, userId);
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error ?? "Approval failed" }, { status: 500 });
+      return NextResponse.json({ error: result.error ?? "Merge failed" }, { status: 409 });
     }
 
+    // Notify the editor
     await createNotification({
       userId: cr.editorId,
       contractSlug: cr.contractSlug,
-      type: "change_request_approved",
-      title: "Change request approved",
-      message: `Your change request #${cr.id} for ${cr.contractSlug} has been approved and merged.`,
+      type: "change_request_merged",
+      title: "Change request merged",
+      message: `Your change request #${cr.id} for ${cr.contractSlug} has been merged.`,
       metadata: { changeRequestId: cr.id },
     });
+
+    // Notify subscribers of the contract
+    const subscribers = await getSubscribers(cr.contractSlug);
+    for (const sub of subscribers) {
+      if (sub.userId === cr.editorId) continue; // editor already notified
+      await createNotification({
+        userId: sub.userId,
+        contractSlug: cr.contractSlug,
+        type: "contract_updated",
+        title: "Contract updated",
+        message: `Contract ${cr.contractSlug} has been updated (change request #${cr.id}).`,
+        metadata: { changeRequestId: cr.id, contractSlug: cr.contractSlug },
+      });
+    }
 
     return NextResponse.json({ success: true });
   }
@@ -83,5 +99,5 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ success: true });
   }
 
-  return NextResponse.json({ error: "Invalid action. Must be 'approve' or 'reject'." }, { status: 400 });
+  return NextResponse.json({ error: "Invalid action. Must be 'merge' or 'reject'." }, { status: 400 });
 }
