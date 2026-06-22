@@ -23,11 +23,20 @@ function humanize(value: string): string {
     .join(" ");
 }
 
-export function CatalogClient({ cards: initialCards, canRequestUpgrade }: { cards: CatalogCardType[]; canRequestUpgrade?: boolean }) {
+export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError }: { cards: CatalogCardType[]; canRequestUpgrade?: boolean; gitError?: boolean }) {
+  const [showGitError, setShowGitError] = useState(gitError ?? false);
   const [cards, setCards] = useState(initialCards);
   const cardsRef = useRef(cards);
   cardsRef.current = cards;
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    if (gitError) {
+      setShowGitError(true);
+      const timer = setTimeout(() => setShowGitError(false), 15000);
+      return () => clearTimeout(timer);
+    }
+  }, [gitError]);
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => {
@@ -150,6 +159,11 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade }: { card
 
   return (
     <div className="catalog-shell">
+      {showGitError ? (
+        <div className="mb-4 rounded-md border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800 shadow-sm">
+          Impossible de récupérer les contrats depuis GitLab. Les contrats locaux sont affichés à la place.
+        </div>
+      ) : null}
       <section className="catalog-header">
         <div>
           <h1 className="catalog-header__title">Catalog</h1>

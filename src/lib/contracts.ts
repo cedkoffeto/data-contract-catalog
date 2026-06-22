@@ -189,6 +189,16 @@ async function retryOnTimeout<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
+let gitLabTreeError = false;
+
+export function hasGitLabTreeError(): boolean {
+  return gitLabTreeError;
+}
+
+export function resetGitLabTreeError(): void {
+  gitLabTreeError = false;
+}
+
 async function readGitLabTree(
   projectId: string,
   ref: string,
@@ -232,6 +242,7 @@ async function readGitLabTree(
       path: folderPath,
       ...toGitLabErrorMessage(error)
     });
+    gitLabTreeError = true;
   }
 
   return items;

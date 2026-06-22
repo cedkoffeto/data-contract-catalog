@@ -2,11 +2,11 @@ import { CatalogClient } from "@/src/components/catalog/CatalogClient";
 import { PageShell } from "@/src/components/layout/PageShell";
 import type { CatalogCard } from "@/src/lib/types";
 
-export function CatalogPage({ cards, canRequestUpgrade }: { cards: CatalogCard[]; canRequestUpgrade?: boolean }) {
+export function CatalogPage({ cards, canRequestUpgrade, gitError }: { cards: CatalogCard[]; canRequestUpgrade?: boolean; gitError?: boolean }) {
   return (
     <PageShell footerVersion="V0">
       <main className="catalog-page">
-        <CatalogClient cards={cards} canRequestUpgrade={canRequestUpgrade} />
+        <CatalogClient cards={cards} canRequestUpgrade={canRequestUpgrade} gitError={gitError} />
       </main>
     </PageShell>
   );

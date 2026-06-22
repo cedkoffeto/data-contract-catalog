@@ -1,5 +1,5 @@
 import { CatalogPage } from "@/src/components/catalog/CatalogPage";
-import { getCatalogCards } from "@/src/lib/contracts";
+import { getCatalogCards, hasGitLabTreeError, resetGitLabTreeError } from "@/src/lib/contracts";
 import { getAccessibleSlugs } from "@/src/lib/catalog-filter";
 import { canWrite, getUserPermissions, type Permission } from "@/src/lib/rbac";
 import type { CatalogCard } from "@/src/lib/types";
@@ -10,14 +10,18 @@ export default async function HomePage() {
   const session = await auth();
   const userId = session?.user?.name;
 
+  resetGitLabTreeError();
+
   // Fetch cards and user-specific data in parallel
   const [cards, permissions] = await Promise.all([
     getCatalogCards().catch(() => [] as CatalogCard[]),
     userId ? getUserPermissions(userId) : Promise.resolve([] as Permission[]),
   ]);
 
+  const gitError = hasGitLabTreeError();
+
   if (!userId) {
-    return <CatalogPage cards={[]} />;
+    return <CatalogPage cards={[]} gitError={gitError} />;
   }
 
   const [accessible, pendingRows, { favoriteSlugs, pinnedSlugs }] = await Promise.all([
@@ -40,7 +44,7 @@ export default async function HomePage() {
     isFavorite: favoriteSlugs.has(card.slug),
     isPinned: pinnedSlugs.has(card.slug),
   }));
-  return <CatalogPage cards={annotated} canRequestUpgrade={canRequestUpgrade} />;
+  return <CatalogPage cards={annotated} canRequestUpgrade={canRequestUpgrade} gitError={gitError} />;
 }
 
 async function getPreferredSlugs(userId: string): Promise<{ favoriteSlugs: Set<string>; pinnedSlugs: Set<string> }> {
