@@ -151,7 +151,7 @@ export async function acceptMergeRequest(mrIid: number) {
 
 export async function closeMergeRequest(mrIid: number) {
   const { api, config } = getGitLabClient();
-  await api.MergeRequests.edit(config.projectId, mrIid, { state_event: "close" });
+  await api.MergeRequests.edit(config.projectId, mrIid, { stateEvent: "close" });
 }
 
 export async function getGitLabFileLastCommitSha(slug: string): Promise<string> {

@@ -160,8 +160,8 @@ export async function mergeChangeRequest(
   if (!cr.gitlabMrId) return { success: false, error: "No GitLab MR associated with this change request" };
 
   try {
-    const { api: gitlab } = getGitLabClient();
-    await gitlab.MergeRequests.accept(cr.gitlabMrId, { shouldRemoveSourceBranch: true });
+    const { api, config } = getGitLabClient();
+    await api.MergeRequests.accept(config.projectId, cr.gitlabMrId, { shouldRemoveSourceBranch: true });
 
     await updateChangeRequestStatus({
       id,
@@ -191,7 +191,8 @@ export async function rejectChangeRequest(
   if (cr.gitlabMrId) {
     try {
       const { api: gitlab } = getGitLabClient();
-      await gitlab.MergeRequests.edit(cr.gitlabMrId, { state_event: "close" });
+      const { config } = getGitLabClient();
+      await gitlab.MergeRequests.edit(config.projectId, cr.gitlabMrId, { stateEvent: "close" });
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Unknown error";
       console.error("[change-requests] Failed to close MR:", msg);
