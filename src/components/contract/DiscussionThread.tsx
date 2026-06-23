@@ -582,6 +582,7 @@ export function DiscussionThread({
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [typeFilter, setTypeFilter] = useState<"all" | "comments" | "issues">("all");
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const composerRef = useRef<HTMLDivElement>(null);
 
@@ -844,9 +845,12 @@ export function DiscussionThread({
   }, [commentTree, issues]);
 
   const filteredItems = useMemo(() => {
-    if (typeFilter === "all") return threadItems;
-    return threadItems.filter((item) => item.type === typeFilter.slice(0, -1));
-  }, [threadItems, typeFilter]);
+    const items = typeFilter === "all" ? threadItems : threadItems.filter((item) => item.type === typeFilter.slice(0, -1));
+    if (sortOrder === "oldest") {
+      return [...items].reverse();
+    }
+    return items;
+  }, [threadItems, typeFilter, sortOrder]);
 
   const filteredUsers = useMemo(
     () =>
@@ -943,21 +947,48 @@ export function DiscussionThread({
         <>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-base font-semibold text-gray-900">Discussion</h2>
-            <div className="inline-flex rounded-full border p-0.5" style={{ backgroundColor: "rgba(0,0,0,0.04)" }}>
-              {(["all", "comments", "issues"] as const).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => setTypeFilter(mode)}
-                  className="inline-flex items-center rounded px-2.5 py-1 text-xs font-bold transition-colors"
-                  style={{
-                    backgroundColor: typeFilter === mode ? "#1f2937" : "transparent",
-                    color: typeFilter === mode ? "#fff" : "#374151",
-                  }}
-                >
-                  {mode === "all" ? "Tout" : mode === "comments" ? "Commentaires" : "Issues"}
-                </button>
-              ))}
+            <div className="flex items-center gap-2">
+              <div className="inline-flex rounded-full border p-0.5" style={{ backgroundColor: "rgba(0,0,0,0.04)" }}>
+                {(["all", "comments", "issues"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setTypeFilter(mode)}
+                    className="inline-flex items-center rounded px-2.5 py-1 text-xs font-bold transition-colors"
+                    style={{
+                      backgroundColor: typeFilter === mode ? "#1f2937" : "transparent",
+                      color: typeFilter === mode ? "#fff" : "#374151",
+                    }}
+                  >
+                    {mode === "all" ? "Tout" : mode === "comments" ? "Commentaires" : "Issues"}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setSortOrder((prev) => prev === "newest" ? "oldest" : "newest")}
+                className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold transition-colors"
+                style={{
+                  backgroundColor: "transparent",
+                  color: "#6b7280",
+                  borderColor: "#d1d5db",
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  {sortOrder === "newest" ? (
+                    <>
+                      <line x1="12" y1="5" x2="12" y2="19" />
+                      <polyline points="19 12 12 19 5 12" />
+                    </>
+                  ) : (
+                    <>
+                      <line x1="12" y1="5" x2="12" y2="19" />
+                      <polyline points="5 12 12 5 19 12" />
+                    </>
+                  )}
+                </svg>
+                {sortOrder === "newest" ? "Plus récents" : "Plus anciens"}
+              </button>
             </div>
           </div>
           <div className="rounded-2xl border border-dashed bg-white px-4 py-8 text-center text-sm text-gray-500 shadow-sm">
@@ -968,21 +999,48 @@ export function DiscussionThread({
         <>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-base font-semibold text-gray-900">Discussion</h2>
-            <div className="inline-flex rounded-full border p-0.5" style={{ backgroundColor: "rgba(0,0,0,0.04)" }}>
-              {(["all", "comments", "issues"] as const).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => setTypeFilter(mode)}
-                  className="inline-flex items-center rounded px-2.5 py-1 text-xs font-bold transition-colors"
-                  style={{
-                    backgroundColor: typeFilter === mode ? "#1f2937" : "transparent",
-                    color: typeFilter === mode ? "#fff" : "#374151",
-                  }}
-                >
-                  {mode === "all" ? "Tout" : mode === "comments" ? "Commentaires" : "Issues"}
-                </button>
-              ))}
+            <div className="flex items-center gap-2">
+              <div className="inline-flex rounded-full border p-0.5" style={{ backgroundColor: "rgba(0,0,0,0.04)" }}>
+                {(["all", "comments", "issues"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setTypeFilter(mode)}
+                    className="inline-flex items-center rounded px-2.5 py-1 text-xs font-bold transition-colors"
+                    style={{
+                      backgroundColor: typeFilter === mode ? "#1f2937" : "transparent",
+                      color: typeFilter === mode ? "#fff" : "#374151",
+                    }}
+                  >
+                    {mode === "all" ? "Tout" : mode === "comments" ? "Commentaires" : "Issues"}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setSortOrder((prev) => prev === "newest" ? "oldest" : "newest")}
+                className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold transition-colors"
+                style={{
+                  backgroundColor: "transparent",
+                  color: "#6b7280",
+                  borderColor: "#d1d5db",
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  {sortOrder === "newest" ? (
+                    <>
+                      <line x1="12" y1="5" x2="12" y2="19" />
+                      <polyline points="19 12 12 19 5 12" />
+                    </>
+                  ) : (
+                    <>
+                      <line x1="12" y1="5" x2="12" y2="19" />
+                      <polyline points="5 12 12 5 19 12" />
+                    </>
+                  )}
+                </svg>
+                {sortOrder === "newest" ? "Plus récents" : "Plus anciens"}
+              </button>
             </div>
           </div>
           <div className="space-y-4">
