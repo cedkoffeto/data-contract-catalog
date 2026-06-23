@@ -193,17 +193,17 @@ export function ModelFieldsTable({ fields, slug, userId }: { fields: ContractFie
     {annotating && userId ? createPortal(
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="fixed inset-0 bg-black/50" onClick={() => { setAnnotating(null); setAnnotationText(""); }} />
-        <div className="relative z-10 w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+        <div className="relative z-10 w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
           <h3 className="text-base font-semibold text-gray-900">Annotation pour {annotating.name}</h3>
           <textarea
-            className="mt-3 w-full rounded-lg border border-gray-200 p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-orange-500"
+            className="mt-4 w-full rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-orange-500"
             rows={4}
             placeholder="Écrivez votre annotation..."
             value={annotationText}
             onChange={(e) => setAnnotationText(e.target.value)}
             autoFocus
           />
-          <div className="mt-4 flex justify-end gap-2">
+          <div className="mt-5 flex items-center justify-end gap-2 border-t border-gray-100 pt-3">
             <button
               type="button"
               onClick={() => { setAnnotating(null); setAnnotationText(""); }}
