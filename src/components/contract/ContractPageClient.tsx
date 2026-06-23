@@ -50,7 +50,7 @@ function ExportButton({ slug }: { slug: string }) {
   }
 
   return (
-    <div ref={ref} className="relative w-fit mx-auto">
+    <div ref={ref} className="relative self-center w-fit">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
