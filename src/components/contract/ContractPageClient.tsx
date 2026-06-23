@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import dynamic from "next/dynamic";
 import yaml from "js-yaml";
@@ -17,25 +18,15 @@ import type { Subscription } from "@/src/lib/subscriptions";
 function ExportButton({ slug }: { slug: string }) {
   const [open, setOpen] = useState(false);
   const [format, setFormat] = useState<"pdf" | "yaml" | "csv">("csv");
-  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
-    function handleMouseDown(event: MouseEvent) {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    }
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") setOpen(false);
     }
-    document.addEventListener("mousedown", handleMouseDown);
     document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", handleMouseDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [open, ref]);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open]);
 
   const FORMATS = ["pdf", "yaml", "csv"] as const;
 
@@ -50,10 +41,10 @@ function ExportButton({ slug }: { slug: string }) {
   }
 
   return (
-    <div ref={ref} className="relative flex justify-center">
+    <div className="flex justify-center">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setOpen(true)}
         className="catalog-secondary-link catalog-secondary-link--button"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -63,43 +54,47 @@ function ExportButton({ slug }: { slug: string }) {
         </svg>
         Export
       </button>
-      {open ? (
-        <div className="absolute z-50 mt-2 w-64 -translate-x-1/2 left-1/2 rounded-xl border border-gray-200 bg-white p-4 shadow-xl">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Format d'export</p>
-          <div className="inline-flex w-full rounded-lg border border-gray-200 bg-gray-50 p-0.5">
-            {FORMATS.map((fmt) => (
+      {open ? createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setOpen(false)} />
+          <div className="relative z-10 w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
+            <h3 className="text-base font-semibold text-gray-900">Format d'export</h3>
+            <div className="mt-4 inline-flex w-full rounded-lg border border-gray-200 bg-gray-50 p-0.5">
+              {FORMATS.map((fmt) => (
+                <button
+                  key={fmt}
+                  type="button"
+                  onClick={() => setFormat(fmt)}
+                  className="flex-1 rounded-md px-3 py-1.5 text-xs font-bold transition-colors"
+                  style={{
+                    backgroundColor: format === fmt ? "var(--ui-primary)" : "transparent",
+                    color: format === fmt ? "#fff" : "#374151",
+                  }}
+                >
+                  {fmt.toUpperCase()}
+                </button>
+              ))}
+            </div>
+            <div className="mt-5 flex items-center justify-end gap-2 border-t border-gray-100 pt-3">
               <button
-                key={fmt}
                 type="button"
-                onClick={() => setFormat(fmt)}
-                className="flex-1 rounded-md px-3 py-1.5 text-xs font-bold transition-colors"
-                style={{
-                  backgroundColor: format === fmt ? "var(--ui-primary)" : "transparent",
-                  color: format === fmt ? "#fff" : "#374151",
-                }}
+                onClick={() => setOpen(false)}
+                className="rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
               >
-                {fmt.toUpperCase()}
+                Annuler
               </button>
-            ))}
+              <button
+                type="button"
+                onClick={handleValidate}
+                className="rounded-md px-4 py-1.5 text-xs font-bold text-white transition-colors"
+                style={{ backgroundColor: "var(--ui-primary)" }}
+              >
+                Valider
+              </button>
+            </div>
           </div>
-          <div className="mt-4 flex items-center justify-end gap-2 border-t border-gray-100 pt-3">
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="rounded-md px-3 py-1.5 text-xs font-semibold text-gray-500 transition-colors hover:bg-gray-100"
-            >
-              Annuler
-            </button>
-            <button
-              type="button"
-              onClick={handleValidate}
-              className="rounded-md px-4 py-1.5 text-xs font-bold text-white transition-colors"
-              style={{ backgroundColor: "var(--ui-primary)" }}
-            >
-              Valider
-            </button>
-          </div>
-        </div>
+        </div>,
+        document.body
       ) : null}
     </div>
   );
