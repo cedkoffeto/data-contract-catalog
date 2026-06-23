@@ -83,6 +83,33 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
     return Array.from(unique).sort((a, b) => a.localeCompare(b));
   }, [cards]);
 
+  const domainCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const card of cards) {
+      const d = card.domain.trim();
+      if (d) counts[d] = (counts[d] ?? 0) + 1;
+    }
+    return counts;
+  }, [cards]);
+
+  const contextCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const card of cards) {
+      const c = card.context.trim();
+      if (c) counts[c] = (counts[c] ?? 0) + 1;
+    }
+    return counts;
+  }, [cards]);
+
+  const maturityCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const card of cards) {
+      const m = card.maturity.trim();
+      if (m) counts[m] = (counts[m] ?? 0) + 1;
+    }
+    return counts;
+  }, [cards]);
+
   const visibleCards = useMemo(() => {
     const query = debouncedSearch.trim().toLowerCase();
 
@@ -238,6 +265,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
                 variant="chip"
               >
                 {humanize(domain)}
+                <span className="catalog-filter-badge">{domainCounts[domain]}</span>
               </Button>
             ))}
           </div>
@@ -291,7 +319,8 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
                   })}
                   type="button"
                 >
-                  {humanize(maturity)}
+                  <span>{humanize(maturity)}</span>
+                  <span className="catalog-filter-badge">{maturityCounts[maturity]}</span>
                 </button>
               ))}
             </div>
@@ -323,7 +352,8 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
                   })}
                   type="button"
                 >
-                  {humanize(context)}
+                  <span>{humanize(context)}</span>
+                  <span className="catalog-filter-badge">{contextCounts[context]}</span>
                 </button>
               ))}
             </div>
