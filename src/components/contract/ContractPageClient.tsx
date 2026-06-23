@@ -50,7 +50,7 @@ function ExportButton({ slug }: { slug: string }) {
   }
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative flex justify-center">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
