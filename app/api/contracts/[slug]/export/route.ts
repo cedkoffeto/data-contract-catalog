@@ -108,6 +108,15 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
     });
   }
 
+  if (type === "yaml") {
+    return new NextResponse(contract.yamlRaw, {
+      headers: {
+        "Content-Type": "text/yaml; charset=utf-8",
+        "Content-Disposition": `attachment; filename="${contract.slug}.yaml"`,
+      },
+    });
+  }
+
   const rows = flattenFields(contract.data.contract?.schema?.fields ?? []).map((field) => ({
     field: field.field,
     type: field.type,

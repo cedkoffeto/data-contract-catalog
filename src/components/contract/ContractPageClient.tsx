@@ -11,8 +11,83 @@ import { ContractHeader } from "@/src/components/contract/ContractHeader";
 import { RequestEditorUpgrade } from "@/src/components/contract/RequestEditorUpgrade";
 import { SubscribeButton } from "@/src/components/contract/SubscribeModal";
 import { YamlDialogButton } from "@/src/components/contract/YamlDialogButton";
+import { useClickOutside } from "@/src/hooks/useClickOutside";
 import type { ContractHistoryEntry, DataContract } from "@/src/lib/types";
 import type { Subscription } from "@/src/lib/subscriptions";
+
+function ExportButton({ slug }: { slug: string }) {
+  const [open, setOpen] = useState(false);
+  const [format, setFormat] = useState<"pdf" | "yaml" | "csv">("csv");
+  const ref = useRef<HTMLDivElement>(null);
+
+  useClickOutside(ref, () => setOpen(false));
+
+  const FORMATS = ["pdf", "yaml", "csv"] as const;
+
+  function handleValidate() {
+    const url = `/api/contracts/${encodeURIComponent(slug)}/export?type=${format}`;
+    if (format === "pdf") {
+      window.open(url, "_blank", "noreferrer");
+    } else {
+      window.location.href = url;
+    }
+    setOpen(false);
+  }
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="catalog-secondary-link catalog-secondary-link--button"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+        Export
+      </button>
+      {open ? (
+        <div className="absolute right-0 z-50 mt-2 rounded-xl border bg-white p-3 shadow-lg" style={{ minWidth: 220 }}>
+          <div className="mb-3 text-xs font-semibold text-gray-500">Format d'export</div>
+          <div className="inline-flex rounded-full border p-0.5" style={{ backgroundColor: "rgba(0,0,0,0.04)" }}>
+            {FORMATS.map((fmt) => (
+              <button
+                key={fmt}
+                type="button"
+                onClick={() => setFormat(fmt)}
+                className="inline-flex items-center rounded px-3 py-1 text-xs font-bold transition-colors"
+                style={{
+                  backgroundColor: format === fmt ? "#1f2937" : "transparent",
+                  color: format === fmt ? "#fff" : "#374151",
+                }}
+              >
+                {fmt.toUpperCase()}
+              </button>
+            ))}
+          </div>
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="rounded px-3 py-1 text-xs font-semibold text-gray-500 hover:text-gray-700"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              onClick={handleValidate}
+              className="rounded bg-orange-500 px-3 py-1 text-xs font-bold text-white hover:bg-orange-600"
+            >
+              Valider
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 const ContractDiffDialog = dynamic(
   () => import("@/src/components/contract/ContractDiffDialog").then((m) => m.ContractDiffDialog),
@@ -317,24 +392,7 @@ export function ContractPageClient({
                     Subscribe
                   </button>
                 )}
-                <YamlDialogButton yamlRaw={displayedYamlRaw} />
-                <a className="catalog-secondary-link" href={`/api/contracts/${encodeURIComponent(slug)}/export?type=csv`}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                  Export CSV
-                </a>
-                <a className="catalog-secondary-link" href={`/api/contracts/${encodeURIComponent(slug)}/export?type=pdf`} target="_blank" rel="noreferrer">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                    <polyline points="14 2 14 8 20 8" />
-                    <path d="M9 15h6" />
-                    <path d="M12 12v6" />
-                  </svg>
-                  Export PDF
-                </a>
+                <ExportButton slug={slug} />
               </div>
             </div>
 
