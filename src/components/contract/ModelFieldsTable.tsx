@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from "react";
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 
 import type { ContractField } from "@/src/lib/types";
 
@@ -52,6 +53,8 @@ function flattenFields(fields: ContractField[], depth = 0, parentId: string | nu
 export function ModelFieldsTable({ fields, slug, userId }: { fields: ContractField[]; slug?: string; userId?: string }) {
   const rows = useMemo(() => flattenFields(fields), [fields]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [annotating, setAnnotating] = useState<FlatField | null>(null);
+  const [annotationText, setAnnotationText] = useState("");
 
   const rowMap = useMemo(() => new Map(rows.map((row) => [row.id, row])), [rows]);
 
@@ -78,19 +81,28 @@ export function ModelFieldsTable({ fields, slug, userId }: { fields: ContractFie
     });
   }
 
-  async function annotateField(row: FlatField) {
-    if (!userId || !slug) return;
-    const annotation = window.prompt(`Annotation for ${row.name}`);
-    if (!annotation?.trim()) return;
+  async function handleAnnotate() {
+    if (!userId || !slug || !annotating) return;
+    const text = annotationText.trim();
+    if (!text) return;
 
     await fetch(`/api/contracts/${encodeURIComponent(slug)}/comments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body: annotation.trim(), targetField: row.name }),
+      body: JSON.stringify({ body: text, targetField: annotating.name }),
     });
+
+    setAnnotating(null);
+    setAnnotationText("");
+  }
+
+  function openAnnotate(row: FlatField) {
+    setAnnotating(row);
+    setAnnotationText("");
   }
 
   return (
+    <>
     <tbody className="divide-y divide-gray-200 bg-white">
       {rows.filter(isVisible).map((row) => {
         const isExpanded = expanded.has(row.id);
@@ -135,7 +147,7 @@ export function ModelFieldsTable({ fields, slug, userId }: { fields: ContractFie
                   <button
                     type="button"
                     className="ml-auto rounded-full bg-orange-50 px-2 py-1 text-[11px] font-bold text-orange-700 hover:bg-orange-100"
-                    onClick={() => void annotateField(row)}
+                    onClick={() => openAnnotate(row)}
                   >
                     Annotate
                   </button>
@@ -178,5 +190,40 @@ export function ModelFieldsTable({ fields, slug, userId }: { fields: ContractFie
         );
       })}
     </tbody>
+    {annotating && userId ? createPortal(
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50" onClick={() => { setAnnotating(null); setAnnotationText(""); }} />
+        <div className="relative z-10 w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+          <h3 className="text-base font-semibold text-gray-900">Annotation pour {annotating.name}</h3>
+          <textarea
+            className="mt-3 w-full rounded-lg border border-gray-200 p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-orange-500"
+            rows={4}
+            placeholder="Écrivez votre annotation..."
+            value={annotationText}
+            onChange={(e) => setAnnotationText(e.target.value)}
+            autoFocus
+          />
+          <div className="mt-4 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => { setAnnotating(null); setAnnotationText(""); }}
+              className="rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleAnnotate()}
+              disabled={!annotationText.trim()}
+              className="catalog-primary-link"
+            >
+              Annoter
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    ) : null}
+    </>
   );
 }
