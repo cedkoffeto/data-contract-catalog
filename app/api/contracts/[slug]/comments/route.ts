@@ -52,19 +52,12 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
   return NextResponse.json({ comments });
 }
 
-export async function DELETE(request: Request, { params }: { params: Promise<{ slug: string }> }) {
-  const unauthorized = await requireApiAuth();
-  if (unauthorized) return unauthorized;
-
+export async function DELETE(request: Request) {
   const session = await auth();
-  const userId = session?.user?.name;
-  if (!userId) {
+  if (!session?.user?.name) {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   }
-
-  const { slug } = await params;
-  const forbidden = await ensureCanReadContract(slug, userId);
-  if (forbidden) return forbidden;
+  const userId = session.user.name;
 
   const body = (await request.json()) as { commentId?: number };
   const commentId = body.commentId;
