@@ -74,14 +74,16 @@ export async function notifyMentionedUsers(params: {
 }
 
 export async function getDiscussionSummary(contractSlug: string): Promise<{ commentCount: number; issueCount: number }> {
-  const [commentRow] = await query<{ cnt: number }>(
-    `SELECT COUNT(*) as cnt FROM contract_comments WHERE contract_slug = ?`,
-    [contractSlug],
-  );
-  const [issueRow] = await query<{ cnt: number }>(
-    `SELECT COUNT(*) as cnt FROM contract_issues WHERE contract_slug = ?`,
-    [contractSlug],
-  );
+  const [[commentRow], [issueRow]] = await Promise.all([
+    query<{ cnt: number }>(
+      `SELECT COUNT(*) as cnt FROM contract_comments WHERE contract_slug = ?`,
+      [contractSlug],
+    ),
+    query<{ cnt: number }>(
+      `SELECT COUNT(*) as cnt FROM contract_issues WHERE contract_slug = ?`,
+      [contractSlug],
+    ),
+  ]);
   return { commentCount: commentRow?.cnt ?? 0, issueCount: issueRow?.cnt ?? 0 };
 }
 

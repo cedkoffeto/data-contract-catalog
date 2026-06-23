@@ -4,8 +4,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/src/auth";
 import { ContractPage } from "@/src/components/contract/ContractPage";
 import { RequestAccessDialog } from "@/src/components/contract/RequestAccessDialog";
-import { authorize } from "@/src/lib/access-control";
-import { canEditContract } from "@/src/lib/catalog-filter";
+import { getEffectivePermissions } from "@/src/lib/access-control";
 import { getContractPageData } from "@/src/lib/contracts";
 import { getDiscussionSummary } from "@/src/lib/comments";
 import { getGitLabFileHistory } from "@/src/lib/gitlab";
@@ -51,19 +50,18 @@ export default async function ContractRoutePage({ params }: { params: Promise<{ 
     return <Forbidden message="Authentification requise" />;
   }
 
-  // Parallelize permission checks
-  const [canEdit, canRead] = await Promise.all([
-    canEditContract(userId, globalPermissions, domain, context, slug),
-    globalPermissions.includes("admin")
-      ? Promise.resolve(true)
-      : authorize(userId, domain, context, "read", slug),
-  ]);
+  // Single effective permissions call instead of three separate authorize calls
+  const effectivePerms = globalPermissions.includes("admin") || globalPermissions.includes("write")
+    ? ([] as const)
+    : await getEffectivePermissions(userId, domain, context, slug);
+  const allPerms = [...new Set([...globalPermissions, ...effectivePerms])];
+  const canRead = allPerms.some((p) => p === "admin" || p === "write" || p === "read" || p === "editor" || p === "reader");
+  const canEdit = allPerms.some((p) => p === "admin" || p === "write" || p === "editor");
+  const canAdmin = allPerms.includes("admin");
 
   if (!canRead) {
     return <Forbidden slug={slug} domain={domain} context={context} />;
   }
-
-  const canAdmin = globalPermissions.includes("admin") || await authorize(userId, domain, context, "admin", slug);
 
   const { commentCount: initialCommentCount, issueCount: initialIssueCount } = await getDiscussionSummary(slug);
 
