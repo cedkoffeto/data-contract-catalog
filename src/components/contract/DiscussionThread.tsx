@@ -158,6 +158,17 @@ function CommentItem({
           </div>
         </div>
         <div className="comment-item__text">{renderBody(comment.body, userMap)}</div>
+        {comment.targetField ? (
+          <div className="mt-1">
+            <span className="inline-flex items-center gap-1 rounded-md bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-orange-700">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11 4H4v7l9 9 7-7-9-9z" />
+                <line x1="18.5" y1="9.5" x2="11" y2="2" />
+              </svg>
+              {comment.targetField}
+            </span>
+          </div>
+        ) : null}
         {comment.editedAt ? <span className="meta">Edited</span> : null}
         {userId ? (
           <div className="comment-item__actions" style={{ padding: "6px 0", display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8 }}>

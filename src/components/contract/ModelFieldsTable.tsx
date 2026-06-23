@@ -89,7 +89,7 @@ export function ModelFieldsTable({ fields, slug, userId }: { fields: ContractFie
     await fetch(`/api/contracts/${encodeURIComponent(slug)}/comments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body: text, targetField: annotating.name }),
+      body: JSON.stringify({ body: `[${annotating.name}] — ${text}`, targetField: annotating.name }),
     });
 
     setAnnotating(null);
