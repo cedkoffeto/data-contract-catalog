@@ -83,31 +83,19 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
     return Array.from(unique).sort((a, b) => a.localeCompare(b));
   }, [cards]);
 
-  const domainCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
+  const [domainCounts, contextCounts, maturityCounts] = useMemo(() => {
+    const dc: Record<string, number> = {};
+    const cc: Record<string, number> = {};
+    const mc: Record<string, number> = {};
     for (const card of cards) {
       const d = card.domain.trim();
-      if (d) counts[d] = (counts[d] ?? 0) + 1;
-    }
-    return counts;
-  }, [cards]);
-
-  const contextCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const card of cards) {
+      if (d) dc[d] = (dc[d] ?? 0) + 1;
       const c = card.context.trim();
-      if (c) counts[c] = (counts[c] ?? 0) + 1;
-    }
-    return counts;
-  }, [cards]);
-
-  const maturityCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const card of cards) {
+      if (c) cc[c] = (cc[c] ?? 0) + 1;
       const m = card.maturity.trim();
-      if (m) counts[m] = (counts[m] ?? 0) + 1;
+      if (m) mc[m] = (mc[m] ?? 0) + 1;
     }
-    return counts;
+    return [dc, cc, mc];
   }, [cards]);
 
   const visibleCards = useMemo(() => {

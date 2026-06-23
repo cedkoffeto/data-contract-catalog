@@ -1210,6 +1210,7 @@ a:has(> .kpi-card) {
   justify-content: center;
   min-width: 1.25rem;
   height: 1.25rem;
+  margin-left: 0.3rem;
   padding: 0 0.3rem;
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.07);
@@ -1217,6 +1218,10 @@ a:has(> .kpi-card) {
   font-weight: 700;
   line-height: 1;
   color: var(--ui-text-soft);
+}
+
+.catalog-filter-pill .catalog-filter-badge {
+  margin-left: auto;
 }
 
 .catalog-filter-pill.is-active {
