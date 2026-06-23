@@ -769,6 +769,7 @@ export async function getContractPageData(slug: string): Promise<{
   slug: string;
   yamlRaw: string;
   data: DataContract;
+  fullPath: string;
 } | null> {
   const contract = await getContractBySlug(slug);
   if (!contract) {
@@ -778,7 +779,8 @@ export async function getContractPageData(slug: string): Promise<{
   return {
     slug: contract.slug,
     yamlRaw: contract.yamlRaw,
-    data: contract.data
+    data: contract.data,
+    fullPath: contract.fullPath,
   };
 }
 

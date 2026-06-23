@@ -57,9 +57,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     // Notify subscribers of the contract
     const subscribers = await getSubscribers(cr.contractSlug);
     for (const sub of subscribers) {
-      if (sub.userId === cr.editorId) continue; // editor already notified
+      if (sub.user_id === cr.editorId) continue; // editor already notified
       await createNotification({
-        userId: sub.userId,
+        userId: sub.user_id,
         contractSlug: cr.contractSlug,
         type: "contract_updated",
         title: "Contract updated",

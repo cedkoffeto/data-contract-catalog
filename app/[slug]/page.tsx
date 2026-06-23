@@ -29,12 +29,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function ContractRoutePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
 
-  // Parallelize contract fetch, history fetch, and auth (all independent)
-  const [page, historyEntries, session] = await Promise.all([
+  // Fetch contract and auth in parallel; history uses the resolved path to avoid a duplicate GitLab call
+  const [page, session] = await Promise.all([
     getContractPageData(slug),
-    getGitLabFileHistory(slug, 20).catch(() => [] as ContractHistoryEntry[]),
     auth(),
   ]);
+  const historyEntries = page
+    ? await getGitLabFileHistory(slug, 20, page.fullPath).catch(() => [] as ContractHistoryEntry[])
+    : [];
   if (!page) {
     notFound();
   }
@@ -65,7 +67,7 @@ export default async function ContractRoutePage({ params }: { params: Promise<{ 
 
   const { commentCount: initialCommentCount, issueCount: initialIssueCount } = await getDiscussionSummary(slug);
 
-  return <ContractPage data={page.data} slug={page.slug} yamlRaw={page.yamlRaw} historyEntries={historyEntries} userId={userId} canEdit={canEdit} canAdmin={canAdmin} initialCommentCount={initialCommentCount} initialIssueCount={initialIssueCount} />;
+  return <ContractPage data={page.data} slug={page.slug} yamlRaw={page.yamlRaw} historyEntries={historyEntries} userId={userId} canRead={canRead} canEdit={canEdit} canAdmin={canAdmin} initialCommentCount={initialCommentCount} initialIssueCount={initialIssueCount} />;
 }
 
 function Forbidden({ message, slug, domain, context }: { message?: string; slug?: string; domain?: string; context?: string }) {

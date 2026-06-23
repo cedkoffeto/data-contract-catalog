@@ -38,7 +38,7 @@ export async function middleware(request: NextRequest) {
 
   if (pathname === "/login") {
     const response = token ? NextResponse.redirect(new URL("/", nextUrl)) : NextResponse.next();
-    return clearAuthCookies(response);
+    return response;
   }
 
   if (token || isPublicPath || isAuthRoute) {

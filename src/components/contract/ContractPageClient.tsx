@@ -11,7 +11,6 @@ import { ContractHeader } from "@/src/components/contract/ContractHeader";
 import { RequestEditorUpgrade } from "@/src/components/contract/RequestEditorUpgrade";
 import { SubscribeButton } from "@/src/components/contract/SubscribeModal";
 import { YamlDialogButton } from "@/src/components/contract/YamlDialogButton";
-import { useClickOutside } from "@/src/hooks/useClickOutside";
 import type { ContractHistoryEntry, DataContract } from "@/src/lib/types";
 import type { Subscription } from "@/src/lib/subscriptions";
 
@@ -20,7 +19,23 @@ function ExportButton({ slug }: { slug: string }) {
   const [format, setFormat] = useState<"pdf" | "yaml" | "csv">("csv");
   const ref = useRef<HTMLDivElement>(null);
 
-  useClickOutside(ref, () => setOpen(false));
+  useEffect(() => {
+    if (!open) return;
+    function handleMouseDown(event: MouseEvent) {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open, ref]);
 
   const FORMATS = ["pdf", "yaml", "csv"] as const;
 
@@ -39,7 +54,7 @@ function ExportButton({ slug }: { slug: string }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="catalog-secondary-link catalog-secondary-link--button"
+className="catalog-primary-link"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -49,17 +64,17 @@ function ExportButton({ slug }: { slug: string }) {
         Export
       </button>
       {open ? (
-        <div className="absolute right-0 z-50 mt-2 rounded-xl border bg-white p-3 shadow-lg" style={{ minWidth: 220 }}>
-          <div className="mb-3 text-xs font-semibold text-gray-500">Format d'export</div>
-          <div className="inline-flex rounded-full border p-0.5" style={{ backgroundColor: "rgba(0,0,0,0.04)" }}>
+        <div className="absolute left-1/2 z-50 mt-2 w-64 -translate-x-1/2 rounded-xl border border-gray-200 bg-white p-4 shadow-xl">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Format d'export</p>
+          <div className="inline-flex w-full rounded-lg border border-gray-200 bg-gray-50 p-0.5">
             {FORMATS.map((fmt) => (
               <button
                 key={fmt}
                 type="button"
                 onClick={() => setFormat(fmt)}
-                className="inline-flex items-center rounded px-3 py-1 text-xs font-bold transition-colors"
+                className="flex-1 rounded-md px-3 py-1.5 text-xs font-bold transition-colors"
                 style={{
-                  backgroundColor: format === fmt ? "#1f2937" : "transparent",
+                  backgroundColor: format === fmt ? "var(--ui-primary)" : "transparent",
                   color: format === fmt ? "#fff" : "#374151",
                 }}
               >
@@ -67,18 +82,19 @@ function ExportButton({ slug }: { slug: string }) {
               </button>
             ))}
           </div>
-          <div className="mt-3 flex gap-2">
+          <div className="mt-4 flex items-center justify-end gap-2 border-t border-gray-100 pt-3">
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="rounded px-3 py-1 text-xs font-semibold text-gray-500 hover:text-gray-700"
+              className="rounded-md px-3 py-1.5 text-xs font-semibold text-gray-500 transition-colors hover:bg-gray-100"
             >
               Annuler
             </button>
             <button
               type="button"
               onClick={handleValidate}
-              className="rounded bg-orange-500 px-3 py-1 text-xs font-bold text-white hover:bg-orange-600"
+              className="rounded-md px-4 py-1.5 text-xs font-bold text-white transition-colors"
+              style={{ backgroundColor: "var(--ui-primary)" }}
             >
               Valider
             </button>
@@ -117,6 +133,7 @@ export function ContractPageClient({
   yamlRaw,
   historyEntries,
   userId,
+  canRead,
   canEdit,
   canAdmin,
   initialCommentCount = 0,
@@ -127,6 +144,7 @@ export function ContractPageClient({
   yamlRaw: string;
   historyEntries: ContractHistoryEntry[];
   userId?: string;
+  canRead: boolean;
   canEdit: boolean;
   canAdmin: boolean;
   initialCommentCount?: number;
@@ -348,20 +366,20 @@ export function ContractPageClient({
               <p>Review, edit and follow this contract from one place.</p>
               <div className="contract-side-card__actions">
                 {canEdit ? (
-                  <a className="catalog-primary-link" href={`/editor?contract=${encodeURIComponent(slug)}`}>
-                    Open editor
+                  <a className="catalog-primary-link w-full justify-center" href={`/editor?contract=${encodeURIComponent(slug)}`}>
+                    Open in editor
                   </a>
                 ) : (
                   <>
                     <button
-                      className="catalog-primary-link catalog-primary-link--disabled"
+                      className="catalog-primary-link catalog-primary-link--disabled w-full justify-center"
                       disabled
                       title="Vous n'avez pas les droits editor ou admin pour modifier ce contrat"
                       type="button"
                     >
-                      Open editor
+                      Open in editor
                     </button>
-                    {userId ? <RequestEditorUpgrade slug={slug} domain={asset?.domain} context={asset?.context} /> : null}
+                    {userId && canRead ? <RequestEditorUpgrade slug={slug} domain={asset?.domain} context={asset?.context} /> : null}
                   </>
                 )}
                 {userId ? (

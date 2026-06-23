@@ -168,9 +168,11 @@ export async function getGitLabFileLastCommitSha(slug: string): Promise<string> 
   return commits[0]?.id ?? "";
 }
 
-export async function getGitLabFileHistory(slug: string, limit = 10): Promise<ContractHistoryEntry[]> {
+export async function getGitLabFileHistory(slug: string, limit = 10, filePath?: string): Promise<ContractHistoryEntry[]> {
   const { api, config } = getGitLabClient();
-  const filePath = await getGitLabContractFilePath(slug);
+  if (!filePath) {
+    filePath = await getGitLabContractFilePath(slug);
+  }
 
   console.info("[gitlab.history] Request", {
     slug,

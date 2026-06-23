@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 function CloseIcon() {
@@ -26,6 +26,21 @@ export function RequestEditorUpgrade({
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
+  const [requestStatus, setRequestStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/access-requests/my?contractSlug=${encodeURIComponent(slug)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { status?: string | null } | null) => {
+        if (data?.status === "pending") {
+          setDone(true);
+          setRequestStatus("pending");
+        } else if (data?.status === "rejected") {
+          setRequestStatus("rejected");
+        }
+      })
+      .catch(() => {});
+  }, [slug]);
 
   async function handleSubmit() {
     setSending(true);
@@ -42,6 +57,7 @@ export function RequestEditorUpgrade({
         }),
       });
       setDone(true);
+      setRequestStatus("pending");
     } catch {
       // silent
     } finally {
@@ -49,27 +65,39 @@ export function RequestEditorUpgrade({
     }
   }
 
+  function handleCompactClick(e: React.MouseEvent) {
+    e.stopPropagation();
+    e.preventDefault();
+    if (requestStatus === "rejected") {
+      setDone(false);
+      setRequestStatus(null);
+    }
+    setOpen(true);
+  }
+
   return (
     <>
       <button
         type="button"
-        onClick={(e) => { e.stopPropagation(); e.preventDefault(); setOpen(true); }}
+        onClick={handleCompactClick}
         className={compact
-          ? "flex items-center gap-1 text-xs font-semibold text-orange-600 hover:text-orange-800"
+          ? done
+            ? "flex items-center gap-1 text-xs font-semibold text-gray-400 cursor-not-allowed"
+            : "flex items-center gap-1 text-xs font-semibold text-orange-600 hover:text-orange-800"
           : "catalog-secondary-link catalog-secondary-link--button"
         }
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2Zm10-10V7a4 4 0 0 0-8 0v4h8Z" />
         </svg>
-        {compact ? "Request editor" : "Request editor access"}
+        {compact ? (done ? "Editor access requested" : "Request editor") : "Request editor access"}
       </button>
 
       {open && createPortal(
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center"
           style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
-          onClick={() => { setOpen(false); setDone(false); setMessage(""); }}
+          onClick={() => { setOpen(false); setMessage(""); }}
         >
           <div
             className="flex max-h-[60vh] flex-col rounded-lg bg-white shadow-xl"
@@ -83,7 +111,7 @@ export function RequestEditorUpgrade({
                 </svg>
                 <h3 className="text-sm font-semibold text-gray-900">Request editor access</h3>
               </div>
-              <button className="editor-close-button" onClick={() => { setOpen(false); setDone(false); setMessage(""); }} aria-label="Close">
+              <button className="editor-close-button" onClick={() => { setOpen(false); setMessage(""); }} aria-label="Close">
                 <CloseIcon />
               </button>
             </div>
@@ -93,7 +121,7 @@ export function RequestEditorUpgrade({
                 <p className="text-sm font-medium text-green-600">Request sent to administrators.</p>
                 <button
                   type="button"
-                  onClick={() => { setOpen(false); setDone(false); setMessage(""); }}
+                  onClick={() => { setOpen(false); setMessage(""); }}
                   className="mt-3 rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
                 >
                   Close
