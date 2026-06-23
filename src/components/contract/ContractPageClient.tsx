@@ -89,7 +89,7 @@ function ExportButton({ slug }: { slug: string }) {
                 className="rounded-md px-4 py-1.5 text-xs font-bold text-white transition-colors"
                 style={{ backgroundColor: "var(--ui-primary)" }}
               >
-                Valider
+                Télécharger
               </button>
             </div>
           </div>
