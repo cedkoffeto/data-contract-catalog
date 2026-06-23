@@ -8,7 +8,10 @@ export function ModelsSection({
   primaryKey,
   grain,
   slug,
-  userId
+  userId,
+  fieldAnnotations,
+  onFieldClick,
+  onAnnotationPosted
 }: {
   asset: Asset;
   fields: ContractField[];
@@ -16,6 +19,9 @@ export function ModelsSection({
   grain?: string;
   slug?: string;
   userId?: string;
+  fieldAnnotations?: Record<string, number>;
+  onFieldClick?: (fieldName: string) => void;
+  onAnnotationPosted?: () => void;
 }) {
   if (!fields || fields.length === 0) {
     return null;
@@ -49,7 +55,7 @@ export function ModelsSection({
                   </tr>
                 </thead>
 
-                <ModelFieldsTable fields={fields} slug={slug} userId={userId} />
+                <ModelFieldsTable fields={fields} slug={slug} userId={userId} fieldAnnotations={fieldAnnotations} onFieldClick={onFieldClick} onAnnotationPosted={onAnnotationPosted} />
 
                 {primaryKeyValue ? (
                   <tfoot className="contract-models-table__foot">

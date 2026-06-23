@@ -50,7 +50,7 @@ function flattenFields(fields: ContractField[], depth = 0, parentId: string | nu
   return rows;
 }
 
-export function ModelFieldsTable({ fields, slug, userId }: { fields: ContractField[]; slug?: string; userId?: string }) {
+export function ModelFieldsTable({ fields, slug, userId, fieldAnnotations, onFieldClick, onAnnotationPosted }: { fields: ContractField[]; slug?: string; userId?: string; fieldAnnotations?: Record<string, number>; onFieldClick?: (fieldName: string) => void; onAnnotationPosted?: () => void }) {
   const rows = useMemo(() => flattenFields(fields), [fields]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [annotating, setAnnotating] = useState<FlatField | null>(null);
@@ -94,6 +94,7 @@ export function ModelFieldsTable({ fields, slug, userId }: { fields: ContractFie
 
     setAnnotating(null);
     setAnnotationText("");
+    onAnnotationPosted?.();
   }
 
   function openAnnotate(row: FlatField) {
@@ -144,13 +145,24 @@ export function ModelFieldsTable({ fields, slug, userId }: { fields: ContractFie
                 {!row.hasChildren ? <span className="contract-models-field__leaf" aria-hidden="true" /> : null}
                 <span className="contract-models-field__name">{row.name}</span>
                 {userId && slug ? (
-                  <button
-                    type="button"
-                    className="ml-auto rounded-full bg-orange-50 px-2 py-1 text-[11px] font-bold text-orange-700 hover:bg-orange-100"
-                    onClick={() => openAnnotate(row)}
-                  >
-                    Annotate
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      className="ml-auto rounded-full bg-orange-50 px-2 py-1 text-[11px] font-bold text-orange-700 hover:bg-orange-100"
+                      onClick={() => openAnnotate(row)}
+                    >
+                      Annotate
+                    </button>
+                    {fieldAnnotations?.[row.name] ? (
+                      <button
+                        type="button"
+                        className="ml-1 rounded-full bg-orange-500 px-2 py-1 text-[11px] font-bold text-white hover:bg-orange-600"
+                        onClick={() => onFieldClick?.(row.name)}
+                      >
+                        {fieldAnnotations[row.name]}
+                      </button>
+                    ) : null}
+                  </>
                 ) : null}
               </div>
             </td>

@@ -8,7 +8,7 @@ import { ServiceLevelsSection } from "@/src/components/contract/ServiceLevelsSec
 import { ServingSection } from "@/src/components/contract/ServingSection";
 import type { DataContract } from "@/src/lib/types";
 
-export function ContractBody({ data, slug, userId }: { data: DataContract; slug?: string; userId?: string }) {
+export function ContractBody({ data, slug, userId, fieldAnnotations, onFieldClick, onAnnotationPosted }: { data: DataContract; slug?: string; userId?: string; fieldAnnotations?: Record<string, number>; onFieldClick?: (fieldName: string) => void; onAnnotationPosted?: () => void }) {
   const asset = data.asset ?? {};
   const contract = data.contract ?? {};
   const schema = contract.schema ?? {};
@@ -23,7 +23,7 @@ export function ContractBody({ data, slug, userId }: { data: DataContract; slug?
     <div className="mt-6 space-y-6">
       <InfoSection asset={asset} />
 
-      <ModelsSection asset={asset} fields={schema.fields ?? []} grain={contract.grain} primaryKey={contract.primary_key} slug={slug} userId={userId} />
+      <ModelsSection asset={asset} fields={schema.fields ?? []} grain={contract.grain} primaryKey={contract.primary_key} slug={slug} userId={userId} fieldAnnotations={fieldAnnotations} onFieldClick={onFieldClick} onAnnotationPosted={onAnnotationPosted} />
 
       <InputsSection
         outputName={output.table_name ?? asset.name}

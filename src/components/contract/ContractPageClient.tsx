@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import dynamic from "next/dynamic";
@@ -12,7 +12,7 @@ import { ContractHeader } from "@/src/components/contract/ContractHeader";
 import { RequestEditorUpgrade } from "@/src/components/contract/RequestEditorUpgrade";
 import { SubscribeButton } from "@/src/components/contract/SubscribeModal";
 import { YamlDialogButton } from "@/src/components/contract/YamlDialogButton";
-import type { ContractHistoryEntry, DataContract } from "@/src/lib/types";
+import type { ContractComment, ContractHistoryEntry, DataContract } from "@/src/lib/types";
 import type { Subscription } from "@/src/lib/subscriptions";
 
 function ExportButton({ slug }: { slug: string }) {
@@ -159,6 +159,7 @@ export function ContractPageClient({
   const [loadingSubscription, setLoadingSubscription] = useState(true);
   const [commentCount, setCommentCount] = useState(initialCommentCount);
   const [issueCount, setIssueCount] = useState(initialIssueCount);
+  const [fieldAnnotations, setFieldAnnotations] = useState<Record<string, number>>({});
   const [isFavorite, setIsFavorite] = useState(false);
   const [activeTab, setActiveTab] = useState<"details" | "discussion">(() => {
     if (typeof window !== "undefined" && window.location.hash.startsWith("#comment-")) {
@@ -193,6 +194,30 @@ export function ContractPageClient({
         setIsFavorite(false);
       });
   }, [slug, userId]);
+
+  const loadFieldAnnotations = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/contracts/${encodeURIComponent(slug)}/discussion-data`);
+      if (!res.ok) return;
+      const data = await res.json() as { comments: ContractComment[] };
+      const counts: Record<string, number> = {};
+      for (const c of data.comments) {
+        if (c.targetField) {
+          counts[c.targetField] = (counts[c.targetField] ?? 0) + 1;
+        }
+      }
+      setFieldAnnotations(counts);
+      setCommentCount(data.comments.length);
+    } catch {}
+  }, [slug]);
+
+  useEffect(() => {
+    loadFieldAnnotations();
+  }, [loadFieldAnnotations]);
+
+  function handleFieldClick(fieldName: string) {
+    setActiveTab("discussion");
+  }
 
   const displayedData = activeVersion?.data ?? data;
   const displayedYamlRaw = activeVersion?.yamlRaw ?? yamlRaw;
@@ -346,7 +371,7 @@ export function ContractPageClient({
                   </div>
                 </div>
                 <div className={activeTab === "details" ? "" : "hidden"}>
-                  <ContractBody data={displayedData} slug={slug} userId={userId} />
+                  <ContractBody data={displayedData} slug={slug} userId={userId} fieldAnnotations={fieldAnnotations} onFieldClick={handleFieldClick} onAnnotationPosted={loadFieldAnnotations} />
                 </div>
                 <div className={activeTab === "discussion" ? "" : "hidden"}>
                   <DiscussionThread slug={slug} userId={userId} canAdmin={canAdmin} onCommentCountChange={setCommentCount} onIssueCountChange={setIssueCount} />
