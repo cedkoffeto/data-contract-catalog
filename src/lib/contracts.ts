@@ -36,7 +36,7 @@ type RepositoryFolderFile = {
   kind: EditorRepositoryFile["kind"];
 };
 
-const GITLAB_TREE_PAGE_SIZE = 500;
+const GITLAB_TREE_PAGE_SIZE = 100;
 
 function hasGitLabContractsConfig() {
   return Boolean(
@@ -463,10 +463,10 @@ async function getGitLabContracts(yamlEntries: GitLabTreeItem[]): Promise<Contra
     return readLocalContracts();
   }
 
-  console.info("[gitlab.contracts] Fetching", yamlEntries.length, "files in batches of 100");
+  console.info("[gitlab.contracts] Fetching", yamlEntries.length, "files in batches of 50");
 
   const records: Array<{ path: string; fullPath: string; yamlRaw: string }> = [];
-  const BATCH_SIZE = 100;
+  const BATCH_SIZE = 50;
 
   for (let i = 0; i < yamlEntries.length; i += BATCH_SIZE) {
     const batch = yamlEntries.slice(i, i + BATCH_SIZE);
