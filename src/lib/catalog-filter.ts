@@ -38,6 +38,52 @@ type PolicyRow = {
   data_contract_scope: string | null;
 };
 
+function scopeMatchesPolicy(
+  domain: string,
+  context: string,
+  slug: string,
+  p: PolicyRow,
+): boolean {
+  const pd = (p.domain_scope ?? "").toLowerCase().trim();
+  const pc = (p.context_scope ?? "").toLowerCase().trim();
+  const pdc = (p.data_contract_scope ?? "").toLowerCase().trim();
+  const lcSlug = slug.toLowerCase();
+
+  return (
+    (pd === "" && pc === "" && pdc === "") ||
+    (pd === "" && pc === "" && pdc === lcSlug) ||
+    (pd === domain && pc === "" && pdc === "") ||
+    (pd === domain && pc === context && pdc === "") ||
+    (pd === domain && pc === context && pdc === lcSlug) ||
+    (pd === domain && pc === "" && pdc === lcSlug)
+  );
+}
+
+async function fetchUserPolicies(
+  userId: string,
+  permissionFilter?: string[],
+): Promise<PolicyRow[]> {
+  return query<PolicyRow>(
+    `SELECT DISTINCT ap.domain_scope, ap.context_scope, ap.data_contract_scope
+     FROM access_policies ap
+     JOIN permissions p ON p.id = ap.permission_id
+     WHERE (
+       ap.user_id = ?
+       OR ap.group_id IN (SELECT ug.group_id FROM user_group ug WHERE ug.user_id = ?)
+     )
+     ${permissionFilter ? `AND p.name IN (${permissionFilter.map(() => "?").join(",")})` : ""}`,
+    permissionFilter
+      ? [userId, userId, ...permissionFilter]
+      : [userId, userId],
+  );
+}
+
+async function userHasGlobalAccess(userId: string): Promise<boolean> {
+  const count = await query<{ c: number }>("SELECT COUNT(*) AS c FROM access_policies");
+  if ((count[0]?.c ?? 0) === 0) return true;
+  return false;
+}
+
 /**
  * Filters catalog cards using fine-grained access control (batched, single DB query).
  * User must have at least 'reader' on the card's (domain, context).
@@ -50,49 +96,18 @@ export async function filterCatalogCards(
 ): Promise<CatalogCard[]> {
   if (permissions.includes("admin")) return cards;
 
-  const policies = await query<PolicyRow>(
-    `SELECT DISTINCT ap.domain_scope, ap.context_scope, ap.data_contract_scope
-     FROM access_policies ap
-     JOIN permissions p ON p.id = ap.permission_id
-     WHERE (
-       ap.user_id = ?
-       OR ap.group_id IN (SELECT ug.group_id FROM user_group ug WHERE ug.user_id = ?)
-     )`,
-    [userId, userId],
+  const policies = await fetchUserPolicies(userId);
+  if (await userHasGlobalAccess(userId)) return cards;
+  if (policies.some((p) => (p.domain_scope ?? "") === "" && (p.context_scope ?? "") === "" && (p.data_contract_scope ?? "") === "")) return cards;
+
+  return cards.filter((card) =>
+    policies.some((p) => scopeMatchesPolicy(
+      card.domain?.toLowerCase().trim() ?? "",
+      card.context?.toLowerCase().trim() ?? "",
+      card.slug,
+      p,
+    ))
   );
-
-  const anyPolicyExists = await query<{ c: number }>(
-    "SELECT COUNT(*) AS c FROM access_policies",
-  );
-  const isFreshInstall = (anyPolicyExists[0]?.c ?? 0) === 0;
-  if (isFreshInstall) return cards;
-
-  const hasGlobalAccess = policies.some(
-    (p) =>
-      (p.domain_scope ?? "") === "" &&
-      (p.context_scope ?? "") === "" &&
-      (p.data_contract_scope ?? "") === "",
-  );
-  if (hasGlobalAccess) return cards;
-
-  return cards.filter((card) => {
-    const domain = card.domain?.toLowerCase().trim() ?? "";
-    const context = card.context?.toLowerCase().trim() ?? "";
-
-    return policies.some((p) => {
-      const pd = (p.domain_scope ?? "").toLowerCase().trim();
-      const pc = (p.context_scope ?? "").toLowerCase().trim();
-      const pdc = (p.data_contract_scope ?? "").toLowerCase().trim();
-
-      if (pd === "" && pc === "" && pdc === "") return true;
-      if (pd === "" && pc === "" && pdc === card.slug.toLowerCase()) return true;
-      if (pd === domain && pc === "" && pdc === "") return true;
-      if (pd === domain && pc === context && pdc === "") return true;
-      if (pd === domain && pc === context && pdc === card.slug.toLowerCase()) return true;
-
-      return false;
-    });
-  });
 }
 
 /**
@@ -104,53 +119,39 @@ export async function getAccessibleSlugs(
   permissions: Permission[],
   cards: CatalogCard[],
 ): Promise<Set<string>> {
+  return getMatchingSlugs(userId, permissions, cards);
+}
+
+export async function getEditableSlugs(
+  userId: string,
+  permissions: Permission[],
+  cards: CatalogCard[],
+): Promise<Set<string>> {
+  return getMatchingSlugs(userId, permissions, cards, ["admin", "editor"]);
+}
+
+async function getMatchingSlugs(
+  userId: string,
+  permissions: Permission[],
+  cards: CatalogCard[],
+  permissionFilter?: string[],
+): Promise<Set<string>> {
   if (permissions.includes("admin")) return new Set(cards.map((c) => c.slug));
 
-  const policies = await query<PolicyRow>(
-    `SELECT DISTINCT ap.domain_scope, ap.context_scope, ap.data_contract_scope
-     FROM access_policies ap
-     JOIN permissions p ON p.id = ap.permission_id
-     WHERE (
-       ap.user_id = ?
-       OR ap.group_id IN (SELECT ug.group_id FROM user_group ug WHERE ug.user_id = ?)
-     )`,
-    [userId, userId],
-  );
+  const policies = await fetchUserPolicies(userId, permissionFilter);
+  if (await userHasGlobalAccess(userId)) return new Set(cards.map((c) => c.slug));
+  if (policies.some((p) => (p.domain_scope ?? "") === "" && (p.context_scope ?? "") === "" && (p.data_contract_scope ?? "") === "")) return new Set(cards.map((c) => c.slug));
 
-  const anyPolicyExists = await query<{ c: number }>(
-    "SELECT COUNT(*) AS c FROM access_policies",
-  );
-  const isFreshInstall = (anyPolicyExists[0]?.c ?? 0) === 0;
-  if (isFreshInstall) return new Set(cards.map((c) => c.slug));
-
-  const hasGlobalAccess = policies.some(
-    (p) =>
-      (p.domain_scope ?? "") === "" &&
-      (p.context_scope ?? "") === "" &&
-      (p.data_contract_scope ?? "") === "",
-  );
-  if (hasGlobalAccess) return new Set(cards.map((c) => c.slug));
-
-  const accessible = new Set<string>();
+  const matching = new Set<string>();
   for (const card of cards) {
-    const domain = card.domain?.toLowerCase().trim() ?? "";
-    const context = card.context?.toLowerCase().trim() ?? "";
-
-    const match = policies.some((p) => {
-      const pd = (p.domain_scope ?? "").toLowerCase().trim();
-      const pc = (p.context_scope ?? "").toLowerCase().trim();
-      const pdc = (p.data_contract_scope ?? "").toLowerCase().trim();
-
-      if (pd === "" && pc === "" && pdc === "") return true;
-      if (pd === "" && pc === "" && pdc === card.slug.toLowerCase()) return true;
-      if (pd === domain && pc === "" && pdc === "") return true;
-      if (pd === domain && pc === context && pdc === "") return true;
-      if (pd === domain && pc === context && pdc === card.slug.toLowerCase()) return true;
-
-      return false;
-    });
-
-    if (match) accessible.add(card.slug);
+    if (policies.some((p) => scopeMatchesPolicy(
+      card.domain?.toLowerCase().trim() ?? "",
+      card.context?.toLowerCase().trim() ?? "",
+      card.slug,
+      p,
+    ))) {
+      matching.add(card.slug);
+    }
   }
-  return accessible;
+  return matching;
 }

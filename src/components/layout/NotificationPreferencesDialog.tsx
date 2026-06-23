@@ -1,19 +1,19 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 import type { NotificationChannel } from "@/src/lib/subscriptions";
 
 export function NotificationPreferencesDialog({ onClose }: { onClose: () => void }) {
-  const id = useId().replace(/:/g, "");
-  const dialogRef = useRef<HTMLDialogElement>(null);
+  const [mounted, setMounted] = useState(false);
   const [channel, setChannel] = useState<NotificationChannel>("in_app");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    dialogRef.current?.showModal();
+    setMounted(true);
 
     fetch("/api/user/preferences")
       .then((r) => r.json())
@@ -36,10 +36,7 @@ export function NotificationPreferencesDialog({ onClose }: { onClose: () => void
       });
       if (res.ok) {
         setSaved(true);
-        setTimeout(() => {
-          dialogRef.current?.close();
-          onClose();
-        }, 1000);
+        setTimeout(onClose, 1000);
       }
     } catch {
       // silent
@@ -48,86 +45,91 @@ export function NotificationPreferencesDialog({ onClose }: { onClose: () => void
     }
   }
 
-  function handleClose() {
-    dialogRef.current?.close();
-    onClose();
-  }
+  if (!mounted) return null;
 
-  return (
-    <dialog ref={dialogRef} className="yaml-sheet" aria-labelledby={`notif-prefs-title-${id}`}>
-      <form method="dialog" className="yaml-sheet__backdrop">
-        <button className="yaml-sheet__scrim" aria-label="Close" onClick={handleClose} />
-      </form>
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
+        <h3 className="text-base font-semibold text-gray-900">Notification preferences</h3>
 
-      <div className="yaml-sheet__panel">
-        <div className="yaml-sheet__header">
-          <div>
-            <p className="yaml-sheet__eyebrow">Settings</p>
-            <h3 id={`notif-prefs-title-${id}`}>Notification preferences</h3>
-          </div>
-
-          <div className="yaml-sheet__header-actions">
-            <button className="editor-soft-button" onClick={handleClose} type="button">
-              Cancel
-            </button>
-            <button className="catalog-primary-link" disabled={saving || loading} onClick={handleSave} type="button">
-              {saving ? "Saving..." : saved ? "Saved!" : "Save"}
-            </button>
-          </div>
-        </div>
-
-        <div className="yaml-sheet__body">
+        <div className="mt-4">
           {loading ? (
             <p className="text-sm text-gray-400">Loading...</p>
           ) : (
-            <fieldset className="subscribe-fieldset">
-              <legend className="subscribe-legend">Default notification channel</legend>
+            <fieldset>
+              <legend className="mb-1 text-xs font-semibold text-gray-700">Default notification channel</legend>
               <p className="mb-3 text-xs text-gray-400">
                 This channel will be used for all your subscriptions.
               </p>
 
-              <label className="subscribe-option">
+              <label className="mb-2 flex cursor-pointer items-start gap-3 rounded-md border px-3 py-2.5 text-sm hover:bg-gray-50">
                 <input
                   checked={channel === "in_app"}
-                  className="subscribe-option__radio"
-                  name={`notif-channel-${id}`}
+                  className="mt-0.5"
+                  name="notif-channel"
                   onChange={() => setChannel("in_app")}
                   type="radio"
                   value="in_app"
                 />
-                <span className="subscribe-option__label">In-app</span>
-                <span className="subscribe-option__desc">Notifications within the application</span>
+                <div>
+                  <span className="font-medium text-gray-900">In-app</span>
+                  <p className="text-xs text-gray-400">Notifications within the application</p>
+                </div>
               </label>
 
-              <label className="subscribe-option">
+              <label className="mb-2 flex cursor-pointer items-start gap-3 rounded-md border px-3 py-2.5 text-sm hover:bg-gray-50">
                 <input
                   checked={channel === "email"}
-                  className="subscribe-option__radio"
-                  name={`notif-channel-${id}`}
+                  className="mt-0.5"
+                  name="notif-channel"
                   onChange={() => setChannel("email")}
                   type="radio"
                   value="email"
                 />
-                <span className="subscribe-option__label">Email</span>
-                <span className="subscribe-option__desc">Notifications via email</span>
+                <div>
+                  <span className="font-medium text-gray-900">Email</span>
+                  <p className="text-xs text-gray-400">Notifications via email</p>
+                </div>
               </label>
 
-              <label className="subscribe-option">
+              <label className="flex cursor-pointer items-start gap-3 rounded-md border px-3 py-2.5 text-sm hover:bg-gray-50">
                 <input
                   checked={channel === "both"}
-                  className="subscribe-option__radio"
-                  name={`notif-channel-${id}`}
+                  className="mt-0.5"
+                  name="notif-channel"
                   onChange={() => setChannel("both")}
                   type="radio"
                   value="both"
                 />
-                <span className="subscribe-option__label">In-app &amp; Email</span>
-                <span className="subscribe-option__desc">Receive notifications both in-app and via email</span>
+                <div>
+                  <span className="font-medium text-gray-900">In-app & Email</span>
+                  <p className="text-xs text-gray-400">Receive notifications both in-app and via email</p>
+                </div>
               </label>
             </fieldset>
           )}
         </div>
+
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
+            type="button"
+          >
+            Cancel
+          </button>
+          <button
+            className="catalog-primary-link"
+            disabled={saving || loading}
+            onClick={handleSave}
+            type="button"
+          >
+            {saving ? "Saving..." : saved ? "Saved!" : "Save"}
+          </button>
+        </div>
       </div>
-    </dialog>
+    </div>,
+    document.body
   );
 }

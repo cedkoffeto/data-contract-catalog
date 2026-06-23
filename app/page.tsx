@@ -1,6 +1,6 @@
 import { CatalogPage } from "@/src/components/catalog/CatalogPage";
 import { getCatalogCards, hasGitLabTreeError, resetGitLabTreeError } from "@/src/lib/contracts";
-import { getAccessibleSlugs } from "@/src/lib/catalog-filter";
+import { getAccessibleSlugs, getEditableSlugs } from "@/src/lib/catalog-filter";
 import { canWrite, getUserPermissions, type Permission } from "@/src/lib/rbac";
 import type { CatalogCard } from "@/src/lib/types";
 import { auth } from "@/src/auth";
@@ -24,8 +24,9 @@ export default async function HomePage() {
     return <CatalogPage cards={[]} gitError={gitError} />;
   }
 
-  const [accessible, pendingRows, { favoriteSlugs, pinnedSlugs }] = await Promise.all([
+  const [accessible, editable, pendingRows, { favoriteSlugs, pinnedSlugs }] = await Promise.all([
     getAccessibleSlugs(userId, permissions, cards),
+    getEditableSlugs(userId, permissions, cards),
     query<{ data_contract: string }>(
       "SELECT DISTINCT data_contract FROM access_requests WHERE user_id = ? AND status = 'pending'",
       [userId],
@@ -40,6 +41,7 @@ export default async function HomePage() {
   const annotated = cards.map((card) => ({
     ...card,
     accessible: accessible.has(card.slug),
+    editable: editable.has(card.slug),
     accessRequestStatus: pendingSlugs.has(card.slug) ? "pending" as const : undefined,
     isFavorite: favoriteSlugs.has(card.slug),
     isPinned: pinnedSlugs.has(card.slug),

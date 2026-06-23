@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { cn } from "@/src/lib/format";
 
@@ -28,6 +28,7 @@ export function SearchableSelect({
   includeLatest?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [flip, setFlip] = useState(false);
   const [query, setQuery] = useState("");
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -41,6 +42,22 @@ export function SearchableSelect({
     document.addEventListener("mousedown", handlePointerDown);
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, []);
+
+  function toggleOpen() {
+    if (disabled) return;
+    const next = !open;
+    if (next) {
+      const trigger = wrapperRef.current?.querySelector(".ss-select__trigger");
+      if (trigger) {
+        const rect = trigger.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom;
+        setFlip(spaceBelow < 260);
+      }
+    }
+    setOpen(next);
+    setQuery("");
+    if (next) setTimeout(() => inputRef.current?.focus(), 0);
+  }
 
   const selected = includeLatest && value === "latest"
     ? { value: "latest", label: "Current (main)" }
@@ -56,7 +73,6 @@ export function SearchableSelect({
   function handleSelect(optionValue: string) {
     onChange(optionValue);
     setOpen(false);
-    setQuery("");
   }
 
   const hasOptions = options.length > 0;
@@ -65,12 +81,7 @@ export function SearchableSelect({
     <div ref={wrapperRef} className="ss-select">
       <div
         className={cn("ss-select__trigger", disabled && "ss-select__trigger--disabled")}
-        onClick={() => {
-          if (!disabled) {
-            setOpen(!open);
-            setTimeout(() => inputRef.current?.focus(), 0);
-          }
-        }}
+        onClick={toggleOpen}
       >
         <span className={cn("ss-select__value", !selected && "ss-select__value--empty")}>
           {selected ? selected.label : placeholder ?? "Select..."}
@@ -81,7 +92,7 @@ export function SearchableSelect({
       </div>
 
       {open && (
-        <div className="ss-select__dropdown">
+        <div className={cn("ss-select__dropdown", flip && "ss-select__dropdown--flip")}>
           <div className="ss-select__search">
             <input
               ref={inputRef}

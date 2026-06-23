@@ -39,6 +39,7 @@ export function NotificationBell() {
   const [showSubscriptions, setShowSubscriptions] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const subsLoadedRef = useRef(false);
 
   const subscribedSlugs = new Set(subscriptions.map((s) => s.contractSlug));
 
@@ -83,6 +84,7 @@ export function NotificationBell() {
     if (!isOpen) {
       setLoading(true);
       setShowSubscriptions(false);
+      subsLoadedRef.current = false;
       try {
         const [notifRes, subRes] = await Promise.all([
           fetch("/api/notifications"),
@@ -137,8 +139,9 @@ export function NotificationBell() {
   }
 
   async function handleOpenSubscriptions() {
-    setLoading(true);
     setShowSubscriptions(true);
+    if (subsLoadedRef.current) return;
+    setLoading(true);
     try {
       const [subRes, contractsRes] = await Promise.all([
         fetch("/api/subscriptions"),
@@ -151,6 +154,7 @@ export function NotificationBell() {
       if (contractsRes.ok) {
         const data = (await contractsRes.json()) as { items: ContractItem[] };
         setContracts(data.items);
+        subsLoadedRef.current = true;
       }
     } catch {
       // silent

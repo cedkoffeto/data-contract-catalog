@@ -173,6 +173,7 @@ export type CatalogCard = {
   searchData: string;
   href: string;
   accessible: boolean;
+  editable?: boolean;
   accessRequestStatus?: "pending";
   isFavorite?: boolean;
   isPinned?: boolean;

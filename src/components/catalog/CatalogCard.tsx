@@ -190,7 +190,7 @@ export const CatalogCard = memo(function CatalogCard({ card, onTogglePin, onTogg
             <p className="catalog-card__owner">{card.owner || "Platform team"}</p>
             <span className="catalog-card__owner-label">Owner</span>
           </div>
-          {canRequestUpgrade !== false ? <RequestEditorUpgrade slug={card.slug} domain={card.domain} compact /> : null}
+          {canRequestUpgrade !== false && !card.editable ? <RequestEditorUpgrade slug={card.slug} domain={card.domain} compact /> : null}
         </div>
       </Link>
     </li>

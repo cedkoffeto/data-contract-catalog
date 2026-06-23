@@ -49,6 +49,8 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
   const [selectedMaturities, setSelectedMaturities] = useState<Set<string>>(new Set());
   const [showOnlyAccessible, setShowOnlyAccessible] = useState(false);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [maturityFilter, setMaturityFilter] = useState("");
+  const [contextFilter, setContextFilter] = useState("");
 
   const [subscribedSlugs, setSubscribedSlugs] = useState<Set<string>>(new Set());
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
@@ -223,6 +225,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
               variant="chip"
             >
               All domains
+              <span className="catalog-filter-badge">{domains.length}</span>
             </Button>
             {cards.length > 0 ? (
               <Button
@@ -230,7 +233,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
                 onClick={() => setShowOnlyAccessible((v) => !v)}
                 variant="chip"
               >
-                Accessible only ({accessibleCount}/{cards.length})
+                Accessible contracts ({accessibleCount}/{cards.length})
               </Button>
             ) : null}
             {favoriteCount > 0 ? (
@@ -289,6 +292,20 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
               </svg>
             </button>
             <div className="catalog-filter-stack" style={{ maxHeight: collapsedGroups.has("maturity") ? "0" : undefined, opacity: collapsedGroups.has("maturity") ? 0 : 1 }}>
+              {maturities.length > 10 && (
+                <div className="catalog-filter-search">
+                  <svg className="catalog-filter-search__icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
+                  </svg>
+                  <input
+                    type="text"
+                    className="catalog-filter-search__input"
+                    placeholder="Filter maturities..."
+                    value={maturityFilter}
+                    onChange={(e) => setMaturityFilter(e.target.value)}
+                  />
+                </div>
+              )}
               <button
                 className={selectedMaturities.size === 0 ? "catalog-filter-pill is-active" : "catalog-filter-pill"}
                 onClick={() => setSelectedMaturities(new Set())}
@@ -296,7 +313,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
               >
                 All maturities
               </button>
-              {maturities.map((maturity) => (
+              {maturities.filter((m) => !maturityFilter || humanize(m).toLowerCase().includes(maturityFilter.toLowerCase())).map((maturity) => (
                 <button
                   key={maturity}
                   className={selectedMaturities.has(maturity) ? "catalog-filter-pill is-active" : "catalog-filter-pill"}
@@ -322,6 +339,18 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
               </svg>
             </button>
             <div className="catalog-filter-stack" style={{ maxHeight: collapsedGroups.has("context") ? "0" : undefined, opacity: collapsedGroups.has("context") ? 0 : 1 }}>
+              <div className="catalog-filter-search">
+                <svg className="catalog-filter-search__icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
+                </svg>
+                <input
+                  type="text"
+                  className="catalog-filter-search__input"
+                  placeholder="Filter contexts..."
+                  value={contextFilter}
+                  onChange={(e) => setContextFilter(e.target.value)}
+                />
+              </div>
               <button
                 className={selectedContexts.size === 0 ? "catalog-filter-pill is-active" : "catalog-filter-pill"}
                 onClick={() => setSelectedContexts(new Set())}
@@ -329,7 +358,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
               >
                 All contexts
               </button>
-              {contexts.map((context) => (
+              {contexts.filter((c) => !contextFilter || humanize(c).toLowerCase().includes(contextFilter.toLowerCase())).map((context) => (
                 <button
                   key={context}
                   className={selectedContexts.has(context) ? "catalog-filter-pill is-active" : "catalog-filter-pill"}

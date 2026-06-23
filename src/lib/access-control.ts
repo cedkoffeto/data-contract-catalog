@@ -86,10 +86,12 @@ export async function getEffectivePermissions(
        (ap.domain_scope IS NULL AND ap.context_scope IS NULL AND ap.data_contract_scope IS NULL)               -- Level 1: Global
        OR (ap.domain_scope = ? AND ap.context_scope IS NULL AND ap.data_contract_scope IS NULL)                -- Level 2: Domain-wide
        OR (ap.domain_scope = ? AND ap.context_scope = ? AND ap.data_contract_scope IS NULL)                    -- Level 3: Context-specific
-       ${dataContract ? "OR (ap.domain_scope = ? AND ap.context_scope = ? AND ap.data_contract_scope = ?)" : ""}  -- Level 4: Contract-specific
-     )`,
+        ${dataContract ? "OR (ap.domain_scope = ? AND ap.context_scope = ? AND ap.data_contract_scope = ?)" : ""}  -- Level 4: Contract-specific (full scope)
+        ${dataContract ? "OR (ap.domain_scope IS NULL AND ap.context_scope IS NULL AND ap.data_contract_scope = ?)" : ""}  -- Level 5: Contract-specific (slug only)
+        ${dataContract ? "OR (ap.domain_scope = ? AND ap.context_scope IS NULL AND ap.data_contract_scope = ?)" : ""}  -- Level 6: Domain + Contract
+      )`,
     dataContract
-      ? [userId, userId, domain, domain, context, domain, context, dataContract]
+      ? [userId, userId, domain, domain, context, domain, context, dataContract, dataContract, domain, dataContract]
       : [userId, userId, domain, domain, context],
   ).then((rows: AccessPolicyRow[]) => {
     const names: PermissionName[] = rows.map((r) => r.permission_name as PermissionName);
