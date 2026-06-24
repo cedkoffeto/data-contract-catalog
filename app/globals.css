@@ -673,11 +673,11 @@ a:has(> .kpi-card) {
 
 .kpi-card__value {
   margin: 0.15rem 0 0;
-  font-size: 2rem;
-  font-weight: 900;
+  font-size: 2.5rem;
+  font-weight: 950;
   color: var(--ui-text);
   letter-spacing: -0.03em;
-  line-height: 1.1;
+  line-height: 1;
 }
 
 .kpi-card__icon {
