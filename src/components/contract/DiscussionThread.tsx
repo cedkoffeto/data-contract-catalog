@@ -154,12 +154,12 @@ function CommentItem({
             <strong>{displayName}</strong>
             {parentUser ? (
               <span className="meta">
-                In reply to <span className="font-medium text-gray-500">@{parentDisplayName}</span>
+                In reply to <span className="font-medium text-gray-600">@{parentDisplayName}</span>
               </span>
             ) : null}
           </div>
           <div className="flex items-center gap-3">
-            <span className="meta">[{formatDate(comment.createdAt)}] {new Date(comment.createdAt).toLocaleString()}</span>
+            <span className="meta"><span className="text-gray-600">{formatDate(comment.createdAt)}</span> {new Date(comment.createdAt).toLocaleString()}</span>
           </div>
         </div>
         <div className="comment-item__text">{renderBody(comment.body, userMap)}</div>
@@ -201,7 +201,7 @@ function CommentItem({
             ) : null}
             {isCurrentUser && confirming ? (
               <span className="flex items-center gap-1.5 text-xs">
-                <span className="text-gray-500">Delete?</span>
+                <span className="text-gray-600">Delete?</span>
                 <button
                   type="button"
                   onClick={handleDelete}
@@ -214,7 +214,7 @@ function CommentItem({
                   type="button"
                   onClick={() => setConfirming(false)}
                   disabled={deleting}
-                  className="font-bold text-gray-500 hover:text-gray-700 disabled:opacity-30"
+                  className="font-bold text-gray-600 hover:text-gray-700 disabled:opacity-30"
                 >
                   &#10005;
                 </button>
@@ -459,7 +459,7 @@ function InlineReplyForm({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg px-2.5 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100"
+            className="rounded-lg px-2.5 py-1.5 text-xs font-bold text-gray-600 hover:bg-gray-100"
           >
             {t("cancel")}
           </button>
@@ -542,7 +542,7 @@ function IssueCard({
             {statusIcons[issue.status]}
             {statusLabels[issue.status]}
           </span>
-          <span className="meta">[{formatDate(issue.createdAt)}] {new Date(issue.createdAt).toLocaleString()}</span>
+          <span className="meta"><span className="text-gray-600">{formatDate(issue.createdAt)}</span> {new Date(issue.createdAt).toLocaleString()}</span>
         </div>
         <div className="comment-item__text" style={{ whiteSpace: "pre-wrap" }}>{issue.body}</div>
         {canAdmin ? (
@@ -964,7 +964,7 @@ export function DiscussionThread({
       ) : null}
 
       {loading ? (
-        <p className="rounded-xl border bg-white px-4 py-6 text-sm text-gray-500 shadow-sm">{t("loadingDiscussion")}</p>
+        <p className="rounded-xl border bg-white px-4 py-6 text-sm text-gray-600 shadow-sm">{t("loadingDiscussion")}</p>
       ) : filteredItems.length === 0 ? (
         <>
           <div className="mb-3 flex items-center justify-between">
@@ -1013,7 +1013,7 @@ export function DiscussionThread({
               </button>
             </div>
           </div>
-          <div className="rounded-2xl border border-dashed bg-white px-4 py-8 text-center text-sm text-gray-500 shadow-sm">
+          <div className="rounded-2xl border border-dashed bg-white px-4 py-8 text-center text-sm text-gray-600 shadow-sm">
             {threadItems.length === 0 ? t("noComments") : "Aucun élément ne correspond au filtre"}
           </div>
         </>
@@ -1214,7 +1214,7 @@ export function DiscussionThread({
             </div>
           </form>
         ) : (
-          <p className="mt-4 text-sm text-gray-500">{t("signInToComment")}</p>
+          <p className="mt-4 text-sm text-gray-600">{t("signInToComment")}</p>
         )}
       </div>
     </section>
