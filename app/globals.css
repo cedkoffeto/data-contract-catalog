@@ -750,11 +750,6 @@ a:has(> .kpi-card) {
   transform: translateX(calc(2rem - 1.15rem));
 }
 
-.editor-primary-button {
-  background: rgba(249, 115, 22, 0.12);
-  color: var(--ui-primary);
-}
-
 .catalog-secondary-link--button {
   cursor: pointer;
 }
