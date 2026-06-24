@@ -495,12 +495,12 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
     <div>
       <div className="mb-3 flex items-center gap-3">
         <input
-          className="flex-1 rounded-md border bg-white px-3 py-2 text-sm text-gray-900"
+          className="flex-1 rounded-md border bg-white px-2 py-1.5 text-xs text-gray-900"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-          placeholder="Filter by action, actor or target…"
+          placeholder="Filter by action, actor or target\u2026"
         />
-        <span className="whitespace-nowrap text-sm text-gray-400">
+        <span className="whitespace-nowrap text-xs text-gray-400">
           {sorted.length} entries
         </span>
       </div>
@@ -509,7 +509,7 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
       ) : (
         <>
           <div className="overflow-x-auto rounded-lg border shadow-lg">
-            <table className="min-w-full divide-y divide-gray-200 bg-white text-sm">
+            <table className="min-w-full divide-y divide-gray-200 bg-white text-xs">
               <thead className="bg-gray-50">
                 <tr>
                   {(["created_at", "action", "actor_id", "target_id", "details"] as const).map((key) => {
@@ -518,10 +518,10 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
                       <th
                         key={key}
                         onClick={() => toggleSort(key)}
-                        className="cursor-pointer select-none px-6 py-3 text-left font-medium text-gray-500 hover:text-gray-700"
+                        className="cursor-pointer select-none px-3 py-2 text-left text-xs font-semibold text-gray-500 hover:text-gray-700"
                       >
                         {labels[key]}
-                        {sortKey === key ? (sortDir === "asc" ? " ▲" : " ▼") : ""}
+                        {sortKey === key ? (sortDir === "asc" ? " \u25b2" : " \u25bc") : ""}
                       </th>
                     );
                   })}
@@ -530,18 +530,18 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
               <tbody className="divide-y divide-gray-200">
                 {paginated.map((log) => (
                   <tr key={log.id}>
-                    <td className="whitespace-nowrap px-6 py-4 text-gray-600">
+                    <td className="whitespace-nowrap px-3 py-2 text-gray-600">
                       {new Date(log.created_at).toLocaleString()}
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4">
+                    <td className="whitespace-nowrap px-3 py-2">
                       <ActionBadge action={log.action} />
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-gray-600">{log.actor_id}</td>
-                    <td className="whitespace-nowrap px-6 py-4 text-gray-600">
+                    <td className="whitespace-nowrap px-3 py-2 text-gray-600">{log.actor_id}</td>
+                    <td className="whitespace-nowrap px-3 py-2 text-gray-600">
                       <span className="text-gray-400">{log.target_type}:</span> {log.target_id}
                     </td>
-                    <td className="max-w-[200px] truncate px-6 py-4 font-mono text-xs text-gray-500">
-                      {log.details && log.details !== "{}" ? log.details : "—"}
+                    <td className="max-w-[200px] truncate px-3 py-2 font-mono text-xs text-gray-500">
+                      {log.details && log.details !== "{}" ? log.details : "\u2014"}
                     </td>
                   </tr>
                 ))}
@@ -550,34 +550,34 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
           </div>
           <div className="mt-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-400">Show</span>
+              <span className="text-xs text-gray-400">Show</span>
               <select
                 value={pageSize}
                 onChange={(e) => { setPageSize(Number(e.target.value)); setPage(0); }}
-                className="rounded-md border bg-white px-2 py-1 text-sm text-gray-700"
+                className="rounded-md border bg-white px-2 py-1 text-xs text-gray-700"
               >
                 {[10, 100, 1000].map((n) => (
                   <option key={n} value={n}>{n}</option>
                 ))}
               </select>
-              <span className="text-sm text-gray-400">entries</span>
+              <span className="text-xs text-gray-400">entries</span>
             </div>
             {totalPages > 1 && (
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
                   disabled={safePage === 0}
-                  className="rounded-md px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+                  className="rounded-md px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
                 >
                   Previous
                 </button>
-                <span className="text-sm text-gray-400">
+                <span className="text-xs text-gray-400">
                   Page {safePage + 1} of {totalPages}
                 </span>
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                   disabled={safePage >= totalPages - 1}
-                  className="rounded-md px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+                  className="rounded-md px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
                 >
                   Next
                 </button>
