@@ -2,6 +2,11 @@
 @import "./output.css";
 @import "./rjsf-shadcn.css";
 
+html {
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
 @theme {
   --font-sans: "Manrope", sans-serif;
   --font-mono: "IBM Plex Mono", monospace;
@@ -319,7 +324,12 @@ a {
   cursor: not-allowed;
 }
 
-.editor-primary-button:disabled,
+.editor-primary-button:disabled {
+  background: rgba(249, 115, 22, 0.12);
+  color: var(--ui-primary);
+  cursor: default;
+}
+
 .editor-soft-button:disabled {
   cursor: default;
 }
@@ -2634,7 +2644,7 @@ body[data-ra-modal] [data-ra-overlay] {
 
 .yaml-sheet__header-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
 }

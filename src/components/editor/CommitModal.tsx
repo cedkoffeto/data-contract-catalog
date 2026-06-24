@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import { DiffView } from "@/src/components/contract/diff/DiffView";
 import type { DiffResult } from "@/src/lib/diff";
@@ -27,17 +27,9 @@ export function CommitModal({
   onClose: () => void;
 }) {
   const id = useId().replace(/:/g, "");
-  const dialogRef = useRef<HTMLDialogElement | null>(null);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const dialogRefCallback = useCallback((node: HTMLDialogElement | null) => {
-    dialogRef.current = node;
-    if (node && !node.open) {
-      node.showModal();
-    }
-  }, []);
 
   function generateMessage() {
     const date = new Date().toISOString().replace("T", " ").replace(/\.\d+Z$/, "");
@@ -67,11 +59,6 @@ export function CommitModal({
 
   function handleClose() {
     if (saving) return;
-    dialogRef.current?.close();
-  }
-
-  function handleDialogClose() {
-    if (saving) return;
     onClose();
   }
 
@@ -81,7 +68,6 @@ export function CommitModal({
 
     try {
       await onConfirm(message);
-      dialogRef.current?.close();
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
@@ -99,36 +85,43 @@ export function CommitModal({
   }, [error]);
 
   return (
-    <dialog ref={dialogRefCallback} className="yaml-sheet yaml-sheet--commit-centered" aria-labelledby={`commit-sheet-title-${id}`} onClose={handleDialogClose}>
-      <form method="dialog" className="yaml-sheet__backdrop">
-        <button className="yaml-sheet__scrim" aria-label="Close" onClick={handleClose} />
-      </form>
-
-      <div className="yaml-sheet__panel yaml-sheet__panel--commit">
-          <div className="yaml-sheet__header">
-            <div className="yaml-sheet__header-row">
-              <div>
-                <p className="yaml-sheet__eyebrow">Proposer une modification</p>
-                <h3 id={`commit-sheet-title-${id}`}>Proposer la modification</h3>
-              </div>
-              <div className="yaml-sheet__header-actions">
-                <button className="editor-soft-button" disabled={saving} onClick={handleClose} type="button">
-                  Cancel
-                </button>
-                <button className="editor-primary-button" disabled={saving || message.trim().length < 3} onClick={handleConfirm} type="button">
-                  {saving ? "Proposing..." : "Proposer"}
-                </button>
-              </div>
-            </div>
-            {error ? (
-              <div className="commit-modal__error" role="alert">
-                <span>{error}</span>
-                <button className="commit-modal__error-close" onClick={() => setError(null)} aria-label="Dismiss error" type="button">&times;</button>
-              </div>
-            ) : null}
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
+      onClick={handleClose}
+    >
+      <div
+        className="flex max-h-[80vh] flex-col rounded-lg bg-white shadow-xl"
+        style={{ width: "min(60vw, 800px)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900">Soumettre la modification</h3>
+            <p className="text-[11px] text-gray-400">{contractName}</p>
           </div>
+          <button
+            onClick={handleClose}
+            className="editor-close-button"
+            aria-label="Close"
+            title="Close"
+            type="button"
+            disabled={saving}
+          >
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M5.5 5.5l9 9m0-9l-9 9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
 
-          <div className="yaml-sheet__body yaml-sheet__body--commit">
+        {error ? (
+          <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-2 text-sm text-red-700">
+            <span className="flex-1">{error}</span>
+            <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600" type="button">&times;</button>
+          </div>
+        ) : null}
+
+        <div className="flex-1 overflow-y-auto px-4 py-3">
           {hasChanges ? (
             <DiffView
               diff={diff}
@@ -136,12 +129,12 @@ export function CommitModal({
               toLabel="Your changes"
             />
           ) : (
-            <div className="commit-modal__no-diff">No changes detected — the content is identical to the current version.</div>
+            <div className="py-6 text-center text-sm text-gray-400">No changes detected — the content is identical to the current version.</div>
           )}
 
-          <label className="commit-modal__label" htmlFor={`commit-msg-${id}`}>
+          <label className="mb-1 mt-3 flex items-center gap-2 text-xs font-medium text-gray-700" htmlFor={`commit-msg-${id}`}>
             Commit message
-            <button className="commit-modal__label-generate" disabled={saving} onClick={generateMessage} type="button">
+            <button className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs text-gray-500 hover:bg-gray-100" disabled={saving} onClick={generateMessage} type="button">
               <svg viewBox="0 0 16 16" fill="currentColor" width="13" height="13" aria-hidden="true">
                 <path d="M8 1l1.5 3.5L13 6 9.5 7.5 8 11 6.5 7.5 3 6l3.5-1.5L8 1z"/>
               </svg>
@@ -149,7 +142,8 @@ export function CommitModal({
             </button>
           </label>
           <textarea
-            className="commit-modal__textarea"
+            className="w-full rounded-md border px-3 py-2 text-sm text-gray-900 outline-none"
+            style={{ borderColor: "#d1d5db" }}
             id={`commit-msg-${id}`}
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Describe your changes..."
@@ -157,7 +151,25 @@ export function CommitModal({
             value={message}
           />
         </div>
+
+        <div className="flex items-center justify-end gap-2 border-t border-gray-100 px-4 py-2">
+          <button
+            onClick={handleClose}
+            disabled={saving}
+            className="rounded px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={saving || message.trim().length < 3}
+            className="rounded px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+            style={{ backgroundColor: "var(--ui-primary)" }}
+          >
+            {saving ? "Soumission..." : "Soumettre"}
+          </button>
+        </div>
       </div>
-    </dialog>
+    </div>
   );
 }

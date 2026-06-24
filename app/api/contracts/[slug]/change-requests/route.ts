@@ -8,7 +8,7 @@ import { getContractBySlug } from "@/src/lib/contracts";
 import { getGitLabFileLastCommitSha } from "@/src/lib/gitlab";
 import { createNotification } from "@/src/lib/notifications";
 import { requireApiAuth } from "@/src/lib/require-auth";
-import { getUserPermissions } from "@/src/lib/rbac";
+import { getAdminUserIds, getUserPermissions } from "@/src/lib/rbac";
 
 async function ensureCanReadContract(slug: string, userId: string) {
   const contract = await getContractBySlug(slug);
@@ -117,6 +117,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
         message: `Your change request #${cr.id} for ${cr.contractSlug} has been submitted. Merge request: ${cr.gitlabMrUrl}`,
         metadata: { changeRequestId: cr.id, gitlabMrUrl: cr.gitlabMrUrl },
       });
+
+      // Notify all admins
+      const adminIds = await getAdminUserIds();
+      await Promise.all(
+        adminIds.map((adminId) =>
+          createNotification({
+            userId: adminId,
+            contractSlug: cr.contractSlug,
+            type: "change_request_created",
+            title: "New change request",
+            message: `Change request #${cr.id} for ${cr.contractSlug} by ${cr.editorId} is pending review. MR: ${cr.gitlabMrUrl}`,
+            metadata: { changeRequestId: cr.id, gitlabMrUrl: cr.gitlabMrUrl, editorId: cr.editorId },
+          }),
+        ),
+      );
     }
 
     return NextResponse.json({ changeRequest: cr }, { status: 201 });

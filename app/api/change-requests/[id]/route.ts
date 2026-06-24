@@ -13,10 +13,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (unauthorized) return unauthorized;
 
   const session = await auth();
-  const userId = session?.user?.name;
-  if (!userId) {
-    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-  }
+  const userId = session?.user?.name ?? "";
 
   const permissions = await getUserPermissions(userId);
   if (!permissions.includes("admin")) {

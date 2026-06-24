@@ -11,6 +11,7 @@ import type { CatalogCard, ContractFile, DataContract, EditorRepositoryFile } fr
 
 const contractsRoot = process.env.CONTRACTS_PATH ?? path.join(process.cwd(), "contracts");
 const contractsCache: { expiresAt: number; value: ContractFile[]; treeHash: string } = { expiresAt: 0, value: [], treeHash: "" };
+let pendingContractsPromise: Promise<ContractFile[]> | null = null;
 const cardsCache: { expiresAt: number; value: CatalogCard[] } = { expiresAt: 0, value: [] };
 const slugToPathCache: { expiresAt: number; map: Map<string, string> } = { expiresAt: 0, map: new Map() };
 const CONTRACTS_CACHE_TTL_MS = 3_600_000;
@@ -597,6 +598,10 @@ async function getSingleContractFromGitLab(slug: string): Promise<ContractFile |
 export async function getContracts(): Promise<ContractFile[]> {
   const now = Date.now();
 
+  if (pendingContractsPromise) {
+    return pendingContractsPromise;
+  }
+
   if (hasGitLabContractsConfig()) {
     const client = getGitLabClient();
     if (!client) return readLocalContracts();
@@ -619,11 +624,13 @@ export async function getContracts(): Promise<ContractFile[]> {
     const treeHash = computeTreeHash(yamlEntries);
 
     if (contractsCache.value.length > 0 && contractsCache.treeHash === treeHash && contractsCache.expiresAt > now) {
-      console.info("[gitlab.contracts] Tree unchanged, using cached contracts");
       return contractsCache.value;
     }
 
-    const contracts = await getGitLabContracts(yamlEntries);
+    try {
+      pendingContractsPromise = getGitLabContracts(yamlEntries);
+      const contracts = await pendingContractsPromise;
+      pendingContractsPromise = null;
 
     if (contracts.length !== yamlEntries.length) {
       console.warn(
@@ -638,6 +645,10 @@ export async function getContracts(): Promise<ContractFile[]> {
       populateSlugToPathCache(contracts.map((c) => ({ fullPath: c.fullPath })));
     }
     return contracts;
+    } catch (error) {
+      pendingContractsPromise = null;
+      throw error;
+    }
   }
 
   if (contractsCache.value.length > 0 && contractsCache.expiresAt > now) {

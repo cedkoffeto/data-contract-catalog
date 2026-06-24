@@ -368,6 +368,13 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
       CREATE INDEX IF NOT EXISTS idx_change_requests_editor ON contract_change_requests(editor_id);
     `,
   },
+  {
+    id: "015_add_change_request_source",
+    sql: `
+      ALTER TABLE contract_change_requests
+      ADD COLUMN source TEXT NOT NULL DEFAULT 'app';
+    `,
+  },
 ];
 
 export async function runMigrations(): Promise<void> {

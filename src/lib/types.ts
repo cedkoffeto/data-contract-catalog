@@ -223,13 +223,14 @@ export type ContractChangeRequest = {
   editorId: string;
   yamlContent: string;
   originalSha: string;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "conflicted";
   gitlabMrId: number | null;
   gitlabMrUrl: string;
   rejectionReason: string;
   createdAt: string;
   resolvedAt: string | null;
   resolvedBy: string | null;
+  source: "app" | "external";
 };
 
 export type EditorRepositoryFile = {

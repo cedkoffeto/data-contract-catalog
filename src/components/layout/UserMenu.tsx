@@ -130,7 +130,15 @@ export function UserMenu({
           </button>
           <button
             className="site-nav-user__logout"
-            onClick={() => void signOut({ callbackUrl: "/login" })}
+            onClick={async () => {
+              try {
+                await signOut({ callbackUrl: "/login" });
+              } catch (e) {
+                console.error("[logout] signOut failed:", e);
+                // Fallback: force redirect to login
+                window.location.href = "/login";
+              }
+            }}
             role="menuitem"
             type="button"
           >

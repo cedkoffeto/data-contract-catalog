@@ -43,24 +43,37 @@ export function NotificationBell() {
 
   const subscribedSlugs = new Set(subscriptions.map((s) => s.contractSlug));
 
-  const fetchUnreadCount = useCallback(async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       const res = await fetch("/api/notifications");
-      if (!res.ok) return;
-      const data = (await res.json()) as { notifications: NotificationItem[] };
-      setNotifications(data.notifications);
-      const unread = data.notifications.filter((n) => !n.isRead).length;
-      setUnreadCount(unread);
+      if (res.ok) {
+        const data = (await res.json()) as { notifications: NotificationItem[] };
+        setNotifications(data.notifications);
+        setUnreadCount(data.notifications.filter((n) => !n.isRead).length);
+      }
+    } catch {
+      // silent
+    }
+  }, []);
+
+  const fetchSubscriptions = useCallback(async () => {
+    try {
+      const res = await fetch("/api/subscriptions");
+      if (res.ok) {
+        const data = (await res.json()) as { subscriptions: SubscriptionItem[] };
+        setSubscriptions(data.subscriptions);
+      }
     } catch {
       // silent
     }
   }, []);
 
   useEffect(() => {
-    fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 30_000);
+    fetchNotifications();
+    fetchSubscriptions();
+    const interval = setInterval(fetchNotifications, 30_000);
     return () => clearInterval(interval);
-  }, [fetchUnreadCount]);
+  }, [fetchNotifications, fetchSubscriptions]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -82,31 +95,12 @@ export function NotificationBell() {
 
   async function handleToggle() {
     if (!isOpen) {
-      setLoading(true);
+      setIsOpen(true);
       setShowSubscriptions(false);
       subsLoadedRef.current = false;
-      try {
-        const [notifRes, subRes] = await Promise.all([
-          fetch("/api/notifications"),
-          fetch("/api/subscriptions"),
-        ]);
-        if (notifRes.ok) {
-          const data = (await notifRes.json()) as { notifications: NotificationItem[] };
-          setNotifications(data.notifications);
-          const unread = data.notifications.filter((n) => !n.isRead).length;
-          setUnreadCount(unread);
-        }
-        if (subRes.ok) {
-          const data = (await subRes.json()) as { subscriptions: SubscriptionItem[] };
-          setSubscriptions(data.subscriptions);
-        }
-      } catch {
-        // silent
-      } finally {
-        setLoading(false);
-      }
+    } else {
+      setIsOpen(false);
     }
-    setIsOpen(!isOpen);
   }
 
   async function handleToggleRead(id: number, currentlyRead: boolean) {
@@ -143,16 +137,9 @@ export function NotificationBell() {
     if (subsLoadedRef.current) return;
     setLoading(true);
     try {
-      const [subRes, contractsRes] = await Promise.all([
-        fetch("/api/subscriptions"),
-        fetch("/api/contracts"),
-      ]);
-      if (subRes.ok) {
-        const data = (await subRes.json()) as { subscriptions: SubscriptionItem[] };
-        setSubscriptions(data.subscriptions);
-      }
-      if (contractsRes.ok) {
-        const data = (await contractsRes.json()) as { items: ContractItem[] };
+      const res = await fetch("/api/contracts");
+      if (res.ok) {
+        const data = (await res.json()) as { items: ContractItem[] };
         setContracts(data.items);
         subsLoadedRef.current = true;
       }
@@ -218,6 +205,9 @@ export function NotificationBell() {
       window.location.href = metadata.path;
     } else if (n.type === "mention" && contractSlug && commentId) {
       window.location.href = `/${contractSlug}#comment-${commentId}`;
+    } else if (n.type === "change_request_created") {
+      const changeRequestId = typeof metadata.changeRequestId === "number" ? metadata.changeRequestId : "";
+      window.location.href = `/admin?tab=changes${changeRequestId ? `&highlight=${changeRequestId}` : ""}`;
     } else if (contractSlug) {
       window.location.href = `/${contractSlug}`;
     }

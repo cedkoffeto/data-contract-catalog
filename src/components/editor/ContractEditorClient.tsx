@@ -1167,6 +1167,8 @@ export function ContractEditorClient({
         ? `Change request #${payload.changeRequest.id} submitted — MR: ${payload.changeRequest.gitlabMrUrl}`
         : "Change request submitted, pending review",
     );
+
+    setCommitModal(null);
   }
 
   async function handleCopy() {
@@ -1821,7 +1823,7 @@ export function ContractEditorClient({
                     disabled={hasBlockingErrors}
                     title={hasBlockingErrors ? "Fix validation errors before submitting" : "Submit contract"}
                   >
-                    Proposer la modification
+                    Soumettre la modification
                   </button>
                 </>
               ) : (

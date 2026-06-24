@@ -1,4 +1,4 @@
-import { execute, query } from "@/src/lib/db";
+import { insertReturning, execute, query } from "@/src/lib/db";
 import { getGitLabClient, getGitLabContractFilePath } from "@/src/lib/gitlab";
 import type { ContractChangeRequest } from "@/src/lib/types";
 import type { SqlValue } from "sql.js";
@@ -17,6 +17,7 @@ function toChangeRequest(row: Record<string, unknown>): ContractChangeRequest {
     createdAt: row.created_at as string,
     resolvedAt: row.resolved_at as string | null,
     resolvedBy: row.resolved_by as string | null,
+    source: (row.source as string) as "app" | "external",
   };
 }
 
@@ -27,14 +28,12 @@ export async function createChangeRequest(params: {
   originalSha: string;
   commitMessage?: string;
 }): Promise<ContractChangeRequest> {
-  await execute(
+  const rows = await insertReturning<Record<string, unknown>>(
     `INSERT INTO contract_change_requests (contract_slug, editor_id, yaml_content, original_sha)
-     VALUES (?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?) RETURNING *`,
     [params.contractSlug, params.editorId, params.yamlContent, params.originalSha],
   );
-  const rows = await query<Record<string, unknown>>(
-    "SELECT * FROM contract_change_requests WHERE id = last_insert_rowid()",
-  );
+  if (!rows[0]) throw new Error("Failed to create change request row");
   const cr = toChangeRequest(rows[0]);
 
   // Create GitLab branch, commit, and MR
@@ -43,6 +42,10 @@ export async function createChangeRequest(params: {
     const filePath = await getGitLabContractFilePath(cr.contractSlug);
     const branchName = `change-${cr.contractSlug}-${cr.id}`;
     const commitMsg = params.commitMessage || `Update contract ${cr.contractSlug} (change request #${cr.id})`;
+    const lines = commitMsg.split("\n");
+    const mrTitle = lines[0].slice(0, 255);
+    const mrBody = lines.slice(1).join("\n").trim();
+    const description = `Change request #${cr.id} by ${cr.editorId}${mrBody ? `\n\n${mrBody}` : ""}`;
 
     await api.Branches.create(config.projectId, branchName, config.ref);
 
@@ -58,8 +61,8 @@ export async function createChangeRequest(params: {
       config.projectId,
       branchName,
       config.ref,
-      commitMsg,
-      { description: `Change request #${cr.id} by ${cr.editorId}` },
+      mrTitle,
+      { description },
     );
 
     const mrId = mr.iid as number;
@@ -86,6 +89,30 @@ export async function createChangeRequest(params: {
     });
     return { ...cr, status: "rejected", rejectionReason: `MR creation failed: ${msg}` };
   }
+}
+
+export async function insertExternalChangeRequest(params: {
+  contractSlug: string;
+  editorId: string;
+  gitlabMrId: number;
+  gitlabMrUrl: string;
+  status: "approved" | "pending";
+}): Promise<ContractChangeRequest> {
+  const rows = await insertReturning<Record<string, unknown>>(
+    `INSERT INTO contract_change_requests (contract_slug, editor_id, yaml_content, original_sha, status, gitlab_mr_id, gitlab_mr_url, resolved_by, resolved_at, source)
+     VALUES (?, ?, '', '', ?, ?, ?, ?, ?, 'external') RETURNING *`,
+    [
+      params.contractSlug,
+      params.editorId,
+      params.status,
+      params.gitlabMrId,
+      params.gitlabMrUrl,
+      params.editorId,
+      new Date().toISOString(),
+    ],
+  );
+  if (!rows[0]) throw new Error("Failed to insert external change request");
+  return toChangeRequest(rows[0]);
 }
 
 export async function listChangeRequests(
@@ -176,7 +203,18 @@ export async function mergeChangeRequest(
     const msg = error instanceof Error ? error.message : "Unknown error during merge";
     const isConflict = msg.toLowerCase().includes("conflict") || msg.toLowerCase().includes("merge conflict");
     console.error("[change-requests] Merge failed:", msg);
-    return { success: false, error: isConflict ? "Conflit détecté, merci de merger manuellement sur GitLab" : msg };
+
+    if (isConflict) {
+      await updateChangeRequestStatus({
+        id,
+        status: "conflicted",
+        resolvedBy: resolverId,
+        rejectionReason: "Conflit détecté, merci de merger manuellement sur GitLab",
+      });
+      return { success: false, error: "Conflit détecté, merci de merger manuellement sur GitLab" };
+    }
+
+    return { success: false, error: msg };
   }
 }
 
