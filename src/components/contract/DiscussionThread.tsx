@@ -39,9 +39,9 @@ function renderBody(body: string, userMap?: Map<string, UserProfile>) {
     if (/^@[\p{L}\p{N}_.]+$/u.test(part)) {
       const userId = part.slice(1);
       const user = userMap?.get(userId);
-      const displayName = user ? `${user.firstName} ${user.lastName}` : part;
+      const displayName = user ? `@${user.firstName} ${user.lastName}` : part;
       return (
-        <span key={`${part}-${index}`} className="rounded bg-orange-50 px-1 font-semibold text-orange-700">
+        <span key={`${part}-${index}`} title={user ? user.userId : userId} className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-xs font-semibold text-orange-700">
           {displayName}
         </span>
       );
@@ -98,9 +98,9 @@ function parseCommentsToTree(flatComments: ContractComment[]): CommentNode[] {
   return roots;
 }
 
-function Avatar({ name }: { name: string }) {
+function Avatar({ name, displayName }: { name: string; displayName?: string }) {
   return (
-    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-100 text-xs font-bold text-orange-700">
+    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-100 text-xs font-bold text-orange-700" title={displayName || name}>
       {getInitials(name)}
     </div>
   );
@@ -126,6 +126,8 @@ function CommentItem({
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const userMap = useMemo(() => new Map(users.map((u) => [u.userId, u])), [users]);
+  const user = userMap.get(comment.userId);
+  const displayName = user ? `${user.firstName} ${user.lastName}` : comment.userId;
 
   const handleDelete = async () => {
     if (deleting || !onDelete) return;
@@ -138,18 +140,21 @@ function CommentItem({
     }
   };
 
+  const parentUserProfile = parentUser ? userMap.get(parentUser) : undefined;
+  const parentDisplayName = parentUserProfile ? `${parentUserProfile.firstName} ${parentUserProfile.lastName}` : parentUser;
+
   return (
     <div className="comment-item group/comment">
       <div className="comment-item__avatar">
-        <Avatar name={comment.userId} />
+        <Avatar name={displayName} displayName={displayName} />
       </div>
       <div className="comment-item__body" style={{ backgroundColor: "#f8fafc", borderRadius: 8, padding: "6px 8px" }}>
         <div className="comment-item__heading">
           <div className="flex items-center gap-2">
-            <strong>{comment.userId}</strong>
+            <strong>{displayName}</strong>
             {parentUser ? (
               <span className="meta">
-                In reply to <span className="font-medium text-gray-500">@{parentUser}</span>
+                In reply to <span className="font-medium text-gray-500">@{parentDisplayName}</span>
               </span>
             ) : null}
           </div>
@@ -437,9 +442,9 @@ function InlineReplyForm({
                         isActive ? "font-semibold text-orange-700" : "font-medium text-slate-900"
                       }`}
                     >
-                      {user.displayName}
+                      @{user.firstName} {user.lastName}
                     </span>
-                    <span className="block truncate text-xs text-slate-500">@{user.userId}</span>
+                    <span className="block truncate text-xs text-slate-500">{user.userId}</span>
                   </div>
                 </button>
               );
@@ -478,11 +483,13 @@ function IssueCard({
   canAdmin,
   onStatusChange,
   updatingId,
+  users,
 }: {
   issue: ContractIssue;
   canAdmin: boolean;
   onStatusChange: (issue: ContractIssue, status: ContractIssue["status"]) => void;
   updatingId: number | null;
+  users: UserProfile[];
 }) {
   const statusColors: Record<string, string> = {
     open: "bg-orange-50 text-orange-700 border-orange-200",
@@ -519,14 +526,18 @@ function IssueCard({
   };
 
 
+  const userMap = useMemo(() => new Map(users.map((u) => [u.userId, u])), [users]);
+  const user = userMap.get(issue.userId);
+  const displayName = user ? `${user.firstName} ${user.lastName}` : issue.userId;
+
   return (
     <div className="comment-item" style={{ paddingTop: "10px", paddingBottom: "10px" }}>
       <div className="comment-item__avatar">
-        <Avatar name={issue.userId} />
+        <Avatar name={displayName} displayName={displayName} />
       </div>
       <div className="comment-item__body" style={{ backgroundColor: "#fef2f2", borderRadius: 8, padding: "6px 8px" }}>
         <div className="comment-item__heading">
-          <strong>{issue.userId}</strong>
+          <strong>{displayName}</strong>
           <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-bold ${statusColors[issue.status]}`}>
             {statusIcons[issue.status]}
             {statusLabels[issue.status]}
@@ -1071,6 +1082,7 @@ export function DiscussionThread({
                   canAdmin={canAdmin}
                   onStatusChange={handleStatusChange}
                   updatingId={updatingId}
+                  users={users}
                 />
               </div>
             );
@@ -1170,9 +1182,9 @@ export function DiscussionThread({
                               isActive ? "font-semibold text-orange-700" : "font-medium text-slate-900"
                             }`}
                           >
-                            {user.displayName}
+                            @{user.firstName} {user.lastName}
                           </span>
-                          <span className="block truncate text-xs text-slate-500">@{user.userId}</span>
+                          <span className="block truncate text-xs text-slate-500">{user.userId}</span>
                         </div>
                       </button>
                     );

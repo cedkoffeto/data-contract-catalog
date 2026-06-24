@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { ContractComment, UserProfile } from "@/src/lib/types";
 import { t, tWith } from "@/src/lib/i18n";
@@ -24,13 +24,16 @@ function getInitials(name: string) {
   return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
 }
 
-function renderBody(body: string) {
-  const parts = body.split(/(@[A-Za-z0-9_.-]+)/g);
+function renderBody(body: string, userMap?: Map<string, UserProfile>) {
+  const parts = body.split(/(@[\p{L}\p{N}_.]+)/gu);
   return parts.map((part, index) => {
-    if (/^@[A-Za-z0-9_.-]+$/.test(part)) {
+    if (/^@[\p{L}\p{N}_.]+$/u.test(part)) {
+      const userId = part.slice(1);
+      const user = userMap?.get(userId);
+      const displayName = user ? `@${user.firstName} ${user.lastName}` : part;
       return (
-        <span key={`${part}-${index}`} className="rounded bg-blue-50 px-1 font-semibold text-blue-700">
-          {part}
+        <span key={`${part}-${index}`} title={user ? user.userId : userId} className="inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-xs font-semibold text-orange-700">
+          {displayName}
         </span>
       );
     }
@@ -42,24 +45,29 @@ function CommentBubble({
   comment,
   userId,
   onReply,
+  users,
 }: {
   comment: ContractComment;
   userId?: string;
   onReply: (comment: ContractComment) => void;
+  users: UserProfile[];
 }) {
+  const userMap = useMemo(() => new Map(users.map((u) => [u.userId, u])), [users]);
+  const user = userMap.get(comment.userId);
+  const displayName = user ? `${user.firstName} ${user.lastName}` : comment.userId;
   return (
     <article id={`comment-${comment.id}`} className="group rounded-2xl border border-gray-200 bg-white p-3 shadow-sm scroll-mt-24">
       <div className="flex gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-100 text-xs font-bold text-orange-700">
-          {getInitials(comment.userId)}
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-100 text-xs font-bold text-orange-700" title={displayName}>
+          {getInitials(displayName)}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-sm font-semibold text-gray-900">{comment.userId}</h3>
+            <h3 className="text-sm font-semibold text-gray-900">{displayName}</h3>
             <time className="text-xs text-gray-400">{formatDate(comment.createdAt)}</time>
           </div>
           <div className="mt-2 rounded-2xl border border-gray-100 bg-gray-50 px-3 py-2 text-sm leading-6 text-gray-700">
-            {renderBody(comment.body)}
+            {renderBody(comment.body, userMap)}
           </div>
           {comment.editedAt ? <p className="mt-1 text-xs text-gray-400">Edited</p> : null}
           {userId ? (
@@ -282,6 +290,7 @@ export function ContractComments({
               <CommentBubble
                 comment={comment}
                 userId={userId}
+                users={users}
                 onReply={(replyComment) => {
                   setReplyingTo(replyingTo?.id === replyComment.id ? null : replyComment);
                   setBody("");
@@ -293,6 +302,7 @@ export function ContractComments({
                   <CommentBubble
                     comment={reply}
                     userId={userId}
+                    users={users}
                     onReply={(replyComment) => {
                       setReplyingTo(replyingTo?.id === replyComment.id ? null : replyComment);
                       setBody("");
@@ -364,9 +374,9 @@ export function ContractComments({
                         {getInitials(user.displayName)}
                       </div>
                       <span className={`truncate ${isActive ? "font-semibold text-orange-700" : "font-medium text-gray-900"}`}>
-                        {user.displayName}
+                        @{user.firstName} {user.lastName}
                       </span>
-                      <span className="ml-auto shrink-0 truncate text-xs text-gray-400">@{user.userId}</span>
+                      <span className="ml-auto shrink-0 truncate text-xs text-gray-400">{user.userId}</span>
                     </button>
                   );
                 })}

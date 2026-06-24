@@ -13,7 +13,7 @@ import { getUserPermissions } from "@/src/lib/rbac";
 async function ensureCanReadContract(slug: string, userId: string) {
   const contract = await getContractBySlug(slug);
   if (!contract) {
-    return NextResponse.json({ error: "Contract not found" }, { status: 404 });
+    return NextResponse.json({ error: `Contract "${slug}" not found` }, { status: 404 });
   }
 
   const permissions = await getUserPermissions(userId);
@@ -73,8 +73,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
   const forbidden = await ensureCanReadContract(slug, userId);
   if (forbidden) return forbidden;
 
-  const body = (await request.json()) as { yamlContent?: string };
+  const body = (await request.json()) as { yamlContent?: string; message?: string };
   const yamlContent = body.yamlContent?.trim();
+  const commitMessage = body.message?.trim() || `Update contract ${slug}`;
 
   if (!yamlContent) {
     return NextResponse.json({ error: "yamlContent is required" }, { status: 400 });
@@ -96,6 +97,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     editorId: userId,
     yamlContent,
     originalSha,
+    commitMessage,
   });
 
   // Notify the editor about the created MR

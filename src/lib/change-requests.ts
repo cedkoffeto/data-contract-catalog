@@ -25,6 +25,7 @@ export async function createChangeRequest(params: {
   editorId: string;
   yamlContent: string;
   originalSha: string;
+  commitMessage?: string;
 }): Promise<ContractChangeRequest> {
   await execute(
     `INSERT INTO contract_change_requests (contract_slug, editor_id, yaml_content, original_sha)
@@ -41,6 +42,7 @@ export async function createChangeRequest(params: {
     const { api, config } = getGitLabClient();
     const filePath = await getGitLabContractFilePath(cr.contractSlug);
     const branchName = `change-${cr.contractSlug}-${cr.id}`;
+    const commitMsg = params.commitMessage || `Update contract ${cr.contractSlug} (change request #${cr.id})`;
 
     await api.Branches.create(config.projectId, branchName, config.ref);
 
@@ -49,14 +51,14 @@ export async function createChangeRequest(params: {
       filePath,
       branchName,
       cr.yamlContent,
-      `Update contract ${cr.contractSlug} (change request #${cr.id})`,
+      commitMsg,
     );
 
     const mr = await api.MergeRequests.create(
       config.projectId,
       branchName,
       config.ref,
-      `[Change Request #${cr.id}] Update ${cr.contractSlug}`,
+      commitMsg,
       { description: `Change request #${cr.id} by ${cr.editorId}` },
     );
 

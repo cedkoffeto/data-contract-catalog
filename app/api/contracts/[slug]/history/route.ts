@@ -33,7 +33,7 @@ export async function GET(_request: Request, context: { params: Promise<{ slug: 
   const contract = await getContractBySlug(slug);
 
   if (!contract) {
-    return NextResponse.json({ error: "Contract not found" }, { status: 404 });
+    return NextResponse.json({ error: `Contract "${slug}" not found` }, { status: 404 });
   }
 
   const session = await auth();

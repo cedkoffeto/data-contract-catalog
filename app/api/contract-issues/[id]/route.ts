@@ -31,7 +31,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const contract = await getContractBySlug(issue.contractSlug);
   if (!contract) {
-    return NextResponse.json({ error: "Contract not found" }, { status: 404 });
+    return NextResponse.json({ error: `Contract "${issue.contractSlug}" not found` }, { status: 404 });
   }
 
   const permissions = await getUserPermissions(userId);

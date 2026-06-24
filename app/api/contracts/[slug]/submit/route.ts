@@ -27,7 +27,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
 
     const contract = await getContractBySlug(slug);
     if (!contract) {
-      return NextResponse.json({ error: "Contract not found" }, { status: 404 });
+      return NextResponse.json({ error: `Contract "${slug}" not found` }, { status: 404 });
     }
 
     const globalPermissions = await getUserPermissions(userId);

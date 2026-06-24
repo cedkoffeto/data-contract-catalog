@@ -94,7 +94,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
 
   const { slug } = await params;
   const contract = await ensureCanRead(slug, userId);
-  if (!contract) return NextResponse.json({ error: "Contract not found" }, { status: 404 });
+  if (!contract) return NextResponse.json({ error: `Contract "${slug}" not found` }, { status: 404 });
 
   const url = new URL(request.url);
   const type = url.searchParams.get("type") ?? "csv";

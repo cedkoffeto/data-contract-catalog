@@ -72,6 +72,10 @@ export async function getEffectivePermissions(
   const cached = getCachedPermissions(key);
   if (cached) return cached;
 
+  const lcDomain = domain.toLowerCase().trim();
+  const lcContext = context.toLowerCase().trim();
+  const lcDataContract = dataContract?.toLowerCase().trim();
+
   const promise = query<AccessPolicyRow>(
     `SELECT DISTINCT p.name AS permission_name
      FROM access_policies ap
@@ -83,16 +87,16 @@ export async function getEffectivePermissions(
        )
      )
      AND (
-       (ap.domain_scope IS NULL AND ap.context_scope IS NULL AND ap.data_contract_scope IS NULL)               -- Level 1: Global
-       OR (ap.domain_scope = ? AND ap.context_scope IS NULL AND ap.data_contract_scope IS NULL)                -- Level 2: Domain-wide
-       OR (ap.domain_scope = ? AND ap.context_scope = ? AND ap.data_contract_scope IS NULL)                    -- Level 3: Context-specific
-        ${dataContract ? "OR (ap.domain_scope = ? AND ap.context_scope = ? AND ap.data_contract_scope = ?)" : ""}  -- Level 4: Contract-specific (full scope)
-        ${dataContract ? "OR (ap.domain_scope IS NULL AND ap.context_scope IS NULL AND ap.data_contract_scope = ?)" : ""}  -- Level 5: Contract-specific (slug only)
-        ${dataContract ? "OR (ap.domain_scope = ? AND ap.context_scope IS NULL AND ap.data_contract_scope = ?)" : ""}  -- Level 6: Domain + Contract
-      )`,
-    dataContract
-      ? [userId, userId, domain, domain, context, domain, context, dataContract, dataContract, domain, dataContract]
-      : [userId, userId, domain, domain, context],
+       (ap.domain_scope IS NULL AND ap.context_scope IS NULL AND ap.data_contract_scope IS NULL)                          -- Level 1: Global
+       OR (LOWER(ap.domain_scope) = ? AND ap.context_scope IS NULL AND ap.data_contract_scope IS NULL)                    -- Level 2: Domain-wide
+       OR (LOWER(ap.domain_scope) = ? AND LOWER(ap.context_scope) = ? AND ap.data_contract_scope IS NULL)                 -- Level 3: Context-specific
+        ${lcDataContract ? "OR (LOWER(ap.domain_scope) = ? AND LOWER(ap.context_scope) = ? AND LOWER(ap.data_contract_scope) = ?)" : ""}  -- Level 4: Contract-specific (full scope)
+        ${lcDataContract ? "OR (ap.domain_scope IS NULL AND ap.context_scope IS NULL AND LOWER(ap.data_contract_scope) = ?)" : ""}  -- Level 5: Contract-specific (slug only)
+        ${lcDataContract ? "OR (LOWER(ap.domain_scope) = ? AND ap.context_scope IS NULL AND LOWER(ap.data_contract_scope) = ?)" : ""}  -- Level 6: Domain + Contract
+     )`,
+    lcDataContract
+      ? [userId, userId, lcDomain, lcDomain, lcContext, lcDomain, lcContext, lcDataContract, lcDataContract, lcDomain, lcDataContract]
+      : [userId, userId, lcDomain, lcDomain, lcContext],
   ).then((rows: AccessPolicyRow[]) => {
     const names: PermissionName[] = rows.map((r) => r.permission_name as PermissionName);
     return names.includes("admin") ? (["admin"] as PermissionName[]) : names;

@@ -112,7 +112,7 @@ export function isGitLabConfigurationError(error: unknown) {
 export async function getGitLabContractFilePath(slug: string) {
   const contract = await getContractBySlug(slug);
   if (!contract) {
-    throw new Error("Contract not found");
+    throw new Error(`Contract "${slug}" not found`);
   }
 
   return contract.fullPath.replace(/\\/g, "/");

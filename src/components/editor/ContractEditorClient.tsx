@@ -1019,8 +1019,10 @@ export function ContractEditorClient({
     }
 
     let syncedFileMetadata: Pick<WorkspaceDocument, "name" | "path"> | null = null;
+    let parsedData: DataContract | null = null;
     try {
       const parsed = (yaml.load(value) as DataContract) ?? {};
+      parsedData = parsed;
       syncedFileMetadata = syncDocumentFileMetadata(selectedDocument, parsed);
     } catch {
       syncedFileMetadata = null;
@@ -1029,6 +1031,7 @@ export function ContractEditorClient({
     updateDocument((document) => ({
       ...document,
       content: value,
+      data: parsedData ?? document.data,
       ...(syncedFileMetadata ?? {}),
       isDirty: value !== document.originalContent,
       parseError: undefined
@@ -1126,17 +1129,17 @@ export function ContractEditorClient({
     const res = await fetch(`/api/contracts/${commitModal.contractSlug}/change-requests`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ yamlContent: selectedDocument.content }),
+      body: JSON.stringify({ yamlContent: selectedDocument.content, message }),
     });
 
-    const payload = (await res.json()) as { error?: string; changeRequest?: { id: number; gitlabMrUrl: string; status: string } };
+    const payload = (await res.json()) as { error?: string; changeRequest?: { id: number; gitlabMrUrl: string; status: string; rejectionReason?: string } };
 
     if (!res.ok) {
       throw new Error(payload.error ?? "Failed to create change request");
     }
 
     if (payload.changeRequest?.status === "rejected") {
-      throw new Error(payload.changeRequest.gitlabMrUrl || "Failed to create MR on GitLab");
+      throw new Error(payload.changeRequest.rejectionReason || "Failed to create MR on GitLab");
     }
 
     updateDocument((document) => ({
@@ -1414,7 +1417,7 @@ export function ContractEditorClient({
             </button>
 
             <div className="editor-topbar__title">
-              <div className="editor-breadcrumb">{selectedDocument.path}</div>
+              <div className="editor-breadcrumb" title={selectedDocument.path}>{selectedDocument.path}</div>
               <div className="editor-title-row">
                 {isContractDocument ? (
                   <input
@@ -1423,9 +1426,10 @@ export function ContractEditorClient({
                     onChange={(event) => handleContractNameChange(event.target.value)}
                     type="text"
                     value={selectedData.asset?.name ?? ""}
+                    title={selectedData.asset?.name ?? ""}
                   />
                 ) : (
-                  <h1 className="editor-title">{selectedDocument.name}</h1>
+                  <h1 className="editor-title" title={selectedDocument.name}>{selectedDocument.name}</h1>
                 )}
                 {selectedDocument.isDirty ? <span className="editor-inline-tag">Unsaved</span> : null}
               </div>

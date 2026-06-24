@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 import { DiffView } from "@/src/components/contract/diff/DiffView";
 import type { DiffResult } from "@/src/lib/diff";
@@ -72,6 +72,12 @@ Update data contract ${contractName} - ${date}`);
 
   const hasChanges = diff.unified.some((c) => c.type !== "unchanged");
 
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => setError(null), 15000);
+    return () => clearTimeout(timer);
+  }, [error]);
+
   return (
     <dialog ref={dialogRefCallback} className="yaml-sheet yaml-sheet--commit-centered" aria-labelledby={`commit-sheet-title-${id}`} onClose={handleDialogClose}>
       <form method="dialog" className="yaml-sheet__backdrop">
@@ -79,28 +85,30 @@ Update data contract ${contractName} - ${date}`);
       </form>
 
       <div className="yaml-sheet__panel yaml-sheet__panel--commit">
-        <div className="yaml-sheet__header">
-          <div>
-            <p className="yaml-sheet__eyebrow">Proposer une modification</p>
-            <h3 id={`commit-sheet-title-${id}`}>Proposer la modification</h3>
+          <div className="yaml-sheet__header">
+            <div className="yaml-sheet__header-row">
+              <div>
+                <p className="yaml-sheet__eyebrow">Proposer une modification</p>
+                <h3 id={`commit-sheet-title-${id}`}>Proposer la modification</h3>
+              </div>
+              <div className="yaml-sheet__header-actions">
+                <button className="editor-soft-button" disabled={saving} onClick={handleClose} type="button">
+                  Cancel
+                </button>
+                <button className="editor-primary-button" disabled={saving || !message.trim()} onClick={handleConfirm} type="button">
+                  {saving ? "Proposing..." : "Proposer"}
+                </button>
+              </div>
+            </div>
+            {error ? (
+              <div className="commit-modal__error" role="alert">
+                <span>{error}</span>
+                <button className="commit-modal__error-close" onClick={() => setError(null)} aria-label="Dismiss error" type="button">&times;</button>
+              </div>
+            ) : null}
           </div>
 
-          <div className="yaml-sheet__header-actions">
-            <button className="editor-soft-button" disabled={saving} onClick={handleClose} type="button">
-              Cancel
-            </button>
-            <button className="editor-soft-button" disabled={saving} onClick={generateMessage} type="button">
-              Generate
-            </button>
-            <button className="editor-primary-button" disabled={saving || !message.trim()} onClick={handleConfirm} type="button">
-              {saving ? "Proposing..." : "Proposer"}
-            </button>
-          </div>
-        </div>
-
-        <div className="yaml-sheet__body yaml-sheet__body--commit">
-          {error ? <p className="commit-modal__error" role="alert">{error}</p> : null}
-
+          <div className="yaml-sheet__body yaml-sheet__body--commit">
           {hasChanges ? (
             <DiffView
               diff={diff}
@@ -113,6 +121,9 @@ Update data contract ${contractName} - ${date}`);
 
           <label className="commit-modal__label" htmlFor={`commit-msg-${id}`}>
             Commit message
+            <button className="editor-soft-button" disabled={saving} onClick={generateMessage} type="button" style={{ marginLeft: "0.5rem", fontSize: "0.7rem", padding: "0.15rem 0.5rem" }}>
+              Generate
+            </button>
           </label>
           <textarea
             className="commit-modal__textarea"
