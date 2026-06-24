@@ -7,13 +7,21 @@ import type { DiffResult } from "@/src/lib/diff";
 
 export function CommitModal({
   defaultMessage,
+  contractSlug,
   contractName,
+  domain,
+  context,
+  userId,
   diff,
   onConfirm,
   onClose,
 }: {
   defaultMessage: string;
+  contractSlug: string;
   contractName: string;
+  domain: string;
+  context: string;
+  userId: string;
   diff: DiffResult;
   onConfirm: (message: string) => Promise<void>;
   onClose: () => void;
@@ -32,17 +40,29 @@ export function CommitModal({
   }, []);
 
   function generateMessage() {
-    const date = new Intl.DateTimeFormat("fr", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date());
+    const date = new Date().toISOString().replace("T", " ").replace(/\.\d+Z$/, "");
 
-    setMessage(`feat: update ${contractName}
+    const added = diff.structural.filter((c) => c.type === "added").length;
+    const removed = diff.structural.filter((c) => c.type === "removed").length;
+    const modified = diff.structural.filter((c) => c.type === "modified").length;
+    const total = added + removed + modified;
+    const counts = `${total} field${total > 1 ? "s" : ""} modified by user ${userId} in domain:${domain} / context:${context} / contrat:${contractSlug} - ${date}`;
 
-Update data contract ${contractName} - ${date}`);
+    const lines: string[] = [
+      `feat(${contractSlug}): update ${contractName}`,
+      "",
+      counts,
+    ];
+
+    if (diff.structural.length > 0) {
+      lines.push("");
+      for (const change of diff.structural) {
+        const icon = change.type === "added" ? "+" : change.type === "removed" ? "-" : "~";
+        lines.push(`${icon} ${change.path}`);
+      }
+    }
+
+    setMessage(lines.join("\n"));
   }
 
   function handleClose() {
@@ -95,7 +115,7 @@ Update data contract ${contractName} - ${date}`);
                 <button className="editor-soft-button" disabled={saving} onClick={handleClose} type="button">
                   Cancel
                 </button>
-                <button className="editor-primary-button" disabled={saving || !message.trim()} onClick={handleConfirm} type="button">
+                <button className="editor-primary-button" disabled={saving || message.trim().length < 3} onClick={handleConfirm} type="button">
                   {saving ? "Proposing..." : "Proposer"}
                 </button>
               </div>

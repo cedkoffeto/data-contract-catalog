@@ -73,6 +73,7 @@ export default async function ContractEditorRoutePage({
 
   return (
     <ContractEditorPage
+      userId={userId}
       data={draft}
       initialContractSlug={contractParam}
       repositoryFiles={repositoryFiles}

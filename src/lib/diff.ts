@@ -223,6 +223,29 @@ function flattenObjectKeys(obj: unknown, prefix = ""): string[] {
   return keys;
 }
 
+function filterStructuralChanges(changes: StructuralChange[]): StructuralChange[] {
+  return changes.filter((c) => {
+    if (c.type === "modified") {
+      // Hide modified parents that have any deeper change
+      return !changes.some(
+        (other) =>
+          other.path !== c.path &&
+          (other.path.startsWith(c.path + ".") || other.path.startsWith(c.path + "["))
+      );
+    }
+    if (c.type === "added" || c.type === "removed") {
+      // Hide deeper changes of same type if a shallower one exists
+      return !changes.some(
+        (other) =>
+          other.path !== c.path &&
+          other.type === c.type &&
+          (c.path.startsWith(other.path + ".") || c.path.startsWith(other.path + "["))
+      );
+    }
+    return true;
+  });
+}
+
 export function createStructuralDiff(base: Record<string, unknown>, next: Record<string, unknown>): StructuralChange[] {
   const changes: StructuralChange[] = [];
   const baseKeys = new Set(flattenObjectKeys(base));
@@ -242,7 +265,7 @@ export function createStructuralDiff(base: Record<string, unknown>, next: Record
     }
   }
 
-  return changes.sort((a, b) => a.path.localeCompare(b.path));
+  return filterStructuralChanges(changes).sort((a, b) => a.path.localeCompare(b.path));
 }
 
 export type WordDiffSegment = {

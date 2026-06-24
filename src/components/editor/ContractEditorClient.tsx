@@ -533,11 +533,13 @@ function FolderIcon() {
 }
 
 export function ContractEditorClient({
+  userId,
   initialContractSlug,
   initialData,
   repositoryFiles,
   schema
 }: {
+  userId: string;
   initialContractSlug?: string;
   initialData: DataContract;
   repositoryFiles: EditorRepositoryFile[];
@@ -554,7 +556,7 @@ export function ContractEditorClient({
   const [historyBySlug, setHistoryBySlug] = useState<Record<string, HistoryState>>({});
   const [historyVersionCache, setHistoryVersionCache] = useState<Record<string, string>>({});
   const [historyReloadToken, setHistoryReloadToken] = useState(0);
-  const [commitModal, setCommitModal] = useState<{ contractSlug: string; contractName: string; diff: DiffResult } | null>(null);
+  const [commitModal, setCommitModal] = useState<{ contractSlug: string; contractName: string; diff: DiffResult; domain: string; context: string; userId: string } | null>(null);
   const [historyActionState, setHistoryActionState] = useState<{ entryId: string | null; mode: "history" | "compare" | null }>({
     entryId: null,
     mode: null
@@ -1117,7 +1119,14 @@ export function ContractEditorClient({
       originalData as Record<string, unknown>,
       selectedDocument.data as unknown as Record<string, unknown>
     );
-    setCommitModal({ contractSlug: selectedDocument.contractSlug, contractName: selectedDocument.name, diff });
+    setCommitModal({
+      contractSlug: selectedDocument.contractSlug,
+      contractName: selectedDocument.name,
+      diff,
+      domain: selectedData.asset?.domain ?? "",
+      context: selectedData.asset?.context ?? "",
+      userId,
+    });
     setWorkspaceMessage("Review your changes before proposing");
   }
 
@@ -1868,7 +1877,11 @@ export function ContractEditorClient({
 
     {commitModal ? (
       <CommitModal
+        contractSlug={commitModal.contractSlug}
         contractName={commitModal.contractName}
+        domain={commitModal.domain}
+        context={commitModal.context}
+        userId={commitModal.userId}
         diff={commitModal.diff}
         defaultMessage={`feat: update ${commitModal.contractName}`}
         onClose={() => setCommitModal(null)}

@@ -2,12 +2,34 @@
 
 import { useMemo } from "react";
 
-import type { StructuralChange } from "@/src/lib/diff";
+import { computeWordDiff } from "@/src/lib/diff";
+import type { StructuralChange, WordDiffSegment } from "@/src/lib/diff";
 
 function formatValue(value: unknown): string {
   if (value === undefined) return "";
   if (typeof value === "string") return value;
   return JSON.stringify(value, null, 2);
+}
+
+function WordDiffView({ segments }: { segments: WordDiffSegment[] }) {
+  return (
+    <>
+      {segments.map((seg, i) => (
+        <span
+          key={i}
+          className={
+            seg.type === "added"
+              ? "diff-word-added"
+              : seg.type === "removed"
+                ? "diff-word-removed"
+                : undefined
+          }
+        >
+          {seg.text}
+        </span>
+      ))}
+    </>
+  );
 }
 
 export function DiffStructural({ changes }: { changes: StructuralChange[] }) {
@@ -44,7 +66,13 @@ export function DiffStructural({ changes }: { changes: StructuralChange[] }) {
               </tr>
             </thead>
             <tbody>
-              {items.map((change, index) => (
+              {items.map((change, index) => {
+                const oldText = typeof change.oldValue === "string" ? change.oldValue : formatValue(change.oldValue);
+                const newText = typeof change.newValue === "string" ? change.newValue : formatValue(change.newValue);
+                const wordDiff = change.type === "modified" && typeof change.oldValue === "string" && typeof change.newValue === "string"
+                  ? computeWordDiff(change.oldValue, change.newValue)
+                  : null;
+                return (
                 <tr key={index} className={`diff-structural__row diff-structural__row--${change.type}`}>
                   <td className="diff-structural__path">
                     <code>{change.path}</code>
@@ -54,14 +82,15 @@ export function DiffStructural({ changes }: { changes: StructuralChange[] }) {
                       {change.type === "added" ? "Added" : change.type === "removed" ? "Removed" : "Modified"}
                     </span>
                   </td>
-                  <td className="diff-structural__value diff-structural__value--old">
-                    <pre>{formatValue(change.oldValue)}</pre>
+                  <td className={`diff-structural__value diff-structural__value--old ${change.type === "removed" && !wordDiff ? "diff-structural__value--removed" : ""}`}>
+                    <pre>{wordDiff ? <WordDiffView segments={wordDiff[0]} /> : change.type !== "added" ? oldText : ""}</pre>
                   </td>
-                  <td className="diff-structural__value diff-structural__value--new">
-                    <pre>{formatValue(change.newValue)}</pre>
+                  <td className={`diff-structural__value diff-structural__value--new ${change.type === "added" && !wordDiff ? "diff-structural__value--added" : ""}`}>
+                    <pre>{wordDiff ? <WordDiffView segments={wordDiff[1]} /> : change.type !== "removed" ? newText : ""}</pre>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

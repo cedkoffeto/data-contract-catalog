@@ -4427,6 +4427,31 @@ body[data-ra-modal] [data-ra-overlay] {
   color: #16a34a;
 }
 
+.diff-structural__value--added pre {
+  background: rgba(22, 163, 74, 0.1);
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+
+.diff-structural__value--removed pre {
+  background: rgba(220, 38, 38, 0.1);
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+
+.diff-word-added {
+  background: rgba(22, 163, 74, 0.25);
+  border-radius: 3px;
+  padding: 1px 2px;
+}
+
+.diff-word-removed {
+  background: rgba(220, 38, 38, 0.25);
+  border-radius: 3px;
+  padding: 1px 2px;
+  text-decoration: line-through;
+}
+
 .diff-empty {
   padding: 2rem;
   text-align: center;
