@@ -319,6 +319,11 @@ a {
   cursor: not-allowed;
 }
 
+.editor-primary-button:disabled,
+.editor-soft-button:disabled {
+  cursor: default;
+}
+
 .site-nav-user {
   position: relative;
   display: inline-flex;

@@ -28,7 +28,7 @@ export function CommitModal({
 }) {
   const id = useId().replace(/:/g, "");
   const dialogRef = useRef<HTMLDialogElement | null>(null);
-  const [message, setMessage] = useState(defaultMessage);
+  const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
