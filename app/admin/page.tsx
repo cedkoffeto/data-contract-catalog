@@ -346,7 +346,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId }: { highlightI
         ) : null}
         {filtered.length === 0 ? (
           <div className="rounded-lg border bg-white py-8 text-center text-sm text-gray-400">{requests.length === 0 ? "No change requests yet." : "No change requests match your filter."}</div>
-        ) : (
+        ) : (<>
           <div className="overflow-x-auto rounded-lg border shadow-lg">
             <table className="min-w-full divide-y divide-gray-200 bg-white text-xs">
               <thead className="bg-gray-50">
@@ -473,7 +473,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId }: { highlightI
               </div>
             )}
           </div>
-        )}
+          </>)}
       </div>
 
       {rejectingId !== null ? (
@@ -775,7 +775,7 @@ function AccessRequestsSection() {
       </div>
       {filtered.length === 0 ? (
         <div className="rounded-lg border bg-white py-8 text-center text-sm text-gray-400">{requests.length === 0 ? "No access requests yet." : "No access requests match your filter."}</div>
-      ) : (
+      ) : (<>
         <div className="overflow-x-auto rounded-lg border shadow-lg">
           <table className="min-w-full divide-y divide-gray-200 bg-white text-xs">
             <thead className="bg-gray-50">
@@ -793,7 +793,7 @@ function AccessRequestsSection() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {filtered.map((r) => (
+              {paginated.map((r) => (
                 <tr key={r.id}>
                   <td className="px-3 py-2 text-xs text-gray-500">#{r.id}</td>
                   <td className="px-3 py-2 font-mono text-xs text-gray-900">{r.user_id}</td>
@@ -823,7 +823,43 @@ function AccessRequestsSection() {
             </tbody>
           </table>
         </div>
-      )}
+        <div className="mt-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-400">Show</span>
+            <select
+              value={pageSize}
+              onChange={(e) => { setPageSize(Number(e.target.value)); setPage(0); }}
+              className="rounded-md border bg-white px-2 py-1 text-xs text-gray-700"
+            >
+              {[10, 100, 1000].map((n) => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+            <span className="text-xs text-gray-400">entries</span>
+          </div>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={safePage === 0}
+                className="rounded-md px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+              >
+                Previous
+              </button>
+              <span className="text-xs text-gray-400">
+                Page {safePage + 1} of {totalPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                disabled={safePage >= totalPages - 1}
+                className="rounded-md px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </div>
+        </>)}
     </div>
   );
 }
