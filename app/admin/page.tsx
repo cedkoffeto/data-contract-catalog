@@ -493,6 +493,7 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
 
   return (
     <div>
+      <h2 className="mb-3 text-base font-semibold text-gray-900">Audit Logs</h2>
       <div className="mb-3 flex items-center gap-3">
         <input
           className="flex-1 rounded-md border bg-white px-2 py-1.5 text-xs text-gray-900"
