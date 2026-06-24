@@ -240,9 +240,11 @@ function ChangeRequestsSection({ highlightId: initialHighlightId }: { highlightI
       )
     )
     .sort((a, b) => {
-      const aVal = String(a[sortKey as keyof typeof a] ?? "");
-      const bVal = String(b[sortKey as keyof typeof b] ?? "");
-      const cmp = aVal.localeCompare(bVal);
+      const aVal = a[sortKey as keyof typeof a];
+      const bVal = b[sortKey as keyof typeof b];
+      const cmp = typeof aVal === "number" && typeof bVal === "number"
+        ? aVal - bVal
+        : String(aVal ?? "").localeCompare(String(bVal ?? ""));
       return sortDir === "asc" ? cmp : -cmp;
     });
 
@@ -316,7 +318,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId }: { highlightI
             style={{ backgroundColor: "rgba(249,115,22,0.08)", color: "var(--ui-text-soft)" }}
           >
             <svg viewBox="0 0 16 16" fill="currentColor" width="13" height="13" aria-hidden="true" style={{ color: "#f97316" }}><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 1.5a5.5 5.5 0 110 11 5.5 5.5 0 010-11zM7.25 4v4.5l3.75 1.75.5-.87L8.25 8V4h-1z"/></svg>
-            {syncing ? "Syncing\u2026" : "Sync MRs with Git"}
+            {syncing ? "Syncing" : "Sync MRs with Git"}
           </button>
         </div>
         <div className="mb-3 flex items-center gap-3">
@@ -324,7 +326,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId }: { highlightI
             className="flex-1 rounded-md border bg-white px-2 py-1.5 text-xs text-gray-900"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Filter by contract, editor, status\u2026"
+            placeholder="Filter by contract, editor, status"
           />
           <span className="whitespace-nowrap text-xs text-gray-400">
             {filtered.length} / {requests.length}
@@ -343,8 +345,15 @@ function ChangeRequestsSection({ highlightId: initialHighlightId }: { highlightI
             <table className="min-w-full divide-y divide-gray-200 bg-white text-xs">
               <thead className="bg-gray-50">
                 <tr>
-                  {["ID", "Contract", "Editor", "Status", "Source", "MR URL", "Rejection", "Created", "Actions"].map((label) => (
-                    <th key={label} className="px-3 py-2 text-left text-xs font-semibold text-gray-500">{label}</th>
+                  {[{ label: "ID", key: "id" }, { label: "Contract", key: "contractSlug" }, { label: "Editor", key: "editorId" }, { label: "Status", key: "status" }, { label: "Source", key: "source" }, { label: "MR URL", key: "gitlabMrUrl" }, { label: "Rejection", key: "rejectionReason" }, { label: "Created", key: "createdAt" }, { label: "Actions", key: null }].map(({ label, key }) => (
+                    <th key={label} className={`px-3 py-2 text-left text-xs font-semibold text-gray-500 ${key ? "cursor-pointer select-none hover:bg-gray-100" : ""}`} onClick={() => key && toggleSort(key)}>
+                      <span className="inline-flex items-center gap-1">
+                        {label}
+                        {key && sortKey === key && (
+                          <svg viewBox="0 0 16 16" fill="currentColor" width="10" height="10" className={sortDir === "asc" ? "" : "rotate-180"}><path d="M8 2l5 6H3l5-6z"/></svg>
+                        )}
+                      </span>
+                    </th>
                   ))}
                 </tr>
               </thead>
@@ -395,7 +404,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId }: { highlightI
                             className="inline-flex items-center gap-1 rounded bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-700 hover:bg-green-100 disabled:opacity-50"
                           >
                             <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12" aria-hidden="true"><path d="M7.5 2v5.5H2v1h5.5V13h1V8.5H14v-1H8.5V2h-1z"/></svg>
-                            {actionLoading[r.id] === "merge" ? "Merging\u2026" : "Merge"}
+                            {actionLoading[r.id] === "merge" ? "Merging" : "Merge"}
                           </button>
                           <button
                             onClick={() => { setRejectingId(r.id); setRejectReason(""); }}
@@ -403,7 +412,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId }: { highlightI
                             className="inline-flex items-center gap-1 rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
                           >
                             <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12" aria-hidden="true"><path d="M2 7.5h12v1H2v-1z"/></svg>
-                            {actionLoading[r.id] === "reject" ? "Rejecting\u2026" : "Reject"}
+                            {actionLoading[r.id] === "reject" ? "Rejecting" : "Reject"}
                           </button>
                         </div>
                       ) : r.status === "conflicted" && r.gitlabMrUrl ? (
@@ -479,7 +488,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId }: { highlightI
                 className="rounded px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
                 style={{ backgroundColor: "var(--ui-primary)" }}
               >
-                {actionLoading[rejectingId] === "reject" ? "Rejecting\u2026" : "Reject"}
+                {actionLoading[rejectingId] === "reject" ? "Rejecting" : "Reject"}
               </button>
             </div>
           </div>
@@ -535,7 +544,7 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
           className="flex-1 rounded-md border bg-white px-2 py-1.5 text-xs text-gray-900"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-          placeholder="Filter by action, actor or target\u2026"
+          placeholder="Filter by action, actor or target"
         />
         <span className="whitespace-nowrap text-xs text-gray-400">
           {sorted.length} entries
@@ -629,6 +638,18 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
 
 function AccessRequestsSection() {
   const [requests, setRequests] = useState<Array<{ id: number; user_id: string; domain: string; context: string; data_contract: string; requested_permission: "reader" | "editor"; message: string; status: string; created_at: string }>>([]);
+  const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState("created_at");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  function toggleSort(key: string) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  }
 
   const fetchRequests = useCallback(async () => {
     try {
@@ -657,25 +678,58 @@ function AccessRequestsSection() {
 
   const pending = requests.filter((r) => r.status === "pending");
 
+  const filtered = requests
+    .filter((r) =>
+      [r.user_id, r.domain, r.context, r.data_contract, r.requested_permission, r.status].some((v) =>
+        v.toLowerCase().includes(search.toLowerCase())
+      )
+    )
+    .sort((a, b) => {
+      const aVal = a[sortKey as keyof typeof a];
+      const bVal = b[sortKey as keyof typeof b];
+      const cmp = typeof aVal === "number" && typeof bVal === "number"
+        ? aVal - bVal
+        : String(aVal ?? "").localeCompare(String(bVal ?? ""));
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+
   return (
     <div>
       <h2 className="mb-3 text-base font-semibold text-gray-900">
         Access Requests {pending.length > 0 && <span className="text-sm font-normal text-gray-400">({pending.length} pending)</span>}
       </h2>
-      {requests.length === 0 ? (
-        <div className="rounded-lg border bg-white py-8 text-center text-sm text-gray-400">No access requests yet.</div>
+      <div className="mb-3 flex items-center gap-3">
+        <input
+          className="flex-1 rounded-md border bg-white px-2 py-1.5 text-xs text-gray-900"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Filter by user, domain, contract, status"
+        />
+        <span className="whitespace-nowrap text-xs text-gray-400">
+          {filtered.length} / {requests.length}
+        </span>
+      </div>
+      {filtered.length === 0 ? (
+        <div className="rounded-lg border bg-white py-8 text-center text-sm text-gray-400">{requests.length === 0 ? "No access requests yet." : "No access requests match your filter."}</div>
       ) : (
         <div className="overflow-x-auto rounded-lg border shadow-lg">
           <table className="min-w-full divide-y divide-gray-200 bg-white text-xs">
             <thead className="bg-gray-50">
               <tr>
-                {["ID", "User", "Domain", "Context", "Contract", "Permission", "Message", "Status", "Actions"].map((label) => (
-                  <th key={label} className="px-3 py-2 text-left text-xs font-semibold text-gray-500">{label}</th>
+                {[{ label: "ID", key: "id" }, { label: "User", key: "user_id" }, { label: "Domain", key: "domain" }, { label: "Context", key: "context" }, { label: "Contract", key: "data_contract" }, { label: "Permission", key: "requested_permission" }, { label: "Message", key: null }, { label: "Status", key: "status" }, { label: "Actions", key: null }].map(({ label, key }) => (
+                  <th key={label} className={`px-3 py-2 text-left text-xs font-semibold text-gray-500 ${key ? "cursor-pointer select-none hover:bg-gray-100" : ""}`} onClick={() => key && toggleSort(key)}>
+                    <span className="inline-flex items-center gap-1">
+                      {label}
+                      {key && sortKey === key && (
+                        <svg viewBox="0 0 16 16" fill="currentColor" width="10" height="10" className={sortDir === "asc" ? "" : "rotate-180"}><path d="M8 2l5 6H3l5-6z"/></svg>
+                      )}
+                    </span>
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {requests.map((r) => (
+              {filtered.map((r) => (
                 <tr key={r.id}>
                   <td className="px-3 py-2 text-xs text-gray-500">#{r.id}</td>
                   <td className="px-3 py-2 font-mono text-xs text-gray-900">{r.user_id}</td>
