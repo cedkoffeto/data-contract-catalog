@@ -80,6 +80,8 @@ export default function AdminDashboard() {
     return "access";
   });
   const highlightId = searchParams?.get("highlight") ? Number(searchParams.get("highlight")) : null;
+  const [pendingAccess, setPendingAccess] = useState(0);
+  const [pendingChanges, setPendingChanges] = useState(0);
 
   const fetchData = useCallback(async () => {
     try {
@@ -135,6 +137,7 @@ export default function AdminDashboard() {
               ? "polygon(8% 0, 100% 0, 100% 100%, 0 100%)"
               : "polygon(8% 0, 100% 0, 92% 100%, 0 100%)";
           const labels = { access: "Access Requests", changes: "Change Requests", audit: "Audit Logs" };
+          const pendingCounts = { access: pendingAccess, changes: pendingChanges, audit: 0 };
           return (
             <button
               key={tab}
@@ -152,21 +155,26 @@ export default function AdminDashboard() {
               }}
             >
               {labels[tab]}
+              {pendingCounts[tab] > 0 && (
+                <span className="ml-1 inline-flex items-center justify-center rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-bold" style={{ color: isActive ? "#fff" : "#f97316", backgroundColor: isActive ? "rgba(255,255,255,0.2)" : "rgba(249,115,22,0.12)" }}>
+                  {pendingCounts[tab]}
+                </span>
+              )}
             </button>
           );
         })}
       </div>
 
       <div className="grid grid-cols-1">
-        <div className={`col-start-1 row-start-1 ${activeTab !== "access" ? "invisible" : ""}`} aria-hidden={activeTab !== "access"}><AccessRequestsSection /></div>
-        <div className={`col-start-1 row-start-1 ${activeTab !== "changes" ? "invisible" : ""}`} aria-hidden={activeTab !== "changes"}><ChangeRequestsSection highlightId={highlightId} /></div>
+        <div className={`col-start-1 row-start-1 ${activeTab !== "access" ? "invisible" : ""}`} aria-hidden={activeTab !== "access"}><AccessRequestsSection onPendingCount={setPendingAccess} /></div>
+        <div className={`col-start-1 row-start-1 ${activeTab !== "changes" ? "invisible" : ""}`} aria-hidden={activeTab !== "changes"}><ChangeRequestsSection highlightId={highlightId} onPendingCount={setPendingChanges} /></div>
         <div className={`col-start-1 row-start-1 ${activeTab !== "audit" ? "invisible" : ""}`} aria-hidden={activeTab !== "audit"}><AuditLogSection logs={data?.recentLogs ?? []} /></div>
       </div>
     </div>
   );
 }
 
-function ChangeRequestsSection({ highlightId: initialHighlightId }: { highlightId: number | null }) {
+function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount }: { highlightId: number | null; onPendingCount: (n: number) => void }) {
   const [highlightedId, setHighlightedId] = useState(initialHighlightId);
 
   useEffect(() => {
@@ -215,6 +223,10 @@ function ChangeRequestsSection({ highlightId: initialHighlightId }: { highlightI
   useEffect(() => {
     fetchRequests();
   }, [fetchRequests]);
+
+  useEffect(() => {
+    onPendingCount(requests.filter((r) => r.status === "pending").length);
+  }, [requests, onPendingCount]);
 
   useEffect(() => {
     if (rejectingId === null) return;
@@ -693,7 +705,7 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
   );
 }
 
-function AccessRequestsSection() {
+function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number) => void }) {
   const [requests, setRequests] = useState<Array<{ id: number; user_id: string; domain: string; context: string; data_contract: string; requested_permission: "reader" | "editor"; message: string; status: string; created_at: string }>>([]);
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState("created_at");
@@ -720,6 +732,10 @@ function AccessRequestsSection() {
   useEffect(() => {
     fetchRequests();
   }, [fetchRequests]);
+
+  useEffect(() => {
+    onPendingCount(requests.filter((r) => r.status === "pending").length);
+  }, [requests, onPendingCount]);
 
   async function handleStatus(id: number, status: string) {
     try {
