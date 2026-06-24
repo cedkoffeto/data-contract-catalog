@@ -636,18 +636,6 @@ a {
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 0.5rem;
-}
-
-a:has(> .kpi-card) {
-  text-decoration: none;
-  color: inherit;
-  display: block;
-}
-
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
 }
 
@@ -685,16 +673,16 @@ a:has(> .kpi-card) {
 
 .kpi-card__value {
   margin: 0.15rem 0 0;
-  font-size: 13rem;
-  font-weight: 950;
+  font-size: 2rem;
+  font-weight: 900;
   color: var(--ui-text);
-  letter-spacing: -0.04em;
-  line-height: 1;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
 }
 
 .kpi-card__icon {
-  width: 2rem;
-  height: 2rem;
+  width: 1.5rem;
+  height: 1.5rem;
   color: #cbd5e1;
   flex-shrink: 0;
 }
