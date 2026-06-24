@@ -105,8 +105,8 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border bg-white p-6">
-        <h2 className="mb-4 text-base font-semibold text-gray-900">Key Metrics</h2>
+      <div className="rounded-lg border bg-white p-3">
+        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">Key Metrics</h2>
         <div className="kpi-grid">
           {cards.map((c) => {
             const inner = (
@@ -197,6 +197,8 @@ function ChangeRequestsSection({ highlightId: initialHighlightId }: { highlightI
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
     if (mergeError === null) return;
@@ -247,6 +249,10 @@ function ChangeRequestsSection({ highlightId: initialHighlightId }: { highlightI
         : String(aVal ?? "").localeCompare(String(bVal ?? ""));
       return sortDir === "asc" ? cmp : -cmp;
     });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(page, totalPages - 1);
+  const paginated = filtered.slice(safePage * pageSize, (safePage + 1) * pageSize);
 
   async function handleSyncWithGit() {
     setSyncing(true);
@@ -325,7 +331,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId }: { highlightI
           <input
             className="flex-1 rounded-md border bg-white px-2 py-1.5 text-xs text-gray-900"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(0); }}
             placeholder="Filter by contract, editor, status"
           />
           <span className="whitespace-nowrap text-xs text-gray-400">
@@ -358,7 +364,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId }: { highlightI
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filtered.map((r) => (
+                {paginated.map((r) => (
                   <tr key={r.id} className={r.id === highlightedId ? "bg-orange-50 ring-2 ring-orange-400" : ""}>
                     <td className="px-3 py-2 text-xs text-gray-500">#{r.id}</td>
                     <td className="px-3 py-2 font-mono text-xs text-gray-900">{r.contractSlug}</td>
@@ -430,6 +436,42 @@ function ChangeRequestsSection({ highlightId: initialHighlightId }: { highlightI
                 ))}
               </tbody>
             </table>
+          </div>
+          <div className="mt-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-400">Show</span>
+              <select
+                value={pageSize}
+                onChange={(e) => { setPageSize(Number(e.target.value)); setPage(0); }}
+                className="rounded-md border bg-white px-2 py-1 text-xs text-gray-700"
+              >
+                {[10, 100, 1000].map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+              <span className="text-xs text-gray-400">entries</span>
+            </div>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={safePage === 0}
+                  className="rounded-md px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+                >
+                  Previous
+                </button>
+                <span className="text-xs text-gray-400">
+                  Page {safePage + 1} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                  disabled={safePage >= totalPages - 1}
+                  className="rounded-md px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -657,6 +699,8 @@ function AccessRequestsSection() {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
 
   function toggleSort(key: string) {
     if (sortKey === key) {
@@ -709,6 +753,10 @@ function AccessRequestsSection() {
       return sortDir === "asc" ? cmp : -cmp;
     });
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(page, totalPages - 1);
+  const paginated = filtered.slice(safePage * pageSize, (safePage + 1) * pageSize);
+
   return (
     <div>
       <h2 className="mb-3 text-base font-semibold text-gray-900">
@@ -718,7 +766,7 @@ function AccessRequestsSection() {
         <input
           className="flex-1 rounded-md border bg-white px-2 py-1.5 text-xs text-gray-900"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); setPage(0); }}
           placeholder="Filter by user, domain, contract, status"
         />
         <span className="whitespace-nowrap text-xs text-gray-400">
