@@ -3927,6 +3927,11 @@ body[data-ra-modal] [data-ra-overlay] {
   cursor: not-allowed;
 }
 
+.commit-modal__label-generate svg {
+  display: inline;
+  flex-shrink: 0;
+}
+
 .commit-modal__textarea {
   display: block;
   width: 100%;
