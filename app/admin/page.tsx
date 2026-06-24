@@ -346,7 +346,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId }: { highlightI
               <thead className="bg-gray-50">
                 <tr>
                   {[{ label: "ID", key: "id" }, { label: "Contract", key: "contractSlug" }, { label: "Editor", key: "editorId" }, { label: "Status", key: "status" }, { label: "Source", key: "source" }, { label: "MR URL", key: "gitlabMrUrl" }, { label: "Rejection", key: "rejectionReason" }, { label: "Created", key: "createdAt" }, { label: "Actions", key: null }].map(({ label, key }) => (
-                    <th key={label} className={`px-3 py-2 text-left text-xs font-semibold text-gray-500 ${key ? "cursor-pointer select-none hover:bg-gray-100" : ""}`} onClick={() => key && toggleSort(key)}>
+                    <th key={label} className={`px-3 py-2 text-left text-xs font-semibold text-gray-500 ${label === "MR URL" ? "whitespace-nowrap " : ""}${key ? "cursor-pointer select-none hover:bg-gray-100" : ""}`} onClick={() => key && toggleSort(key)}>
                       <span className="inline-flex items-center gap-1">
                         {label}
                         {key && sortKey === key && (
@@ -566,8 +566,12 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
                         onClick={() => toggleSort(key)}
                         className="cursor-pointer select-none px-3 py-2 text-left text-xs font-semibold text-gray-500 hover:text-gray-700"
                       >
-                        {labels[key]}
-                        {sortKey === key ? (sortDir === "asc" ? " \u25b2" : " \u25bc") : ""}
+                        <span className="inline-flex items-center gap-1">
+                          {labels[key]}
+                          {sortKey === key && (
+                            <svg viewBox="0 0 16 16" fill="currentColor" width="10" height="10" className={sortDir === "asc" ? "" : "rotate-180"}><path d="M8 2l5 6H3l5-6z"/></svg>
+                          )}
+                        </span>
                       </th>
                     );
                   })}
