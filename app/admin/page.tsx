@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 function StatusIcon({ status }: { status: string }) {
@@ -505,6 +505,9 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+  const [expandedIds, setExpandedIds] = useState<Record<number, boolean>>({});
+
+  const toggleExpand = (id: number) => setExpandedIds((prev) => ({ ...prev, [id]: !prev[id] }));
 
   useEffect(() => {
     setLogs(initialLogs);
@@ -579,21 +582,30 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {paginated.map((log) => (
-                  <tr key={log.id}>
-                    <td className="whitespace-nowrap px-3 py-2 text-gray-600">
-                      {new Date(log.created_at).toLocaleString()}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-2">
-                      <ActionBadge action={log.action} />
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-gray-600">{log.actor_id}</td>
-                    <td className="whitespace-nowrap px-3 py-2 text-gray-600">
-                      <span className="text-gray-400">{log.target_type}:</span> {log.target_id}
-                    </td>
-                    <td className="max-w-[200px] truncate px-3 py-2 font-mono text-xs text-gray-500">
-                      {log.details && log.details !== "{}" ? log.details : "\u2014"}
-                    </td>
-                  </tr>
+                  <Fragment key={log.id}>
+                    <tr className="cursor-pointer" onClick={() => toggleExpand(log.id)}>
+                      <td className="whitespace-nowrap px-3 py-2 text-gray-600">
+                        {new Date(log.created_at).toLocaleString()}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2">
+                        <ActionBadge action={log.action} />
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2 text-gray-600">{log.actor_id}</td>
+                      <td className="whitespace-nowrap px-3 py-2 text-gray-600">
+                        <span className="text-gray-400">{log.target_type}:</span> {log.target_id}
+                      </td>
+                      <td className="max-w-[200px] truncate px-3 py-2 font-mono text-xs text-gray-500">
+                        {log.details && log.details !== "{}" ? log.details : "\u2014"}
+                      </td>
+                    </tr>
+                    {expandedIds[log.id] && (
+                      <tr className="bg-gray-50">
+                        <td colSpan={5} className="px-4 py-3 font-mono text-xs text-gray-700 whitespace-pre-wrap break-words leading-relaxed">
+                          {log.details && log.details !== "{}" ? log.details : "\u2014"}
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>
