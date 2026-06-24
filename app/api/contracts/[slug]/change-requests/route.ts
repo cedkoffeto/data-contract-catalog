@@ -60,57 +60,69 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
-  const unauthorized = await requireApiAuth();
-  if (unauthorized) return unauthorized;
-
-  const session = await auth();
-  const userId = session?.user?.name;
-  if (!userId) {
-    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-  }
-
-  const { slug } = await params;
-  const forbidden = await ensureCanReadContract(slug, userId);
-  if (forbidden) return forbidden;
-
-  const body = (await request.json()) as { yamlContent?: string; message?: string };
-  const yamlContent = body.yamlContent?.trim();
-  const commitMessage = body.message?.trim() || `Update contract ${slug}`;
-
-  if (!yamlContent) {
-    return NextResponse.json({ error: "yamlContent is required" }, { status: 400 });
-  }
-
-  if (yamlContent.length > 500000) {
-    return NextResponse.json({ error: "yamlContent too large" }, { status: 400 });
-  }
-
-  let originalSha: string;
   try {
-    originalSha = await getGitLabFileLastCommitSha(slug);
-  } catch {
-    originalSha = "";
-  }
+    const unauthorized = await requireApiAuth();
+    if (unauthorized) return unauthorized;
 
-  const cr = await createChangeRequest({
-    contractSlug: slug,
-    editorId: userId,
-    yamlContent,
-    originalSha,
-    commitMessage,
-  });
+    const session = await auth();
+    const userId = session?.user?.name;
+    if (!userId) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
 
-  // Notify the editor about the created MR
-  if (cr.status === "pending" && cr.gitlabMrUrl) {
-    await createNotification({
-      userId: cr.editorId,
-      contractSlug: cr.contractSlug,
-      type: "change_request_created",
-      title: "Change request submitted",
-      message: `Your change request #${cr.id} for ${cr.contractSlug} has been submitted. Merge request: ${cr.gitlabMrUrl}`,
-      metadata: { changeRequestId: cr.id, gitlabMrUrl: cr.gitlabMrUrl },
+    const { slug } = await params;
+    const forbidden = await ensureCanReadContract(slug, userId);
+    if (forbidden) return forbidden;
+
+    let body: { yamlContent?: string; message?: string };
+    try {
+      body = (await request.json()) as { yamlContent?: string; message?: string };
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+
+    const yamlContent = body.yamlContent?.trim();
+    const commitMessage = body.message?.trim() || `Update contract ${slug}`;
+
+    if (!yamlContent) {
+      return NextResponse.json({ error: "yamlContent is required" }, { status: 400 });
+    }
+
+    if (yamlContent.length > 500000) {
+      return NextResponse.json({ error: "yamlContent too large" }, { status: 400 });
+    }
+
+    let originalSha: string;
+    try {
+      originalSha = await getGitLabFileLastCommitSha(slug);
+    } catch {
+      originalSha = "";
+    }
+
+    const cr = await createChangeRequest({
+      contractSlug: slug,
+      editorId: userId,
+      yamlContent,
+      originalSha,
+      commitMessage,
     });
-  }
 
-  return NextResponse.json({ changeRequest: cr }, { status: 201 });
+    // Notify the editor about the created MR
+    if (cr.status === "pending" && cr.gitlabMrUrl) {
+      await createNotification({
+        userId: cr.editorId,
+        contractSlug: cr.contractSlug,
+        type: "change_request_created",
+        title: "Change request submitted",
+        message: `Your change request #${cr.id} for ${cr.contractSlug} has been submitted. Merge request: ${cr.gitlabMrUrl}`,
+        metadata: { changeRequestId: cr.id, gitlabMrUrl: cr.gitlabMrUrl },
+      });
+    }
+
+    return NextResponse.json({ changeRequest: cr }, { status: 201 });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "Internal server error";
+    console.error("[change-requests] POST error:", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }

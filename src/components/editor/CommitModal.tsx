@@ -141,7 +141,12 @@ export function CommitModal({
 
           <label className="commit-modal__label" htmlFor={`commit-msg-${id}`}>
             Commit message
-            <button className="editor-soft-button" disabled={saving} onClick={generateMessage} type="button" style={{ marginLeft: "0.5rem", fontSize: "0.7rem", padding: "0.15rem 0.5rem" }}>
+            <button className="commit-modal__label-generate" disabled={saving} onClick={generateMessage} type="button">
+              <svg viewBox="0 0 14 14" fill="none" width="12" height="12" aria-hidden="true">
+                <path d="M7 1l1.05 2.55L10.6 5 8.05 6.45 7 9 5.95 6.45 3.4 5l2.55-1.45L7 1z" fill="currentColor"/>
+                <path d="M3 10l.5 1L4.5 12 3 12.5 2 14l-.5-1.5L0 12l1.5-.5L2 10z" fill="currentColor" opacity="0.6"/>
+                <path d="M11 7l.3.7L12 8l-.7.3L11 9l-.3-.7L10 8l.7-.3L11 7z" fill="currentColor" opacity="0.6"/>
+              </svg>
               Generate
             </button>
           </label>

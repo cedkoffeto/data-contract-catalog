@@ -1141,7 +1141,12 @@ export function ContractEditorClient({
       body: JSON.stringify({ yamlContent: selectedDocument.content, message }),
     });
 
-    const payload = (await res.json()) as { error?: string; changeRequest?: { id: number; gitlabMrUrl: string; status: string; rejectionReason?: string } };
+    let payload: { error?: string; changeRequest?: { id: number; gitlabMrUrl: string; status: string; rejectionReason?: string } };
+    try {
+      payload = await res.json();
+    } catch {
+      throw new Error(`Server returned ${res.status} — unexpected response`);
+    }
 
     if (!res.ok) {
       throw new Error(payload.error ?? "Failed to create change request");
