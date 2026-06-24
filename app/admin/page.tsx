@@ -105,8 +105,8 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border bg-white p-3">
-        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">Key Metrics</h2>
+      <div className="rounded-lg border bg-white p-6">
+        <h2 className="mb-4 text-base font-semibold text-gray-900">Key Metrics</h2>
         <div className="kpi-grid">
           {cards.map((c) => {
             const inner = (
