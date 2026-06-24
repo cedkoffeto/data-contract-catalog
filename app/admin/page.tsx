@@ -194,6 +194,9 @@ function ChangeRequestsSection({ highlightId: initialHighlightId }: { highlightI
   const [syncing, setSyncing] = useState(false);
   const [rejectingId, setRejectingId] = useState<number | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState("created_at");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   useEffect(() => {
     if (mergeError === null) return;
@@ -220,6 +223,28 @@ function ChangeRequestsSection({ highlightId: initialHighlightId }: { highlightI
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [rejectingId]);
+
+  function toggleSort(key: string) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  }
+
+  const filtered = requests
+    .filter((r) =>
+      [r.contractSlug, r.editorId, r.status, r.source].some((v) =>
+        v.toLowerCase().includes(search.toLowerCase())
+      )
+    )
+    .sort((a, b) => {
+      const aVal = String(a[sortKey as keyof typeof a] ?? "");
+      const bVal = String(b[sortKey as keyof typeof b] ?? "");
+      const cmp = aVal.localeCompare(bVal);
+      return sortDir === "asc" ? cmp : -cmp;
+    });
 
   async function handleSyncWithGit() {
     setSyncing(true);
@@ -294,32 +319,43 @@ function ChangeRequestsSection({ highlightId: initialHighlightId }: { highlightI
             {syncing ? "Syncing\u2026" : "Sync MRs with Git"}
           </button>
         </div>
+        <div className="mb-3 flex items-center gap-3">
+          <input
+            className="flex-1 rounded-md border bg-white px-2 py-1.5 text-xs text-gray-900"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Filter by contract, editor, status\u2026"
+          />
+          <span className="whitespace-nowrap text-xs text-gray-400">
+            {filtered.length} / {requests.length}
+          </span>
+        </div>
         {mergeError ? (
           <div className="mb-3 flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             <span className="flex-1">{mergeError}</span>
             <button onClick={() => setMergeError(null)} className="text-red-400 hover:text-red-600" type="button">&times;</button>
           </div>
         ) : null}
-        {requests.length === 0 ? (
-          <div className="rounded-lg border bg-white py-8 text-center text-sm text-gray-400">No change requests yet.</div>
+        {filtered.length === 0 ? (
+          <div className="rounded-lg border bg-white py-8 text-center text-sm text-gray-400">{requests.length === 0 ? "No change requests yet." : "No change requests match your filter."}</div>
         ) : (
           <div className="overflow-x-auto rounded-lg border shadow-lg">
-            <table className="min-w-full divide-y divide-gray-200 bg-white text-sm">
+            <table className="min-w-full divide-y divide-gray-200 bg-white text-xs">
               <thead className="bg-gray-50">
                 <tr>
                   {["ID", "Contract", "Editor", "Status", "Source", "MR URL", "Rejection", "Created", "Actions"].map((label) => (
-                    <th key={label} className="px-4 py-3 text-left text-xs font-semibold text-gray-500">{label}</th>
+                    <th key={label} className="px-3 py-2 text-left text-xs font-semibold text-gray-500">{label}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {requests.map((r) => (
+                {filtered.map((r) => (
                   <tr key={r.id} className={r.id === highlightedId ? "bg-orange-50 ring-2 ring-orange-400" : ""}>
-                    <td className="px-4 py-3 text-xs text-gray-500">#{r.id}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-900">{r.contractSlug}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-600">{r.editorId}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${
+                    <td className="px-3 py-2 text-xs text-gray-500">#{r.id}</td>
+                    <td className="px-3 py-2 font-mono text-xs text-gray-900">{r.contractSlug}</td>
+                    <td className="px-3 py-2 font-mono text-xs text-gray-600">{r.editorId}</td>
+                    <td className="px-3 py-2">
+                      <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${
                         r.status === "pending" ? "bg-yellow-50 text-yellow-700" :
                         r.status === "approved" ? "bg-green-50 text-green-700" :
                         r.status === "conflicted" ? "bg-orange-50 text-orange-700" :
@@ -329,12 +365,12 @@ function ChangeRequestsSection({ highlightId: initialHighlightId }: { highlightI
                         {r.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                    <td className="px-3 py-2">
+                      <span className="inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-600">
                         {r.source === "app" ? "App" : "GitLab"}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2">
                       {r.gitlabMrUrl ? (
                         <a href={r.gitlabMrUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-xs text-blue-600 hover:underline">
                           <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14" aria-hidden="true"><path d="M3 2v12h10V7h-1v6H4V3h5V2H3zm7 0v1h2.3L7.15 8.15l.7.7L13 3.7V6h1V2h-4z"/></svg>
@@ -344,35 +380,35 @@ function ChangeRequestsSection({ highlightId: initialHighlightId }: { highlightI
                         <span className="text-xs text-gray-400">{"\u2014"}</span>
                       )}
                     </td>
-                    <td className="max-w-[150px] truncate px-4 py-3 text-xs text-gray-500">
+                    <td className="max-w-[120px] truncate px-3 py-2 text-xs text-gray-500">
                       {r.rejectionReason || "\u2014"}
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-500">
+                    <td className="whitespace-nowrap px-3 py-2 text-xs text-gray-500">
                       {new Date(r.createdAt).toLocaleString()}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2">
                       {r.status === "pending" ? (
                         <div className="flex gap-1">
                           <button
                             onClick={() => void handleMerge(r.id)}
                             disabled={actionLoading[r.id] === "merge"}
-                            className="inline-flex items-center gap-1 rounded bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 hover:bg-green-100 disabled:opacity-50"
+                            className="inline-flex items-center gap-1 rounded bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-700 hover:bg-green-100 disabled:opacity-50"
                           >
-                            <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14" aria-hidden="true"><path d="M7.5 2v5.5H2v1h5.5V13h1V8.5H14v-1H8.5V2h-1z"/></svg>
+                            <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12" aria-hidden="true"><path d="M7.5 2v5.5H2v1h5.5V13h1V8.5H14v-1H8.5V2h-1z"/></svg>
                             {actionLoading[r.id] === "merge" ? "Merging\u2026" : "Merge"}
                           </button>
                           <button
                             onClick={() => { setRejectingId(r.id); setRejectReason(""); }}
                             disabled={actionLoading[r.id] === "reject"}
-                            className="inline-flex items-center gap-1 rounded bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
+                            className="inline-flex items-center gap-1 rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
                           >
-                            <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14" aria-hidden="true"><path d="M2 7.5h12v1H2v-1z"/></svg>
+                            <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12" aria-hidden="true"><path d="M2 7.5h12v1H2v-1z"/></svg>
                             {actionLoading[r.id] === "reject" ? "Rejecting\u2026" : "Reject"}
                           </button>
                         </div>
                       ) : r.status === "conflicted" && r.gitlabMrUrl ? (
-                        <a href={r.gitlabMrUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100">
-                          <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14" aria-hidden="true"><path d="M3 2v12h10V7h-1v6H4V3h5V2H3zm7 0v1h2.3L7.15 8.15l.7.7L13 3.7V6h1V2h-4z"/></svg>
+                        <a href={r.gitlabMrUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 hover:bg-blue-100">
+                          <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12" aria-hidden="true"><path d="M3 2v12h10V7h-1v6H4V3h5V2H3zm7 0v1h2.3L7.15 8.15l.7.7L13 3.7V6h1V2h-4z"/></svg>
                           View
                         </a>
                       ) : (
@@ -633,7 +669,7 @@ function AccessRequestsSection() {
           <table className="min-w-full divide-y divide-gray-200 bg-white text-xs">
             <thead className="bg-gray-50">
               <tr>
-                {["User", "Domain", "Context", "Contract", "Permission", "Message", "Status", "Actions"].map((label) => (
+                {["ID", "User", "Domain", "Context", "Contract", "Permission", "Message", "Status", "Actions"].map((label) => (
                   <th key={label} className="px-3 py-2 text-left text-xs font-semibold text-gray-500">{label}</th>
                 ))}
               </tr>
@@ -641,6 +677,7 @@ function AccessRequestsSection() {
             <tbody className="divide-y divide-gray-200">
               {requests.map((r) => (
                 <tr key={r.id}>
+                  <td className="px-3 py-2 text-xs text-gray-500">#{r.id}</td>
                   <td className="px-3 py-2 font-mono text-xs text-gray-900">{r.user_id}</td>
                   <td className="px-3 py-2 text-gray-600">{r.domain || "\u2014"}</td>
                   <td className="px-3 py-2 text-gray-600">{r.context || "\u2014"}</td>
