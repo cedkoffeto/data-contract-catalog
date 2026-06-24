@@ -159,7 +159,7 @@ function CommentItem({
             ) : null}
           </div>
           <div className="flex items-center gap-3">
-            <span className="meta">{new Date(comment.createdAt).toLocaleString()} [<strong>{formatDate(comment.createdAt)}</strong>]</span>
+            <span className="meta">[{formatDate(comment.createdAt)}] {new Date(comment.createdAt).toLocaleString()}</span>
           </div>
         </div>
         <div className="comment-item__text">{renderBody(comment.body, userMap)}</div>
@@ -542,7 +542,7 @@ function IssueCard({
             {statusIcons[issue.status]}
             {statusLabels[issue.status]}
           </span>
-          <span className="meta">{new Date(issue.createdAt).toLocaleString()} [<strong>{formatDate(issue.createdAt)}</strong>]</span>
+          <span className="meta">[{formatDate(issue.createdAt)}] {new Date(issue.createdAt).toLocaleString()}</span>
         </div>
         <div className="comment-item__text" style={{ whiteSpace: "pre-wrap" }}>{issue.body}</div>
         {canAdmin ? (
