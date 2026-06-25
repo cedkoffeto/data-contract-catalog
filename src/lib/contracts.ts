@@ -239,34 +239,20 @@ function parseTar(buffer: Buffer): Map<string, Buffer> {
   return files;
 }
 
-async function downloadGitLabArchive(client: { projectId: string; ref: string }): Promise<Map<string, Buffer>> {
-  const baseUrl = process.env.GITLAB_BASE_URL?.trim();
-  const token = process.env.GITLAB_TOKEN?.trim();
-  if (!baseUrl || !token) return new Map();
+async function downloadGitLabArchive(client: { projectId: string; ref: string; api: InstanceType<typeof Gitlab> }): Promise<Map<string, Buffer>> {
+  console.info("[gitlab.archive] Downloading archive for", {
+    projectId: client.projectId,
+    ref: client.ref,
+  });
 
-  const encodedProjectId = encodeURIComponent(client.projectId);
-  const url = `${baseUrl}/api/v4/projects/${encodedProjectId}/repository/archive.tar.gz?sha=${encodeURIComponent(client.ref)}&path=contracts`;
+  const blob = await retryOnTimeout(() =>
+    client.api.Repositories.showArchive(client.projectId, {
+      sha: client.ref,
+      fileType: "tar.gz" as never,
+    }) as Promise<Blob>
+  );
 
-  console.info("[gitlab.archive] Downloading", { url: url.replace(token, "***") });
-
-  let response: Response;
-  try {
-    response = await fetch(url, {
-      headers: { "PRIVATE-TOKEN": token },
-      signal: AbortSignal.timeout(30000),
-    });
-  } catch (fetchError) {
-    console.error("[gitlab.archive] Fetch error", { message: fetchError instanceof Error ? fetchError.message : String(fetchError) });
-    return new Map();
-  }
-
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    console.error("[gitlab.archive] Failed", { status: response.status, statusText: response.statusText, body: body.slice(0, 500) });
-    return new Map();
-  }
-
-  const compressed = Buffer.from(await response.arrayBuffer());
+  const compressed = Buffer.from(await blob.arrayBuffer());
   const tarBuffer = gunzipSync(compressed);
   const allFiles = parseTar(tarBuffer);
 
