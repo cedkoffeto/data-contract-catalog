@@ -195,13 +195,15 @@ async function retryOnTimeout<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 let gitLabTreeError = false;
+let gitLabContractsError = false;
 
 export function hasGitLabTreeError(): boolean {
-  return gitLabTreeError;
+  return gitLabTreeError || gitLabContractsError;
 }
 
 export function resetGitLabTreeError(): void {
   gitLabTreeError = false;
+  gitLabContractsError = false;
 }
 
 const TAR_HEADER_SIZE = 512;
@@ -543,7 +545,7 @@ export async function getLocalContracts(): Promise<ContractFile[]> {
 async function getGitLabContracts(yamlEntries: GitLabTreeItem[]): Promise<ContractFile[]> {
   const client = getGitLabClient();
   if (!client || yamlEntries.length === 0) {
-    return readLocalContracts();
+    throw new Error("GitLab client not available or no YAML entries to fetch");
   }
 
   console.info("[gitlab.contracts] Downloading archive (", yamlEntries.length, "files )");
@@ -551,8 +553,7 @@ async function getGitLabContracts(yamlEntries: GitLabTreeItem[]): Promise<Contra
   const archiveFiles = await downloadGitLabArchive(client);
 
   if (archiveFiles.size === 0) {
-    console.warn("[gitlab.contracts] Archive download failed, falling back to local contracts");
-    return readLocalContracts();
+    throw new Error("GitLab archive download failed — check server logs");
   }
 
   const records: Array<{ path: string; fullPath: string; yamlRaw: string }> = [];
@@ -573,8 +574,7 @@ async function getGitLabContracts(yamlEntries: GitLabTreeItem[]): Promise<Contra
   console.info("[gitlab.contracts] Extracted files:", records.length, "/", yamlEntries.length);
 
   if (records.length === 0) {
-    console.warn("[gitlab.contracts] No files extracted from archive, falling back to local contracts");
-    return readLocalContracts();
+    throw new Error("No YAML files extracted from GitLab archive");
   }
 
   const contracts = await buildContractsFromRecords(records);
@@ -691,8 +691,8 @@ export async function getContracts(): Promise<ContractFile[]> {
 
     const tree = await readGitLabTree(client.projectId, client.ref, "contracts");
     if (tree.length === 0) {
-      console.warn("[gitlab.contracts] Tree empty, falling back to local contracts");
-      return readLocalContracts();
+      gitLabContractsError = true;
+      throw new Error("GitLab tree is empty — no contracts found in repository");
     }
 
     const yamlEntries = tree.filter(
@@ -725,7 +725,8 @@ export async function getContracts(): Promise<ContractFile[]> {
     return contracts;
     } catch (error) {
       pendingContractsPromise = null;
-      throw error;
+      gitLabContractsError = true;
+      throw new Error(`Failed to fetch contracts from GitLab: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

@@ -17,7 +17,10 @@ export default async function HomePage() {
 
   // Fetch cards and user-specific data in parallel
   const [cards] = await Promise.all([
-    getCatalogCards().catch(() => [] as CatalogCard[]),
+    getCatalogCards().catch((err) => {
+      console.error("[home] Failed to fetch catalog cards:", err);
+      return [] as CatalogCard[];
+    }),
   ]);
 
   const gitError = hasGitLabTreeError();
