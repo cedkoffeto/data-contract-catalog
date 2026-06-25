@@ -381,7 +381,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
                     <td className="px-3 py-2 font-mono text-gray-900">{r.contractSlug}</td>
                     <td className="px-3 py-2 font-mono text-gray-600">{r.editorId}</td>
                     <td className="px-3 py-2">
-                      <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                      <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium ${
                         r.status === "pending" ? "bg-yellow-50 text-yellow-700" :
                         r.status === "approved" ? "bg-green-50 text-green-700" :
                         r.status === "conflicted" ? "bg-orange-50 text-orange-700" :
@@ -392,7 +392,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
                       </span>
                     </td>
                     <td className="px-3 py-2">
-                      <span className="inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-600">
+                      <span className="inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600">
                         {r.source === "app" ? "App" : "GitLab"}
                       </span>
                     </td>
@@ -823,7 +823,7 @@ function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number)
                   <td className="px-3 py-2 text-gray-600">{r.requested_permission || "reader"}</td>
                   <td className="max-w-[150px] truncate px-3 py-2 text-gray-500">{r.message || "\u2014"}</td>
                   <td className="px-3 py-2">
-                    <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${r.status === "pending" ? "bg-yellow-50 text-yellow-700" : r.status === "approved" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+                    <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium ${r.status === "pending" ? "bg-yellow-50 text-yellow-700" : r.status === "approved" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
                       <StatusIcon status={r.status} />
                       {r.status}
                     </span>
