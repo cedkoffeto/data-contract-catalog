@@ -359,7 +359,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
           <div className="rounded-lg border bg-white py-8 text-center text-sm text-gray-400">{requests.length === 0 ? "No change requests yet." : "No change requests match your filter."}</div>
         ) : (<>
           <div className="overflow-x-auto rounded-lg border shadow-lg">
-            <table className="min-w-full divide-y divide-gray-200 bg-white text-xs">
+            <table className="min-w-full divide-y divide-gray-200 bg-white text-sm">
               <thead className="bg-gray-50">
                 <tr>
                   {[{ label: "ID", key: "id" }, { label: "Contract", key: "contractSlug" }, { label: "Editor", key: "editorId" }, { label: "Status", key: "status" }, { label: "Source", key: "source" }, { label: "MR URL", key: "gitlabMrUrl" }, { label: "Rejection", key: "rejectionReason" }, { label: "Created", key: "createdAt" }, { label: "Actions", key: null }].map(({ label, key }) => (
@@ -611,7 +611,7 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
       ) : (
         <>
           <div className="overflow-x-auto rounded-lg border shadow-lg">
-            <table className="min-w-full divide-y divide-gray-200 bg-white text-xs">
+            <table className="min-w-full divide-y divide-gray-200 bg-white text-sm">
               <thead className="bg-gray-50">
                 <tr>
                   {(["created_at", "action", "actor_id", "target_id", "details"] as const).map((key) => {
@@ -792,7 +792,7 @@ function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number)
         <div className="rounded-lg border bg-white py-8 text-center text-sm text-gray-400">{requests.length === 0 ? "No access requests yet." : "No access requests match your filter."}</div>
       ) : (<>
         <div className="overflow-x-auto rounded-lg border shadow-lg">
-          <table className="min-w-full divide-y divide-gray-200 bg-white text-xs">
+          <table className="min-w-full divide-y divide-gray-200 bg-white text-sm">
             <thead className="bg-gray-50">
               <tr>
                 {[{ label: "ID", key: "id" }, { label: "User", key: "user_id" }, { label: "Domain", key: "domain" }, { label: "Context", key: "context" }, { label: "Contract", key: "data_contract" }, { label: "Permission", key: "requested_permission" }, { label: "Message", key: null }, { label: "Status", key: "status" }, { label: "Actions", key: null }].map(({ label, key }) => (

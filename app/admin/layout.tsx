@@ -19,7 +19,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <PageShell footerVersion="V0">
-      <main className="mx-auto max-w-7xl px-6 pb-8 pt-6 lg:px-8" style={{ overflowX: "hidden" }}>
+      <main className="mx-auto max-w-[1600px] px-6 pb-8 pt-6 lg:px-8" style={{ overflowX: "hidden" }}>
         <div className="mb-6 flex items-center gap-4 border-b border-gray-200 pb-4">
           <h1 className="text-xl font-bold text-gray-900">Administration</h1>
           <nav className="ml-auto flex gap-4 text-sm">
