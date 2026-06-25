@@ -20,16 +20,6 @@ function StatusIcon({ status }: { status: string }) {
   return null;
 }
 
-function ActionIcon({ action }: { action: string }) {
-  if (action.includes("create") || action.includes("add")) {
-    return <svg viewBox="0 0 16 16" fill="currentColor" className="mr-1 inline-block" width="12" height="12" aria-hidden="true"><path d="M7.5 2v5.5H2v1h5.5V13h1V8.5H14v-1H8.5V2h-1z"/></svg>;
-  }
-  if (action.includes("delete") || action.includes("remove")) {
-    return <svg viewBox="0 0 16 16" fill="currentColor" className="mr-1 inline-block" width="12" height="12" aria-hidden="true"><path d="M2 7.5h12v1H2v-1z"/></svg>;
-  }
-  return null;
-}
-
 function ActionBadge({ action }: { action: string }) {
   const colors: Record<string, string> = {
     "policy.create": "bg-indigo-50 text-indigo-700",
@@ -41,8 +31,7 @@ function ActionBadge({ action }: { action: string }) {
   };
   const cls = colors[action] ?? "bg-gray-100 text-gray-700";
   return (
-    <span className={`inline-flex items-center rounded px-2 py-0.5 text-[10px] font-medium ${cls}`}>
-      <ActionIcon action={action} />
+    <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${cls}`}>
       {action}
     </span>
   );
