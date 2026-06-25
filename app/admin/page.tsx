@@ -418,26 +418,24 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
                           <button
                             onClick={() => void handleMerge(r.id)}
                             disabled={actionLoading[r.id] === "merge"}
-                            className="rounded-md px-3 py-1.5 text-sm font-bold text-green-700 hover:bg-green-200 disabled:opacity-50"
+                            className="rounded-md px-2 py-1 text-xs font-bold text-green-700 hover:bg-green-200 disabled:opacity-50"
                             style={{ backgroundColor: "#dcfce7" }}
                           >
-                            <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12" aria-hidden="true"><path d="M7.5 2v5.5H2v1h5.5V13h1V8.5H14v-1H8.5V2h-1z"/></svg>
                             {actionLoading[r.id] === "merge" ? "Merging" : "Merge"}
                           </button>
                           <button
                             onClick={() => { setRejectingId(r.id); setRejectReason(""); }}
                             disabled={actionLoading[r.id] === "reject"}
-                            className="rounded-md px-3 py-1.5 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-50"
+                            className="rounded-md px-2 py-1 text-xs font-bold text-white hover:bg-red-700 disabled:opacity-50"
                             style={{ backgroundColor: "#dc2626" }}
                           >
-                            <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12" aria-hidden="true"><path d="M2 7.5h12v1H2v-1z"/></svg>
                             {actionLoading[r.id] === "reject" ? "Rejecting" : "Reject"}
                           </button>
                         </div>
                       ) : r.status === "conflicted" && r.gitlabMrUrl ? (
                         <button
                           onClick={() => window.open(r.gitlabMrUrl, "_blank", "noopener,noreferrer")}
-                          className="rounded-md px-3 py-1.5 text-sm font-bold text-blue-700 hover:bg-blue-200"
+                          className="rounded-md px-2 py-1 text-xs font-bold text-blue-700 hover:bg-blue-200"
                           style={{ backgroundColor: "#dbeafe" }}
                         >
                           <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12" aria-hidden="true"><path d="M3 2v12h10V7h-1v6H4V3h5V2H3zm7 0v1h2.3L7.15 8.15l.7.7L13 3.7V6h1V2h-4z"/></svg>
@@ -833,8 +831,8 @@ function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number)
                   <td className="px-3 py-2">
                     {r.status === "pending" ? (
                       <div className="flex gap-1">
-                        <button onClick={() => handleStatus(r.id, "approved")} className="rounded-md px-3 py-1.5 text-sm font-bold text-green-700 hover:bg-green-200" style={{ backgroundColor: "#dcfce7" }}>Approve</button>
-                        <button onClick={() => handleStatus(r.id, "rejected")} className="rounded-md px-3 py-1.5 text-sm font-bold text-white hover:bg-red-700" style={{ backgroundColor: "#dc2626" }}>Deny</button>
+                        <button onClick={() => handleStatus(r.id, "approved")} className="rounded-md px-2 py-1 text-xs font-bold text-green-700 hover:bg-green-200" style={{ backgroundColor: "#dcfce7" }}>Approve</button>
+                        <button onClick={() => handleStatus(r.id, "rejected")} className="rounded-md px-2 py-1 text-xs font-bold text-white hover:bg-red-700" style={{ backgroundColor: "#dc2626" }}>Deny</button>
                       </div>
                     ) : (
                       <span className="text-gray-400">{"\u2014"}</span>
