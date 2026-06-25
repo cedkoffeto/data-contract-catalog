@@ -27,6 +27,15 @@ import { computeDiff, createUnifiedDiffText } from "@/src/lib/diff";
 import type { DiffResult } from "@/src/lib/diff";
 import type { DataContract, EditorRepositoryFile } from "@/src/lib/types";
 
+const YAML_FORM_TABS = [
+  ["yaml", "YAML"],
+  ["form", "Form"],
+] as const;
+const BOTTOM_TABS = [
+  ["validation", "Validation"],
+  ["history", "History"],
+] as const;
+
 const uiSchema: UiSchema = {
   "ui:globalOptions": { copyable: false },
   "ui:order": [
@@ -263,6 +272,12 @@ const diffLineDecorations = StateField.define({
   },
   provide: (field) => EditorView.decorations.from(field)
 });
+
+const STATIC_EDITOR_EXTENSIONS = [
+  indentUnit.of("  "),
+  yamlLanguage(),
+  rawEditorTheme,
+];
 
 function createDownload(filename: string, contents: string, contentType: string) {
   const blob = new Blob([contents], { type: contentType });
@@ -1515,10 +1530,7 @@ export function ContractEditorClient({
           </div>
 
           <div className="editor-tabs" role="tablist" aria-label="Workspace tabs">
-            {[
-              ["yaml", "YAML"],
-              ["form", "Form"]
-            ].map(([value, label]) => (
+            {YAML_FORM_TABS.map(([value, label]) => (
               <button
                 key={value}
                 className={activeTab === value ? "editor-tabs__item is-active" : "editor-tabs__item"}
@@ -1545,13 +1557,11 @@ export function ContractEditorClient({
                         }}
                         className="editor-codemirror"
                         editable={isEditable && !isHistoryYamlView && !isCompareYamlView}
-                        extensions={[
-                          indentUnit.of("  "),
-                          yamlLanguage(),
-                          rawEditorTheme,
+                        extensions={useMemo(() => [
+                          ...STATIC_EDITOR_EXTENSIONS,
                           ...(validationIssueLines.length > 0 ? [createValidationDecorations(validationIssueLines)] : []),
                           ...(isCompareYamlView ? [diffLineDecorations] : [])
-                        ]}
+                        ], [validationIssueLines, isCompareYamlView])}
                         onChange={handleContentChange}
                         value={displayedYaml}
                       />

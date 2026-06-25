@@ -5,9 +5,9 @@ import { generateOpenApiDocument } from "@/src/lib/openapi";
 import { requireApiAuth } from "@/src/lib/require-auth";
 
 export async function GET(request: Request) {
-  const unauthorized = await requireApiAuth();
-  if (unauthorized) {
-    return unauthorized;
+  const session = await requireApiAuth();
+  if (session instanceof Response) {
+    return session;
   }
 
   const url = new URL(request.url);

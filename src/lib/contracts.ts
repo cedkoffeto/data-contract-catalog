@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import { gunzipSync } from "node:zlib";
 
 import yaml from "js-yaml";
 
@@ -201,6 +202,74 @@ export function hasGitLabTreeError(): boolean {
 
 export function resetGitLabTreeError(): void {
   gitLabTreeError = false;
+}
+
+const TAR_HEADER_SIZE = 512;
+
+function parseTar(buffer: Buffer): Map<string, Buffer> {
+  const files = new Map<string, Buffer>();
+  let offset = 0;
+
+  while (offset + TAR_HEADER_SIZE <= buffer.length) {
+    const header = buffer.subarray(offset, offset + TAR_HEADER_SIZE);
+    if (header[0] === 0) break;
+    offset += TAR_HEADER_SIZE;
+
+    let name = header.toString("utf-8", 0, 100).replace(/\0.*/, "").trim();
+    const prefix = header.toString("utf-8", 345, 500).replace(/\0.*/, "").trim();
+    if (prefix) name = `${prefix}/${name}`;
+
+    const sizeStr = header.toString("utf-8", 124, 136).replace(/\0/g, "").trim();
+    const size = parseInt(sizeStr, 8);
+    if (Number.isNaN(size)) break;
+
+    const typeFlag = header[156];
+    const isFile = typeFlag === 0 || typeFlag === 48;
+
+    if (isFile && name) {
+      const data = buffer.subarray(offset, offset + size);
+      files.set(name, Buffer.from(data));
+    }
+
+    offset += Math.ceil(size / TAR_HEADER_SIZE) * TAR_HEADER_SIZE;
+  }
+
+  return files;
+}
+
+async function downloadGitLabArchive(client: { projectId: string; ref: string }): Promise<Map<string, Buffer>> {
+  const baseUrl = process.env.GITLAB_BASE_URL?.trim();
+  const token = process.env.GITLAB_TOKEN?.trim();
+  if (!baseUrl || !token) return new Map();
+
+  const url = `${baseUrl}/api/v4/projects/${client.projectId}/repository/archive.tar.gz?sha=${encodeURIComponent(client.ref)}&path=contracts`;
+
+  const response = await fetch(url, {
+    headers: { "PRIVATE-TOKEN": token },
+    signal: AbortSignal.timeout(30000),
+  });
+
+  if (!response.ok) {
+    console.error("[gitlab.archive] Failed", { status: response.status, url });
+    return new Map();
+  }
+
+  const compressed = Buffer.from(await response.arrayBuffer());
+  const tarBuffer = gunzipSync(compressed);
+  const allFiles = parseTar(tarBuffer);
+
+  // Strip the leading repo-name-commithash/ prefix from tar entries
+  const topLevelDir = allFiles.keys().next().value?.split("/")[0] ?? "";
+  if (topLevelDir) {
+    const stripped = new Map<string, Buffer>();
+    for (const [entryName, data] of allFiles) {
+      const relative = entryName.startsWith(`${topLevelDir}/`) ? entryName.slice(topLevelDir.length + 1) : entryName;
+      stripped.set(relative, data);
+    }
+    return stripped;
+  }
+
+  return allFiles;
 }
 
 async function readGitLabTree(
@@ -467,38 +536,34 @@ async function getGitLabContracts(yamlEntries: GitLabTreeItem[]): Promise<Contra
     return readLocalContracts();
   }
 
-  console.info("[gitlab.contracts] Fetching", yamlEntries.length, "files in batches of 50");
+  console.info("[gitlab.contracts] Downloading archive (", yamlEntries.length, "files )");
 
-  const records: Array<{ path: string; fullPath: string; yamlRaw: string }> = [];
-  const BATCH_SIZE = 50;
+  const archiveFiles = await downloadGitLabArchive(client);
 
-  for (let i = 0; i < yamlEntries.length; i += BATCH_SIZE) {
-    const batch = yamlEntries.slice(i, i + BATCH_SIZE);
-    const results = await Promise.allSettled(
-      batch.map(async (entry) => {
-        const file = (await client.api.RepositoryFiles.show(
-          client.projectId,
-          entry.path,
-          client.ref,
-        )) as GitLabRepositoryFile;
-        const rawContent = file.content ?? "";
-        const yamlRaw =
-          file.encoding === "base64"
-            ? Buffer.from(rawContent, "base64").toString("utf-8")
-            : rawContent;
-        return { path: entry.path, fullPath: entry.path, yamlRaw };
-      }),
-    );
-
-    for (const r of results) {
-      if (r.status === "fulfilled") records.push(r.value);
-    }
+  if (archiveFiles.size === 0) {
+    console.warn("[gitlab.contracts] Archive download failed, falling back to local contracts");
+    return readLocalContracts();
   }
 
-  console.info("[gitlab.contracts] Fetched files:", records.length, "/", yamlEntries.length);
+  const records: Array<{ path: string; fullPath: string; yamlRaw: string }> = [];
+
+  for (const entry of yamlEntries) {
+    const buf = archiveFiles.get(entry.path);
+    if (!buf) {
+      console.warn(`[gitlab.contracts] File not found in archive: ${entry.path}`);
+      continue;
+    }
+    records.push({
+      path: entry.path,
+      fullPath: entry.path,
+      yamlRaw: buf.toString("utf-8"),
+    });
+  }
+
+  console.info("[gitlab.contracts] Extracted files:", records.length, "/", yamlEntries.length);
 
   if (records.length === 0) {
-    console.warn("[gitlab.contracts] All file fetches failed, falling back to local contracts");
+    console.warn("[gitlab.contracts] No files extracted from archive, falling back to local contracts");
     return readLocalContracts();
   }
 
