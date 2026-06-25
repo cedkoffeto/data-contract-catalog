@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import crypto from "node:crypto";
 import { gunzipSync } from "node:zlib";
 
 import yaml from "js-yaml";
@@ -11,7 +10,7 @@ import { getGitSourceRef } from "@/src/lib/git-source";
 import type { CatalogCard, ContractFile, DataContract, EditorRepositoryFile } from "@/src/lib/types";
 
 const contractsRoot = process.env.CONTRACTS_PATH ?? path.join(process.cwd(), "contracts");
-const contractsCache: { expiresAt: number; value: ContractFile[]; treeHash: string } = { expiresAt: 0, value: [], treeHash: "" };
+const contractsCache: { expiresAt: number; value: ContractFile[]; commitSha: string } = { expiresAt: 0, value: [], commitSha: "" };
 let pendingContractsPromise: Promise<ContractFile[]> | null = null;
 const cardsCache: { expiresAt: number; value: CatalogCard[] } = { expiresAt: 0, value: [] };
 const slugToPathCache: { expiresAt: number; map: Map<string, string> } = { expiresAt: 0, map: new Map() };
@@ -528,13 +527,12 @@ export async function getLocalContracts(): Promise<ContractFile[]> {
   return readLocalContracts();
 }
 
-async function getGitLabContracts(yamlEntries: GitLabTreeItem[]): Promise<ContractFile[]> {
-  const client = getGitLabClient();
-  if (!client || yamlEntries.length === 0) {
-    throw new Error("GitLab client not available or no YAML entries to fetch");
-  }
-
-  console.info("[gitlab.contracts] Downloading archive (", yamlEntries.length, "files )");
+async function getGitLabContracts(client: {
+  projectId: string;
+  ref: string;
+  api: InstanceType<typeof Gitlab>;
+}): Promise<ContractFile[]> {
+  console.info("[gitlab.contracts] Downloading archive");
 
   const archiveFiles = await downloadGitLabArchive(client);
 
@@ -542,30 +540,30 @@ async function getGitLabContracts(yamlEntries: GitLabTreeItem[]): Promise<Contra
     throw new Error("GitLab archive download failed — check server logs");
   }
 
+  const yamlPaths = [...archiveFiles.keys()].filter(
+    (p) => /\.(yaml|yml)$/i.test(p) && p.startsWith("contracts/"),
+  );
+
+  console.info("[gitlab.contracts] Found YAML files in archive:", yamlPaths.length);
+
   const records: Array<{ path: string; fullPath: string; yamlRaw: string }> = [];
 
-  for (const entry of yamlEntries) {
-    const buf = archiveFiles.get(entry.path);
-    if (!buf) {
-      console.warn(`[gitlab.contracts] File not found in archive: ${entry.path}`);
-      continue;
-    }
+  for (const path of yamlPaths) {
+    const buf = archiveFiles.get(path);
+    if (!buf) continue;
     records.push({
-      path: entry.path,
-      fullPath: entry.path,
+      path,
+      fullPath: path,
       yamlRaw: buf.toString("utf-8"),
     });
   }
-
-  console.info("[gitlab.contracts] Extracted files:", records.length, "/", yamlEntries.length);
 
   if (records.length === 0) {
     throw new Error("No YAML files extracted from GitLab archive");
   }
 
   const contracts = await buildContractsFromRecords(records);
-  console.info("[gitlab.contracts] Parsed contracts:",
-    contracts.length, "/", yamlEntries.length);
+  console.info("[gitlab.contracts] Parsed contracts:", contracts.length);
 
   return contracts;
 }
@@ -670,40 +668,41 @@ export async function getContracts(): Promise<ContractFile[]> {
     const client = getGitLabClient();
     if (!client) return readLocalContracts();
 
-    console.info("[gitlab.contracts] Fetching tree for hash check", {
-      projectId: client.projectId,
-      ref: client.ref,
-    });
-
-    const tree = await readGitLabTree(client.projectId, client.ref, "contracts");
-    if (tree.length === 0) {
-      gitLabContractsError = true;
-      throw new Error("GitLab tree is empty — no contracts found in repository");
+    let latestSha = "";
+    try {
+      console.info("[gitlab.commit] Checking branch SHA", {
+        projectId: client.projectId,
+        ref: client.ref,
+      });
+      const branch = (await retryOnTimeout(() =>
+        client.api.Branches.show(client.projectId, client.ref),
+      )) as { commit: { id: string } };
+      latestSha = branch.commit.id;
+    } catch (error) {
+      console.error("[gitlab.commit] Failed to get branch SHA", {
+        message: error instanceof Error ? error.message : String(error),
+      });
+      if (contractsCache.value.length > 0 && contractsCache.expiresAt > now) {
+        return contractsCache.value;
+      }
     }
 
-    const yamlEntries = tree.filter(
-      (entry) => entry.type === "blob" && /\.(yaml|yml)$/i.test(entry.path),
-    );
-
-    const treeHash = computeTreeHash(yamlEntries);
-
-    if (contractsCache.value.length > 0 && contractsCache.treeHash === treeHash && contractsCache.expiresAt > now) {
+    if (
+      latestSha &&
+      contractsCache.value.length > 0 &&
+      contractsCache.commitSha === latestSha &&
+      contractsCache.expiresAt > now
+    ) {
       return contractsCache.value;
     }
 
     try {
-      pendingContractsPromise = getGitLabContracts(yamlEntries);
+      pendingContractsPromise = getGitLabContracts(client);
       const contracts = await pendingContractsPromise;
       pendingContractsPromise = null;
 
-    if (contracts.length !== yamlEntries.length) {
-      console.warn(
-        `[gitlab.contracts] Contract count mismatch: ${contracts.length} contracts vs ${yamlEntries.length} YAML files in tree`,
-      );
-    }
-
     contractsCache.value = contracts;
-    contractsCache.treeHash = treeHash;
+    contractsCache.commitSha = latestSha;
     contractsCache.expiresAt = now + CONTRACTS_CACHE_TTL_MS;
     if (contracts.length > 0) {
       populateSlugToPathCache(contracts.map((c) => ({ fullPath: c.fullPath })));
@@ -722,19 +721,12 @@ export async function getContracts(): Promise<ContractFile[]> {
 
   const contracts = await readLocalContracts();
   contractsCache.value = contracts;
+  contractsCache.commitSha = "";
   contractsCache.expiresAt = now + CONTRACTS_CACHE_TTL_MS;
   if (contracts.length > 0) {
     populateSlugToPathCache(contracts.map((c) => ({ fullPath: c.fullPath })));
   }
   return contracts;
-}
-
-function computeTreeHash(entries: Array<{ path: string; id?: string }>): string {
-  const hash = crypto.createHash("sha256");
-  for (const e of entries) {
-    hash.update(`${e.path}\0${e.id ?? ""}\0`);
-  }
-  return hash.digest("hex");
 }
 
 export async function getContractBySlug(slug: string): Promise<ContractFile | undefined> {
