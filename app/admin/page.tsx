@@ -640,7 +640,7 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
               <tbody className="divide-y divide-gray-200">
                 {paginated.map((log) => (
                   <Fragment key={log.id}>
-                    <tr className="cursor-pointer" onClick={() => toggleExpand(log.id)}>
+                    <tr>
                       <td className="whitespace-nowrap px-3 py-2 text-gray-600">
                         {new Date(log.created_at).toLocaleString()}
                       </td>
@@ -651,7 +651,7 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
                       <td className="whitespace-nowrap px-3 py-2 text-gray-600">
                         <span className="text-gray-400">{log.target_type}:</span> {log.target_id}
                       </td>
-                      <td className="truncate px-3 py-2 font-mono text-gray-500">
+                      <td className="truncate px-3 py-2 font-mono text-gray-500 cursor-pointer hover:text-blue-600 hover:underline" onClick={() => toggleExpand(log.id)}>
                         {log.details && log.details !== "{}" ? log.details : "\u2014"}
                       </td>
                     </tr>
