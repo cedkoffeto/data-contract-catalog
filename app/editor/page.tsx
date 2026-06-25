@@ -6,7 +6,7 @@ import { auth } from "@/src/auth";
 import { canEditContract } from "@/src/lib/catalog-filter";
 import { getContractPageData, getEditorRepositoryFiles } from "@/src/lib/contracts";
 import { createNewContractDraft, getEditorSchema } from "@/src/lib/editor-schema";
-import { getUserPermissions } from "@/src/lib/rbac";
+import { getGlobalPermissions } from "@/src/lib/require-auth";
 import { notFound } from "next/navigation";
 
 export const metadata: Metadata = {
@@ -46,8 +46,7 @@ export default async function ContractEditorRoutePage({
     return <UnauthorizedEditorPage />;
   }
 
-  const permissions = await getUserPermissions(userId);
-  const hasGlobalEditorAccess = permissions.includes("write") || permissions.includes("admin");
+  const permissions = await getGlobalPermissions(session);
   const resolved = await searchParams;
   const contractParam = Array.isArray(resolved?.contract) ? resolved?.contract[0] : resolved?.contract;
 
@@ -63,7 +62,7 @@ export default async function ContractEditorRoutePage({
     if (!canEdit) {
       return <UnauthorizedEditorPage />;
     }
-  } else if (!hasGlobalEditorAccess) {
+  } else if (!permissions.includes("write") && !permissions.includes("admin")) {
     return <UnauthorizedEditorPage />;
   }
 

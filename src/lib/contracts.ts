@@ -345,6 +345,17 @@ export async function getRepositoryTextFile(filePath: string, fallback = ""): Pr
 }
 
 export async function getRepositoryFolderFiles(folderPath: string): Promise<RepositoryFolderFile[]> {
+  const now = Date.now();
+  const cached = repoFolderCache.get(folderPath);
+  if (cached && now - cached.ts < REPO_FOLDER_CACHE_TTL) return cached.promise;
+  repoFolderCache.delete(folderPath);
+
+  const promise = getRepositoryFolderFilesUncached(folderPath);
+  repoFolderCache.set(folderPath, { promise, ts: now });
+  return promise;
+}
+
+async function getRepositoryFolderFilesUncached(folderPath: string): Promise<RepositoryFolderFile[]> {
   const client = getGitLabClient();
 
   if (client) {
