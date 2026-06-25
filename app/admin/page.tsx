@@ -41,7 +41,7 @@ function ActionBadge({ action }: { action: string }) {
   };
   const cls = colors[action] ?? "bg-gray-100 text-gray-700";
   return (
-    <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${cls}`}>
+    <span className={`inline-flex items-center rounded px-2 py-0.5 text-[10px] font-medium ${cls}`}>
       <ActionIcon action={action} />
       {action}
     </span>
