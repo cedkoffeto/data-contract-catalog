@@ -418,7 +418,8 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
                           <button
                             onClick={() => void handleMerge(r.id)}
                             disabled={actionLoading[r.id] === "merge"}
-                            className="inline-flex items-center gap-1 rounded bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-700 hover:bg-green-100 disabled:opacity-50"
+                            className="rounded-md px-3 py-1.5 text-sm font-bold text-green-700 hover:bg-green-200 disabled:opacity-50"
+                            style={{ backgroundColor: "#dcfce7" }}
                           >
                             <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12" aria-hidden="true"><path d="M7.5 2v5.5H2v1h5.5V13h1V8.5H14v-1H8.5V2h-1z"/></svg>
                             {actionLoading[r.id] === "merge" ? "Merging" : "Merge"}
@@ -426,7 +427,8 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
                           <button
                             onClick={() => { setRejectingId(r.id); setRejectReason(""); }}
                             disabled={actionLoading[r.id] === "reject"}
-                            className="inline-flex items-center gap-1 rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
+                            className="rounded-md px-3 py-1.5 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-50"
+                            style={{ backgroundColor: "#dc2626" }}
                           >
                             <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12" aria-hidden="true"><path d="M2 7.5h12v1H2v-1z"/></svg>
                             {actionLoading[r.id] === "reject" ? "Rejecting" : "Reject"}
@@ -830,8 +832,8 @@ function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number)
                   <td className="px-3 py-2">
                     {r.status === "pending" ? (
                       <div className="flex gap-1">
-                        <button onClick={() => handleStatus(r.id, "approved")} className="rounded bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-700 hover:bg-green-100">Approve</button>
-                        <button onClick={() => handleStatus(r.id, "rejected")} className="rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-medium text-red-700 hover:bg-red-100">Deny</button>
+                        <button onClick={() => handleStatus(r.id, "approved")} className="rounded-md px-3 py-1.5 text-sm font-bold text-green-700 hover:bg-green-200" style={{ backgroundColor: "#dcfce7" }}>Approve</button>
+                        <button onClick={() => handleStatus(r.id, "rejected")} className="rounded-md px-3 py-1.5 text-sm font-bold text-white hover:bg-red-700" style={{ backgroundColor: "#dc2626" }}>Deny</button>
                       </div>
                     ) : (
                       <span className="text-gray-400">{"\u2014"}</span>
