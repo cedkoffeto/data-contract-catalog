@@ -6,11 +6,12 @@ import Link from "next/link";
 import { RequestAccessButton } from "@/src/components/catalog/RequestAccessButton";
 import { RequestEditorUpgrade } from "@/src/components/contract/RequestEditorUpgrade";
 import type { CatalogCard as CatalogCardType } from "@/src/lib/types";
+import { t } from "@/src/lib/i18n";
 
 function humanize(value: string): string {
   const trimmed = value.trim();
   if (!trimmed) {
-    return "Non defini";
+    return t("nonDefini");
   }
 
   return trimmed
@@ -48,8 +49,8 @@ function PinButton({ pinned, onToggle }: { pinned: boolean; onToggle: () => void
       type="button"
       onClick={(e) => { e.stopPropagation(); e.preventDefault(); onToggle(); }}
       className={`catalog-card__pin${pinned ? " pinned" : ""}`}
-      title={pinned ? "Unpin" : "Pin to top"}
-      aria-label={pinned ? "Unpin" : "Pin to top"}
+      title={pinned ? t("unpin") : t("pinToTop")}
+      aria-label={pinned ? t("unpin") : t("pinToTop")}
     >
       <svg width="14" height="14" viewBox="0 0 24 24" fill={pinned ? "currentColor" : "none"} stroke="currentColor" strokeWidth={pinned ? 0 : 2} strokeLinecap="round" strokeLinejoin="round">
         <g transform="rotate(45 12 12)">
@@ -68,8 +69,8 @@ function FavoriteButton({ favorited, onToggle }: { favorited: boolean; onToggle:
       type="button"
       onClick={(e) => { e.stopPropagation(); e.preventDefault(); onToggle(); }}
       className={`catalog-card__fav${favorited ? " favorited" : ""}`}
-      title={favorited ? "Remove from favorites" : "Add to favorites"}
-      aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
+      title={favorited ? t("removeFromFavorites") : t("addToFavorites")}
+      aria-label={favorited ? t("removeFromFavorites") : t("addToFavorites")}
     >
       <svg width="12" height="12" viewBox="0 0 24 24" fill={favorited ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
@@ -84,8 +85,8 @@ function SubscriptionButton({ subscribed, onToggle }: { subscribed: boolean; onT
       type="button"
       onClick={(e) => { e.stopPropagation(); e.preventDefault(); onToggle(); }}
       className={`catalog-card__sub${subscribed ? " subscribed" : ""}`}
-      title={subscribed ? "Unsubscribe" : "Subscribe to updates"}
-      aria-label={subscribed ? "Unsubscribe" : "Subscribe to updates"}
+      title={subscribed ? t("unsubscribe") : t("subscribeToUpdates")}
+      aria-label={subscribed ? t("unsubscribe") : t("subscribeToUpdates")}
     >
       <svg width="14" height="14" viewBox="0 0 24 24" fill={subscribed ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -132,7 +133,7 @@ export const CatalogCard = memo(function CatalogCard({ card, onTogglePin, onTogg
           <div
             aria-disabled="true"
             className="catalog-card catalog-card--disabled"
-            title="Vous n'êtes pas autorisé à consulter ce contrat de données."
+            title={t("notAuthorized")}
           >
             <div className="catalog-card__header">
               <div className="catalog-card__meta">
@@ -149,12 +150,12 @@ export const CatalogCard = memo(function CatalogCard({ card, onTogglePin, onTogg
 
             <div className="catalog-card__footer">
               <div className="catalog-card__owner-block">
-                <p className="catalog-card__owner">{card.owner || "Platform team"}</p>
-                <span className="catalog-card__owner-label">Owner</span>
+                <p className="catalog-card__owner">{card.owner || t("platformTeam")}</p>
+                <span className="catalog-card__owner-label">{t("owner")}</span>
               </div>
 
               <span className="catalog-card__link catalog-card__link--disabled">
-                <LockIcon /> Accès restreint
+                <LockIcon /> {t("restrictedAccess")}
               </span>
             </div>
           </div>
@@ -187,8 +188,8 @@ export const CatalogCard = memo(function CatalogCard({ card, onTogglePin, onTogg
 
         <div className="catalog-card__footer">
           <div className="catalog-card__owner-block">
-            <p className="catalog-card__owner">{card.owner || "Platform team"}</p>
-            <span className="catalog-card__owner-label">Owner</span>
+            <p className="catalog-card__owner">{card.owner || t("platformTeam")}</p>
+            <span className="catalog-card__owner-label">{t("owner")}</span>
           </div>
           {canRequestUpgrade !== false && !card.editable ? <RequestEditorUpgrade slug={card.slug} domain={card.domain} compact /> : null}
         </div>

@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
+import { t, tWith } from "@/src/lib/i18n";
+
 type NotificationItem = {
   id: number;
   contractSlug: string;
@@ -248,7 +250,7 @@ export function NotificationBell() {
         className={`notification-bell${isOpen ? " is-open" : ""}`}
         onClick={handleToggle}
         type="button"
-        aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
+        aria-label={unreadCount > 0 ? tWith("notificationsUnread", { unread: String(unreadCount) }) : t("notifications")}
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true" className="notification-bell__icon">
           <path d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
@@ -264,16 +266,16 @@ export function NotificationBell() {
             <>
               <div className="notification-dropdown__header">
                 <button className="notification-dropdown__mark-read" onClick={() => setShowSubscriptions(false)} type="button">
-                  &larr; Notifications
+                  {t("backToNotifications")}
                 </button>
-                <h3 className="notification-dropdown__title">My subscriptions</h3>
+                <h3 className="notification-dropdown__title">{t("mySubscriptions")}</h3>
               </div>
 
               <div className="notification-dropdown__body">
                 {loading ? (
-                  <p className="notification-dropdown__empty">Loading...</p>
+                  <p className="notification-dropdown__empty">{t("loading")}</p>
                 ) : contracts.length === 0 ? (
-                  <p className="notification-dropdown__empty">No accessible contracts</p>
+                  <p className="notification-dropdown__empty">{t("noAccessibleContracts")}</p>
                 ) : (
                   contracts.map((c) => {
                     const isSubscribed = subscribedSlugs.has(c.slug);
@@ -286,14 +288,14 @@ export function NotificationBell() {
                           onClick={() => setIsOpen(false)}
                         >
                           <span className="notification-dropdown__item-title">{c.title || c.slug}</span>
-                          <span className="notification-dropdown__item-sub">{c.maturity} &middot; {c.domain || "no domain"}</span>
+                          <span className="notification-dropdown__item-sub">{c.maturity} &middot; {c.domain || t("noDomain")}</span>
                         </Link>
                         <button
                           className={`notification-dropdown__toggle${isSubscribed ? " is-on" : ""}`}
                           disabled={isSaving}
                           onClick={() => handleToggleSubscription(c.slug, isSubscribed)}
                           type="button"
-                          aria-label={isSubscribed ? `Unsubscribe from ${c.slug}` : `Subscribe to ${c.slug}`}
+                          aria-label={isSubscribed ? tWith("unsubscribeFrom", { slug: c.slug }) : tWith("subscribeTo", { slug: c.slug })}
                         >
                           <span className="notification-dropdown__toggle-track">
                             <span className="notification-dropdown__toggle-thumb" />
@@ -308,19 +310,19 @@ export function NotificationBell() {
           ) : (
             <>
               <div className="notification-dropdown__header">
-                <h3 className="notification-dropdown__title">Notifications</h3>
+                <h3 className="notification-dropdown__title">{t("notifications")}</h3>
                 {unreadCount > 0 ? (
                   <button className="notification-dropdown__mark-read" onClick={handleMarkAllRead} type="button">
-                    Mark all as read
+                    {t("markAllAsRead")}
                   </button>
                 ) : null}
               </div>
 
               <div className="notification-dropdown__body">
                 {loading ? (
-                  <p className="notification-dropdown__empty">Loading...</p>
+                  <p className="notification-dropdown__empty">{t("loading")}</p>
                 ) : notifications.length === 0 ? (
-                  <p className="notification-dropdown__empty">No notifications</p>
+                  <p className="notification-dropdown__empty">{t("noNotifications")}</p>
                 ) : (
                   notifications.map((n) => (
                     <button
@@ -341,7 +343,7 @@ export function NotificationBell() {
 
               <div className="notification-dropdown__footer">
                 <button className="notification-dropdown__footer-btn" onClick={handleOpenSubscriptions} type="button">
-                  My subscriptions ({subscriptions.length})
+                  {tWith("subscriptionsCount", { count: String(subscriptions.length) })}
                 </button>
               </div>
             </>

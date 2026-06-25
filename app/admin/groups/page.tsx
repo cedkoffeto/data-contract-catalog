@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { t } from "@/src/lib/i18n";
 
 import { Button } from "@/src/components/ui/Button";
 import { ConfirmDialog } from "@/src/components/ui/ConfirmDialog";
@@ -394,8 +395,8 @@ export default function GroupsPage() {
               <button
                 onClick={() => { setMembersPopoverGroup(null); setMembersFilter(""); }}
                 className="editor-close-button"
-                aria-label="Close"
-                title="Close"
+                aria-label={t("close")}
+                title={t("close")}
                 type="button"
               >
                 <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -541,8 +542,8 @@ function MemberManagerModal({
           <button
             onClick={onClose}
             className="editor-close-button"
-            aria-label="Close"
-            title="Close"
+            aria-label={t("close")}
+            title={t("close")}
             type="button"
           >
             <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">

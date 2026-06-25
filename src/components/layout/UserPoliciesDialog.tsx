@@ -6,6 +6,8 @@ import { createPortal } from "react-dom";
 import type { AccessPolicyRecord } from "@/src/lib/access-control";
 import { SearchableSelect } from "@/src/components/ui/SearchableSelect";
 
+import { t, tWith } from "@/src/lib/i18n";
+
 function RequestEditorForm({ onDone }: { onDone: () => void }) {
   const [slug, setSlug] = useState("");
   const [message, setMessage] = useState("");
@@ -62,12 +64,12 @@ function RequestEditorForm({ onDone }: { onDone: () => void }) {
   }
 
   if (sent) {
-    return <p className="mt-2 text-sm font-medium text-green-600">Request sent to administrators.</p>;
+    return <p className="mt-2 text-sm font-medium text-green-600">{t("requestSentAdmin")}</p>;
   }
 
   return (
     <div className="mt-3 space-y-2 rounded-md border border-dashed border-gray-200 bg-gray-50 p-3">
-      <p className="text-xs font-semibold text-gray-700">Request editor access on a contract</p>
+      <p className="text-xs font-semibold text-gray-700">{t("requestEditorSection")}</p>
       {loadingContracts ? (
         <p className="text-xs text-gray-400">Loading contracts...</p>
       ) : (
@@ -75,12 +77,12 @@ function RequestEditorForm({ onDone }: { onDone: () => void }) {
           value={slug}
           onChange={setSlug}
           options={contractOptions}
-          placeholder="Select a contract..."
+          placeholder={t("contractSlugPlaceholder")}
         />
       )}
       <textarea
         rows={2}
-        placeholder="Reason (optional)"
+        placeholder={t("reasonOptional")}
         value={message}
         onChange={(e) => setMessage(e.target.value)}
 
@@ -94,7 +96,7 @@ function RequestEditorForm({ onDone }: { onDone: () => void }) {
         className="rounded-md px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
         style={{ backgroundColor: "var(--ui-primary)" }}
       >
-        {sending ? "Sending\u2026" : "Send request"}
+        {sending ? t("sending") : t("sendRequest")}
       </button>
     </div>
   );
@@ -152,10 +154,10 @@ export function UserPoliciesDialog({
         <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
           <div>
             <h3 className="text-sm font-semibold text-gray-900">
-              Policies for user: <span className="font-mono">{userId}</span>
+              {t("policiesForUser")} <span className="font-mono">{userId}</span>
             </h3>
             <p className="text-[11px] text-gray-400">
-              {policies.length} polic{policies.length !== 1 ? "ies" : "y"}
+              {tWith("policyCount", { count: String(policies.length) })}
             </p>
           </div>
           <button onClick={onClose} className="editor-close-button" aria-label="Close" type="button">
@@ -169,7 +171,7 @@ export function UserPoliciesDialog({
           {loading ? (
             <p className="text-sm text-gray-500">Loading...</p>
           ) : policies.length === 0 ? (
-            <p className="text-sm text-gray-500">No policies found for this user.</p>
+            <p className="text-sm text-gray-500">{t("noPolicies")}</p>
           ) : (
             <>
               <input
@@ -198,7 +200,7 @@ export function UserPoliciesDialog({
                       <tr key={p.id} className="hover:bg-gray-50">
                         <td className="px-3 py-2">
                           <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
-                            {p.user_id ? "direct" : "group"}
+                            {p.user_id ? t("direct") : t("group")}
                           </span>
                           {p.group_name && <span className="ml-1.5 font-mono text-gray-400">{p.group_name}</span>}
                         </td>
@@ -236,13 +238,13 @@ export function UserPoliciesDialog({
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 119 0v3.75M3.75 21.75h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H3.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
             </svg>
-            {showRequest ? "Hide" : "Request editor access"}
+            {showRequest ? t("hide") : t("requestEditorAccess")}
           </button>
           <button
             onClick={onClose}
             className="rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
           >
-            Close
+            {t("close")}
           </button>
         </div>
       </div>

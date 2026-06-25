@@ -2,6 +2,8 @@
 
 import { useId, useRef, useState } from "react";
 
+import { t } from "@/src/lib/i18n";
+
 export function YamlDialogButton({ yamlRaw }: { yamlRaw: string }) {
   const id = useId().replace(/:/g, "");
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -47,13 +49,13 @@ export function YamlDialogButton({ yamlRaw }: { yamlRaw: string }) {
         <div className="yaml-sheet__panel">
           <div className="yaml-sheet__header">
             <div>
-              <p className="yaml-sheet__eyebrow">Contract source</p>
-              <h3 id={`yaml-sheet-title-${id}`}>YAML preview</h3>
+              <p className="yaml-sheet__eyebrow">{t("contractSource")}</p>
+              <h3 id={`yaml-sheet-title-${id}`}>{t("yamlPreview")}</h3>
             </div>
 
             <div className="yaml-sheet__header-actions">
               <button className="editor-soft-button" onClick={handleCopy} type="button">
-                {copyState === "copied" ? "Copied" : copyState === "error" ? "Copy failed" : "Copy"}
+                {copyState === "copied" ? t("copied") : copyState === "error" ? t("copyFailed") : t("copy")}
               </button>
               <button className="editor-soft-button" onClick={() => dialogRef.current?.close()} type="button">
                 Close

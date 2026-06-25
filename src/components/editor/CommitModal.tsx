@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useState } from "react";
 
+import { t, tWith } from "@/src/lib/i18n";
 import { DiffView } from "@/src/components/contract/diff/DiffView";
 import type { DiffResult } from "@/src/lib/diff";
 
@@ -70,7 +71,7 @@ export function CommitModal({
       await onConfirm(message);
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
+      setError(e instanceof Error ? e.message : t("somethingWrong"));
     } finally {
       setSaving(false);
     }
@@ -97,14 +98,14 @@ export function CommitModal({
       >
         <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
           <div>
-            <h3 className="text-sm font-semibold text-gray-900">Soumettre la modification</h3>
+            <h3 className="text-sm font-semibold text-gray-900">{t("submitContract")}</h3>
             <p className="text-[11px] text-gray-400">{contractName}</p>
           </div>
           <button
             onClick={handleClose}
             className="editor-close-button"
-            aria-label="Close"
-            title="Close"
+            aria-label={t("close")}
+            title={t("close")}
             type="button"
             disabled={saving}
           >
@@ -125,20 +126,20 @@ export function CommitModal({
           {hasChanges ? (
             <DiffView
               diff={diff}
-              fromLabel="Current version"
-              toLabel="Your changes"
+              fromLabel={t("currentVersion")}
+              toLabel={t("yourChanges")}
             />
           ) : (
-            <div className="py-6 text-center text-sm text-gray-400">No changes detected — the content is identical to the current version.</div>
+            <div className="py-6 text-center text-sm text-gray-400">{t("noChanges")}</div>
           )}
 
           <label className="mb-1 mt-3 flex items-center gap-2 text-xs font-medium text-gray-700" htmlFor={`commit-msg-${id}`}>
-            Commit message
+            {t("commitMessage")}
             <button className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs text-gray-500 hover:bg-gray-100" disabled={saving} onClick={generateMessage} type="button">
               <svg viewBox="0 0 16 16" fill="currentColor" width="13" height="13" aria-hidden="true">
                 <path d="M8 1l1.5 3.5L13 6 9.5 7.5 8 11 6.5 7.5 3 6l3.5-1.5L8 1z"/>
               </svg>
-              Generate
+              {t("generate")}
             </button>
           </label>
           <textarea
@@ -146,7 +147,7 @@ export function CommitModal({
             style={{ borderColor: "#d1d5db" }}
             id={`commit-msg-${id}`}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Describe your changes..."
+            placeholder={t("describeChanges")}
             rows={4}
             value={message}
           />
@@ -158,7 +159,7 @@ export function CommitModal({
             disabled={saving}
             className="rounded px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100"
           >
-            Cancel
+            {t("cancel")}
           </button>
           <button
             onClick={handleConfirm}
@@ -166,7 +167,7 @@ export function CommitModal({
             className="rounded px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
             style={{ backgroundColor: "var(--ui-primary)" }}
           >
-            {saving ? "Soumission..." : "Soumettre"}
+            {saving ? t("submitting") : t("submit")}
           </button>
         </div>
       </div>

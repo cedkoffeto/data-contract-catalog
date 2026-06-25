@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { t } from "@/src/lib/i18n";
 
 import { Button } from "@/src/components/ui/Button";
 import { ConfirmDialog } from "@/src/components/ui/ConfirmDialog";
@@ -394,7 +395,7 @@ export default function PoliciesPage() {
           <div className="fixed inset-0 bg-black/50" onClick={() => setViewUserPolicies(null)} />
           <div className="relative z-10 rounded-lg bg-white p-6 shadow-xl" style={{ width: "min(70vw, 480px)" }}>
             <h3 className="text-base font-semibold text-gray-900">
-              Policies for user: <span className="font-mono text-sm">{viewUserPolicies.userId}</span>
+              {t("policiesForUser")} <span className="font-mono text-sm">{viewUserPolicies.userId}</span>
             </h3>
 
             <p className="mt-1 text-xs text-gray-400">
@@ -402,9 +403,9 @@ export default function PoliciesPage() {
             </p>
 
             {viewUserPolicies.loading ? (
-              <p className="mt-4 text-sm text-gray-500">Loading...</p>
+              <p className="mt-4 text-sm text-gray-500">{t("loading")}</p>
             ) : viewUserPolicies.policies.length === 0 ? (
-              <p className="mt-4 text-sm text-gray-500">No policies found for this user.</p>
+              <p className="mt-4 text-sm text-gray-500">{t("noPolicies")}</p>
             ) : (
               <div className="mt-3 max-h-72 overflow-y-auto">
                 <div className="space-y-1">
@@ -414,7 +415,7 @@ export default function PoliciesPage() {
                       className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
                     >
                       <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
-                        {p.user_id ? "direct" : `group`}
+                        {p.user_id ? t("direct") : t("group")}
                       </span>
                       <span
                         className="rounded-md px-1.5 py-0.5 text-[10px] font-medium"
@@ -426,7 +427,7 @@ export default function PoliciesPage() {
                         {p.permission_name}
                       </span>
                       <span className="font-mono text-xs text-gray-500">
-                        {p.domain_scope ?? "all domains"}{p.context_scope ? ` / ${p.context_scope}` : ""}{p.data_contract_scope ? ` / ${p.data_contract_scope}` : ""}
+                        {p.domain_scope ?? t("allDomainsScope")}{p.context_scope ? ` / ${p.context_scope}` : ""}{p.data_contract_scope ? ` / ${p.data_contract_scope}` : ""}
                       </span>
                     </div>
                   ))}
@@ -439,7 +440,7 @@ export default function PoliciesPage() {
                 onClick={() => setViewUserPolicies(null)}
                 className="rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
               >
-                Close
+                {t("close")}
               </button>
             </div>
           </div>

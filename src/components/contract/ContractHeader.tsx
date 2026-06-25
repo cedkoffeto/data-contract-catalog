@@ -1,3 +1,4 @@
+import { t } from "@/src/lib/i18n";
 import type { Asset } from "@/src/lib/types";
 
 function getReadableValue(value?: string) {
@@ -17,7 +18,7 @@ export function ContractHeader({
     asset.owners?.technical_owner?.name ??
     asset.owners?.business_owner?.email ??
     asset.owners?.technical_owner?.email ??
-    "Platform owner";
+    t("platformTeam");
 
   return (
     <section className="contract-hero">
@@ -27,7 +28,7 @@ export function ContractHeader({
 
         <dl className="contract-hero__facts">
           <div>
-            <dt>Version</dt>
+            <dt>{t("version")}</dt>
             <dd>{getReadableValue(asset.version)}</dd>
           </div>
           <div>
@@ -35,11 +36,11 @@ export function ContractHeader({
             <dd>{getReadableValue(asset.domain)}</dd>
           </div>
           <div>
-            <dt>Maturity</dt>
+            <dt>{t("maturity")}</dt>
             <dd>{getReadableValue(asset.maturity)}</dd>
           </div>
           <div>
-            <dt>Owner</dt>
+            <dt>{t("owner")}</dt>
             <dd>{owner}</dd>
           </div>
         </dl>

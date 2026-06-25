@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { t, tWith } from "@/src/lib/i18n";
 import { Button } from "@/src/components/ui/Button";
 
 type ConfirmDialogProps = {
@@ -22,7 +23,7 @@ function CloseIcon() {
   );
 }
 
-export function ConfirmDialog({ open, title, message, confirmLabel = "Confirm", onConfirm, onCancel, autoCloseMs }: ConfirmDialogProps) {
+export function ConfirmDialog({ open, title, message, confirmLabel = t("confirm"), onConfirm, onCancel, autoCloseMs }: ConfirmDialogProps) {
   const [timeLeft, setTimeLeft] = useState(autoCloseMs ?? 0);
   const totalRef = useRef(autoCloseMs ?? 0);
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
@@ -78,7 +79,7 @@ export function ConfirmDialog({ open, title, message, confirmLabel = "Confirm", 
         )}
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
           <Button onClick={onCancel} variant="outline" className="w-full sm:w-auto">
-            {autoCloseMs ? `Cancel (${Math.ceil(timeLeft / 1000)}s)` : "Cancel"}
+            {autoCloseMs ? tWith("cancelSeconds", { seconds: String(Math.ceil(timeLeft / 1000)) }) : t("cancel")}
           </Button>
           <button
             onClick={onConfirm}

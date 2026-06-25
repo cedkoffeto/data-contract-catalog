@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import yaml from "js-yaml";
 
+import { t, tWith } from "@/src/lib/i18n";
 import { ContractBody } from "@/src/components/contract/ContractBody";
 import { DiscussionThread } from "@/src/components/contract/DiscussionThread";
 import { ContractHeader } from "@/src/components/contract/ContractHeader";
@@ -52,7 +53,7 @@ function ExportButton({ slug }: { slug: string }) {
           <polyline points="7 10 12 15 17 10" />
           <line x1="12" y1="15" x2="12" y2="3" />
         </svg>
-        Export
+        {t("exportCsv")}
       </button>
       {open ? createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -81,7 +82,7 @@ function ExportButton({ slug }: { slug: string }) {
                 onClick={() => setOpen(false)}
                 className="rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
               >
-                Annuler
+                {t("cancel")}
               </button>
               <button
                 type="button"
@@ -354,11 +355,11 @@ export function ContractPageClient({
             {activeVersion ? (
               <div className="contract-version-banner">
                 <div className="contract-version-banner__copy">
-                  <span className="contract-version-banner__tag">Version {activeVersion.entry.shortId}</span>
+                  <span className="contract-version-banner__tag">{tWith("versionBanner", { shortId: activeVersion.entry.shortId })}</span>
                   <strong>{activeVersion.entry.title}</strong>
                 </div>
                 <button className="editor-soft-button editor-soft-button--compact" onClick={() => setActiveVersion(null)} type="button">
-                  Back to current
+                  {t("backToCurrent")}
                 </button>
               </div>
             ) : null}
@@ -367,20 +368,20 @@ export function ContractPageClient({
 
             <section className="contract-summary-strip">
               <article className="contract-summary-strip__card">
-                <span className="contract-summary-strip__label">Schema fields</span>
+                <span className="contract-summary-strip__label">{t("schemaFields")}</span>
                 <strong>{fields}</strong>
               </article>
               <article className="contract-summary-strip__card">
-                <span className="contract-summary-strip__label">Input sources</span>
+                <span className="contract-summary-strip__label">{t("inputSources")}</span>
                 <strong>{sources}</strong>
               </article>
               <article className="contract-summary-strip__card">
-                <span className="contract-summary-strip__label">Quality checks</span>
+                <span className="contract-summary-strip__label">{t("qualityChecks")}</span>
                 <strong>{qualityChecks}</strong>
               </article>
               <article className="contract-summary-strip__card">
-                <span className="contract-summary-strip__label">Lifecycle</span>
-                <strong>{asset.status ?? "Draft"}</strong>
+                <span className="contract-summary-strip__label">{t("lifecycle")}</span>
+                <strong>{asset.status ?? t("draft")}</strong>
               </article>
             </section>
 
@@ -388,8 +389,8 @@ export function ContractPageClient({
               <div className="contract-content-shell__main">
                 <div className="sticky top-0 z-10 mb-4 border-b border-gray-200 bg-white/95 shadow-sm backdrop-blur">
                   <div role="tablist" aria-label="Contract sections" className="flex overflow-x-auto">
-                    <ContractTab id="details" label="Details" icon="details" />
-                    <ContractTab id="discussion" label="Discussion" count={commentCount + issueCount} icon="discussion" />
+                    <ContractTab id="details" label={t("tabDetails")} icon="details" />
+                    <ContractTab id="discussion" label={t("tabDiscussion")} count={commentCount + issueCount} icon="discussion" />
                   </div>
                 </div>
                 <div className={activeTab === "details" ? "" : "hidden"}>
@@ -404,22 +405,22 @@ export function ContractPageClient({
 
           <aside className="contract-side-panel">
             <div className="contract-side-card contract-side-card--actions">
-              <h2>Workspace</h2>
-              <p>Review, edit and follow this contract from one place.</p>
+              <h2>{t("workspace")}</h2>
+              <p>{t("workspaceDesc")}</p>
               <div className="contract-side-card__actions">
                 {canEdit ? (
                   <a className="catalog-primary-link w-full justify-center" href={`/editor?contract=${encodeURIComponent(slug)}`}>
-                    Open in editor
+                    {t("openEditor")}
                   </a>
                 ) : (
                   <>
                     <button
                       className="catalog-primary-link catalog-primary-link--disabled w-full justify-center"
                       disabled
-                      title="Vous n'avez pas les droits editor ou admin pour modifier ce contrat"
+                      title={t("noEditPermission")}
                       type="button"
                     >
-                      Open in editor
+                      {t("openEditor")}
                     </button>
                     {userId && canRead ? <RequestEditorUpgrade slug={slug} domain={asset?.domain} context={asset?.context} /> : null}
                   </>
@@ -433,7 +434,7 @@ export function ContractPageClient({
                     <svg width="16" height="16" viewBox="0 0 24 24" fill={isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                     </svg>
-                    {isFavorite ? "Favorited" : "Favorite"}
+                    {isFavorite ? t("favorited") : t("favorite")}
                   </button>
                 ) : null}
                 {userId ? (
@@ -449,7 +450,7 @@ export function ContractPageClient({
                       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                       <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                     </svg>
-                    Subscribe
+                    {t("subscribe")}
                   </button>
                 )}
                 <ExportButton slug={slug} />
@@ -458,7 +459,7 @@ export function ContractPageClient({
 
             <div className="contract-side-card contract-side-card--history">
               <div className="contract-side-card__header">
-                <h2>History</h2>
+                <h2>{t("history")}</h2>
                 <div className="contract-side-card__header-actions">
                   <ContractDiffDialog slug={slug} currentYamlRaw={displayedYamlRaw} currentData={displayedData} historyEntries={historyEntries} onClose={() => {}} />
                   {historyEntries.length > 6 ? (
@@ -467,7 +468,7 @@ export function ContractPageClient({
                       onClick={() => historyDialogRef.current?.showModal()}
                       type="button"
                     >
-                      View more
+                      {t("viewMore")}
                     </button>
                   ) : null}
                 </div>
@@ -483,11 +484,11 @@ export function ContractPageClient({
                       <div className="contract-side-history-row__header">
                         <strong>{entry.title}</strong>
                         <button
-                          aria-label="Open this version"
+                          aria-label={t("openThisVersion")}
                           className="contract-side-history-row__eye"
                           disabled={loadingHistoryId === entry.id}
                           onClick={() => void handleOpenHistory(entry)}
-                          title="Open this version"
+                          title={t("openThisVersion")}
                           type="button"
                         >
                           <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -504,7 +505,7 @@ export function ContractPageClient({
                   ))}
                 </div>
               ) : (
-                <p className="contract-side-card__muted">History unavailable for this contract.</p>
+                <p className="contract-side-card__muted">{t("historyUnavailable")}</p>
               )}
             </div>
           </aside>
@@ -513,19 +514,19 @@ export function ContractPageClient({
 
       <dialog ref={historyDialogRef} className="yaml-sheet yaml-sheet--history" aria-labelledby={`history-sheet-title-${historyDialogId}`}>
         <form method="dialog" className="yaml-sheet__backdrop">
-          <button className="yaml-sheet__scrim" aria-label="Close history panel" />
+          <button className="yaml-sheet__scrim" aria-label={t("close")} />
         </form>
 
         <div className="yaml-sheet__panel yaml-sheet__panel--history">
           <div className="yaml-sheet__header">
             <div>
-              <p className="yaml-sheet__eyebrow">Contract activity</p>
-              <h3 id={`history-sheet-title-${historyDialogId}`}>History</h3>
+              <p className="yaml-sheet__eyebrow">{t("contractActivity")}</p>
+              <h3 id={`history-sheet-title-${historyDialogId}`}>{t("historyTitle")}</h3>
             </div>
 
             <div className="yaml-sheet__header-actions">
               <button className="editor-soft-button" onClick={() => historyDialogRef.current?.close()} type="button">
-                Close
+                {t("close")}
               </button>
             </div>
           </div>
@@ -540,14 +541,14 @@ export function ContractPageClient({
                   <div className="contract-side-history-row__header">
                     <strong>{entry.title}</strong>
                     <button
-                      aria-label="Open this version"
+                      aria-label={t("openThisVersion")}
                       className="contract-side-history-row__eye"
                       disabled={loadingHistoryId === entry.id}
                       onClick={() => {
                         void handleOpenHistory(entry);
                         historyDialogRef.current?.close();
                       }}
-                      title="Open this version"
+                      title={t("openThisVersion")}
                       type="button"
                     >
                       <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">

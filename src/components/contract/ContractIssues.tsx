@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { t } from "@/src/lib/i18n";
 import type { ContractIssue } from "@/src/lib/types";
 
 const STATUSES = ["open", "fixed", "false_alert"] as const;
@@ -19,9 +20,9 @@ function formatDate(value: string) {
 }
 
 function statusLabel(status: ContractIssue["status"]) {
-  if (status === "fixed") return "Fixed";
-  if (status === "false_alert") return "False alert";
-  return "Open";
+  if (status === "fixed") return t("issueStatusFixed");
+  if (status === "false_alert") return t("issueStatusFalseAlert");
+  return t("issueStatusOpen");
 }
 
 function statusClass(status: ContractIssue["status"]) {
@@ -144,15 +145,15 @@ export function ContractIssues({
   return (
     <section className="contract-issues">
       <div className="mb-4 rounded-xl border bg-white p-4 shadow-sm">
-        <h2 className="text-base font-semibold text-gray-900">Issues</h2>
-        <p className="mt-1 text-sm text-gray-500">Report errors, false alerts, or data quality problems.</p>
+        <h2 className="text-base font-semibold text-gray-900">{t("issuesTitle")}</h2>
+        <p className="mt-1 text-sm text-gray-500">{t("issuesSubtitle")}</p>
 
         {userId ? (
           <form className="mt-4" onSubmit={handleSubmit}>
             <textarea
               className="w-full rounded-md border px-3 py-2 text-sm text-gray-900"
               rows={4}
-              placeholder="Describe the issue..."
+              placeholder={t("issuePlaceholder")}
               value={body}
               onChange={(event) => setBody(event.target.value)}
               style={{ borderColor: "#e5e7eb" }}
@@ -164,22 +165,22 @@ export function ContractIssues({
                 className="rounded px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
                 style={{ backgroundColor: "var(--ui-primary)" }}
               >
-                {saving ? "Creating..." : "Create issue"}
+                {saving ? t("creating") : t("createIssue")}
               </button>
             </div>
           </form>
         ) : (
-          <p className="mt-4 text-sm text-gray-500">Sign in to create an issue.</p>
+          <p className="mt-4 text-sm text-gray-500">{t("signInToCreateIssue")}</p>
         )}
       </div>
 
       {error ? <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
 
       {loading ? (
-        <p className="rounded-xl border bg-white px-4 py-6 text-sm text-gray-500 shadow-sm">Loading issues...</p>
+        <p className="rounded-xl border bg-white px-4 py-6 text-sm text-gray-500 shadow-sm">{t("loadingIssues")}</p>
       ) : issues.length === 0 ? (
         <div className="rounded-xl border bg-white px-4 py-8 text-center text-sm text-gray-500 shadow-sm">
-          No issues reported.
+          {t("noIssues")}
         </div>
       ) : (
         <div className="space-y-3">

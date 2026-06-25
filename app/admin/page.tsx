@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Fragment, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { t, tWith } from "@/src/lib/i18n";
 
 function StatusIcon({ status }: { status: string }) {
   if (status === "pending") {
@@ -125,7 +126,7 @@ export default function AdminDashboard() {
             : isLast
               ? "polygon(8% 0, 100% 0, 100% 100%, 0 100%)"
               : "polygon(8% 0, 100% 0, 92% 100%, 0 100%)";
-          const labels = { access: "Access Requests", changes: "Change Requests", audit: "Audit Logs" };
+          const labels = { access: t("accessRequests"), changes: t("changeRequests"), audit: t("auditLog") };
           const pendingCounts = { access: pendingAccess, changes: pendingChanges, audit: 0 };
           return (
             <button
@@ -310,10 +311,10 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
       <div>
         <div className="mb-3 flex items-center gap-3">
           <h2 className="text-base font-semibold text-gray-900">
-            Change Requests
+            {t("changeRequests")}
             {requests.filter((r) => r.status === "pending").length > 0 && (
               <span className="text-sm font-normal text-gray-400">
-                {" "}({requests.filter((r) => r.status === "pending").length} pending)
+                {" "}{tWith("pendingCount", { count: String(requests.filter((r) => r.status === "pending").length) })}
               </span>
             )}
           </h2>
@@ -345,14 +346,14 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
           </div>
         ) : null}
         {filtered.length === 0 ? (
-          <div className="rounded-lg border bg-white py-8 text-center text-sm text-gray-400">{requests.length === 0 ? "No change requests yet." : "No change requests match your filter."}</div>
+          <div className="rounded-lg border bg-white py-8 text-center text-sm text-gray-400">{requests.length === 0 ? t("noChangeRequests") : "No change requests match your filter."}</div>
         ) : (<>
           <div className="overflow-x-auto rounded-lg border shadow-lg">
             <table className="min-w-full divide-y divide-gray-200 bg-white text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  {[{ label: "ID", key: "id" }, { label: "Contract", key: "contractSlug" }, { label: "Editor", key: "editorId" }, { label: "Status", key: "status" }, { label: "Source", key: "source" }, { label: "MR URL", key: "gitlabMrUrl" }, { label: "Rejection", key: "rejectionReason" }, { label: "Created", key: "createdAt" }, { label: "Actions", key: null }].map(({ label, key }) => (
-                    <th key={label} className={`px-3 py-2 text-left font-semibold text-gray-500 ${label === "MR URL" ? "whitespace-nowrap " : ""}${key ? "cursor-pointer select-none hover:bg-gray-100" : ""}`} onClick={() => key && toggleSort(key)}>
+                  {[{ label: t("tblId"), key: "id" }, { label: t("tblContract"), key: "contractSlug" }, { label: t("tblEditor"), key: "editorId" }, { label: t("tblStatus"), key: "status" }, { label: "Source", key: "source" }, { label: t("tblMrUrl"), key: "gitlabMrUrl" }, { label: t("tblRejection"), key: "rejectionReason" }, { label: t("tblCreated"), key: "createdAt" }, { label: t("tblActions"), key: null }].map(({ label, key }) => (
+                    <th key={label} className={`px-3 py-2 text-left font-semibold text-gray-500 ${key === "gitlabMrUrl" ? "whitespace-nowrap " : ""}${key ? "cursor-pointer select-none hover:bg-gray-100" : ""}`} onClick={() => key && toggleSort(key)}>
                       <span className="inline-flex items-center gap-1">
                         {label}
                         {key && sortKey === key && (
@@ -389,7 +390,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
                       {r.gitlabMrUrl ? (
                         <a href={r.gitlabMrUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-blue-600 hover:underline">
                           <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14" aria-hidden="true"><path d="M3 2v12h10V7h-1v6H4V3h5V2H3zm7 0v1h2.3L7.15 8.15l.7.7L13 3.7V6h1V2h-4z"/></svg>
-                          View
+                          {t("viewMr")}
                         </a>
                       ) : (
                         <span className="text-gray-400">{"\u2014"}</span>
@@ -410,7 +411,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
                             className="rounded-md px-2 py-1 text-xs font-bold text-green-700 hover:bg-green-200 disabled:opacity-50"
                             style={{ backgroundColor: "#dcfce7" }}
                           >
-                            {actionLoading[r.id] === "merge" ? "Merging" : "Merge"}
+                            {actionLoading[r.id] === "merge" ? t("merging") : t("approve")}
                           </button>
                           <button
                             onClick={() => { setRejectingId(r.id); setRejectReason(""); }}
@@ -418,7 +419,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
                             className="rounded-md px-2 py-1 text-xs font-bold text-white hover:bg-red-700 disabled:opacity-50"
                             style={{ backgroundColor: "#ef4444" }}
                           >
-                            {actionLoading[r.id] === "reject" ? "Rejecting" : "Reject"}
+                            {actionLoading[r.id] === "reject" ? t("rejecting") : t("reject")}
                           </button>
                         </div>
                       ) : r.status === "conflicted" && r.gitlabMrUrl ? (
@@ -428,11 +429,11 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
                           style={{ backgroundColor: "#dbeafe" }}
                         >
                           <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12" aria-hidden="true"><path d="M3 2v12h10V7h-1v6H4V3h5V2H3zm7 0v1h2.3L7.15 8.15l.7.7L13 3.7V6h1V2h-4z"/></svg>
-                          View
+                          {t("viewMr")}
                         </button>
                       ) : (
                         <span className="text-gray-400">
-                          {r.resolvedBy ? `by ${r.resolvedBy}` : "\u2014"}
+                          {r.resolvedBy ? tWith("byUser", { user: r.resolvedBy }) : "\u2014"}
                         </span>
                       )}
                     </td>
@@ -443,7 +444,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
           </div>
           <div className="mt-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-gray-400">Show</span>
+              <span className="text-gray-400">{t("show")}</span>
               <select
                 value={pageSize}
                 onChange={(e) => { setPageSize(Number(e.target.value)); setPage(0); }}
@@ -453,7 +454,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
                   <option key={n} value={n}>{n}</option>
                 ))}
               </select>
-              <span className="text-gray-400">entries</span>
+              <span className="text-gray-400">{t("entries")}</span>
             </div>
             {totalPages > 1 && (
               <div className="flex items-center gap-3">
@@ -462,17 +463,17 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
                   disabled={safePage === 0}
                   className="rounded-md px-2 py-1 font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
                 >
-                  Previous
+                  {t("previous")}
                 </button>
                 <span className="text-gray-400">
-                  Page {safePage + 1} of {totalPages}
+                  {tWith("pageOf", { page: String(safePage + 1), total: String(totalPages) })}
                 </span>
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                   disabled={safePage >= totalPages - 1}
                   className="rounded-md px-2 py-1 font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
                 >
-                  Next
+                  {t("next")}
                 </button>
               </div>
             )}
@@ -499,8 +500,8 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
               <button
                 onClick={() => setRejectingId(null)}
                 className="editor-close-button"
-                aria-label="Close"
-                title="Close"
+                aria-label={t("close")}
+                title={t("close")}
                 type="button"
               >
                 <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -514,7 +515,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
                 autoFocus
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
-                placeholder="Rejection reason (min. 3 characters)"
+                placeholder={t("rejectionReasonPlaceholder")}
                 rows={3}
                 className="w-full rounded-md border px-3 py-2 text-sm text-gray-900 outline-none"
                 style={{ borderColor: "#d1d5db" }}
@@ -526,7 +527,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
                 onClick={() => setRejectingId(null)}
                 className="rounded px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100"
               >
-                Cancel
+                {t("cancel")}
               </button>
               <button
                 onClick={() => void handleReject(rejectingId)}
@@ -534,7 +535,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
                 className="rounded px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
                 style={{ backgroundColor: "var(--ui-primary)" }}
               >
-                {actionLoading[rejectingId] === "reject" ? "Rejecting" : "Reject"}
+                {actionLoading[rejectingId] === "reject" ? t("rejecting") : t("reject")}
               </button>
             </div>
           </div>
@@ -596,20 +597,20 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
 
   return (
     <div>
-      <h2 className="mb-3 text-base font-semibold text-gray-900">Audit Logs</h2>
+      <h2 className="mb-3 text-base font-semibold text-gray-900">{t("auditLog")}</h2>
       <div className="mb-3 flex items-center gap-3">
         <input
           className="flex-1 rounded-md border bg-white px-2 py-1.5 text-xs text-gray-900"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-          placeholder="Filter by action, actor or target"
+          placeholder={t("filterAudit")}
         />
         <span className="whitespace-nowrap text-xs text-gray-400">
-          {sorted.length} entries
+          {tWith("entriesCount", { count: String(sorted.length) })}
         </span>
       </div>
       {sorted.length === 0 ? (
-        <div className="rounded-lg border bg-white py-8 text-center text-sm text-gray-400">No audit entries yet.</div>
+        <div className="rounded-lg border bg-white py-8 text-center text-sm text-gray-400">{t("noAudit")}</div>
       ) : (
         <>
           <div className="overflow-x-auto rounded-lg border shadow-lg">
@@ -617,7 +618,7 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
               <thead className="bg-gray-50">
                 <tr>
                   {(["created_at", "action", "actor_id", "target_id", "details"] as const).map((key) => {
-                    const labels: Record<string, string> = { created_at: "Date", action: "Action", actor_id: "Actor", target_id: "Target", details: "Details" };
+                    const labels: Record<string, string> = { created_at: t("tblDate"), action: t("tblAction"), actor_id: t("tblActor"), target_id: t("tblTarget"), details: t("tblDetails") };
                     const widths: Record<string, string> = { details: "w-[35%]" };
                     return (
                       <th
@@ -668,7 +669,7 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
           </div>
           <div className="mt-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-gray-400">Show</span>
+              <span className="text-gray-400">{t("show")}</span>
               <select
                 value={pageSize}
                 onChange={(e) => { setPageSize(Number(e.target.value)); setPage(0); }}
@@ -678,7 +679,7 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
                   <option key={n} value={n}>{n}</option>
                 ))}
               </select>
-              <span className="text-gray-400">entries</span>
+              <span className="text-gray-400">{t("entries")}</span>
             </div>
             {totalPages > 1 && (
               <div className="flex items-center gap-3">
@@ -687,17 +688,17 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
                   disabled={safePage === 0}
                   className="rounded-md px-2 py-1 font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
                 >
-                  Previous
+                  {t("previous")}
                 </button>
                 <span className="text-gray-400">
-                  Page {safePage + 1} of {totalPages}
+                  {tWith("pageOf", { page: String(safePage + 1), total: String(totalPages) })}
                 </span>
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                   disabled={safePage >= totalPages - 1}
                   className="rounded-md px-2 py-1 font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
                 >
-                  Next
+                  {t("next")}
                 </button>
               </div>
             )}
@@ -778,7 +779,7 @@ function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number)
   return (
     <div>
       <h2 className="mb-3 text-base font-semibold text-gray-900">
-        Access Requests {pending.length > 0 && <span className="text-sm font-normal text-gray-400">({pending.length} pending)</span>}
+        {t("accessRequests")} {pending.length > 0 && <span className="text-sm font-normal text-gray-400">{tWith("pendingCount", { count: String(pending.length) })}</span>}
       </h2>
       <div className="mb-3 flex items-center gap-3">
         <input
@@ -792,13 +793,13 @@ function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number)
         </span>
       </div>
       {filtered.length === 0 ? (
-        <div className="rounded-lg border bg-white py-8 text-center text-sm text-gray-400">{requests.length === 0 ? "No access requests yet." : "No access requests match your filter."}</div>
+        <div className="rounded-lg border bg-white py-8 text-center text-sm text-gray-400">{requests.length === 0 ? t("noAccessRequests") : "No access requests match your filter."}</div>
       ) : (<>
         <div className="overflow-x-auto rounded-lg border shadow-lg">
           <table className="min-w-full divide-y divide-gray-200 bg-white text-sm">
             <thead className="bg-gray-50">
               <tr>
-                {[{ label: "ID", key: "id" }, { label: "User", key: "user_id" }, { label: "Domain", key: "domain" }, { label: "Context", key: "context" }, { label: "Contract", key: "data_contract" }, { label: "Permission", key: "requested_permission" }, { label: "Message", key: null }, { label: "Status", key: "status" }, { label: "Actions", key: null }].map(({ label, key }) => (
+                {[{ label: t("tblId"), key: "id" }, { label: "User", key: "user_id" }, { label: "Domain", key: "domain" }, { label: "Context", key: "context" }, { label: "Contract", key: "data_contract" }, { label: "Permission", key: "requested_permission" }, { label: "Message", key: null }, { label: t("tblStatus"), key: "status" }, { label: t("tblActions"), key: null }].map(({ label, key }) => (
                   <th key={label} className={`px-3 py-2 text-left font-semibold text-gray-500 ${key ? "cursor-pointer select-none hover:bg-gray-100" : ""}`} onClick={() => key && toggleSort(key)}>
                     <span className="inline-flex items-center gap-1">
                       {label}
@@ -829,8 +830,8 @@ function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number)
                   <td className="px-3 py-2">
                     {r.status === "pending" ? (
                       <div className="flex gap-1">
-                        <button onClick={() => handleStatus(r.id, "approved")} className="rounded-md px-2 py-1 text-xs font-bold text-green-700 hover:bg-green-200" style={{ backgroundColor: "#dcfce7" }}>Approve</button>
-                        <button onClick={() => handleStatus(r.id, "rejected")} className="rounded-md px-2 py-1 text-xs font-bold text-white hover:bg-red-700" style={{ backgroundColor: "#ef4444" }}>Deny</button>
+                        <button onClick={() => handleStatus(r.id, "approved")} className="rounded-md px-2 py-1 text-xs font-bold text-green-700 hover:bg-green-200" style={{ backgroundColor: "#dcfce7" }}>{t("approve")}</button>
+                        <button onClick={() => handleStatus(r.id, "rejected")} className="rounded-md px-2 py-1 text-xs font-bold text-white hover:bg-red-700" style={{ backgroundColor: "#ef4444" }}>{t("deny")}</button>
                       </div>
                     ) : (
                       <span className="text-gray-400">{"\u2014"}</span>
@@ -843,7 +844,7 @@ function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number)
         </div>
         <div className="mt-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-              <span className="text-gray-400">Show</span>
+              <span className="text-gray-400">{t("show")}</span>
               <select
                 value={pageSize}
                 onChange={(e) => { setPageSize(Number(e.target.value)); setPage(0); }}
@@ -853,7 +854,7 @@ function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number)
                   <option key={n} value={n}>{n}</option>
                 ))}
               </select>
-              <span className="text-gray-400">entries</span>
+              <span className="text-gray-400">{t("entries")}</span>
             </div>
             {totalPages > 1 && (
               <div className="flex items-center gap-3">
@@ -862,17 +863,17 @@ function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number)
                   disabled={safePage === 0}
                   className="rounded-md px-2 py-1 font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
                 >
-                  Previous
+                  {t("previous")}
                 </button>
                 <span className="text-gray-400">
-                  Page {safePage + 1} of {totalPages}
+                  {tWith("pageOf", { page: String(safePage + 1), total: String(totalPages) })}
                 </span>
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                   disabled={safePage >= totalPages - 1}
                   className="rounded-md px-2 py-1 font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
                 >
-                  Next
+                  {t("next")}
                 </button>
               </div>
             )}

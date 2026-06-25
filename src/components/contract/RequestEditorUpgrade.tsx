@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { t } from "@/src/lib/i18n";
 
 function CloseIcon() {
   return (
@@ -90,7 +91,7 @@ export function RequestEditorUpgrade({
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2Zm10-10V7a4 4 0 0 0-8 0v4h8Z" />
         </svg>
-        {compact ? (done ? "Editor access requested" : "Request editor") : "Request editor access"}
+        {compact ? (done ? t("requestSentAdmin") : t("requestEditor")) : t("requestEditorAccess")}
       </button>
 
       {open && createPortal(
@@ -109,46 +110,46 @@ export function RequestEditorUpgrade({
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2Zm10-10V7a4 4 0 0 0-8 0v4h8Z" />
                 </svg>
-                <h3 className="text-sm font-semibold text-gray-900">Request editor access</h3>
+                <h3 className="text-sm font-semibold text-gray-900">{t("requestEditorTitle")}</h3>
               </div>
-              <button className="editor-close-button" onClick={() => { setOpen(false); setMessage(""); }} aria-label="Close">
+              <button className="editor-close-button" onClick={() => { setOpen(false); setMessage(""); }} aria-label={t("close")}>
                 <CloseIcon />
               </button>
             </div>
 
             {done ? (
               <div className="flex flex-1 flex-col items-center justify-center px-4 py-6 text-center">
-                <p className="text-sm font-medium text-green-600">Request sent to administrators.</p>
+                <p className="text-sm font-medium text-green-600">{t("requestSentAdmin")}</p>
                 <button
                   type="button"
                   onClick={() => { setOpen(false); setMessage(""); }}
                   className="mt-3 rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
                 >
-                  Close
+{t("close")}
                 </button>
               </div>
             ) : (
               <>
                 <div className="flex-1 overflow-y-auto px-4 py-3">
                   <p className="text-sm text-gray-700">
-                    You already have <strong>reader</strong> access. Request an upgrade to <strong>editor</strong> to modify this contract.
+                    {t("alreadyReader")}
                   </p>
                   <div className="mt-3 flex flex-wrap items-center gap-x-6 text-xs text-gray-400">
-                    {domain && <span className="flex items-center gap-1">Domain: <span className="catalog-card__badge">{domain}</span></span>}
-                    {context && <span className="flex items-center gap-1">Context: <span className="catalog-card__badge catalog-card__badge--subtle">{context}</span></span>}
-                    <span className="flex items-center gap-1">Contract: <span className="catalog-card__badge" style={{ backgroundColor: "#fffbeb", color: "#854d0e" }}>{slug}</span></span>
+                    {domain && <span className="flex items-center gap-1">{t("domainLabel")} <span className="catalog-card__badge">{domain}</span></span>}
+                    {context && <span className="flex items-center gap-1">{t("contextLabel")} <span className="catalog-card__badge catalog-card__badge--subtle">{context}</span></span>}
+                    <span className="flex items-center gap-1">{t("contractLabel")} <span className="catalog-card__badge" style={{ backgroundColor: "#fffbeb", color: "#854d0e" }}>{slug}</span></span>
                   </div>
 
                   <textarea
                     className="mt-3 w-full rounded-md border px-3 py-2 text-sm text-gray-900"
                     rows={3}
-                    placeholder="Why do you need editor access? (min. 3 characters)"
+                    placeholder={t("whyEditorPlaceholder")}
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     style={{ borderColor: "#e5e7eb" }}
                   />
                   {message.trim() && message.trim().length < 3 && (
-                    <p className="mt-1 text-xs text-red-500">Minimum 3 characters required</p>
+                    <p className="mt-1 text-xs text-red-500">{t("minCharsRequired")}</p>
                   )}
                 </div>
 
@@ -159,7 +160,7 @@ export function RequestEditorUpgrade({
                     className="rounded px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
                     style={{ backgroundColor: "var(--ui-primary)" }}
                   >
-                    {sending ? "Sending\u2026" : "Send request"}
+                    {sending ? t("sending") : t("sendRequest")}
                   </button>
                 </div>
               </>

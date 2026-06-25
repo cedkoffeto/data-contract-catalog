@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { t } from "@/src/lib/i18n";
 
 function UnlockIcon() {
   return (
@@ -109,7 +110,7 @@ export function RequestAccessButton({
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        Access requested
+        {t("accessRequested")}
       </button>
     );
   }
@@ -121,7 +122,7 @@ export function RequestAccessButton({
         className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-white shadow-lg transition-transform hover:scale-105"
         style={{ pointerEvents: "auto", backgroundColor: "var(--ui-primary)" }}
       >
-        <UnlockIcon /> Request access
+        <UnlockIcon /> {t("requestAccess")}
       </button>
 
       {open && createPortal(
@@ -138,22 +139,22 @@ export function RequestAccessButton({
             <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
               <div className="flex items-center gap-2">
                 <UnlockIcon />
-                <h3 className="text-sm font-semibold text-gray-900">Request access</h3>
+                <h3 className="text-sm font-semibold text-gray-900">{t("requestAccessTitle")}</h3>
               </div>
-              <button className="editor-close-button" onClick={handleClose} aria-label="Close">
+              <button className="editor-close-button" onClick={handleClose} aria-label={t("close")}>
                 <CloseIcon />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto px-4 py-3">
               <div className="flex flex-wrap items-center gap-x-6 text-xs text-gray-400">
-                {domain && <span className="flex items-center gap-1">Domain: <span className="catalog-card__badge">{domain}</span></span>}
-                {context && <span className="flex items-center gap-1">Context: <span className="catalog-card__badge catalog-card__badge--subtle">{context}</span></span>}
-                <span className="flex items-center gap-1">Contract: <span className="catalog-card__badge" style={{ backgroundColor: "#fffbeb", color: "#854d0e" }}>{slug}</span></span>
+                {domain && <span className="flex items-center gap-1">{t("domainLabel")} <span className="catalog-card__badge">{domain}</span></span>}
+                {context && <span className="flex items-center gap-1">{t("contextLabel")} <span className="catalog-card__badge catalog-card__badge--subtle">{context}</span></span>}
+                <span className="flex items-center gap-1">{t("contractLabel")} <span className="catalog-card__badge" style={{ backgroundColor: "#fffbeb", color: "#854d0e" }}>{slug}</span></span>
               </div>
 
               <div className="mt-3 flex items-center justify-between gap-3">
-                <span className="text-xs font-semibold text-gray-700">Requested permission</span>
+                <span className="text-xs font-semibold text-gray-700">{t("requestPermission")}</span>
                     <div className="inline-flex rounded-full border p-0.5" style={{ backgroundColor: "rgba(249, 115, 22, 0.08)", borderColor: "rgba(249, 115, 22, 0.22)" }}>
                   {ACCESS_REQUEST_PERMISSIONS.map((permission) => {
                     const selected = requestedPermission === permission;
@@ -178,13 +179,13 @@ export function RequestAccessButton({
               <textarea
                 className="mt-3 w-full rounded-md border px-3 py-2 text-sm text-gray-900"
                 rows={3}
-                placeholder="Why do you need access? (min. 3 characters)"
+                placeholder={t("whyAccessPlaceholder")}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 style={{ borderColor: "#e5e7eb" }}
               />
               {message.trim() && !isMessageValid && (
-                <p className="mt-1 text-xs text-red-500">Minimum 3 characters required</p>
+                <p className="mt-1 text-xs text-red-500">{t("minCharsRequired")}</p>
               )}
             </div>
 
@@ -195,7 +196,7 @@ export function RequestAccessButton({
                 className="rounded px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
                 style={{ backgroundColor: "var(--ui-primary)" }}
               >
-                {sending ? "Sending\u2026" : "Send request"}
+                {sending ? t("sending") : t("sendRequest")}
               </button>
             </div>
           </div>

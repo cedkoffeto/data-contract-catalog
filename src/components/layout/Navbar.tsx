@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { t } from "@/src/lib/i18n";
 import { auth } from "@/src/auth";
 import { AdminMenu } from "@/src/components/layout/AdminMenu";
 import { NotificationBell } from "@/src/components/layout/NotificationBell";
@@ -28,14 +29,14 @@ export async function Navbar() {
               width={40}
             />
             <div className="site-nav__copy">
-              <span className="site-nav__title">Data Contracts</span>
+              <span className="site-nav__title">{t("appTitle")}</span>
             </div>
           </Link>
 
           <div className="site-nav__actions">
             <div className="site-nav__links">
               <Link className="site-nav__link" href="/">
-                Catalog
+                {t("catalogTitle")}
               </Link>
               <Link className="site-nav__link" href="/docs">
                 Api

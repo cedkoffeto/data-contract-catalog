@@ -4,6 +4,8 @@ import { useCallback, useId, useMemo, useRef, useState } from "react";
 
 import yaml from "js-yaml";
 
+import { t, tWith } from "@/src/lib/i18n";
+
 import { computeDiff } from "@/src/lib/diff";
 import { SearchableSelect } from "@/src/components/ui/SearchableSelect";
 import { DiffView } from "@/src/components/contract/diff/DiffView";
@@ -140,7 +142,7 @@ export function ContractDiffDialog({
   return (
     <>
       <button className="contract-side-card__link" onClick={open} type="button">
-        Compare versions
+        {t("compareVersions")}
       </button>
 
       <dialog ref={dialogRefCallback} className="yaml-sheet yaml-sheet--diff-centered" aria-labelledby={`diff-sheet-title-${id}`} onClose={handleDialogClose}>
@@ -151,11 +153,11 @@ export function ContractDiffDialog({
         <div className="yaml-sheet__panel yaml-sheet__panel--diff-centered">
           <div className="yaml-sheet__header">
             <div>
-              <p className="yaml-sheet__eyebrow">Version comparison</p>
-              <h3 id={`diff-sheet-title-${id}`}>Compare versions</h3>
+              <p className="yaml-sheet__eyebrow">{t("versionComparison")}</p>
+              <h3 id={`diff-sheet-title-${id}`}>{t("compareTitle")}</h3>
             </div>
             <div className="yaml-sheet__header-actions">
-              <button className="editor-soft-button" disabled={loading} onClick={handleClose} type="button">Close</button>
+              <button className="editor-soft-button" disabled={loading} onClick={handleClose} type="button">{t("close")}</button>
             </div>
           </div>
 
@@ -163,24 +165,24 @@ export function ContractDiffDialog({
             <form className="diff-picker" onSubmit={handleCompare}>
               <div className="diff-picker__fields">
                 <div className="diff-picker__field">
-                  <label className="diff-picker__label">From</label>
+                  <label className="diff-picker__label">{t("fromLabel")}</label>
                   <SearchableSelect
                     value={fromRef}
                     onChange={setFromRef}
                     options={historyOptions}
-                    placeholder="Select version..."
-                    emptyLabel="No history available"
+                    placeholder={t("selectVersion")}
+                    emptyLabel={t("noHistory")}
                     disabled={loading}
                   />
                 </div>
 
                 <div className="diff-picker__field">
-                  <label className="diff-picker__label">To</label>
+                  <label className="diff-picker__label">{t("toLabel")}</label>
                   <SearchableSelect
                     value={toRef}
                     onChange={setToRef}
                     options={historyOptions}
-                    placeholder="Select version..."
+                    placeholder={t("selectVersion")}
                     disabled={loading}
                     includeLatest
                   />
@@ -191,7 +193,7 @@ export function ContractDiffDialog({
                   disabled={!fromRef || loading}
                   type="submit"
                 >
-                  {loading ? "Computing..." : "Compare"}
+                  {loading ? t("computing") : t("compare")}
                 </button>
               </div>
             </form>
@@ -203,12 +205,12 @@ export function ContractDiffDialog({
                 <DiffView
                   diff={diffResult}
                   fromLabel={fromEntry ? `${fromEntry.shortId} — ${fromEntry.title}` : fromRef}
-                  toLabel={toEntry ? `${toEntry.shortId} — ${toEntry.title}` : "Current (main)"}
+                  toLabel={toEntry ? `${toEntry.shortId} — ${toEntry.title}` : t("currentMain")}
                 />
               </div>
             ) : !loading ? (
               <div className="diff-picker__placeholder">
-                Select two versions and click &quot;Compare&quot; to see the differences.
+                {t("diffPlaceholder")}
               </div>
             ) : null}
           </div>

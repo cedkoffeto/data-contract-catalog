@@ -183,10 +183,10 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
 
   const stats = useMemo(
     () => [
-      { label: "Contracts", value: cards.length.toString().padStart(2, "0") },
-      { label: "Domains", value: domains.length.toString().padStart(2, "0") },
-      { label: "Contexts", value: contexts.length.toString().padStart(2, "0") },
-      { label: "Maturity tiers", value: maturities.length.toString().padStart(2, "0") }
+      { label: t("contracts"), value: cards.length.toString().padStart(2, "0") },
+      { label: t("domains"), value: domains.length.toString().padStart(2, "0") },
+      { label: t("contexts"), value: contexts.length.toString().padStart(2, "0") },
+      { label: t("maturityTiers"), value: maturities.length.toString().padStart(2, "0") }
     ],
     [cards.length, domains.length, contexts.length, maturities.length]
   );
@@ -200,13 +200,13 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
       ) : null}
       <section className="catalog-header">
         <div>
-          <h1 className="catalog-header__title">Catalog</h1>
+          <h1 className="catalog-header__title">{t("catalogTitle")}</h1>
           <p className="catalog-header__meta">
             {stats.map((stat) => `${stat.value} ${stat.label.toLowerCase()}`).join("  •  ")}
           </p>
         </div>
         <a className="catalog-primary-link" href="/editor">
-          New contract
+          {t("newContract")}
         </a>
       </section>
 
@@ -216,7 +216,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
           name="q"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search contract, owner, version or domain"
+          placeholder={t("searchPlaceholder")}
           wrapperClassName="catalog-filters__search"
           icon={
             <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -231,8 +231,8 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
 
         <div className="catalog-domain-row">
           <div className="catalog-domain-row__title">
-            <span>Domains</span>
-            <span>{visibleCards.length} contracts</span>
+            <span>{t("domains")}</span>
+            <span>{tWith("contractsCount", { n: String(visibleCards.length) })}</span>
           </div>
 
           <div className="catalog-domain-row__list">
@@ -241,7 +241,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
               onClick={() => setSelectedDomain(ALL_DOMAINS)}
               variant="chip"
             >
-              All domains
+              {t("allDomains")}
               <span className="catalog-filter-badge">{domains.length}</span>
             </Button>
             {cards.length > 0 ? (
@@ -250,7 +250,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
                 onClick={() => setShowOnlyAccessible((v) => !v)}
                 variant="chip"
               >
-                Accessible contracts ({accessibleCount}/{cards.length})
+                {tWith("accessibleOnly", { accessible: String(accessibleCount), total: String(cards.length) })}
               </Button>
             ) : null}
             {favoriteCount > 0 ? (
@@ -262,7 +262,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                 </svg>
-                Favorites ({favoriteCount})
+                {tWith("favorites", { count: String(favoriteCount) })}
               </Button>
             ) : null}
             {domains.map((domain) => (
@@ -283,7 +283,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
       <div className="catalog-layout">
         <aside className="catalog-filters">
           <div className="catalog-filters__heading">
-            <h2>Filters</h2>
+            <h2>{t("filters")}</h2>
             {(search || selectedDomain !== ALL_DOMAINS || selectedContexts.size > 0 || selectedMaturities.size > 0 || showOnlyAccessible || showFavoritesOnly) && (
               <Button
                 onClick={() => {
@@ -296,14 +296,14 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
                 }}
                 variant="outline"
               >
-                Reset
+                {t("reset")}
               </Button>
             )}
           </div>
 
           <div className="catalog-filter-group">
             <button type="button" className="catalog-filter-group__header" onClick={() => toggleGroup("maturity")}>
-              <span className="catalog-filter-group__label">Maturity</span>
+              <span className="catalog-filter-group__label">{t("maturity")}</span>
               <svg className={`catalog-filter-group__chevron${collapsedGroups.has("maturity") ? " collapsed" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6" />
               </svg>
@@ -328,7 +328,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
                 onClick={() => setSelectedMaturities(new Set())}
                 type="button"
               >
-                All maturities
+                {t("allMaturities")}
               </button>
               {maturities.filter((m) => !maturityFilter || humanize(m).toLowerCase().includes(maturityFilter.toLowerCase())).map((maturity) => (
                 <button
@@ -350,7 +350,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
 
           <div className="catalog-filter-group">
             <button type="button" className="catalog-filter-group__header" onClick={() => toggleGroup("context")}>
-              <span className="catalog-filter-group__label">Context</span>
+              <span className="catalog-filter-group__label">{t("context")}</span>
               <svg className={`catalog-filter-group__chevron${collapsedGroups.has("context") ? " collapsed" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6" />
               </svg>
@@ -373,7 +373,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
                 onClick={() => setSelectedContexts(new Set())}
                 type="button"
               >
-                All contexts
+                {t("allContexts")}
               </button>
               {contexts.filter((c) => !contextFilter || humanize(c).toLowerCase().includes(contextFilter.toLowerCase())).map((context) => (
                 <button
@@ -395,7 +395,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
 
           <div className="catalog-filter-group">
             <button type="button" className="catalog-filter-group__header" onClick={() => toggleGroup("overview")}>
-              <span className="catalog-filter-group__label">Overview</span>
+              <span className="catalog-filter-group__label">{t("overview")}</span>
               <svg className={`catalog-filter-group__chevron${collapsedGroups.has("overview") ? " collapsed" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6" />
               </svg>
@@ -416,8 +416,8 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
         <section className="catalog-results" id="catalog-grid">
           <div className="catalog-results__header">
             <div>
-              <h2>Contracts</h2>
-              <p className="catalog-results__meta">Curated data contract entries ready for review, edit and subscription.</p>
+              <h2>{t("contracts")}</h2>
+              <p className="catalog-results__meta">{t("catalogDescription")}</p>
             </div>
           </div>
 
@@ -427,10 +427,10 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
             ))}
           </ul>
 
-          {cards.length === 0 ? <p className="catalog-empty">The contract repository is currently empty.</p> : null}
+          {cards.length === 0 ? <p className="catalog-empty">{t("emptyCatalog")}</p> : null}
 
           {cards.length > 0 && visibleCards.length === 0 ? (
-            <div className="catalog-empty">No contract matches the current filters.</div>
+            <div className="catalog-empty">{t("emptyFilters")}</div>
           ) : null}
         </section>
       </div>
