@@ -186,6 +186,16 @@ export function ContractPageClient({
 
   useEffect(() => {
     if (!userId) return;
+    function onChange(e: Event) {
+      const detail = (e as CustomEvent).detail as { slug: string; subscribed: boolean };
+      if (detail.slug === slug) setSubscribed(detail.subscribed);
+    }
+    window.addEventListener("subscription-changed", onChange);
+    return () => window.removeEventListener("subscription-changed", onChange);
+  }, [slug, userId]);
+
+  useEffect(() => {
+    if (!userId) return;
     fetch(`/api/contracts/${encodeURIComponent(slug)}/preferences`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data: { preferences?: { isFavorite?: boolean } } | null) => {
