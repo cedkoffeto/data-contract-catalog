@@ -566,6 +566,15 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
 
   const toggleExpand = (id: number) => setExpandedIds((prev) => ({ ...prev, [id]: !prev[id] }));
 
+  const formatDetails = (details: string) => {
+    if (!details || details === "{}") return null;
+    try {
+      return JSON.stringify(JSON.parse(details), null, 2);
+    } catch {
+      return details;
+    }
+  };
+
   useEffect(() => {
     setLogs(initialLogs);
   }, [initialLogs]);
@@ -659,7 +668,7 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
                     {expandedIds[log.id] && (
                       <tr className="bg-gray-50">
                         <td colSpan={5} className="px-4 py-3 font-mono text-gray-700 whitespace-pre-wrap break-words leading-relaxed">
-                          {log.details && log.details !== "{}" ? log.details : "\u2014"}
+                          {formatDetails(log.details) ?? "\u2014"}
                         </td>
                       </tr>
                     )}

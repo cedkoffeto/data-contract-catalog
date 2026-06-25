@@ -25,6 +25,7 @@ export function SubscribeButton({
       });
       if (!res.ok) return;
       if (isSubscribed) onUnsubscribed(); else onSubscribed();
+      window.dispatchEvent(new CustomEvent("subscription-changed", { detail: { slug, subscribed: !isSubscribed } }));
     } finally {
       setSaving(false);
     }
