@@ -161,12 +161,13 @@ export function ContractPageClient({
   const [issueCount, setIssueCount] = useState(initialIssueCount);
   const [fieldAnnotations, setFieldAnnotations] = useState<Record<string, number>>({});
   const [isFavorite, setIsFavorite] = useState(false);
-  const [activeTab, setActiveTab] = useState<"details" | "discussion">(() => {
-    if (typeof window !== "undefined" && window.location.hash.startsWith("#comment-")) {
-      return "discussion";
+  const [activeTab, setActiveTab] = useState<"details" | "discussion">("details");
+
+  useEffect(() => {
+    if (window.location.hash.startsWith("#comment-")) {
+      setActiveTab("discussion");
     }
-    return "details";
-  });
+  }, []);
 
   useEffect(() => {
     if (!userId) {
