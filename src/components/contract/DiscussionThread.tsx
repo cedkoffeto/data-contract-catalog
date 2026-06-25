@@ -538,13 +538,17 @@ function IssueCard({
       <div className="comment-item__body" style={{ backgroundColor: "#fef2f2", borderRadius: 8, padding: "6px 8px" }}>
         <div className="comment-item__heading">
           <strong>{displayName}</strong>
-          <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-bold ${statusColors[issue.status]}`}>
-            {statusIcons[issue.status]}
-            {statusLabels[issue.status]}
-          </span>
           <span className="meta"><span className="text-gray-600">{formatDate(issue.createdAt)}</span> {new Date(issue.createdAt).toLocaleString()}</span>
         </div>
         <div className="comment-item__text" style={{ whiteSpace: "pre-wrap" }}>{issue.body}</div>
+        {issue.status !== "open" && !canAdmin ? (
+          <div className="flex justify-end mt-1">
+            <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-bold ${statusColors[issue.status]}`}>
+              {statusIcons[issue.status]}
+              {statusLabels[issue.status]}
+            </span>
+          </div>
+        ) : null}
         {canAdmin ? (
           <div className="comment-item__actions">
             <div className="inline-flex rounded-full border p-0.5" style={{ backgroundColor: "rgba(0,0,0,0.04)" }}>

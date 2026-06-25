@@ -189,12 +189,16 @@ export function ContractIssues({
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="text-sm font-semibold text-gray-900">{issue.userId}</h3>
-                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ${statusClass(issue.status)}`}>
-                      {statusIcon(issue.status)}
-                      {statusLabel(issue.status)}
-                    </span>
                   </div>
                   <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-700">{issue.body}</p>
+                  {issue.status !== "open" ? (
+                    <div className="flex justify-end mt-2">
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ${statusClass(issue.status)}`}>
+                        {statusIcon(issue.status)}
+                        {statusLabel(issue.status)}
+                      </span>
+                    </div>
+                  ) : null}
                 </div>
                 <time className="shrink-0 text-xs text-gray-400">{formatDate(issue.createdAt)}</time>
               </div>
