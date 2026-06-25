@@ -59,11 +59,19 @@ function scopeMatchesPolicy(
   );
 }
 
+const policiesCache = new Map<string, { promise: Promise<PolicyRow[]>; ts: number }>();
+const POLICIES_CACHE_TTL = 5_000;
+
 async function fetchUserPolicies(
   userId: string,
   permissionFilter?: string[],
 ): Promise<PolicyRow[]> {
-  return query<PolicyRow>(
+  const key = permissionFilter ? `${userId}|${permissionFilter.sort().join(",")}` : userId;
+  const cached = policiesCache.get(key);
+  if (cached && Date.now() - cached.ts < POLICIES_CACHE_TTL) return cached.promise;
+  policiesCache.delete(key);
+
+  const promise = query<PolicyRow>(
     `SELECT DISTINCT ap.domain_scope, ap.context_scope, ap.data_contract_scope
      FROM access_policies ap
      JOIN permissions p ON p.id = ap.permission_id
@@ -76,6 +84,9 @@ async function fetchUserPolicies(
       ? [userId, userId, ...permissionFilter]
       : [userId, userId],
   );
+
+  policiesCache.set(key, { promise, ts: Date.now() });
+  return promise;
 }
 
 async function userHasGlobalAccess(userId: string): Promise<boolean> {

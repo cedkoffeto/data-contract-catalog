@@ -5,16 +5,18 @@ import { auth } from "@/src/auth";
 import { createContractComment, deleteContractComment, extractMentionedUserIds, listContractComments, notifyMentionedUsers, recordCommentMentions } from "@/src/lib/comments";
 import { getContractBySlug } from "@/src/lib/contracts";
 import { authorize } from "@/src/lib/access-control";
-import { requireApiAuth } from "@/src/lib/require-auth";
-import { getUserPermissions } from "@/src/lib/rbac";
+import type { Session } from "next-auth";
 
-async function ensureCanReadContract(slug: string, userId: string) {
+import { requireApiAuth, getGlobalPermissions } from "@/src/lib/require-auth";
+
+async function ensureCanReadContract(slug: string, session: Session) {
   const contract = await getContractBySlug(slug);
   if (!contract) {
     return NextResponse.json({ error: `Contract "${slug}" not found` }, { status: 404 });
   }
 
-  const permissions = await getUserPermissions(userId);
+  const userId = session?.user?.name ?? "";
+  const permissions = await getGlobalPermissions(session);
   if (permissions.includes("admin")) {
     return null;
   }
@@ -43,7 +45,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
   }
 
   const { slug } = await params;
-  const forbidden = await ensureCanReadContract(slug, userId);
+  const forbidden = await ensureCanReadContract(slug, session);
   if (forbidden) return forbidden;
 
   const comments = await listContractComments(slug);
@@ -83,7 +85,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
   }
 
   const { slug } = await params;
-  const forbidden = await ensureCanReadContract(slug, userId);
+  const forbidden = await ensureCanReadContract(slug, session);
   if (forbidden) return forbidden;
 
   const body = (await request.json()) as { body?: string; parentId?: number | null; targetField?: string | null };

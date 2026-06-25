@@ -3,8 +3,9 @@ import { NextResponse } from "next/server";
 
 import { getContractBySlug } from "@/src/lib/contracts";
 import { authorize } from "@/src/lib/access-control";
-import { requireApiAuth } from "@/src/lib/require-auth";
-import { getUserPermissions } from "@/src/lib/rbac";
+import type { Session } from "next-auth";
+
+import { requireApiAuth, getGlobalPermissions } from "@/src/lib/require-auth";
 
 function flattenFields(fields: any[], prefix = ""): any[] {
   return fields.flatMap((field) => {
@@ -72,11 +73,12 @@ function toPrintHtml(contract: { slug: string; yamlRaw: string; data: any }) {
 </html>`;
 }
 
-async function ensureCanRead(slug: string, userId: string) {
+async function ensureCanRead(slug: string, session: Session) {
   const contract = await getContractBySlug(slug);
   if (!contract) return null;
 
-  const permissions = await getUserPermissions(userId);
+  const userId = session?.user?.name ?? "";
+  const permissions = await getGlobalPermissions(session);
   if (permissions.includes("admin")) return contract;
 
   const allowed = await authorize(userId, contract.data.asset?.domain ?? "", contract.data.asset?.context ?? "", "read", slug);
@@ -90,7 +92,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
   if (!userId) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
 
   const { slug } = await params;
-  const contract = await ensureCanRead(slug, userId);
+  const contract = await ensureCanRead(slug, session);
   if (!contract) return NextResponse.json({ error: `Contract "${slug}" not found` }, { status: 404 });
 
   const url = new URL(request.url);

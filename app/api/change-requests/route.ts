@@ -2,8 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 
 import { listChangeRequests } from "@/src/lib/change-requests";
-import { requireApiAuth } from "@/src/lib/require-auth";
-import { getUserPermissions } from "@/src/lib/rbac";
+import { requireApiAuth, getGlobalPermissions } from "@/src/lib/require-auth";
 
 export async function GET() {
   const session = await requireApiAuth();
@@ -13,7 +12,7 @@ export async function GET() {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   }
 
-  const permissions = await getUserPermissions(userId);
+  const permissions = await getGlobalPermissions(session);
   const all = await listChangeRequests();
 
   const items = permissions.includes("admin")

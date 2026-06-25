@@ -6,16 +6,19 @@ import { createChangeRequest, listChangeRequests } from "@/src/lib/change-reques
 import { getContractBySlug } from "@/src/lib/contracts";
 import { getGitLabFileLastCommitSha } from "@/src/lib/gitlab";
 import { createNotification } from "@/src/lib/notifications";
-import { requireApiAuth } from "@/src/lib/require-auth";
-import { getAdminUserIds, getUserPermissions } from "@/src/lib/rbac";
+import type { Session } from "next-auth";
 
-async function ensureCanReadContract(slug: string, userId: string) {
+import { requireApiAuth, getGlobalPermissions } from "@/src/lib/require-auth";
+import { getAdminUserIds } from "@/src/lib/rbac";
+
+async function ensureCanReadContract(slug: string, session: Session) {
   const contract = await getContractBySlug(slug);
   if (!contract) {
     return NextResponse.json({ error: `Contract "${slug}" not found` }, { status: 404 });
   }
 
-  const permissions = await getUserPermissions(userId);
+  const userId = session?.user?.name ?? "";
+  const permissions = await getGlobalPermissions(session);
   if (permissions.includes("admin")) return null;
 
   const allowed = await authorize(
@@ -42,10 +45,10 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
   }
 
   const { slug } = await params;
-  const forbidden = await ensureCanReadContract(slug, userId);
+  const forbidden = await ensureCanReadContract(slug, session);
   if (forbidden) return forbidden;
 
-  const permissions = await getUserPermissions(userId);
+  const permissions = await getGlobalPermissions(session);
   const all = await listChangeRequests();
 
   // non-admins can only see their own requests
@@ -66,7 +69,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     }
 
     const { slug } = await params;
-    const forbidden = await ensureCanReadContract(slug, userId);
+    const forbidden = await ensureCanReadContract(slug, session);
     if (forbidden) return forbidden;
 
     let body: { yamlContent?: string; message?: string };

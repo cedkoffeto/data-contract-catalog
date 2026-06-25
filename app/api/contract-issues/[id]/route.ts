@@ -5,8 +5,7 @@ import { updateContractIssueStatus, type IssueStatus } from "@/src/lib/issues";
 import { getContractIssue } from "@/src/lib/issues";
 import { getContractBySlug } from "@/src/lib/contracts";
 import { authorize } from "@/src/lib/access-control";
-import { requireApiAuth } from "@/src/lib/require-auth";
-import { getUserPermissions } from "@/src/lib/rbac";
+import { requireApiAuth, getGlobalPermissions } from "@/src/lib/require-auth";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireApiAuth();
@@ -31,7 +30,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: `Contract "${issue.contractSlug}" not found` }, { status: 404 });
   }
 
-  const permissions = await getUserPermissions(userId);
+  const permissions = await getGlobalPermissions(session);
   if (!permissions.includes("admin")) {
     const allowed = await authorize(
       userId,

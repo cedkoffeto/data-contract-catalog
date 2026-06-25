@@ -5,8 +5,7 @@ import { listContractComments } from "@/src/lib/comments";
 import { getContractBySlug } from "@/src/lib/contracts";
 import { listContractIssues } from "@/src/lib/issues";
 import { authorize } from "@/src/lib/access-control";
-import { requireApiAuth } from "@/src/lib/require-auth";
-import { getUserPermissions } from "@/src/lib/rbac";
+import { requireApiAuth, getGlobalPermissions } from "@/src/lib/require-auth";
 import { listUserProfiles, upsertUserProfile } from "@/src/lib/users";
 
 export async function GET(_: Request, { params }: { params: Promise<{ slug: string }> }) {
@@ -25,7 +24,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
       return NextResponse.json({ error: `Contract "${slug}" not found` }, { status: 404 });
     }
 
-    const permissions = await getUserPermissions(userId);
+    const permissions = await getGlobalPermissions(session);
     if (!permissions.includes("admin")) {
       const allowed = await authorize(
         userId,

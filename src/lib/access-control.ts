@@ -3,7 +3,7 @@ import { writeAuditLog } from "@/src/lib/audit";
 
 export type PermissionName = "admin" | "editor" | "reader";
 
-const CACHE_TTL = 10_000;
+const CACHE_TTL = 60_000;
 
 function effectivePermissionsCacheKey(userId: string, domain: string, context: string, dataContract?: string) {
   return `${userId}|${domain}|${context}|${dataContract ?? ""}`;

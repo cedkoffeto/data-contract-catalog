@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import type { AccessPolicyRecord } from "@/src/lib/access-control";
@@ -13,13 +13,20 @@ function RequestEditorForm({ onDone }: { onDone: () => void }) {
   const [sent, setSent] = useState(false);
   const [contractOptions, setContractOptions] = useState<{ value: string; label: string; extra: string }[]>([]);
   const [loadingContracts, setLoadingContracts] = useState(true);
+  const contractMap = useRef<Record<string, { domain: string; context: string }>>({});
 
   useEffect(() => {
     fetch("/api/contracts")
       .then((r) => r.json())
-      .then((data: { items: { slug: string; title: string; domain: string }[] }) => {
+      .then((data: { items: { slug: string; title: string; domain: string; context: string }[] }) => {
+        const items = data.items ?? [];
+        const map: Record<string, { domain: string; context: string }> = {};
+        for (const c of items) {
+          map[c.slug] = { domain: c.domain ?? "", context: c.context ?? "" };
+        }
+        contractMap.current = map;
         setContractOptions(
-          (data.items ?? []).map((c) => ({
+          items.map((c) => ({
             value: c.slug,
             label: c.title || c.slug,
             extra: c.slug,
@@ -33,13 +40,14 @@ function RequestEditorForm({ onDone }: { onDone: () => void }) {
   async function handleSubmit() {
     if (!slug.trim()) return;
     setSending(true);
+    const info = contractMap.current[slug.trim()] ?? { domain: "", context: "" };
     try {
       await fetch("/api/access-requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          domain: "",
-          context: "",
+          domain: info.domain,
+          context: info.context,
           dataContract: slug.trim(),
           requestedPermission: "editor",
           message,

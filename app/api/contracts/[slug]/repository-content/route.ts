@@ -3,9 +3,8 @@ import { NextResponse } from "next/server";
 
 import { getContractBySlug } from "@/src/lib/contracts";
 import { getGitLabFileContent, isGitLabConfigurationError } from "@/src/lib/gitlab";
-import { requireApiAuth } from "@/src/lib/require-auth";
+import { requireApiAuth, getGlobalPermissions } from "@/src/lib/require-auth";
 import { authorize } from "@/src/lib/access-control";
-import { getUserPermissions } from "@/src/lib/rbac";
 
 export async function GET(request: Request, context: { params: Promise<{ slug: string }> }) {
   const session = await requireApiAuth();
@@ -24,8 +23,8 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
 
   const contractDomain = contract.data.asset?.domain ?? "";
   const contractCtx = contract.data.asset?.context ?? "";
-  const globalPermissions = await getUserPermissions(userId);
-  if (!globalPermissions.includes("admin")) {
+  const permissions = await getGlobalPermissions(session);
+  if (!permissions.includes("admin")) {
     const allowed = await authorize(userId, contractDomain, contractCtx, "read", slug);
     if (!allowed) {
       return NextResponse.json({ error: "Forbidden: insufficient permissions on this contract" }, { status: 403 });

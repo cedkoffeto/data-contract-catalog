@@ -1,6 +1,8 @@
+import type { Session } from "next-auth";
 import { NextResponse } from "next/server";
 
 import { auth } from "@/src/auth";
+import { getUserPermissions, type Permission } from "@/src/lib/rbac";
 
 /**
  * Returns the session on success, or a 401 Response on failure.
@@ -14,4 +16,13 @@ export async function requireApiAuth() {
   }
 
   return session;
+}
+
+/**
+ * Extracts global permissions from the JWT-enriched session.
+ * Falls back to DB query if not present in session.
+ */
+export async function getGlobalPermissions(session: Session): Promise<Permission[]> {
+  const extra = session.user as Record<string, unknown>;
+  return (extra.permissions as Permission[]) ?? await getUserPermissions(session.user?.name ?? "");
 }

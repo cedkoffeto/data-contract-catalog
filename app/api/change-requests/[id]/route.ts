@@ -4,15 +4,14 @@ import { NextResponse } from "next/server";
 import { mergeChangeRequest, getChangeRequest, rejectChangeRequest } from "@/src/lib/change-requests";
 import { createNotification } from "@/src/lib/notifications";
 import { getSubscribers } from "@/src/lib/subscriptions";
-import { requireApiAuth } from "@/src/lib/require-auth";
-import { getUserPermissions } from "@/src/lib/rbac";
+import { requireApiAuth, getGlobalPermissions } from "@/src/lib/require-auth";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireApiAuth();
   if (session instanceof Response) return session;
   const userId = session?.user?.name ?? "";
 
-  const permissions = await getUserPermissions(userId);
+  const permissions = await getGlobalPermissions(session);
   if (!permissions.includes("admin")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

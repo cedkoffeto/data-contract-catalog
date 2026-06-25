@@ -19,15 +19,16 @@ export async function requireAdmin() {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   }
 
-  const permissions = await getUserPermissions(session.user.name ?? session.user.email);
+  const extra = session.user as Record<string, unknown>;
+  const globalPermissions = (extra.permissions as string[]) ?? await getUserPermissions(session.user.name ?? session.user.email);
 
-  if (!permissions.includes("admin")) {
+  if (!globalPermissions.includes("admin")) {
     writeAuditLog({
       action: "auth.unauthorized",
       actorId: session.user.name ?? "unknown",
       targetType: "system",
       targetId: "admin-api",
-      details: { reason: "not_admin", permissions, path: "unknown" },
+      details: { reason: "not_admin", permissions: globalPermissions, path: "unknown" },
     }).catch(() => {});
     return NextResponse.json({ error: "Admin privileges required" }, { status: 403 });
   }

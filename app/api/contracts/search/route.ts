@@ -2,9 +2,8 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 
 import { searchCatalogCards } from "@/src/lib/contracts";
-import { requireApiAuth } from "@/src/lib/require-auth";
+import { requireApiAuth, getGlobalPermissions } from "@/src/lib/require-auth";
 import { filterCatalogCards } from "@/src/lib/catalog-filter";
-import { getUserPermissions } from "@/src/lib/rbac";
 
 export async function GET(request: Request) {
   const session = await requireApiAuth();
@@ -14,7 +13,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   }
 
-  const permissions = await getUserPermissions(userId);
+  const permissions = await getGlobalPermissions(session);
 
   const { searchParams } = new URL(request.url);
 

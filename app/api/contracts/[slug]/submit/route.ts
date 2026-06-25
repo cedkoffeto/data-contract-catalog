@@ -5,9 +5,9 @@ import fs from "node:fs";
 
 import { saveContractFile } from "@/src/lib/contract-writer";
 import { getContractBySlug } from "@/src/lib/contracts";
-import { requireApiAuth } from "@/src/lib/require-auth";
+import { requireApiAuth, getGlobalPermissions } from "@/src/lib/require-auth";
 import { authorize } from "@/src/lib/access-control";
-import { getAdminUserIds, getUserIdsWithScopeAccess, getUserPermissions } from "@/src/lib/rbac";
+import { getAdminUserIds, getUserIdsWithScopeAccess } from "@/src/lib/rbac";
 import { getSubscribers } from "@/src/lib/subscriptions";
 import { createNotification } from "@/src/lib/notifications";
 import { extractSessionId } from "@/src/lib/audit-session";
@@ -28,8 +28,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
       return NextResponse.json({ error: `Contract "${slug}" not found` }, { status: 404 });
     }
 
-    const globalPermissions = await getUserPermissions(userId);
-    if (!globalPermissions.includes("admin")) {
+    const permissions = await getGlobalPermissions(session);
+    if (!permissions.includes("admin")) {
       const domain = contract.data.asset?.domain ?? "";
       const ctx = contract.data.asset?.context ?? "";
       const allowed = await authorize(userId, domain, ctx, "write", slug);
