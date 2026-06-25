@@ -5,7 +5,8 @@ import { auth } from "@/src/auth";
 import { insertExternalChangeRequest, listChangeRequests, updateChangeRequestStatus } from "@/src/lib/change-requests";
 import { findGitLabMergeRequestByBranch, getGitLabClient, getGitLabMergeRequest } from "@/src/lib/gitlab";
 import { createNotification } from "@/src/lib/notifications";
-import { getUserPermissions } from "@/src/lib/rbac";
+import { getGlobalPermissions } from "@/src/lib/require-auth";
+import { getSubscribers } from "@/src/lib/subscriptions";
 
 function extractContractSlug(filePath: string): string | null {
   const match = filePath.match(/^contracts\/(.+)\.(yaml|yml)$/i);
@@ -19,7 +20,7 @@ export async function POST() {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   }
 
-  const permissions = await getUserPermissions(userId);
+  const permissions = await getGlobalPermissions(session);
   if (!permissions.includes("admin")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -111,6 +112,21 @@ export async function POST() {
           status,
         });
         results.push({ id: cr.id, action: `imported_${status}` });
+        if (status === "approved") {
+          const subscribers = await getSubscribers(slug).catch(() => []);
+          await Promise.allSettled(
+            subscribers
+              .filter((s) => s.user_id !== editorId)
+              .map((s) => createNotification({
+                userId: s.user_id,
+                contractSlug: slug,
+                type: "contract_updated",
+                title: `Contract updated: ${slug}`,
+                message: `Contract ${slug} was updated via an external merge request.`,
+                metadata: { contractSlug: slug },
+              }))
+          );
+        }
       } catch {
         // Likely duplicate, skip
       }
