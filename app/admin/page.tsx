@@ -427,7 +427,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
                             onClick={() => { setRejectingId(r.id); setRejectReason(""); }}
                             disabled={actionLoading[r.id] === "reject"}
                             className="rounded-md px-2 py-1 text-xs font-bold text-white hover:bg-red-700 disabled:opacity-50"
-                            style={{ backgroundColor: "#dc2626" }}
+                            style={{ backgroundColor: "#ef4444" }}
                           >
                             {actionLoading[r.id] === "reject" ? "Rejecting" : "Reject"}
                           </button>
@@ -832,7 +832,7 @@ function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number)
                     {r.status === "pending" ? (
                       <div className="flex gap-1">
                         <button onClick={() => handleStatus(r.id, "approved")} className="rounded-md px-2 py-1 text-xs font-bold text-green-700 hover:bg-green-200" style={{ backgroundColor: "#dcfce7" }}>Approve</button>
-                        <button onClick={() => handleStatus(r.id, "rejected")} className="rounded-md px-2 py-1 text-xs font-bold text-white hover:bg-red-700" style={{ backgroundColor: "#dc2626" }}>Deny</button>
+                        <button onClick={() => handleStatus(r.id, "rejected")} className="rounded-md px-2 py-1 text-xs font-bold text-white hover:bg-red-700" style={{ backgroundColor: "#ef4444" }}>Deny</button>
                       </div>
                     ) : (
                       <span className="text-gray-400">{"\u2014"}</span>
