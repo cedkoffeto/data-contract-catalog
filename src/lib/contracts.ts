@@ -16,6 +16,11 @@ const cardsCache: { expiresAt: number; value: CatalogCard[] } = { expiresAt: 0, 
 const slugToPathCache: { expiresAt: number; map: Map<string, string> } = { expiresAt: 0, map: new Map() };
 const CONTRACTS_CACHE_TTL_MS = 3_600_000;
 const CARDS_CACHE_TTL_MS = 3_600_000;
+const TREE_CACHE_TTL = 300_000;
+const REPO_FOLDER_CACHE_TTL = 300_000;
+
+const treeCache = new Map<string, { items: GitLabTreeItem[]; ts: number }>();
+const repoFolderCache = new Map<string, { promise: Promise<RepositoryFolderFile[]>; ts: number }>();
 
 type GitLabTreeItem = {
   id?: string;
@@ -274,6 +279,11 @@ async function readGitLabTree(
   ref: string,
   folderPath: string
 ): Promise<GitLabTreeItem[]> {
+  const now = Date.now();
+  const cached = treeCache.get(folderPath);
+  if (cached && now - cached.ts < TREE_CACHE_TTL) return cached.items;
+  treeCache.delete(folderPath);
+
   const client = getGitLabClient();
   if (!client) {
     return [];
@@ -305,6 +315,8 @@ async function readGitLabTree(
 
       page += 1;
     }
+
+    treeCache.set(folderPath, { items, ts: Date.now() });
   } catch (error) {
     console.error("[gitlab.tree] Failed", {
       projectId,
