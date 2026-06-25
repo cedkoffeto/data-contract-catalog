@@ -31,6 +31,7 @@ export default async function HomePage() {
 
   const pinnedSlugs = new Set((extra?.pinnedSlugs as string[] | undefined) ?? []);
   const favoriteSlugs = new Set((extra?.favoriteSlugs as string[] | undefined) ?? []);
+  const subscriptionSlugs = new Set((extra?.subscriptionSlugs as string[] | undefined) ?? []);
 
   const [accessible, editable, pendingRows] = await Promise.all([
     getAccessibleSlugs(userId, permissions, cards),
@@ -53,5 +54,5 @@ export default async function HomePage() {
     isFavorite: favoriteSlugs.has(card.slug),
     isPinned: pinnedSlugs.has(card.slug),
   }));
-  return <CatalogPage cards={annotated} canRequestUpgrade={canRequestUpgrade} gitError={gitError} />;
+  return <CatalogPage cards={annotated} canRequestUpgrade={canRequestUpgrade} gitError={gitError} subscriptionSlugs={subscriptionSlugs} />;
 }

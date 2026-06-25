@@ -23,7 +23,7 @@ function humanize(value: string): string {
     .join(" ");
 }
 
-export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError }: { cards: CatalogCardType[]; canRequestUpgrade?: boolean; gitError?: boolean }) {
+export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError, initialSubscriptionSlugs }: { cards: CatalogCardType[]; canRequestUpgrade?: boolean; gitError?: boolean; initialSubscriptionSlugs?: Set<string> }) {
   const [showGitError, setShowGitError] = useState(gitError ?? false);
   const [cards, setCards] = useState(initialCards);
   const cardsRef = useRef(cards);
@@ -52,7 +52,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
   const [maturityFilter, setMaturityFilter] = useState("");
   const [contextFilter, setContextFilter] = useState("");
 
-  const [subscribedSlugs, setSubscribedSlugs] = useState<Set<string>>(new Set());
+  const [subscribedSlugs, setSubscribedSlugs] = useState<Set<string>>(initialSubscriptionSlugs ?? new Set());
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   function toggleGroup(name: string) {
@@ -64,10 +64,16 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
   }
 
   useEffect(() => {
-    fetch("/api/subscriptions")
-      .then((res) => res.json() as Promise<{ subscriptions: { contractSlug: string }[] }>)
-      .then((data) => setSubscribedSlugs(new Set(data.subscriptions.map((s) => s.contractSlug))))
-      .catch(() => {});
+    function onSubscriptionChange(e: Event) {
+      const { slug, subscribed } = (e as CustomEvent).detail;
+      setSubscribedSlugs((prev) => {
+        const next = new Set(prev);
+        if (subscribed) next.add(slug); else next.delete(slug);
+        return next;
+      });
+    }
+    window.addEventListener("subscription-changed", onSubscriptionChange);
+    return () => window.removeEventListener("subscription-changed", onSubscriptionChange);
   }, []);
 
   const domains = useMemo(() => {
@@ -159,6 +165,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(next ? {} : { channel: null }),
     });
+    window.dispatchEvent(new CustomEvent("subscription-changed", { detail: { slug, subscribed: next } }));
   }, []);
 
   const accessibleCount = useMemo(() => cards.filter((c) => c.accessible).length, [cards]);

@@ -72,7 +72,22 @@ export function NotificationBell() {
     fetchNotifications();
     fetchSubscriptions();
     const interval = setInterval(fetchNotifications, 30_000);
-    return () => clearInterval(interval);
+
+    function onSubscriptionChange(e: Event) {
+      const { slug, subscribed } = (e as CustomEvent).detail;
+      setSubscriptions((prev) => {
+        if (subscribed) {
+          if (prev.some((s) => s.contractSlug === slug)) return prev;
+          return [...prev, { userId: "", contractSlug: slug, channel: "in_app", createdAt: new Date().toISOString() }];
+        }
+        return prev.filter((s) => s.contractSlug !== slug);
+      });
+    }
+    window.addEventListener("subscription-changed", onSubscriptionChange);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("subscription-changed", onSubscriptionChange);
+    };
   }, [fetchNotifications, fetchSubscriptions]);
 
   useEffect(() => {
@@ -169,6 +184,7 @@ export function NotificationBell() {
             { userId: "", contractSlug: slug, channel: "in_app", createdAt: new Date().toISOString() },
           ]);
         }
+        window.dispatchEvent(new CustomEvent("subscription-changed", { detail: { slug, subscribed: !currentlySubscribed } }));
       }
     } catch {
       // silent
