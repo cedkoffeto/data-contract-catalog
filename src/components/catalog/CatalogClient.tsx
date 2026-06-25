@@ -76,6 +76,15 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
     return () => window.removeEventListener("subscription-changed", onSubscriptionChange);
   }, []);
 
+  useEffect(() => {
+    function onFavoriteChange(e: Event) {
+      const { slug, isFavorite } = (e as CustomEvent).detail;
+      setCards((prev) => prev.map((c) => (c.slug === slug ? { ...c, isFavorite } : c)));
+    }
+    window.addEventListener("favorite-changed", onFavoriteChange);
+    return () => window.removeEventListener("favorite-changed", onFavoriteChange);
+  }, []);
+
   const domains = useMemo(() => {
     const unique = new Set(cards.map((card) => card.domain.trim()).filter(Boolean));
     return Array.from(unique).sort((a, b) => a.localeCompare(b));
@@ -150,6 +159,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isFavorite: next }),
     });
+    window.dispatchEvent(new CustomEvent("favorite-changed", { detail: { slug, isFavorite: next } }));
   }, []);
 
   const handleToggleSubscription = useCallback(async (slug: string) => {

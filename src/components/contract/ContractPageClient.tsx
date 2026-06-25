@@ -196,6 +196,16 @@ export function ContractPageClient({
 
   useEffect(() => {
     if (!userId) return;
+    function onChange(e: Event) {
+      const detail = (e as CustomEvent).detail as { slug: string; isFavorite: boolean };
+      if (detail.slug === slug) setIsFavorite(detail.isFavorite);
+    }
+    window.addEventListener("favorite-changed", onChange);
+    return () => window.removeEventListener("favorite-changed", onChange);
+  }, [slug, userId]);
+
+  useEffect(() => {
+    if (!userId) return;
     fetch(`/api/contracts/${encodeURIComponent(slug)}/preferences`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data: { preferences?: { isFavorite?: boolean } } | null) => {
@@ -276,6 +286,7 @@ export function ContractPageClient({
     if (!res.ok) return;
     const result = (await res.json()) as { preferences?: { isFavorite?: boolean } };
     setIsFavorite(Boolean(result?.preferences?.isFavorite));
+    window.dispatchEvent(new CustomEvent("favorite-changed", { detail: { slug, isFavorite: Boolean(result?.preferences?.isFavorite) } }));
   }
 
   function TabIcon({ name }: { name: "details" | "discussion" }) {
