@@ -99,8 +99,9 @@ export async function GET() {
       message: string;
       status: string;
       created_at: string;
+      updated_at: string;
     }>(
-      `SELECT id, user_id, domain, context, data_contract, requested_permission, message, status, created_at
+      `SELECT id, user_id, domain, context, data_contract, requested_permission, message, status, created_at, updated_at
        FROM access_requests
        ORDER BY created_at DESC`,
     );

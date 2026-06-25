@@ -44,7 +44,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   // Update status immediately (fast path)
   await execute(
-    "UPDATE access_requests SET status = ? WHERE id = ?",
+    "UPDATE access_requests SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
     [status, parseInt(id, 10)],
   );
 

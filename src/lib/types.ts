@@ -231,6 +231,7 @@ export type ContractChangeRequest = {
   resolvedAt: string | null;
   resolvedBy: string | null;
   source: "app" | "external";
+  updatedAt: string;
 };
 
 export type EditorRepositoryFile = {

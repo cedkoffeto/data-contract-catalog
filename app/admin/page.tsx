@@ -183,6 +183,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
     gitlabMrUrl: string;
     rejectionReason: string;
     createdAt: string;
+    updatedAt: string;
     resolvedAt: string | null;
     resolvedBy: string | null;
   }>>([]);
@@ -352,7 +353,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
             <table className="min-w-full divide-y divide-gray-200 bg-white text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  {[{ label: t("tblId"), key: "id" }, { label: t("tblContract"), key: "contractSlug" }, { label: t("tblEditor"), key: "editorId" }, { label: t("tblStatus"), key: "status" }, { label: "Source", key: "source" }, { label: t("tblMrUrl"), key: "gitlabMrUrl" }, { label: t("tblRejection"), key: "rejectionReason" }, { label: t("tblCreated"), key: "createdAt" }, { label: t("tblActions"), key: null }].map(({ label, key }) => (
+                  {[{ label: t("tblId"), key: "id" }, { label: t("tblContract"), key: "contractSlug" }, { label: t("tblEditor"), key: "editorId" }, { label: t("tblStatus"), key: "status" }, { label: "Source", key: "source" }, { label: t("tblMrUrl"), key: "gitlabMrUrl" }, { label: t("tblRejection"), key: "rejectionReason" }, { label: t("tblCreated"), key: "createdAt" }, { label: "Updated", key: "updatedAt" }, { label: t("tblActions"), key: null }].map(({ label, key }) => (
                     <th key={label} className={`px-3 py-2 text-left font-semibold text-gray-500 ${key === "gitlabMrUrl" ? "whitespace-nowrap " : ""}${key ? "cursor-pointer select-none hover:bg-gray-100" : ""}`} onClick={() => key && toggleSort(key)}>
                       <span className="inline-flex items-center gap-1">
                         {label}
@@ -401,6 +402,9 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
                     </td>
                     <td className="whitespace-nowrap px-3 py-2 text-gray-500">
                       {new Date(r.createdAt).toLocaleString()}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 text-gray-500">
+                      {r.updatedAt ? new Date(r.updatedAt).toLocaleString() : "\u2014"}
                     </td>
                     <td className="px-3 py-2">
                       {r.status === "pending" ? (
@@ -710,7 +714,7 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
 }
 
 function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number) => void }) {
-  const [requests, setRequests] = useState<Array<{ id: number; user_id: string; domain: string; context: string; data_contract: string; requested_permission: "reader" | "editor"; message: string; status: string; created_at: string }>>([]);
+  const [requests, setRequests] = useState<Array<{ id: number; user_id: string; domain: string; context: string; data_contract: string; requested_permission: "reader" | "editor"; message: string; status: string; created_at: string; updated_at: string }>>([]);
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -799,7 +803,7 @@ function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number)
           <table className="min-w-full divide-y divide-gray-200 bg-white text-sm">
             <thead className="bg-gray-50">
               <tr>
-                {[{ label: t("tblId"), key: "id" }, { label: "User", key: "user_id" }, { label: "Domain", key: "domain" }, { label: "Context", key: "context" }, { label: "Contract", key: "data_contract" }, { label: "Permission", key: "requested_permission" }, { label: "Message", key: null }, { label: t("tblStatus"), key: "status" }, { label: t("tblActions"), key: null }].map(({ label, key }) => (
+                {[{ label: t("tblId"), key: "id" }, { label: "User", key: "user_id" }, { label: "Domain", key: "domain" }, { label: "Context", key: "context" }, { label: "Contract", key: "data_contract" }, { label: "Permission", key: "requested_permission" }, { label: "Message", key: null }, { label: "Created", key: "created_at" }, { label: "Updated", key: "updated_at" }, { label: t("tblStatus"), key: "status" }, { label: t("tblActions"), key: null }].map(({ label, key }) => (
                   <th key={label} className={`px-3 py-2 text-left font-semibold text-gray-500 ${key ? "cursor-pointer select-none hover:bg-gray-100" : ""}`} onClick={() => key && toggleSort(key)}>
                     <span className="inline-flex items-center gap-1">
                       {label}
@@ -821,6 +825,12 @@ function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number)
                   <td className="px-3 py-2 text-gray-600">{r.data_contract || "\u2014"}</td>
                   <td className="px-3 py-2 text-gray-600">{r.requested_permission || "reader"}</td>
                   <td className="max-w-[150px] truncate px-3 py-2 text-gray-500">{r.message || "\u2014"}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-gray-500">
+                    {new Date(r.created_at).toLocaleString()}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2 text-gray-500">
+                    {r.updated_at ? new Date(r.updated_at).toLocaleString() : "\u2014"}
+                  </td>
                   <td className="px-3 py-2">
                     <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium ${r.status === "pending" ? "bg-yellow-50 text-yellow-700" : r.status === "approved" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
                       <StatusIcon status={r.status} />

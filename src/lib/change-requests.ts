@@ -18,6 +18,7 @@ function toChangeRequest(row: Record<string, unknown>): ContractChangeRequest {
     resolvedAt: row.resolved_at as string | null,
     resolvedBy: row.resolved_by as string | null,
     source: (row.source as string) as "app" | "external",
+    updatedAt: row.updated_at as string,
   };
 }
 
@@ -155,6 +156,9 @@ export async function updateChangeRequestStatus(params: {
   vals.push(params.resolvedBy);
 
   sets.push("resolved_at = ?");
+  vals.push(new Date().toISOString());
+
+  sets.push("updated_at = ?");
   vals.push(new Date().toISOString());
 
   if (params.gitlabMrId !== undefined) {
