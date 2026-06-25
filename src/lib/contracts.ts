@@ -242,15 +242,25 @@ async function downloadGitLabArchive(client: { projectId: string; ref: string })
   const token = process.env.GITLAB_TOKEN?.trim();
   if (!baseUrl || !token) return new Map();
 
-  const url = `${baseUrl}/api/v4/projects/${client.projectId}/repository/archive.tar.gz?sha=${encodeURIComponent(client.ref)}&path=contracts`;
+  const encodedProjectId = encodeURIComponent(client.projectId);
+  const url = `${baseUrl}/api/v4/projects/${encodedProjectId}/repository/archive.tar.gz?sha=${encodeURIComponent(client.ref)}&path=contracts`;
 
-  const response = await fetch(url, {
-    headers: { "PRIVATE-TOKEN": token },
-    signal: AbortSignal.timeout(30000),
-  });
+  console.info("[gitlab.archive] Downloading", { url: url.replace(token, "***") });
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: { "PRIVATE-TOKEN": token },
+      signal: AbortSignal.timeout(30000),
+    });
+  } catch (fetchError) {
+    console.error("[gitlab.archive] Fetch error", { message: fetchError instanceof Error ? fetchError.message : String(fetchError) });
+    return new Map();
+  }
 
   if (!response.ok) {
-    console.error("[gitlab.archive] Failed", { status: response.status, url });
+    const body = await response.text().catch(() => "");
+    console.error("[gitlab.archive] Failed", { status: response.status, statusText: response.statusText, body: body.slice(0, 500) });
     return new Map();
   }
 
