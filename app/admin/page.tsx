@@ -363,7 +363,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
               <thead className="bg-gray-50">
                 <tr>
                   {[{ label: "ID", key: "id" }, { label: "Contract", key: "contractSlug" }, { label: "Editor", key: "editorId" }, { label: "Status", key: "status" }, { label: "Source", key: "source" }, { label: "MR URL", key: "gitlabMrUrl" }, { label: "Rejection", key: "rejectionReason" }, { label: "Created", key: "createdAt" }, { label: "Actions", key: null }].map(({ label, key }) => (
-                    <th key={label} className={`px-3 py-2 text-left text-xs font-semibold text-gray-500 ${label === "MR URL" ? "whitespace-nowrap " : ""}${key ? "cursor-pointer select-none hover:bg-gray-100" : ""}`} onClick={() => key && toggleSort(key)}>
+                    <th key={label} className={`px-3 py-2 text-left font-semibold text-gray-500 ${label === "MR URL" ? "whitespace-nowrap " : ""}${key ? "cursor-pointer select-none hover:bg-gray-100" : ""}`} onClick={() => key && toggleSort(key)}>
                       <span className="inline-flex items-center gap-1">
                         {label}
                         {key && sortKey === key && (
@@ -377,9 +377,9 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
               <tbody className="divide-y divide-gray-200">
                 {paginated.map((r) => (
                   <tr key={r.id} className={r.id === highlightedId ? "bg-orange-50 ring-2 ring-orange-400" : ""}>
-                    <td className="px-3 py-2 text-xs text-gray-500">#{r.id}</td>
-                    <td className="px-3 py-2 font-mono text-xs text-gray-900">{r.contractSlug}</td>
-                    <td className="px-3 py-2 font-mono text-xs text-gray-600">{r.editorId}</td>
+                    <td className="px-3 py-2 text-gray-500">#{r.id}</td>
+                    <td className="px-3 py-2 font-mono text-gray-900">{r.contractSlug}</td>
+                    <td className="px-3 py-2 font-mono text-gray-600">{r.editorId}</td>
                     <td className="px-3 py-2">
                       <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${
                         r.status === "pending" ? "bg-yellow-50 text-yellow-700" :
@@ -398,18 +398,18 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
                     </td>
                     <td className="px-3 py-2">
                       {r.gitlabMrUrl ? (
-                        <a href={r.gitlabMrUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-xs text-blue-600 hover:underline">
+                        <a href={r.gitlabMrUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-blue-600 hover:underline">
                           <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14" aria-hidden="true"><path d="M3 2v12h10V7h-1v6H4V3h5V2H3zm7 0v1h2.3L7.15 8.15l.7.7L13 3.7V6h1V2h-4z"/></svg>
                           View
                         </a>
                       ) : (
-                        <span className="text-xs text-gray-400">{"\u2014"}</span>
+                        <span className="text-gray-400">{"\u2014"}</span>
                       )}
                     </td>
-                    <td className="max-w-[120px] truncate px-3 py-2 text-xs text-gray-500">
+                    <td className="max-w-[120px] truncate px-3 py-2 text-gray-500">
                       {r.rejectionReason || "\u2014"}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-xs text-gray-500">
+                    <td className="whitespace-nowrap px-3 py-2 text-gray-500">
                       {new Date(r.createdAt).toLocaleString()}
                     </td>
                     <td className="px-3 py-2">
@@ -438,7 +438,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
                           View
                         </a>
                       ) : (
-                        <span className="text-xs text-gray-400">
+                        <span className="text-gray-400">
                           {r.resolvedBy ? `by ${r.resolvedBy}` : "\u2014"}
                         </span>
                       )}
@@ -450,7 +450,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
           </div>
           <div className="mt-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-400">Show</span>
+              <span className="text-gray-400">Show</span>
               <select
                 value={pageSize}
                 onChange={(e) => { setPageSize(Number(e.target.value)); setPage(0); }}
@@ -460,24 +460,24 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
                   <option key={n} value={n}>{n}</option>
                 ))}
               </select>
-              <span className="text-xs text-gray-400">entries</span>
+              <span className="text-gray-400">entries</span>
             </div>
             {totalPages > 1 && (
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
                   disabled={safePage === 0}
-                  className="rounded-md px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+                  className="rounded-md px-2 py-1 font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
                 >
                   Previous
                 </button>
-                <span className="text-xs text-gray-400">
+                <span className="text-gray-400">
                   Page {safePage + 1} of {totalPages}
                 </span>
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                   disabled={safePage >= totalPages - 1}
-                  className="rounded-md px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+                  className="rounded-md px-2 py-1 font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
                 >
                   Next
                 </button>
@@ -611,16 +611,17 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
       ) : (
         <>
           <div className="overflow-x-auto rounded-lg border shadow-lg">
-            <table className="min-w-full divide-y divide-gray-200 bg-white text-sm">
+            <table className="min-w-full table-fixed divide-y divide-gray-200 bg-white text-sm">
               <thead className="bg-gray-50">
                 <tr>
                   {(["created_at", "action", "actor_id", "target_id", "details"] as const).map((key) => {
                     const labels: Record<string, string> = { created_at: "Date", action: "Action", actor_id: "Actor", target_id: "Target", details: "Details" };
+                    const widths: Record<string, string> = { details: "w-[35%]" };
                     return (
                       <th
                         key={key}
                         onClick={() => toggleSort(key)}
-                        className="cursor-pointer select-none px-3 py-2 text-left text-xs font-semibold text-gray-500 hover:text-gray-700"
+                        className={`cursor-pointer select-none px-3 py-2 text-left font-semibold text-gray-500 hover:text-gray-700 ${widths[key] ?? ""}`}
                       >
                         <span className="inline-flex items-center gap-1">
                           {labels[key]}
@@ -647,13 +648,13 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
                       <td className="whitespace-nowrap px-3 py-2 text-gray-600">
                         <span className="text-gray-400">{log.target_type}:</span> {log.target_id}
                       </td>
-                      <td className="max-w-[200px] truncate px-3 py-2 font-mono text-xs text-gray-500">
+                      <td className="truncate px-3 py-2 font-mono text-gray-500">
                         {log.details && log.details !== "{}" ? log.details : "\u2014"}
                       </td>
                     </tr>
                     {expandedIds[log.id] && (
                       <tr className="bg-gray-50">
-                        <td colSpan={5} className="px-4 py-3 font-mono text-xs text-gray-700 whitespace-pre-wrap break-words leading-relaxed">
+                        <td colSpan={5} className="px-4 py-3 font-mono text-gray-700 whitespace-pre-wrap break-words leading-relaxed">
                           {log.details && log.details !== "{}" ? log.details : "\u2014"}
                         </td>
                       </tr>
@@ -665,7 +666,7 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
           </div>
           <div className="mt-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-400">Show</span>
+              <span className="text-gray-400">Show</span>
               <select
                 value={pageSize}
                 onChange={(e) => { setPageSize(Number(e.target.value)); setPage(0); }}
@@ -675,24 +676,24 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
                   <option key={n} value={n}>{n}</option>
                 ))}
               </select>
-              <span className="text-xs text-gray-400">entries</span>
+              <span className="text-gray-400">entries</span>
             </div>
             {totalPages > 1 && (
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
                   disabled={safePage === 0}
-                  className="rounded-md px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+                  className="rounded-md px-2 py-1 font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
                 >
                   Previous
                 </button>
-                <span className="text-xs text-gray-400">
+                <span className="text-gray-400">
                   Page {safePage + 1} of {totalPages}
                 </span>
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                   disabled={safePage >= totalPages - 1}
-                  className="rounded-md px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+                  className="rounded-md px-2 py-1 font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
                 >
                   Next
                 </button>
@@ -796,7 +797,7 @@ function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number)
             <thead className="bg-gray-50">
               <tr>
                 {[{ label: "ID", key: "id" }, { label: "User", key: "user_id" }, { label: "Domain", key: "domain" }, { label: "Context", key: "context" }, { label: "Contract", key: "data_contract" }, { label: "Permission", key: "requested_permission" }, { label: "Message", key: null }, { label: "Status", key: "status" }, { label: "Actions", key: null }].map(({ label, key }) => (
-                  <th key={label} className={`px-3 py-2 text-left text-xs font-semibold text-gray-500 ${key ? "cursor-pointer select-none hover:bg-gray-100" : ""}`} onClick={() => key && toggleSort(key)}>
+                  <th key={label} className={`px-3 py-2 text-left font-semibold text-gray-500 ${key ? "cursor-pointer select-none hover:bg-gray-100" : ""}`} onClick={() => key && toggleSort(key)}>
                     <span className="inline-flex items-center gap-1">
                       {label}
                       {key && sortKey === key && (
@@ -810,13 +811,13 @@ function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number)
             <tbody className="divide-y divide-gray-200">
               {paginated.map((r) => (
                 <tr key={r.id}>
-                  <td className="px-3 py-2 text-xs text-gray-500">#{r.id}</td>
-                  <td className="px-3 py-2 font-mono text-xs text-gray-900">{r.user_id}</td>
+                  <td className="px-3 py-2 text-gray-500">#{r.id}</td>
+                  <td className="px-3 py-2 font-mono text-gray-900">{r.user_id}</td>
                   <td className="px-3 py-2 text-gray-600">{r.domain || "\u2014"}</td>
                   <td className="px-3 py-2 text-gray-600">{r.context || "\u2014"}</td>
                   <td className="px-3 py-2 text-gray-600">{r.data_contract || "\u2014"}</td>
                   <td className="px-3 py-2 text-gray-600">{r.requested_permission || "reader"}</td>
-                  <td className="max-w-[150px] truncate px-3 py-2 text-xs text-gray-500">{r.message || "\u2014"}</td>
+                  <td className="max-w-[150px] truncate px-3 py-2 text-gray-500">{r.message || "\u2014"}</td>
                   <td className="px-3 py-2">
                     <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium ${r.status === "pending" ? "bg-yellow-50 text-yellow-700" : r.status === "approved" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
                       <StatusIcon status={r.status} />
@@ -830,7 +831,7 @@ function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number)
                         <button onClick={() => handleStatus(r.id, "rejected")} className="rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-medium text-red-700 hover:bg-red-100">Deny</button>
                       </div>
                     ) : (
-                      <span className="text-xs text-gray-400">{"\u2014"}</span>
+                      <span className="text-gray-400">{"\u2014"}</span>
                     )}
                   </td>
                 </tr>
@@ -840,41 +841,41 @@ function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number)
         </div>
         <div className="mt-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400">Show</span>
-            <select
-              value={pageSize}
-              onChange={(e) => { setPageSize(Number(e.target.value)); setPage(0); }}
-              className="rounded-md border bg-white px-2 py-1 text-xs text-gray-700"
-            >
-              {[10, 100, 1000].map((n) => (
-                <option key={n} value={n}>{n}</option>
-              ))}
-            </select>
-            <span className="text-xs text-gray-400">entries</span>
-          </div>
-          {totalPages > 1 && (
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
-                disabled={safePage === 0}
-                className="rounded-md px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+              <span className="text-gray-400">Show</span>
+              <select
+                value={pageSize}
+                onChange={(e) => { setPageSize(Number(e.target.value)); setPage(0); }}
+                className="rounded-md border bg-white px-2 py-1 text-xs text-gray-700"
               >
-                Previous
-              </button>
-              <span className="text-xs text-gray-400">
-                Page {safePage + 1} of {totalPages}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                disabled={safePage >= totalPages - 1}
-                className="rounded-md px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
-              >
-                Next
-              </button>
+                {[10, 100, 1000].map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+              <span className="text-gray-400">entries</span>
             </div>
-          )}
-        </div>
-        </>)}
-    </div>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={safePage === 0}
+                  className="rounded-md px-2 py-1 font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+                >
+                  Previous
+                </button>
+                <span className="text-gray-400">
+                  Page {safePage + 1} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                  disabled={safePage >= totalPages - 1}
+                  className="rounded-md px-2 py-1 font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </div>
+          </>)}
+      </div>
   );
 }
