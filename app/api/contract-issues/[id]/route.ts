@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 
-import { auth } from "@/src/auth";
 import { updateContractIssueStatus, type IssueStatus } from "@/src/lib/issues";
 import { getContractIssue } from "@/src/lib/issues";
 import { getContractBySlug } from "@/src/lib/contracts";
@@ -10,10 +9,8 @@ import { requireApiAuth } from "@/src/lib/require-auth";
 import { getUserPermissions } from "@/src/lib/rbac";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireApiAuth();
-  if (unauthorized) return unauthorized;
-
-  const session = await auth();
+  const session = await requireApiAuth();
+  if (session instanceof Response) return session;
   const userId = session?.user?.name;
   if (!userId) {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });

@@ -2,6 +2,8 @@ import { getServerSession, type NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import KeycloakProvider from "next-auth/providers/keycloak";
 import { getUserPermissions } from "@/src/lib/rbac";
+import { getPinnedSlugs, getUserFavoriteSlugs } from "@/src/lib/preferences";
+import { getUserSubscriptions } from "@/src/lib/subscriptions";
 import { writeAuditLog } from "@/src/lib/audit";
 
 type KeycloakTokenResponse = {
@@ -165,11 +167,21 @@ export const authOptions: NextAuthOptions = {
       const userId = token.preferredUsername as string | undefined;
       if (userId && !token.permissions) {
         try {
-          const perms = await getUserPermissions(userId);
+          const [perms, pinnedSlugs, favoriteSlugs, subscriptions] = await Promise.all([
+            getUserPermissions(userId),
+            getPinnedSlugs(userId),
+            getUserFavoriteSlugs(userId),
+            getUserSubscriptions(userId),
+          ]);
           token.permissions = perms;
+          token.pinnedSlugs = pinnedSlugs;
+          token.favoriteSlugs = favoriteSlugs;
+          token.subscriptionSlugs = subscriptions.map((s) => s.contract_slug);
         } catch (error) {
-          console.error("[auth.jwt] Failed to fetch permissions:", error);
+          console.error("[auth.jwt] Failed to fetch user data:", error);
           token.permissions = [];
+          token.pinnedSlugs = [];
+          token.subscriptionSlugs = [];
         }
       }
 
@@ -185,6 +197,9 @@ export const authOptions: NextAuthOptions = {
         if (typeof token.givenName === "string") extra.givenName = token.givenName;
         if (typeof token.familyName === "string") extra.familyName = token.familyName;
         if (Array.isArray(token.permissions)) extra.permissions = token.permissions;
+        if (Array.isArray(token.pinnedSlugs)) extra.pinnedSlugs = token.pinnedSlugs;
+        if (Array.isArray(token.favoriteSlugs)) extra.favoriteSlugs = token.favoriteSlugs;
+        if (Array.isArray(token.subscriptionSlugs)) extra.subscriptionSlugs = token.subscriptionSlugs;
       }
 
       return session;

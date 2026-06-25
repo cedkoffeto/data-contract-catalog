@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/src/auth";
 import { execute, query } from "@/src/lib/db";
 import { createNotification } from "@/src/lib/notifications";
-import { getAdminUserIds } from "@/src/lib/rbac";
+import { getAdminUserIds, isAdmin } from "@/src/lib/rbac";
 import { writeAuditLog } from "@/src/lib/audit";
 import { extractSessionId } from "@/src/lib/audit-session";
 
@@ -85,8 +85,7 @@ export async function GET() {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   }
 
-  const adminIds = await getAdminUserIds();
-  if (!adminIds.includes(userId)) {
+  if (!await isAdmin(userId)) {
     return NextResponse.json({ error: "Admin access required" }, { status: 403 });
   }
 

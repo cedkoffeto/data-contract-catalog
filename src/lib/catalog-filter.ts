@@ -97,7 +97,7 @@ export async function filterCatalogCards(
   if (permissions.includes("admin")) return cards;
 
   const policies = await fetchUserPolicies(userId);
-  if (await userHasGlobalAccess(userId)) return cards;
+  if (policies.length === 0 && await userHasGlobalAccess(userId)) return cards;
   if (policies.some((p) => (p.domain_scope ?? "") === "" && (p.context_scope ?? "") === "" && (p.data_contract_scope ?? "") === "")) return cards;
 
   return cards.filter((card) =>
@@ -139,7 +139,7 @@ async function getMatchingSlugs(
   if (permissions.includes("admin")) return new Set(cards.map((c) => c.slug));
 
   const policies = await fetchUserPolicies(userId, permissionFilter);
-  if (await userHasGlobalAccess(userId)) return new Set(cards.map((c) => c.slug));
+  if (policies.length === 0 && await userHasGlobalAccess(userId)) return new Set(cards.map((c) => c.slug));
   if (policies.some((p) => (p.domain_scope ?? "") === "" && (p.context_scope ?? "") === "" && (p.data_contract_scope ?? "") === "")) return new Set(cards.map((c) => c.slug));
 
   const matching = new Set<string>();

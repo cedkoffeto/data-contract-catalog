@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 
-import { auth } from "@/src/auth";
 import { createContractIssue, listContractIssues } from "@/src/lib/issues";
 import { getContractBySlug } from "@/src/lib/contracts";
 import { authorize } from "@/src/lib/access-control";
@@ -35,10 +34,8 @@ async function ensureCanReadContract(slug: string, userId: string) {
 }
 
 export async function GET(_: Request, { params }: { params: Promise<{ slug: string }> }) {
-  const unauthorized = await requireApiAuth();
-  if (unauthorized) return unauthorized;
-
-  const session = await auth();
+  const session = await requireApiAuth();
+  if (session instanceof Response) return session;
   const userId = session?.user?.name;
   if (!userId) {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });
@@ -53,10 +50,8 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
-  const unauthorized = await requireApiAuth();
-  if (unauthorized) return unauthorized;
-
-  const session = await auth();
+  const session = await requireApiAuth();
+  if (session instanceof Response) return session;
   const userId = session?.user?.name;
   if (!userId) {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });

@@ -9,7 +9,7 @@ import { getContractPageData } from "@/src/lib/contracts";
 import { getDiscussionSummary } from "@/src/lib/comments";
 import { getGitLabFileHistory } from "@/src/lib/gitlab";
 import type { ContractHistoryEntry } from "@/src/lib/types";
-import { getUserPermissions } from "@/src/lib/rbac";
+import type { Permission } from "@/src/lib/rbac";
 
 export const dynamic = "force-dynamic";
 
@@ -42,13 +42,14 @@ export default async function ContractRoutePage({ params }: { params: Promise<{ 
 
   const userId = session?.user?.name;
 
-  const domain = page.data.asset?.domain ?? "";
-  const context = page.data.asset?.context ?? "";
-  const globalPermissions = userId ? await getUserPermissions(userId) : [];
-
   if (!userId) {
     return <Forbidden message="Authentification requise" />;
   }
+
+  const extra = session.user as Record<string, unknown>;
+  const globalPermissions = (extra.permissions as Permission[]) ?? [];
+  const domain = page.data.asset?.domain ?? "";
+  const context = page.data.asset?.context ?? "";
 
   // Single effective permissions call instead of three separate authorize calls
   const effectivePerms = globalPermissions.includes("admin") || globalPermissions.includes("write")

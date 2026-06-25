@@ -45,3 +45,11 @@ export async function getPinnedSlugs(userId: string): Promise<string[]> {
   );
   return rows.map((r) => r.contract_slug);
 }
+
+export async function getUserFavoriteSlugs(userId: string): Promise<string[]> {
+  const rows = await query<{ contract_slug: string }>(
+    "SELECT contract_slug FROM user_contract_preferences WHERE user_id = ? AND is_favorite = 1",
+    [userId],
+  );
+  return rows.map((r) => r.contract_slug);
+}

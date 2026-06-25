@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 
 import fs from "node:fs";
 
-import { auth } from "@/src/auth";
 import { saveContractFile } from "@/src/lib/contract-writer";
 import { getContractBySlug } from "@/src/lib/contracts";
 import { requireApiAuth } from "@/src/lib/require-auth";
@@ -15,11 +14,10 @@ import { extractSessionId } from "@/src/lib/audit-session";
 
 export async function POST(req: Request, { params }: { params: Promise<{ slug: string }> }) {
   try {
-    const unauthorized = await requireApiAuth();
-    if (unauthorized) return unauthorized;
+    const session = await requireApiAuth();
+    if (session instanceof Response) return session;
 
     const { slug } = await params;
-    const session = await auth();
     const userId = session?.user?.name;
     if (!userId) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });

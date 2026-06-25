@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 
-import { auth } from "@/src/auth";
 import { mergeChangeRequest, getChangeRequest, rejectChangeRequest } from "@/src/lib/change-requests";
 import { createNotification } from "@/src/lib/notifications";
 import { getSubscribers } from "@/src/lib/subscriptions";
@@ -9,10 +8,8 @@ import { requireApiAuth } from "@/src/lib/require-auth";
 import { getUserPermissions } from "@/src/lib/rbac";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireApiAuth();
-  if (unauthorized) return unauthorized;
-
-  const session = await auth();
+  const session = await requireApiAuth();
+  if (session instanceof Response) return session;
   const userId = session?.user?.name ?? "";
 
   const permissions = await getUserPermissions(userId);

@@ -10,6 +10,9 @@ declare module "next-auth" {
       givenName?: string;
       familyName?: string;
       permissions?: string[];
+      pinnedSlugs?: string[];
+      favoriteSlugs?: string[];
+      subscriptionSlugs?: string[];
     };
   }
 }
@@ -20,5 +23,8 @@ declare module "next-auth/jwt" {
     givenName?: string;
     familyName?: string;
     permissions?: string[];
+    pinnedSlugs?: string[];
+    favoriteSlugs?: string[];
+    subscriptionSlugs?: string[];
   }
 }

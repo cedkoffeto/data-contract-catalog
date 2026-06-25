@@ -1,16 +1,13 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 
-import { auth } from "@/src/auth";
 import { getUserSubscriptions } from "@/src/lib/subscriptions";
 import { requireApiAuth } from "@/src/lib/require-auth";
 
 export async function GET() {
   try {
-    const unauthorized = await requireApiAuth();
-    if (unauthorized) return unauthorized;
-
-    const session = await auth();
+    const session = await requireApiAuth();
+    if (session instanceof Response) return session;
     const userId = session?.user?.name;
     if (!userId) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });

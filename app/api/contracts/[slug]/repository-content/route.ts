@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 
-import { auth } from "@/src/auth";
 import { getContractBySlug } from "@/src/lib/contracts";
 import { getGitLabFileContent, isGitLabConfigurationError } from "@/src/lib/gitlab";
 import { requireApiAuth } from "@/src/lib/require-auth";
@@ -9,10 +8,8 @@ import { authorize } from "@/src/lib/access-control";
 import { getUserPermissions } from "@/src/lib/rbac";
 
 export async function GET(request: Request, context: { params: Promise<{ slug: string }> }) {
-  const unauthorized = await requireApiAuth();
-  if (unauthorized) {
-    return unauthorized;
-  }
+  const session = await requireApiAuth();
+  if (session instanceof Response) return session;
 
   const { slug } = await context.params;
 
@@ -20,8 +17,6 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
   if (!contract) {
     return NextResponse.json({ error: `Contract "${slug}" not found` }, { status: 404 });
   }
-
-  const session = await auth();
   const userId = session?.user?.name;
   if (!userId) {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });

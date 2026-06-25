@@ -4,7 +4,7 @@ import crypto from "node:crypto";
 
 import yaml from "js-yaml";
 
-import { Gitlab } from "@gitbeaker/rest";
+import { Gitlab, GitbeakerTimeoutError } from "@gitbeaker/rest";
 
 import { getGitSourceRef } from "@/src/lib/git-source";
 import type { CatalogCard, ContractFile, DataContract, EditorRepositoryFile } from "@/src/lib/types";
@@ -181,7 +181,10 @@ async function retryOnTimeout<T>(fn: () => Promise<T>): Promise<T> {
     try {
       return await fn();
     } catch (error) {
-      if (attempt < RETRY_MAX && error instanceof TypeError && (error as Error).message === "fetch failed") {
+      const isRetryable =
+        (error instanceof TypeError && (error as Error).message === "fetch failed") ||
+        error instanceof GitbeakerTimeoutError;
+      if (attempt < RETRY_MAX && isRetryable) {
         await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
         continue;
       }

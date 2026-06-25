@@ -31,6 +31,20 @@ export async function getAdminUserIds(): Promise<string[]> {
   return rows.map((r) => r.user_id);
 }
 
+export async function isAdmin(userId: string): Promise<boolean> {
+  const rows = await query<{ c: number }>(
+    `SELECT 1 as c FROM access_policies ap
+     WHERE ap.permission_id = (SELECT id FROM permissions WHERE name = 'admin')
+       AND (
+         ap.user_id = ?
+         OR ap.group_id IN (SELECT ug.group_id FROM user_group ug WHERE ug.user_id = ?)
+       )
+     LIMIT 1`,
+    [userId, userId],
+  );
+  return rows.length > 0;
+}
+
 export async function getUserIdsWithScopeAccess(domain: string, context: string): Promise<string[]> {
   const rows = await query<{ user_id: string }>(
     `SELECT DISTINCT user_id FROM access_policies
