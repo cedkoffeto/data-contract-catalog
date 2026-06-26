@@ -25,9 +25,10 @@ function mockAdminGate(response: Response | null = null) {
   return requireAdmin;
 }
 
-function mockApiGate(response: Response | null = null) {
-  const requireApiAuth = vi.fn(async () => response);
-  vi.doMock("@/src/lib/require-auth", () => ({ requireApiAuth }));
+function mockApiGate(session: unknown = null) {
+  const requireApiAuth = vi.fn(async () => session);
+  const getGlobalPermissions = vi.fn(async () => []);
+  vi.doMock("@/src/lib/require-auth", () => ({ getGlobalPermissions, requireApiAuth }));
   return requireApiAuth;
 }
 
@@ -49,6 +50,7 @@ function mockAccessControl(overrides: Record<string, unknown> = {}) {
     getEffectivePoliciesForUser: vi.fn(),
     listAccessPolicies: vi.fn(),
     listGroups: vi.fn(),
+    listGroupMembers: vi.fn(),
     listPermissions: vi.fn(),
     removeUserFromGroup: vi.fn(),
     updateAccessPolicy: vi.fn(),
@@ -200,7 +202,8 @@ describe("RBAC admin policies API", () => {
       domainScope: "crm",
       contextScope: "claims",
       dataContractScope: null,
-      actorId: "admin.user@example.com"
+      actorId: "admin.user@example.com",
+      sessionId: ""
     });
   });
 
@@ -243,7 +246,8 @@ describe("RBAC admin policies API", () => {
       contextScope: null,
       dataContractScope: null,
       actorId: "admin.user@example.com",
-      force: true
+      force: true,
+      sessionId: ""
     });
   });
 });
@@ -325,7 +329,8 @@ describe("RBAC admin policy by id API", () => {
       domainScope: "crm",
       contextScope: "claims",
       dataContractScope: "crm-reclamation",
-      actorId: "admin.user@example.com"
+      actorId: "admin.user@example.com",
+      sessionId: ""
     });
   });
 
@@ -345,7 +350,8 @@ describe("RBAC admin policy by id API", () => {
     expect(await readJson(response)).toEqual({ success: true });
     expect(deleteAccessPolicy).toHaveBeenCalledWith({
       id: 123,
-      actorId: "admin.user@example.com"
+      actorId: "admin.user@example.com",
+      sessionId: ""
     });
   });
 });
@@ -378,7 +384,8 @@ describe("RBAC admin groups API", () => {
     expect(await readJson(response)).toEqual({ id: 2, name: "Editors" });
     expect(createGroup).toHaveBeenCalledWith({
       name: "Editors",
-      actorId: "admin.user@example.com"
+      actorId: "admin.user@example.com",
+      sessionId: ""
     });
   });
 
@@ -442,6 +449,35 @@ describe("RBAC admin groups API", () => {
       groupId: 5,
       actorId: "admin.user@example.com"
     });
+  });
+
+  it("lists members of a group", async () => {
+    mockAdminGate();
+    const listGroupMembers = vi.fn(async () => ["editor.user", "reader.user"]);
+
+    mockAccessControl({ listGroupMembers });
+
+    const route = await import("../../app/api/admin/groups/[id]/members/route");
+    const response = await route.GET(new Request("http://localhost.test/api"), {
+      params: Promise.resolve({ id: "5" })
+    });
+
+    expect(response.status).toBe(200);
+    expect(await readJson(response)).toEqual({ members: ["editor.user", "reader.user"] });
+    expect(listGroupMembers).toHaveBeenCalledWith(5);
+  });
+
+  it("rejects listing members with invalid group id", async () => {
+    mockAdminGate();
+    mockAccessControl();
+
+    const route = await import("../../app/api/admin/groups/[id]/members/route");
+    const response = await route.GET(new Request("http://localhost.test/api"), {
+      params: Promise.resolve({ id: "abc" })
+    });
+
+    expect(response.status).toBe(400);
+    expect(await readJson(response)).toEqual({ error: "Invalid group id" });
   });
 
   it("lists all group memberships", async () => {
@@ -590,8 +626,7 @@ describe("RBAC admin lookup APIs", () => {
 
 describe("RBAC contract APIs", () => {
   it("forbids reading a contract when the user lacks scoped access", async () => {
-    mockApiGate();
-    mockAuth({ name: "reader.user", email: "reader.user@example.com" });
+    mockApiGate({ user: { name: "reader.user", email: "reader.user@example.com" } });
 
     vi.doMock("@/src/lib/contracts", () => ({
       getContractBySlug: vi.fn(async () => ({
@@ -602,9 +637,6 @@ describe("RBAC contract APIs", () => {
         yamlRaw: "asset:\n  name: CRM",
         data: { asset: { domain: "crm", context: "claims" } }
       }))
-    }));
-    vi.doMock("@/src/lib/rbac", () => ({
-      getUserPermissions: vi.fn(async () => ["read"])
     }));
     vi.doMock("@/src/lib/access-control", () => ({
       authorize: vi.fn(async () => false)
@@ -622,8 +654,7 @@ describe("RBAC contract APIs", () => {
   });
 
   it("returns a contract when scoped read access is granted", async () => {
-    mockApiGate();
-    mockAuth({ name: "reader.user", email: "reader.user@example.com" });
+    mockApiGate({ user: { name: "reader.user", email: "reader.user@example.com" } });
 
     const contract = {
       slug: "crm-reclamation",
@@ -636,9 +667,6 @@ describe("RBAC contract APIs", () => {
 
     vi.doMock("@/src/lib/contracts", () => ({
       getContractBySlug: vi.fn(async () => contract)
-    }));
-    vi.doMock("@/src/lib/rbac", () => ({
-      getUserPermissions: vi.fn(async () => ["read"])
     }));
     vi.doMock("@/src/lib/access-control", () => ({
       authorize: vi.fn(async () => true)
