@@ -1,0 +1,40 @@
+# CRM — Data Relations
+# Manually curated
+
+domain: CRM
+context: RELATION_CLIENT
+
+relations:
+  - ref_name: "customer_reference"
+    ref: "crm_activities.numero_personne_host > FICHE_SIGNAL:CLIENT:fiche_signaletique.numero_personne_host"
+
+  - ref_name: "customer_reference"
+    ref: "crm_alerte.numero_personne_host > FICHE_SIGNAL:CLIENT:fiche_signaletique.numero_personne_host"
+
+  - ref_name: "customer_reference"
+    ref: "crm_reclamation.numero_personne_host > FICHE_SIGNAL:CLIENT:fiche_signaletique.numero_personne_host"
+
+  - ref_name: "customer_reference"
+    ref: "crm_ov.numero_personne_host > FICHE_SIGNAL:CLIENT:fiche_signaletique.numero_personne_host"
+
+  - ref_name: "customer_reference"
+    ref: "crm_comptes_rendu.numero_personne_host > FICHE_SIGNAL:CLIENT:fiche_signaletique.numero_personne_host"
+
+  - ref_name: "feeds_gold"
+    ref: "crm_ov.row_id > gold:CRM:crm.row_id"
+
+  - ref_name: "feeds_gold"
+    ref: "crm_activities.row_id > gold:CRM:crm.row_id"
+
+  - ref_name: "feeds_gold"
+    ref: "crm_alerte.row_id > gold:CRM:crm.row_id"
+
+  - ref_name: "feeds_gold"
+    ref: "crm_reclamation.row_id > gold:CRM:crm.row_id"
+
+  - ref_name: "feeds_gold"
+    ref: "crm_comptes_rendu.row_id > gold:CRM:crm.row_id"
+
+  - ref_name: "assigned_manager"
+    ref: "GESTIONNAIRE:gestionnaire.manager_id - crm_comptes_rendu.row_id"
+

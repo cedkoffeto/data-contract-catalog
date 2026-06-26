@@ -1,0 +1,19 @@
+# it — Data Relations
+# 20 contracts · 5 contexts · bronze
+
+domain: it
+context: it_batch
+
+relations:
+  - ref_name: "cross_it_it_incidents"
+    ref: "bronze_it_it_batch_009.ID > it:it_incidents:bronze_it_it_incidents_001.ID"
+
+  - ref_name: "cross_it_it_journal"
+    ref: "bronze_it_it_batch_009.ID > it:it_journal:bronze_it_it_journal_005.ID"
+
+  - ref_name: "cross_it_it_master"
+    ref: "bronze_it_it_batch_009.ID > it:it_master:bronze_it_it_master_013.ID"
+
+  - ref_name: "cross_it_it_summaries"
+    ref: "bronze_it_it_batch_009.ID > it:it_summaries:bronze_it_it_summaries_017.ID"
+

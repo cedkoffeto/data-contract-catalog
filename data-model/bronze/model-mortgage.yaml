@@ -1,0 +1,13 @@
+# mortgage — Data Relations
+# 20 contracts · 3 contexts · bronze
+
+domain: mortgage
+context: mortgage_audit
+
+relations:
+  - ref_name: "cross_mortgage_mortgage_profile"
+    ref: "bronze_mortgage_mortgage_audit_015.ID > mortgage:mortgage_profile:bronze_mortgage_mortgage_profile_001.ID"
+
+  - ref_name: "cross_mortgage_mortgage_reference"
+    ref: "bronze_mortgage_mortgage_audit_015.ID > mortgage:mortgage_reference:bronze_mortgage_mortgage_reference_008.ID"
+

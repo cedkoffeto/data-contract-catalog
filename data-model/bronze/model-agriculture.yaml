@@ -1,0 +1,13 @@
+# agriculture — Data Relations
+# 20 contracts · 3 contexts · bronze
+
+domain: agriculture
+context: agriculture_events
+
+relations:
+  - ref_name: "cross_agriculture_agriculture_snapshot"
+    ref: "bronze_agriculture_agriculture_events_001.ID > agriculture:agriculture_snapshot:bronze_agriculture_agriculture_snapshot_015.ID"
+
+  - ref_name: "cross_agriculture_agriculture_stream"
+    ref: "bronze_agriculture_agriculture_events_001.ID > agriculture:agriculture_stream:bronze_agriculture_agriculture_stream_008.ID"
+

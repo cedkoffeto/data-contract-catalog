@@ -1,0 +1,16 @@
+# realestate — Data Relations
+# 20 contracts · 4 contexts · bronze
+
+domain: realestate
+context: realestate_changes
+
+relations:
+  - ref_name: "cross_realestate_realestate_details"
+    ref: "bronze_realestate_realestate_changes_016.ID > realestate:realestate_details:bronze_realestate_realestate_details_006.ID"
+
+  - ref_name: "cross_realestate_realestate_pipeline"
+    ref: "bronze_realestate_realestate_changes_016.ID > realestate:realestate_pipeline:bronze_realestate_realestate_pipeline_001.ID"
+
+  - ref_name: "cross_realestate_realestate_segment"
+    ref: "bronze_realestate_realestate_changes_016.ID > realestate:realestate_segment:bronze_realestate_realestate_segment_011.ID"
+

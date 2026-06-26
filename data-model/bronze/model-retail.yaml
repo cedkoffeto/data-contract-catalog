@@ -1,0 +1,22 @@
+# retail — Data Relations
+# 20 contracts · 6 contexts · bronze
+
+domain: retail
+context: retail_monitor
+
+relations:
+  - ref_name: "cross_retail_retail_records"
+    ref: "bronze_retail_retail_monitor_018.ID > retail:retail_records:bronze_retail_retail_records_015.ID"
+
+  - ref_name: "cross_retail_retail_reference"
+    ref: "bronze_retail_retail_monitor_018.ID > retail:retail_reference:bronze_retail_retail_reference_009.ID"
+
+  - ref_name: "cross_retail_retail_segment"
+    ref: "bronze_retail_retail_monitor_018.ID > retail:retail_segment:bronze_retail_retail_segment_001.ID"
+
+  - ref_name: "cross_retail_retail_staged"
+    ref: "bronze_retail_retail_monitor_018.ID > retail:retail_staged:bronze_retail_retail_staged_005.ID"
+
+  - ref_name: "cross_retail_retail_transactions"
+    ref: "bronze_retail_retail_monitor_018.ID > retail:retail_transactions:bronze_retail_retail_transactions_012.ID"
+

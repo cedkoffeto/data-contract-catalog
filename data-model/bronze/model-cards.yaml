@@ -1,0 +1,22 @@
+# cards — Data Relations
+# 20 contracts · 6 contexts · bronze
+
+domain: cards
+context: cards_alerts
+
+relations:
+  - ref_name: "cross_cards_cards_details"
+    ref: "bronze_cards_cards_alerts_012.ID > cards:cards_details:bronze_cards_cards_details_018.ID"
+
+  - ref_name: "cross_cards_cards_job"
+    ref: "bronze_cards_cards_alerts_012.ID > cards:cards_job:bronze_cards_cards_job_015.ID"
+
+  - ref_name: "cross_cards_cards_partition"
+    ref: "bronze_cards_cards_alerts_012.ID > cards:cards_partition:bronze_cards_cards_partition_009.ID"
+
+  - ref_name: "cross_cards_cards_timeline"
+    ref: "bronze_cards_cards_alerts_012.ID > cards:cards_timeline:bronze_cards_cards_timeline_005.ID"
+
+  - ref_name: "cross_cards_cards_transactions"
+    ref: "bronze_cards_cards_alerts_012.ID > cards:cards_transactions:bronze_cards_cards_transactions_001.ID"
+

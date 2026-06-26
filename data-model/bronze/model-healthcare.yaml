@@ -1,0 +1,13 @@
+# healthcare — Data Relations
+# 20 contracts · 3 contexts · bronze
+
+domain: healthcare
+context: healthcare_alerts
+
+relations:
+  - ref_name: "cross_healthcare_healthcare_session"
+    ref: "bronze_healthcare_healthcare_alerts_008.ID > healthcare:healthcare_session:bronze_healthcare_healthcare_session_001.ID"
+
+  - ref_name: "cross_healthcare_healthcare_staged"
+    ref: "bronze_healthcare_healthcare_alerts_008.ID > healthcare:healthcare_staged:bronze_healthcare_healthcare_staged_015.ID"
+

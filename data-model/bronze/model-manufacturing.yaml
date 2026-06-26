@@ -1,0 +1,16 @@
+# manufacturing — Data Relations
+# 20 contracts · 4 contexts · bronze
+
+domain: manufacturing
+context: manufacturing_changes
+
+relations:
+  - ref_name: "cross_manufacturing_manufacturing_journal"
+    ref: "bronze_manufacturing_manufacturing_changes_011.ID > manufacturing:manufacturing_journal:bronze_manufacturing_manufacturing_journal_006.ID"
+
+  - ref_name: "cross_manufacturing_manufacturing_reference"
+    ref: "bronze_manufacturing_manufacturing_changes_011.ID > manufacturing:manufacturing_reference:bronze_manufacturing_manufacturing_reference_001.ID"
+
+  - ref_name: "cross_manufacturing_manufacturing_workflow"
+    ref: "bronze_manufacturing_manufacturing_changes_011.ID > manufacturing:manufacturing_workflow:bronze_manufacturing_manufacturing_workflow_016.ID"
+

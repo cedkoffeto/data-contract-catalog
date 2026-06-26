@@ -1,0 +1,19 @@
+# logistics — Data Relations
+# 20 contracts · 5 contexts · bronze
+
+domain: logistics
+context: logistics_aggregated
+
+relations:
+  - ref_name: "cross_logistics_logistics_alerts"
+    ref: "bronze_logistics_logistics_aggregated_009.ID > logistics:logistics_alerts:bronze_logistics_logistics_alerts_005.ID"
+
+  - ref_name: "cross_logistics_logistics_changes"
+    ref: "bronze_logistics_logistics_aggregated_009.ID > logistics:logistics_changes:bronze_logistics_logistics_changes_017.ID"
+
+  - ref_name: "cross_logistics_logistics_metrics"
+    ref: "bronze_logistics_logistics_aggregated_009.ID > logistics:logistics_metrics:bronze_logistics_logistics_metrics_001.ID"
+
+  - ref_name: "cross_logistics_logistics_timeline"
+    ref: "bronze_logistics_logistics_aggregated_009.ID > logistics:logistics_timeline:bronze_logistics_logistics_timeline_013.ID"
+

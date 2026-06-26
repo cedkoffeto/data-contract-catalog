@@ -1,0 +1,13 @@
+# api — Data Relations
+# 20 contracts · 3 contexts · bronze
+
+domain: api
+context: api_history
+
+relations:
+  - ref_name: "cross_api_api_profile"
+    ref: "bronze_api_api_history_015.ID > api:api_profile:bronze_api_api_profile_008.ID"
+
+  - ref_name: "cross_api_api_task"
+    ref: "bronze_api_api_history_015.ID > api:api_task:bronze_api_api_task_001.ID"
+

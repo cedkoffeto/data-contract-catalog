@@ -1,0 +1,10 @@
+# CARTE — Data Relations
+# Manually curated
+
+domain: CARTE
+context: EQUIPEMENT
+
+relations:
+  - ref_name: "customer_reference"
+    ref: "carte.numero_personne_host > FICHE_SIGNAL:CLIENT:fiche_signaletique.numero_personne_host"
+

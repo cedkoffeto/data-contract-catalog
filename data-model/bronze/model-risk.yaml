@@ -1,0 +1,19 @@
+# risk — Data Relations
+# 20 contracts · 5 contexts · bronze
+
+domain: risk
+context: risk_enriched
+
+relations:
+  - ref_name: "cross_risk_risk_metrics"
+    ref: "bronze_risk_risk_enriched_013.ID > risk:risk_metrics:bronze_risk_risk_metrics_009.ID"
+
+  - ref_name: "cross_risk_risk_staged"
+    ref: "bronze_risk_risk_enriched_013.ID > risk:risk_staged:bronze_risk_risk_staged_001.ID"
+
+  - ref_name: "cross_risk_risk_summaries"
+    ref: "bronze_risk_risk_enriched_013.ID > risk:risk_summaries:bronze_risk_risk_summaries_017.ID"
+
+  - ref_name: "cross_risk_risk_task"
+    ref: "bronze_risk_risk_enriched_013.ID > risk:risk_task:bronze_risk_risk_task_005.ID"
+

@@ -1,0 +1,19 @@
+# DAT — Data Relations
+# Manually curated
+
+domain: DAT
+context: PRODUITS_EPARGNE
+
+relations:
+  - ref_name: "customer_reference"
+    ref: "dat_bdc.numero_personne_host > FICHE_SIGNAL:CLIENT:fiche_signaletique.numero_personne_host"
+
+  - ref_name: "customer_reference"
+    ref: "dat_cat.numero_personne_host > FICHE_SIGNAL:CLIENT:fiche_signaletique.numero_personne_host"
+
+  - ref_name: "feeds_gold"
+    ref: "dat_bdc.numero_contrat > gold:DAT:dat.numero_contrat"
+
+  - ref_name: "feeds_gold"
+    ref: "dat_cat.numero_contrat > gold:DAT:dat.numero_contrat"
+

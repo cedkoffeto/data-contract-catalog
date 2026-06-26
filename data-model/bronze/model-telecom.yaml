@@ -1,0 +1,16 @@
+# telecom — Data Relations
+# 20 contracts · 4 contexts · bronze
+
+domain: telecom
+context: telecom_changes
+
+relations:
+  - ref_name: "cross_telecom_telecom_details"
+    ref: "bronze_telecom_telecom_changes_016.ID > telecom:telecom_details:bronze_telecom_telecom_details_001.ID"
+
+  - ref_name: "cross_telecom_telecom_profile"
+    ref: "bronze_telecom_telecom_changes_016.ID > telecom:telecom_profile:bronze_telecom_telecom_profile_006.ID"
+
+  - ref_name: "cross_telecom_telecom_raw"
+    ref: "bronze_telecom_telecom_changes_016.ID > telecom:telecom_raw:bronze_telecom_telecom_raw_011.ID"
+

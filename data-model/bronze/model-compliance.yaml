@@ -1,0 +1,22 @@
+# compliance — Data Relations
+# 20 contracts · 6 contexts · bronze
+
+domain: compliance
+context: compliance_audit
+
+relations:
+  - ref_name: "cross_compliance_compliance_cluster"
+    ref: "bronze_compliance_compliance_audit_015.ID > compliance:compliance_cluster:bronze_compliance_compliance_cluster_018.ID"
+
+  - ref_name: "cross_compliance_compliance_process"
+    ref: "bronze_compliance_compliance_audit_015.ID > compliance:compliance_process:bronze_compliance_compliance_process_009.ID"
+
+  - ref_name: "cross_compliance_compliance_profile"
+    ref: "bronze_compliance_compliance_audit_015.ID > compliance:compliance_profile:bronze_compliance_compliance_profile_001.ID"
+
+  - ref_name: "cross_compliance_compliance_records"
+    ref: "bronze_compliance_compliance_audit_015.ID > compliance:compliance_records:bronze_compliance_compliance_records_012.ID"
+
+  - ref_name: "cross_compliance_compliance_stream"
+    ref: "bronze_compliance_compliance_audit_015.ID > compliance:compliance_stream:bronze_compliance_compliance_stream_005.ID"
+

@@ -1,0 +1,19 @@
+# onboarding — Data Relations
+# 20 contracts · 5 contexts · bronze
+
+domain: onboarding
+context: onboarding_cluster
+
+relations:
+  - ref_name: "cross_onboarding_onboarding_logs"
+    ref: "bronze_onboarding_onboarding_cluster_013.ID > onboarding:onboarding_logs:bronze_onboarding_onboarding_logs_001.ID"
+
+  - ref_name: "cross_onboarding_onboarding_partition"
+    ref: "bronze_onboarding_onboarding_cluster_013.ID > onboarding:onboarding_partition:bronze_onboarding_onboarding_partition_005.ID"
+
+  - ref_name: "cross_onboarding_onboarding_pipeline"
+    ref: "bronze_onboarding_onboarding_cluster_013.ID > onboarding:onboarding_pipeline:bronze_onboarding_onboarding_pipeline_017.ID"
+
+  - ref_name: "cross_onboarding_onboarding_summaries"
+    ref: "bronze_onboarding_onboarding_cluster_013.ID > onboarding:onboarding_summaries:bronze_onboarding_onboarding_summaries_009.ID"
+

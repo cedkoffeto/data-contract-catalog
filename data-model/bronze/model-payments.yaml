@@ -1,0 +1,19 @@
+# payments — Data Relations
+# 20 contracts · 5 contexts · bronze
+
+domain: payments
+context: payments_changes
+
+relations:
+  - ref_name: "cross_payments_payments_history"
+    ref: "bronze_payments_payments_changes_017.ID > payments:payments_history:bronze_payments_payments_history_013.ID"
+
+  - ref_name: "cross_payments_payments_journal"
+    ref: "bronze_payments_payments_changes_017.ID > payments:payments_journal:bronze_payments_payments_journal_001.ID"
+
+  - ref_name: "cross_payments_payments_logs"
+    ref: "bronze_payments_payments_changes_017.ID > payments:payments_logs:bronze_payments_payments_logs_005.ID"
+
+  - ref_name: "cross_payments_payments_records"
+    ref: "bronze_payments_payments_changes_017.ID > payments:payments_records:bronze_payments_payments_records_009.ID"
+

@@ -27,19 +27,36 @@ interface DataModelContract {
 }
 ```
 
-### Relations (Lineage)
+### Fichiers de relations (Lineage)
 
 Les relations entre contrats sont définies dans des fichiers YAML dédiés sous `data-model/` :
 
-- `model-global.yaml` — fichier racine qui importe les fichiers par domaine
-- `model-{domaine}.yaml` — un fichier par domaine métier
+```
+data-model/
+  model-global.yaml          ← fichier racine qui importe tous les domaines
+  bronze/                    ← domaines auto-générés (layer inféré du dossier)
+    model-aml.yaml
+    model-crm.yaml
+    …
+  silver/                    ← domaines métier silver/gold (curation manuelle)
+    model-crm.yaml
+    model-dat.yaml
+    …
+  gold/                      ← domaines gold uniquement
+    model-credit.yaml
+    model-gestionnaire2.yaml
+```
+
+- **Layer** déduit du sous-dossier parent (`bronze/`, `silver/`, `gold/`)
+- **Domain** vient du champ `domain:` dans le fichier
+- **Context** vient du champ `context:` dans le fichier
 
 #### Format d'une relation
 
 ```yaml
 relations:
   - ref_name: "customer_reference"
-    ref: "[domain:context:]slug.field <signe> [domain:context:]slug.field"
+    ref: "[layer:][domain:][context:]slug.champ <signe> [layer:][domain:][context:]slug.champ"
 ```
 
 **Signes supportés :**
@@ -50,23 +67,63 @@ relations:
 | `<` | One-to-Many | La source est référencée par plusieurs cibles |
 | `-` | One-to-One | Correspondance exacte |
 
-**Résolution des noms relatifs :**
+#### Résolution du préfixe
 
-Quand `domain` et `context` sont omis devant un slug, ils sont déduits du fichier domaine courant (déclarés en haut du fichier YAML via les champs `domain:` / `context:`).
+Le préfixe optionnel est décomposé par `:` dans l'ordre **layer → domain → context** :
 
-### Exemple
+- `slug.field` → tous les défauts du fichier
+- `DOMAINE:slug.field` → même layer, domain surchargé, même context
+- `DOMAINE:CONTEXTE:slug.field` → même layer, domain et context surchargés
+- `layer:DOMAINE:CONTEXTE:slug.field` → tout est surchargé
+- `layer:slug.field` → layer surchargé, domain et context inchangés
+
+**Règle de désambiguïsation :** si le premier mot-clé est `bronze`, `silver` ou `gold`, c'est le layer. Les parties suivantes (jusqu'au slug) sont `domain` puis `context`. Quand seul le context diffère, le domain est aussi inclus pour éviter l'ambiguïté.
+
+#### Exemples
 
 ```yaml
-# data-model/model-crm.yaml
+# silver/model-crm.yaml — defaults: layer=silver, domain=CRM, context=RELATION_CLIENT
 domain: CRM
 context: RELATION_CLIENT
 
 relations:
+  # Même layer, domain, context → juste slug.field
   - ref_name: "customer_reference"
-    ref: "FICHE_SIGNAL:CLIENT:fiche_signaletique.numero_personne_host < crm_ov.numero_personne_host"
+    ref: "crm_activities.numero_personne_host > FICHE_SIGNAL:CLIENT:fiche_signaletique.numero_personne_host"
 
+  # Cross-layer : layer=gold, domain=CRM, context par défaut (RELATION_CLIENT)
   - ref_name: "feeds_gold"
-    ref: "crm_ov.row_id > gold/crm.customer_id"
+    ref: "crm_ov.row_id > gold:CRM:crm.row_id"
+
+  # Cross-domain : domain=GESTIONNAIRE, même context
+  - ref_name: "assigned_manager"
+    ref: "GESTIONNAIRE:gestionnaire.manager_id - crm_comptes_rendu.row_id"
+```
+
+```yaml
+# bronze/model-aml.yaml — defaults: layer=bronze, domain=aml, context=aml_job
+domain: aml
+context: aml_job
+
+relations:
+  # Intra-contexte : même layer, domaine, contexte
+  - ref_name: "aml_job_partition"
+    ref: "bronze_aml_aml_job_009.ID > bronze_aml_aml_job_013.ID"
+
+  # Cross-contexte : domain et context explicites (contexte différent)
+  - ref_name: "cross_aml_aml_logs"
+    ref: "bronze_aml_aml_job_009.ID > aml:aml_logs:bronze_aml_aml_logs_013.ID"
+```
+
+```yaml
+# gold/model-credit.yaml — defaults: layer=gold, domain=CREDIT, context=ENGAGEMENT
+domain: CREDIT
+context: ENGAGEMENT
+
+relations:
+  # Tout est différent des défauts → préfixe complet
+  - ref_name: "feeds_gold"
+    ref: "silver:PNB:RENTABILITE:pnb.numero_contrat > credit_engagement.engagement_id"
 ```
 
 ## Fonctionnalités du composant DataModelEditor
@@ -100,7 +157,7 @@ relations:
 1018 fichiers YAML
       ↓ (parse + extrais slug, domain, context, fields)
 index JSON global (data-model-index.json)
-      ↓ (parse + resolve relations)
+      ↓ (parse + resolve relations depuis bronze/*, silver/*, gold/*)
 parseContractsToGraph(data)
       ↓
 { nodes: Node[], edges: Edge[] } ← format React Flow
@@ -110,8 +167,9 @@ parseContractsToGraph(data)
 
 | Fonction | Rôle |
 |----------|------|
-| `parseContractsToGraph(index, modelFiles)` | Transforme l'index JSON + les fichiers `model-*.yaml` en nœuds/arêtes React Flow avec résolution des noms relatifs |
-| `resolveSlug(slug, defaultDomain, defaultContext, index)` | Résout un slug relatif en contrat concret |
+| `parseContractsToGraph(index, modelFiles)` | Transforme l'index JSON + les fichiers `model-*.yaml` en nœuds/arêtes React Flow avec résolution des préfixes relatifs |
+| `expand(side, defaults)` | Résout un préfixe `[layer:][domain:][context:]slug.field` en `{layer,domain,context,slug,field}` |
+| `parseRef(refStr, defaults)` | Parse `"gauche > droite"` en `{left, sign, right}` avec résolution des préfixes |
 
 ### Composants React
 

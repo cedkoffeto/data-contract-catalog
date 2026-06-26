@@ -1,0 +1,16 @@
+# collections — Data Relations
+# 20 contracts · 4 contexts · bronze
+
+domain: collections
+context: collections_journal
+
+relations:
+  - ref_name: "cross_collections_collections_process"
+    ref: "bronze_collections_collections_journal_016.ID > collections:collections_process:bronze_collections_collections_process_011.ID"
+
+  - ref_name: "cross_collections_collections_records"
+    ref: "bronze_collections_collections_journal_016.ID > collections:collections_records:bronze_collections_collections_records_006.ID"
+
+  - ref_name: "cross_collections_collections_task"
+    ref: "bronze_collections_collections_journal_016.ID > collections:collections_task:bronze_collections_collections_task_001.ID"
+

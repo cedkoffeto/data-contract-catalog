@@ -1,0 +1,13 @@
+# security — Data Relations
+# 20 contracts · 3 contexts · bronze
+
+domain: security
+context: security_cluster
+
+relations:
+  - ref_name: "cross_security_security_curated"
+    ref: "bronze_security_security_cluster_001.ID > security:security_curated:bronze_security_security_curated_015.ID"
+
+  - ref_name: "cross_security_security_incidents"
+    ref: "bronze_security_security_cluster_001.ID > security:security_incidents:bronze_security_security_incidents_008.ID"
+

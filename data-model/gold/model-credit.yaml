@@ -1,0 +1,28 @@
+# CREDIT — Data Relations
+# Manually curated
+
+domain: CREDIT
+context: ENGAGEMENT
+
+relations:
+  - ref_name: "customer_reference"
+    ref: "silver:PNB:RENTABILITE:pnb.numero_personne_host > silver:FICHE_SIGNAL:CLIENT:fiche_signaletique.numero_personne_host"
+
+  - ref_name: "customer_reference"
+    ref: "silver:TITRES:TITRES:titres.numero_personne_host > silver:FICHE_SIGNAL:CLIENT:fiche_signaletique.numero_personne_host"
+
+  - ref_name: "customer_reference"
+    ref: "silver:TITRES:TITRES:titres_entete.numero_personne_host > silver:FICHE_SIGNAL:CLIENT:fiche_signaletique.numero_personne_host"
+
+  - ref_name: "portfolio_header"
+    ref: "silver:TITRES:TITRES:titres_entete.compte_titre < silver:TITRES:TITRES:titres.compte_titre"
+
+  - ref_name: "feeds_gold"
+    ref: "silver:PNB:RENTABILITE:pnb.numero_contrat > credit_engagement.engagement_id"
+
+  - ref_name: "feeds_gold"
+    ref: "silver:TITRES:TITRES:titres.numero_personne_host > credit_engagement.engagement_id"
+
+  - ref_name: "feeds_gold"
+    ref: "silver:TITRES:TITRES:titres_entete.numero_personne_host > credit_engagement.engagement_id"
+

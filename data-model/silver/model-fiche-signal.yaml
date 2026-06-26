@@ -1,0 +1,10 @@
+# FICHE_SIGNAL — Data Relations
+# Manually curated
+
+domain: FICHE_SIGNAL
+context: CLIENT
+
+relations:
+  - ref_name: "profile_reference"
+    ref: "fiche_signaletique.numero_client - GESTIONNAIRE:gestionnaire.customer_id"
+

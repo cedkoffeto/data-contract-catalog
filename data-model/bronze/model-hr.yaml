@@ -1,0 +1,13 @@
+# hr — Data Relations
+# 20 contracts · 3 contexts · bronze
+
+domain: hr
+context: hr_monitor
+
+relations:
+  - ref_name: "cross_hr_hr_segment"
+    ref: "bronze_hr_hr_monitor_008.ID > hr:hr_segment:bronze_hr_hr_segment_015.ID"
+
+  - ref_name: "cross_hr_hr_snapshot"
+    ref: "bronze_hr_hr_monitor_008.ID > hr:hr_snapshot:bronze_hr_hr_snapshot_001.ID"
+

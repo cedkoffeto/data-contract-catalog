@@ -1,0 +1,22 @@
+# data_lake — Data Relations
+# 20 contracts · 6 contexts · bronze
+
+domain: data_lake
+context: data_lake_audit
+
+relations:
+  - ref_name: "cross_data_lake_data_lake_cluster"
+    ref: "bronze_data_lake_data_lake_audit_015.ID > data_lake:data_lake_cluster:bronze_data_lake_data_lake_cluster_001.ID"
+
+  - ref_name: "cross_data_lake_data_lake_delta"
+    ref: "bronze_data_lake_data_lake_audit_015.ID > data_lake:data_lake_delta:bronze_data_lake_data_lake_delta_005.ID"
+
+  - ref_name: "cross_data_lake_data_lake_enriched"
+    ref: "bronze_data_lake_data_lake_audit_015.ID > data_lake:data_lake_enriched:bronze_data_lake_data_lake_enriched_012.ID"
+
+  - ref_name: "cross_data_lake_data_lake_records"
+    ref: "bronze_data_lake_data_lake_audit_015.ID > data_lake:data_lake_records:bronze_data_lake_data_lake_records_018.ID"
+
+  - ref_name: "cross_data_lake_data_lake_snapshot"
+    ref: "bronze_data_lake_data_lake_audit_015.ID > data_lake:data_lake_snapshot:bronze_data_lake_data_lake_snapshot_009.ID"
+

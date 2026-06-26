@@ -1,0 +1,16 @@
+# iot — Data Relations
+# 20 contracts · 4 contexts · bronze
+
+domain: iot
+context: iot_records
+
+relations:
+  - ref_name: "cross_iot_iot_reference"
+    ref: "bronze_iot_iot_records_011.ID > iot:iot_reference:bronze_iot_iot_reference_016.ID"
+
+  - ref_name: "cross_iot_iot_summaries"
+    ref: "bronze_iot_iot_records_011.ID > iot:iot_summaries:bronze_iot_iot_summaries_006.ID"
+
+  - ref_name: "cross_iot_iot_updates"
+    ref: "bronze_iot_iot_records_011.ID > iot:iot_updates:bronze_iot_iot_updates_001.ID"
+

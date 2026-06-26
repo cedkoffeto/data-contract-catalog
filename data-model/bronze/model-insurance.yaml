@@ -1,0 +1,16 @@
+# insurance — Data Relations
+# 20 contracts · 4 contexts · bronze
+
+domain: insurance
+context: insurance_logs
+
+relations:
+  - ref_name: "cross_insurance_insurance_segment"
+    ref: "bronze_insurance_insurance_logs_006.ID > insurance:insurance_segment:bronze_insurance_insurance_segment_001.ID"
+
+  - ref_name: "cross_insurance_insurance_summaries"
+    ref: "bronze_insurance_insurance_logs_006.ID > insurance:insurance_summaries:bronze_insurance_insurance_summaries_011.ID"
+
+  - ref_name: "cross_insurance_insurance_workflow"
+    ref: "bronze_insurance_insurance_logs_006.ID > insurance:insurance_workflow:bronze_insurance_insurance_workflow_016.ID"
+

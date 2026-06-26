@@ -1,0 +1,16 @@
+# energy — Data Relations
+# 20 contracts · 4 contexts · bronze
+
+domain: energy
+context: energy_alerts
+
+relations:
+  - ref_name: "cross_energy_energy_history"
+    ref: "bronze_energy_energy_alerts_001.ID > energy:energy_history:bronze_energy_energy_history_016.ID"
+
+  - ref_name: "cross_energy_energy_monitor"
+    ref: "bronze_energy_energy_alerts_001.ID > energy:energy_monitor:bronze_energy_energy_monitor_011.ID"
+
+  - ref_name: "cross_energy_energy_timeline"
+    ref: "bronze_energy_energy_alerts_001.ID > energy:energy_timeline:bronze_energy_energy_timeline_006.ID"
+

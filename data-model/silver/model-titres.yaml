@@ -1,0 +1,13 @@
+# TITRES — Data Relations
+# Manually curated
+
+domain: TITRES
+context: TITRES
+
+relations:
+  - ref_name: "portfolio_hierarchy"
+    ref: "titres_entete.numero_personne_host < titres.numero_personne_host"
+
+  - ref_name: "portfolio_holds"
+    ref: "titres_entete.compte_titre < titres.compte_titre"
+

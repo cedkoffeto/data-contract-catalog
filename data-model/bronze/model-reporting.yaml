@@ -1,0 +1,19 @@
+# reporting — Data Relations
+# 20 contracts · 5 contexts · bronze
+
+domain: reporting
+context: reporting_incidents
+
+relations:
+  - ref_name: "cross_reporting_reporting_journal"
+    ref: "bronze_reporting_reporting_incidents_009.ID > reporting:reporting_journal:bronze_reporting_reporting_journal_001.ID"
+
+  - ref_name: "cross_reporting_reporting_logs"
+    ref: "bronze_reporting_reporting_incidents_009.ID > reporting:reporting_logs:bronze_reporting_reporting_logs_017.ID"
+
+  - ref_name: "cross_reporting_reporting_profile"
+    ref: "bronze_reporting_reporting_incidents_009.ID > reporting:reporting_profile:bronze_reporting_reporting_profile_005.ID"
+
+  - ref_name: "cross_reporting_reporting_records"
+    ref: "bronze_reporting_reporting_incidents_009.ID > reporting:reporting_records:bronze_reporting_reporting_records_013.ID"
+

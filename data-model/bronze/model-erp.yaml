@@ -1,0 +1,13 @@
+# erp — Data Relations
+# 20 contracts · 3 contexts · bronze
+
+domain: erp
+context: erp_profile
+
+relations:
+  - ref_name: "cross_erp_erp_transactions"
+    ref: "bronze_erp_erp_profile_001.ID > erp:erp_transactions:bronze_erp_erp_transactions_008.ID"
+
+  - ref_name: "cross_erp_erp_updates"
+    ref: "bronze_erp_erp_profile_001.ID > erp:erp_updates:bronze_erp_erp_updates_015.ID"
+

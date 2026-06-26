@@ -1,0 +1,10 @@
+# GESTIONNAIRE2 — Data Relations
+# Manually curated
+
+domain: GESTIONNAIRE2
+context: RELATION_CLIENT2
+
+relations:
+  - ref_name: "customer_reference"
+    ref: "gestionnaire2.manager_id > silver:FICHE_SIGNAL:CLIENT:fiche_signaletique.numero_client"
+
