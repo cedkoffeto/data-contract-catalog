@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CatalogCard } from "@/src/components/catalog/CatalogCard";
 import { Button } from "@/src/components/ui/Button";
 import { Input } from "@/src/components/ui/Input";
-import { t, tWith } from "@/src/lib/i18n";
+import { useT } from "@/src/lib/use-i18n";
 import type { CatalogCard as CatalogCardType } from "@/src/lib/types";
 
 const ALL_DOMAINS = "__all_domains__";
@@ -24,6 +24,7 @@ function humanize(value: string): string {
 }
 
 export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError, initialSubscriptionSlugs }: { cards: CatalogCardType[]; canRequestUpgrade?: boolean; gitError?: boolean; initialSubscriptionSlugs?: Set<string> }) {
+  const { t, tWith } = useT();
   const [showGitError, setShowGitError] = useState(gitError ?? false);
   const [cards, setCards] = useState(initialCards);
   const cardsRef = useRef(cards);
@@ -53,6 +54,8 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
   const [contextFilter, setContextFilter] = useState("");
 
   const [subscribedSlugs, setSubscribedSlugs] = useState<Set<string>>(initialSubscriptionSlugs ?? new Set());
+  const subscribedSlugsRef = useRef(subscribedSlugs);
+  subscribedSlugsRef.current = subscribedSlugs;
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   function toggleGroup(name: string) {
@@ -152,30 +155,32 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
 
   const handleToggleFavorite = useCallback(async (slug: string) => {
     const card = cardsRef.current.find((c) => c.slug === slug);
-    const next = !card?.isFavorite;
-    setCards((prev) => prev.map((c) => (c.slug === slug ? { ...c, isFavorite: next } : c)));
-    await fetch(`/api/contracts/${encodeURIComponent(slug)}/preferences`, {
+    if (!card) return;
+    const next = !card.isFavorite;
+    const res = await fetch(`/api/contracts/${encodeURIComponent(slug)}/preferences`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isFavorite: next }),
     });
+    if (!res.ok) return;
+    setCards((prev) => prev.map((c) => (c.slug === slug ? { ...c, isFavorite: next } : c)));
     window.dispatchEvent(new CustomEvent("favorite-changed", { detail: { slug, isFavorite: next } }));
   }, []);
 
   const handleToggleSubscription = useCallback(async (slug: string) => {
-    let next = false;
-    setSubscribedSlugs((prev) => {
-      next = !prev.has(slug);
-      const nextSet = new Set(prev);
-      if (next) nextSet.add(slug); else nextSet.delete(slug);
-      return nextSet;
-    });
-    await fetch(`/api/contracts/${encodeURIComponent(slug)}/subscription`, {
+    const currentlySubscribed = subscribedSlugsRef.current.has(slug);
+    const res = await fetch(`/api/contracts/${encodeURIComponent(slug)}/subscription`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(next ? {} : { channel: null }),
+      body: JSON.stringify(currentlySubscribed ? { channel: null } : {}),
     });
-    window.dispatchEvent(new CustomEvent("subscription-changed", { detail: { slug, subscribed: next } }));
+    if (!res.ok) return;
+    setSubscribedSlugs((prev) => {
+      const next = new Set(prev);
+      if (currentlySubscribed) next.delete(slug); else next.add(slug);
+      return next;
+    });
+    window.dispatchEvent(new CustomEvent("subscription-changed", { detail: { slug, subscribed: !currentlySubscribed } }));
   }, []);
 
   const accessibleCount = useMemo(() => cards.filter((c) => c.accessible).length, [cards]);

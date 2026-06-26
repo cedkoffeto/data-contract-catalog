@@ -378,8 +378,10 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
   {
     id: "016_add_updated_at",
     sql: `
-      ALTER TABLE access_requests ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP;
-      ALTER TABLE contract_change_requests ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP;
+      ALTER TABLE access_requests ADD COLUMN updated_at DATETIME;
+      UPDATE access_requests SET updated_at = datetime('now') WHERE updated_at IS NULL;
+      ALTER TABLE contract_change_requests ADD COLUMN updated_at DATETIME;
+      UPDATE contract_change_requests SET updated_at = datetime('now') WHERE updated_at IS NULL;
     `,
   },
 ];

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Fragment, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { t, tWith } from "@/src/lib/i18n";
+import { useT } from "@/src/lib/use-i18n";
 
 function StatusIcon({ status }: { status: string }) {
   if (status === "pending") {
@@ -62,6 +62,7 @@ type DashboardData = {
 };
 
 export default function AdminDashboard() {
+  const { t, tWith } = useT();
   const searchParams = useSearchParams();
   const [data, setData] = useState<DashboardData | null>(null);
   const [activeTab, setActiveTab] = useState<"access" | "changes" | "audit">(() => {
@@ -165,6 +166,7 @@ export default function AdminDashboard() {
 }
 
 function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount }: { highlightId: number | null; onPendingCount: (n: number) => void }) {
+  const { t, tWith } = useT();
   const [highlightedId, setHighlightedId] = useState(initialHighlightId);
 
   useEffect(() => {
@@ -550,6 +552,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
 }
 
 function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
+  const { t, tWith } = useT();
   const [logs, setLogs] = useState(initialLogs);
   const [sortKey, setSortKey] = useState("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -714,6 +717,7 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
 }
 
 function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number) => void }) {
+  const { t, tWith } = useT();
   const [requests, setRequests] = useState<Array<{ id: number; user_id: string; domain: string; context: string; data_contract: string; requested_permission: "reader" | "editor"; message: string; status: string; created_at: string; updated_at: string }>>([]);
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState("created_at");

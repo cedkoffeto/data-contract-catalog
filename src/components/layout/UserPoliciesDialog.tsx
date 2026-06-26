@@ -6,9 +6,10 @@ import { createPortal } from "react-dom";
 import type { AccessPolicyRecord } from "@/src/lib/access-control";
 import { SearchableSelect } from "@/src/components/ui/SearchableSelect";
 
-import { t, tWith } from "@/src/lib/i18n";
+import { useT } from "@/src/lib/use-i18n";
 
 function RequestEditorForm({ onDone }: { onDone: () => void }) {
+  const { t, tWith } = useT();
   const [slug, setSlug] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
@@ -109,6 +110,7 @@ export function UserPoliciesDialog({
   userId: string;
   onClose: () => void;
 }) {
+  const { t, tWith } = useT();
   const [policies, setPolicies] = useState<AccessPolicyRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);

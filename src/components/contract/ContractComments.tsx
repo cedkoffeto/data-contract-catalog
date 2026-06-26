@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { ContractComment, UserProfile } from "@/src/lib/types";
-import { t, tWith } from "@/src/lib/i18n";
+import { useT } from "@/src/lib/use-i18n";
 
 function formatDate(value: string) {
   const date = new Date(value);
@@ -52,6 +52,7 @@ function CommentBubble({
   onReply: (comment: ContractComment) => void;
   users: UserProfile[];
 }) {
+  const { t } = useT();
   const userMap = useMemo(() => new Map(users.map((u) => [u.userId, u])), [users]);
   const user = userMap.get(comment.userId);
   const displayName = user ? `${user.firstName} ${user.lastName}` : comment.userId;
@@ -96,6 +97,7 @@ export function ContractComments({
   onCommentCountChange?: (count: number) => void;
   enabled?: boolean;
 }) {
+  const { t, tWith } = useT();
   const [comments, setComments] = useState<ContractComment[]>([]);
   const [body, setBody] = useState("");
   const [users, setUsers] = useState<UserProfile[]>([]);

@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import yaml from "js-yaml";
 
-import { t, tWith } from "@/src/lib/i18n";
+import { useT } from "@/src/lib/use-i18n";
 import { ContractBody } from "@/src/components/contract/ContractBody";
 import { DiscussionThread } from "@/src/components/contract/DiscussionThread";
 import { ContractHeader } from "@/src/components/contract/ContractHeader";
@@ -17,6 +17,7 @@ import type { ContractComment, ContractHistoryEntry, DataContract } from "@/src/
 import type { Subscription } from "@/src/lib/subscriptions";
 
 function ExportButton({ slug }: { slug: string }) {
+  const { t } = useT();
   const [open, setOpen] = useState(false);
   const [format, setFormat] = useState<"pdf" | "yaml" | "csv">("csv");
 
@@ -134,6 +135,8 @@ export function ContractPageClient({
   canAdmin,
   initialCommentCount = 0,
   initialIssueCount = 0,
+  initialSubscribed,
+  initialIsFavorite,
 }: {
   data: DataContract;
   slug: string;
@@ -145,7 +148,10 @@ export function ContractPageClient({
   canAdmin: boolean;
   initialCommentCount?: number;
   initialIssueCount?: number;
+  initialSubscribed?: boolean;
+  initialIsFavorite?: boolean;
 }) {
+  const { t, tWith } = useT();
   const [activeVersion, setActiveVersion] = useState<{
     entry: ContractHistoryEntry;
     data: DataContract;
@@ -156,12 +162,12 @@ export function ContractPageClient({
   const historyDialogRef = useRef<HTMLDialogElement>(null);
   const historyDialogId = useId().replace(/:/g, "");
 
-  const [subscribed, setSubscribed] = useState(false);
-  const [loadingSubscription, setLoadingSubscription] = useState(true);
+  const [subscribed, setSubscribed] = useState(initialSubscribed ?? false);
+  const [loadingSubscription, setLoadingSubscription] = useState(initialSubscribed === undefined);
   const [commentCount, setCommentCount] = useState(initialCommentCount);
   const [issueCount, setIssueCount] = useState(initialIssueCount);
   const [fieldAnnotations, setFieldAnnotations] = useState<Record<string, number>>({});
-  const [isFavorite, setIsFavorite] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(initialIsFavorite ?? false);
   const [activeTab, setActiveTab] = useState<"details" | "discussion">("details");
 
   useEffect(() => {
@@ -176,6 +182,11 @@ export function ContractPageClient({
       return;
     }
 
+    if (initialSubscribed !== undefined) {
+      setLoadingSubscription(false);
+      return;
+    }
+
     fetch(`/api/contracts/${slug}/subscription`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data: { subscription?: Subscription | null } | null) => {
@@ -183,7 +194,7 @@ export function ContractPageClient({
       })
       .catch(() => setSubscribed(false))
       .finally(() => setLoadingSubscription(false));
-  }, [slug, userId]);
+  }, [slug, userId, initialSubscribed]);
 
   useEffect(() => {
     if (!userId) return;
@@ -207,6 +218,7 @@ export function ContractPageClient({
 
   useEffect(() => {
     if (!userId) return;
+    if (initialIsFavorite !== undefined) return;
     fetch(`/api/contracts/${encodeURIComponent(slug)}/preferences`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data: { preferences?: { isFavorite?: boolean } } | null) => {
@@ -215,7 +227,7 @@ export function ContractPageClient({
       .catch(() => {
         setIsFavorite(false);
       });
-  }, [slug, userId]);
+  }, [slug, userId, initialIsFavorite]);
 
   const loadFieldAnnotations = useCallback(async () => {
     try {

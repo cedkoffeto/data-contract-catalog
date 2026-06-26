@@ -51,7 +51,7 @@ function UserAutocomplete({
   const isValid = value && userIds.includes(value);
 
   return (
-    <div ref={ref} className="relative" style={{ minWidth: "200px" }}>
+    <div ref={ref} className="relative w-full">
       <label className="mb-1 block text-xs font-medium text-gray-500" title="Required field">
         User ID <span className="text-red-500">*</span>
       </label>
@@ -103,61 +103,13 @@ function UserAutocomplete({
   );
 }
 
-function ScopeInput({
-  domain,
-  context,
-  scopes,
-  disabled,
-  onDomainChange,
-  onContextChange,
-}: {
-  domain: string;
-  context: string;
-  scopes: Scope[];
-  disabled?: boolean;
-  onDomainChange: (v: string) => void;
-  onContextChange: (v: string) => void;
-}) {
-  const domainList = [...new Set(scopes.map((s) => s.domain).filter(Boolean))].sort();
-  const contextList = domain
-    ? scopes.filter((s) => s.domain === domain).map((s) => s.context).filter(Boolean)
-    : [];
-
-  return (
-    <>
-      <ScopeDropdown
-        label="Domain"
-        hint="empty = all"
-        placeholder={disabled ? "Admin = global access" : "e.g. CREDIT"}
-        value={domain}
-        onChange={onDomainChange}
-        options={domainList}
-        disabled={disabled}
-      />
-      <ScopeDropdown
-        label="Context"
-        hint="empty = all"
-        placeholder={disabled ? "Admin = global access" : "e.g. ENGAGEMENT"}
-        value={context}
-        onChange={onContextChange}
-        options={contextList}
-        disabled={disabled}
-      />
-    </>
-  );
-}
-
 function ScopeDropdown({
-  label,
-  hint,
   placeholder,
   value,
   onChange,
   options,
   disabled,
 }: {
-  label: string;
-  hint: string;
   placeholder: string;
   value: string;
   onChange: (v: string) => void;
@@ -185,17 +137,13 @@ function ScopeDropdown({
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, []);
 
-  const allLabel = label === "Domain" ? "All domains" : label === "Context" ? "All contexts" : null;
-  const displayOptions = allLabel ? [allLabel, ...options] : options;
+  const displayOptions = ["All", ...options];
   const filtered = query
     ? displayOptions.filter((o) => o.toLowerCase().includes(query.toLowerCase()))
     : displayOptions;
 
   return (
-    <div ref={ref} className="relative" style={{ minWidth: "160px" }}>
-      <label className="mb-1 block text-xs font-medium text-gray-500">
-        {label} <span className="text-gray-400">({hint})</span>
-      </label>
+    <div ref={ref} className="relative w-full">
       <button
         type="button"
         className="flex w-full items-center justify-between rounded-md border bg-white px-3 py-2 text-sm text-gray-900 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
@@ -227,9 +175,9 @@ function ScopeDropdown({
                 <button
                   key={o}
                   type="button"
-                  onClick={() => { onChange(o === allLabel ? "" : o); setOpen(false); }}
+                  onClick={() => { onChange(o === "All" ? "" : o); setOpen(false); }}
                   className="flex w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
-                  style={{ fontWeight: o === (value || allLabel) ? "600" : "400" }}
+                  style={{ fontWeight: o === (value || "All") ? "600" : "400" }}
                 >
                   {o}
                 </button>
@@ -295,7 +243,7 @@ function DataContractSelect({
   const selected = items.find((s) => s.slug === value);
 
   return (
-    <div ref={ref} className="relative" style={{ minWidth: "200px" }}>
+    <div ref={ref} className="relative w-full">
       <label className="mb-1 block text-xs font-medium text-gray-500">
         Data Contract <span className="text-gray-400">(empty = all in context)</span>
       </label>
@@ -336,6 +284,89 @@ function DataContractSelect({
                 >
                   <span>{s.slug}</span>
                   {s.title && <span className="text-xs text-gray-400">{s.title}</span>}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GroupSelect({
+  value,
+  onChange,
+  groups,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  groups: Group[];
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) setQuery("");
+  }, [open]);
+
+  useEffect(() => {
+    if (open) searchRef.current?.focus();
+  }, [open]);
+
+  useEffect(() => {
+    function handlePointerDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, []);
+
+  const filtered = query
+    ? groups.filter((g) => g.name.toLowerCase().includes(query.toLowerCase()))
+    : groups;
+
+  const selected = groups.find((g) => String(g.id) === value);
+
+  return (
+    <div ref={ref} className="relative w-full">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between rounded-md border bg-white px-3 py-2 text-sm text-gray-900"
+        style={{ borderColor: value ? "#22c55e" : "#ef4444" }}
+        onClick={() => setOpen(!open)}
+      >
+        <span className={value ? "text-gray-900" : "text-gray-400"}>{selected ? selected.name : "Select a group\u2026"}</span>
+        <svg className={`h-4 w-4 shrink-0 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border bg-white shadow-lg">
+          <div className="border-b border-gray-100 p-1">
+            <input
+              ref={searchRef}
+              className="w-full rounded border px-2 py-1.5 text-sm outline-none focus:border-gray-300"
+              placeholder="Filter groups..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+          <div className="max-h-40 overflow-auto">
+            {filtered.length === 0 ? (
+              <p className="px-3 py-2 text-sm text-gray-400">No matches</p>
+            ) : (
+              filtered.map((g) => (
+                <button
+                  key={g.id}
+                  type="button"
+                  onClick={() => { onChange(String(g.id)); setOpen(false); }}
+                  className="flex w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
+                  style={{ fontWeight: String(g.id) === value ? "600" : "400" }}
+                >
+                  {g.name}
                 </button>
               ))
             )}
@@ -460,7 +491,7 @@ export default function PolicyForm({
     : !newGroupId || !newPermissionId || saving;
 
   return (
-    <div className="rounded-lg border bg-white p-6">
+    <div className="rounded-lg border bg-white p-6 mb-6">
       <h2 className="mb-4 text-base font-semibold text-gray-900">
         {editTarget ? `Edit policy #${editTarget.id}` : "Create access policy"}
       </h2>
@@ -490,27 +521,23 @@ export default function PolicyForm({
 
       <div className="flex flex-wrap items-end gap-3">
         {assignMode === "user" ? (
-          <UserAutocomplete value={newUserId} onChange={setNewUserId} validUsers={allUsers} />
+          <div className="min-w-0 flex-1">
+            <UserAutocomplete value={newUserId} onChange={setNewUserId} validUsers={allUsers} />
+          </div>
         ) : (
-          <div style={{ minWidth: "200px" }}>
+          <div className="min-w-0 flex-1">
             <label className="mb-1 block text-xs font-medium text-gray-500" title="Required field">
               Group <span className="text-red-500">*</span>
             </label>
-            <select
-              className="w-full rounded-md border bg-white px-3 py-2 text-sm text-gray-900"
-              style={{ borderColor: newGroupId ? "#22c55e" : "#ef4444" }}
+            <GroupSelect
               value={newGroupId}
-              onChange={(e) => setNewGroupId(e.target.value)}
-            >
-              <option value="">Select a group…</option>
-              {groups.map((g) => (
-                <option key={g.id} value={g.id}>{g.name}</option>
-              ))}
-            </select>
+              onChange={setNewGroupId}
+              groups={groups}
+            />
           </div>
         )}
 
-        <div className="relative" style={{ minWidth: "140px" }}>
+        <div className="min-w-0 flex-1">
           <label className="mb-1 block text-xs font-medium text-gray-500" title="Required field">
             Permission <span className="text-red-500">*</span>
           </label>
@@ -521,34 +548,53 @@ export default function PolicyForm({
           />
         </div>
 
-        <ScopeInput
-          domain={newDomainScope}
-          context={newContextScope}
-          scopes={scopes}
-          disabled={isAdmin}
-          onDomainChange={(v) => {
-            setNewDomainScope(v);
-            if (v && newContextScope) {
-              const validContexts = scopes.filter((s) => s.domain === v).map((s) => s.context).filter(Boolean);
-              if (!validContexts.includes(newContextScope)) {
-                setNewContextScope("");
+        <div className="min-w-0 flex-1">
+          <label className="mb-1 block text-xs font-medium text-gray-500">
+            Domain <span className="text-gray-400">(empty = all)</span>
+          </label>
+          <ScopeDropdown
+            placeholder={isAdmin ? "Admin = global access" : "e.g. CREDIT"}
+            value={newDomainScope}
+            onChange={(v) => {
+              setNewDomainScope(v);
+              if (v && newContextScope) {
+                const validContexts = scopes.filter((s) => s.domain === v).map((s) => s.context).filter(Boolean);
+                if (!validContexts.includes(newContextScope)) {
+                  setNewContextScope("");
+                }
               }
-            }
-            if (newDataContractScope) setNewDataContractScope("");
-          }}
-          onContextChange={(v) => {
-            setNewContextScope(v);
-            if (newDataContractScope) setNewDataContractScope("");
-          }}
-        />
+              if (newDataContractScope) setNewDataContractScope("");
+            }}
+            options={[...new Set(scopes.map((s) => s.domain).filter(Boolean))].sort()}
+            disabled={isAdmin}
+          />
+        </div>
 
-        <DataContractSelect
-          value={newDataContractScope}
-          onChange={setNewDataContractScope}
-          domain={newDomainScope}
-          context={newContextScope}
-          disabled={isAdmin}
-        />
+        <div className="min-w-0 flex-1">
+          <label className="mb-1 block text-xs font-medium text-gray-500">
+            Context <span className="text-gray-400">(empty = all)</span>
+          </label>
+          <ScopeDropdown
+            placeholder={isAdmin ? "Admin = global access" : "e.g. ENGAGEMENT"}
+            value={newContextScope}
+            onChange={(v) => {
+              setNewContextScope(v);
+              if (newDataContractScope) setNewDataContractScope("");
+            }}
+            options={newDomainScope ? scopes.filter((s) => s.domain === newDomainScope).map((s) => s.context).filter(Boolean) : []}
+            disabled={isAdmin}
+          />
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <DataContractSelect
+            value={newDataContractScope}
+            onChange={setNewDataContractScope}
+            domain={newDomainScope}
+            context={newContextScope}
+            disabled={isAdmin}
+          />
+        </div>
 
         {editTarget ? (
           <div className="flex gap-2">
@@ -572,18 +618,20 @@ export default function PolicyForm({
             </button>
           </div>
         ) : (
-          <Button
-            onClick={onCreate}
-            disabled={isCreateDisabled}
-            style={{
-              backgroundColor: isCreateDisabled ? "#d1d5db" : "var(--ui-primary)",
-              color: isCreateDisabled ? "#6b7280" : "#fff",
-              cursor: isCreateDisabled ? "not-allowed" : "pointer",
-            }}
-            className="border-0 font-bold"
-          >
-            Create
-          </Button>
+          <div>
+            <Button
+              onClick={onCreate}
+              disabled={isCreateDisabled}
+              style={{
+                backgroundColor: isCreateDisabled ? "#d1d5db" : "var(--ui-primary)",
+                color: isCreateDisabled ? "#6b7280" : "#fff",
+                cursor: isCreateDisabled ? "not-allowed" : "pointer",
+              }}
+              className="border-0 font-bold"
+            >
+              Create
+            </Button>
+          </div>
         )}
       </div>
       <p className="mt-3 text-xs text-gray-400">

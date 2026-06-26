@@ -1,6 +1,6 @@
 export type Locale = "en" | "fr";
 
-const dictionaries = {
+export const dictionaries = {
   en: {
     // Discussion / Comments
     commentsTitle: "Discussion",
@@ -585,3 +585,4 @@ export function t(key: keyof (typeof dictionaries)["en"]) {
 export function tWith(key: keyof (typeof dictionaries)["en"], values: Record<string, string>) {
   return t(key).replace(/\{(\w+)\}/g, (_, token: string) => values[token] ?? "");
 }
+

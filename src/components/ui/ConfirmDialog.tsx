@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { t, tWith } from "@/src/lib/i18n";
+import { useT } from "@/src/lib/use-i18n";
 import { Button } from "@/src/components/ui/Button";
 
 type ConfirmDialogProps = {
@@ -23,7 +23,9 @@ function CloseIcon() {
   );
 }
 
-export function ConfirmDialog({ open, title, message, confirmLabel = t("confirm"), onConfirm, onCancel, autoCloseMs }: ConfirmDialogProps) {
+export function ConfirmDialog({ open, title, message, confirmLabel: _confirmLabel, onConfirm, onCancel, autoCloseMs }: ConfirmDialogProps) {
+  const { t, tWith } = useT();
+  const confirmLabel = _confirmLabel ?? t("confirm");
   const [timeLeft, setTimeLeft] = useState(autoCloseMs ?? 0);
   const totalRef = useRef(autoCloseMs ?? 0);
   const intervalRef = useRef<ReturnType<typeof setInterval>>();

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { t } from "@/src/lib/i18n";
+import { useT } from "@/src/lib/use-i18n";
 
 function UnlockIcon() {
   return (
@@ -35,6 +35,7 @@ export function RequestAccessButton({
   context?: string;
   accessRequestStatus?: "pending";
 }) {
+  const { t } = useT();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [requestedPermission, setRequestedPermission] = useState<AccessRequestPermission>("reader");

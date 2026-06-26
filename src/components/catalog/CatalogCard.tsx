@@ -6,9 +6,9 @@ import Link from "next/link";
 import { RequestAccessButton } from "@/src/components/catalog/RequestAccessButton";
 import { RequestEditorUpgrade } from "@/src/components/contract/RequestEditorUpgrade";
 import type { CatalogCard as CatalogCardType } from "@/src/lib/types";
-import { t } from "@/src/lib/i18n";
+import { useT } from "@/src/lib/use-i18n";
 
-function humanize(value: string): string {
+function humanize(value: string, t: ReturnType<typeof useT>["t"]): string {
   const trimmed = value.trim();
   if (!trimmed) {
     return t("nonDefini");
@@ -44,6 +44,7 @@ function Description({ text }: { text: string }) {
 }
 
 function PinButton({ pinned, onToggle }: { pinned: boolean; onToggle: () => void }) {
+  const { t } = useT();
   return (
     <button
       type="button"
@@ -64,6 +65,7 @@ function PinButton({ pinned, onToggle }: { pinned: boolean; onToggle: () => void
 }
 
 function FavoriteButton({ favorited, onToggle }: { favorited: boolean; onToggle: () => void }) {
+  const { t } = useT();
   return (
     <button
       type="button"
@@ -80,6 +82,7 @@ function FavoriteButton({ favorited, onToggle }: { favorited: boolean; onToggle:
 }
 
 function SubscriptionButton({ subscribed, onToggle }: { subscribed: boolean; onToggle: () => void }) {
+  const { t } = useT();
   return (
     <button
       type="button"
@@ -123,6 +126,7 @@ export const CatalogCard = memo(function CatalogCard({ card, onTogglePin, onTogg
   isSubscribed?: boolean;
   canRequestUpgrade?: boolean;
 }) {
+  const { t } = useT();
   if (!card.accessible) {
     return (
       <li
@@ -137,8 +141,8 @@ export const CatalogCard = memo(function CatalogCard({ card, onTogglePin, onTogg
           >
             <div className="catalog-card__header">
               <div className="catalog-card__meta">
-                <span className="catalog-card__badge">{humanize(card.maturity)}</span>
-                <span className="catalog-card__badge catalog-card__badge--subtle">{humanize(card.domain)}</span>
+                <span className="catalog-card__badge">{humanize(card.maturity, t)}</span>
+                <span className="catalog-card__badge catalog-card__badge--subtle">{humanize(card.domain, t)}</span>
               </div>
               <CardActions card={card} isSubscribed={isSubscribed} onTogglePin={onTogglePin} onToggleFavorite={onToggleFavorite} onToggleSubscription={onToggleSubscription} />
             </div>
@@ -175,8 +179,8 @@ export const CatalogCard = memo(function CatalogCard({ card, onTogglePin, onTogg
       <Link className="catalog-card" href={card.href}>
         <div className="catalog-card__header">
           <div className="catalog-card__meta">
-            <span className="catalog-card__badge">{humanize(card.maturity)}</span>
-            <span className="catalog-card__badge catalog-card__badge--subtle">{humanize(card.domain)}</span>
+            <span className="catalog-card__badge">{humanize(card.maturity, t)}</span>
+            <span className="catalog-card__badge catalog-card__badge--subtle">{humanize(card.domain, t)}</span>
           </div>
           <CardActions card={card} isSubscribed={isSubscribed} onTogglePin={onTogglePin} onToggleFavorite={onToggleFavorite} onToggleSubscription={onToggleSubscription} />
         </div>

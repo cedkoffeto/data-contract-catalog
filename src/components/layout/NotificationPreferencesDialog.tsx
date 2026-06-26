@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { t } from "@/src/lib/i18n";
+import { useT } from "@/src/lib/use-i18n";
 
 import type { NotificationChannel } from "@/src/lib/subscriptions";
 
 export function NotificationPreferencesDialog({ onClose }: { onClose: () => void }) {
+  const { t } = useT();
   const [mounted, setMounted] = useState(false);
   const [channel, setChannel] = useState<NotificationChannel>("in_app");
   const [loading, setLoading] = useState(true);

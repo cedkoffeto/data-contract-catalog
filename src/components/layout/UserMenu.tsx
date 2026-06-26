@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { signOut } from "next-auth/react";
 
-import { t, tWith } from "@/src/lib/i18n";
+import { useT } from "@/src/lib/use-i18n";
 
 import { UserPoliciesDialog } from "./UserPoliciesDialog";
 import { NotificationPreferencesDialog } from "./NotificationPreferencesDialog";
@@ -28,6 +28,7 @@ export function UserMenu({
   familyName?: string;
   userId?: string;
 }) {
+  const { t, tWith } = useT();
   const [isOpen, setIsOpen] = useState(false);
   const [showPolicies, setShowPolicies] = useState(false);
   const [showNotificationPrefs, setShowNotificationPrefs] = useState(false);

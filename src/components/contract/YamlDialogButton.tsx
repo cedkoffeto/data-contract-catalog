@@ -2,9 +2,10 @@
 
 import { useId, useRef, useState } from "react";
 
-import { t } from "@/src/lib/i18n";
+import { useT } from "@/src/lib/use-i18n";
 
 export function YamlDialogButton({ yamlRaw }: { yamlRaw: string }) {
+  const { t } = useT();
   const id = useId().replace(/:/g, "");
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");

@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useState } from "react";
 
-import { t, tWith } from "@/src/lib/i18n";
+import { useT } from "@/src/lib/use-i18n";
 import { DiffView } from "@/src/components/contract/diff/DiffView";
 import type { DiffResult } from "@/src/lib/diff";
 
@@ -27,6 +27,7 @@ export function CommitModal({
   onConfirm: (message: string) => Promise<void>;
   onClose: () => void;
 }) {
+  const { t, tWith } = useT();
   const id = useId().replace(/:/g, "");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);

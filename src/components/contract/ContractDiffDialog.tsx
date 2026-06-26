@@ -4,7 +4,7 @@ import { useCallback, useId, useMemo, useRef, useState } from "react";
 
 import yaml from "js-yaml";
 
-import { t, tWith } from "@/src/lib/i18n";
+import { useT } from "@/src/lib/use-i18n";
 
 import { computeDiff } from "@/src/lib/diff";
 import { SearchableSelect } from "@/src/components/ui/SearchableSelect";
@@ -57,6 +57,7 @@ export function ContractDiffDialog({
   historyEntries: ContractHistoryEntry[];
   onClose: () => void;
 }) {
+  const { t, tWith } = useT();
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const id = useId().replace(/:/g, "");
 

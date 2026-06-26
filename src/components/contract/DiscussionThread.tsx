@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import getCaretCoordinates from "textarea-caret";
 
 import type { ContractComment, ContractIssue, UserProfile } from "@/src/lib/types";
-import { t } from "@/src/lib/i18n";
+import { useT } from "@/src/lib/use-i18n";
 import { useClickOutside } from "@/src/hooks/useClickOutside";
 
 const STATUSES = ["open", "fixed", "false_alert"] as const;
@@ -123,6 +123,7 @@ function CommentItem({
   onReply?: () => void;
   onDelete?: () => void;
 }) {
+  const { t } = useT();
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const userMap = useMemo(() => new Map(users.map((u) => [u.userId, u])), [users]);
@@ -242,6 +243,7 @@ function InlineReplyForm({
   onClose: () => void;
   onPosted: () => void;
 }) {
+  const { t } = useT();
   const [body, setBody] = useState("");
   const [saving, setSaving] = useState(false);
   const [mentionSearch, setMentionSearch] = useState("");
@@ -592,6 +594,7 @@ export function DiscussionThread({
   onCommentCountChange?: (count: number) => void;
   onIssueCountChange?: (count: number) => void;
 }) {
+  const { t } = useT();
   const [comments, setComments] = useState<ContractComment[]>([]);
   const [issues, setIssues] = useState<ContractIssue[]>([]);
   const [body, setBody] = useState("");

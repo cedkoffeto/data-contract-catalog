@@ -8,6 +8,8 @@ import { getEffectivePermissions } from "@/src/lib/access-control";
 import { getContractPageData } from "@/src/lib/contracts";
 import { getDiscussionSummary } from "@/src/lib/comments";
 import { getGitLabFileHistory } from "@/src/lib/gitlab";
+import { getSubscription } from "@/src/lib/subscriptions";
+import { getUserContractPreferences } from "@/src/lib/preferences";
 import type { ContractHistoryEntry } from "@/src/lib/types";
 import type { Permission } from "@/src/lib/rbac";
 
@@ -64,9 +66,13 @@ export default async function ContractRoutePage({ params }: { params: Promise<{ 
     return <Forbidden slug={slug} domain={domain} context={context} />;
   }
 
-  const { commentCount: initialCommentCount, issueCount: initialIssueCount } = await getDiscussionSummary(slug);
+  const [discussion, subscription, prefs] = await Promise.all([
+    getDiscussionSummary(slug),
+    getSubscription(userId, slug),
+    getUserContractPreferences(userId, slug),
+  ]);
 
-  return <ContractPage data={page.data} slug={page.slug} yamlRaw={page.yamlRaw} historyEntries={historyEntries} userId={userId} canRead={canRead} canEdit={canEdit} canAdmin={canAdmin} initialCommentCount={initialCommentCount} initialIssueCount={initialIssueCount} />;
+  return <ContractPage data={page.data} slug={page.slug} yamlRaw={page.yamlRaw} historyEntries={historyEntries} userId={userId} canRead={canRead} canEdit={canEdit} canAdmin={canAdmin} initialCommentCount={discussion.commentCount} initialIssueCount={discussion.issueCount} initialSubscribed={subscription !== null} initialIsFavorite={prefs.isFavorite} />;
 }
 
 function Forbidden({ message, slug, domain, context }: { message?: string; slug?: string; domain?: string; context?: string }) {
