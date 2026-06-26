@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { GoBackButton } from "@/src/components/ui/GoBackButton";
 import { PageShell } from "@/src/components/layout/PageShell";
 import { ContractEditorPage } from "@/src/components/editor/ContractEditorPage";
 import { auth } from "@/src/auth";
@@ -18,16 +19,28 @@ function UnauthorizedEditorPage() {
     <PageShell footerVersion="">
       <main className="pb-7">
         <div className="mx-auto flex min-h-[60vh] max-w-7xl items-center justify-center px-6 pb-8 pt-10 lg:px-8">
-          <div className="w-full max-w-sm rounded-xl border bg-white p-8 text-center shadow-lg">
-            <h1 className="text-5xl font-bold text-gray-200">403</h1>
-            <p className="mt-3 text-base font-semibold text-gray-900">Accès non autorisé</p>
-            <p className="mt-1 text-sm text-gray-500">Vous devez avoir un droit editor ou admin pour utiliser cet espace.</p>
-            <a
-              href="/"
-              className="mt-6 inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800"
-            >
-              Retour au catalogue
-            </a>
+          <div className="w-full max-w-xl rounded-xl border bg-white shadow-lg">
+            <div className="p-12 text-center">
+              <div className="flex items-center justify-between">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-50">
+                  <svg className="h-6 w-6 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+                  </svg>
+                </div>
+                <p className="text-base font-semibold text-gray-900">Accès non autorisé</p>
+                <h1 className="text-7xl font-bold text-gray-400">403</h1>
+              </div>
+              <p className="mt-1 text-sm text-gray-500">Vous devez avoir un droit editor ou admin pour utiliser cet espace.</p>
+            </div>
+            <div className="flex items-center justify-center gap-3 border-t border-gray-100 px-20 pb-12 pt-4">
+              <a
+                href="/"
+                className="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800"
+              >
+                Retour au catalogue
+              </a>
+              <GoBackButton />
+            </div>
           </div>
         </div>
       </main>

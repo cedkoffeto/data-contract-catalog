@@ -70,6 +70,7 @@ export function RequestEditorUpgrade({
   function handleCompactClick(e: React.MouseEvent) {
     e.stopPropagation();
     e.preventDefault();
+    if (done && requestStatus !== "rejected") return;
     if (requestStatus === "rejected") {
       setDone(false);
       setRequestStatus(null);
@@ -82,6 +83,7 @@ export function RequestEditorUpgrade({
       <button
         type="button"
         onClick={handleCompactClick}
+        disabled={compact && done && requestStatus !== "rejected"}
         className={compact
           ? done
             ? "flex items-center gap-1 text-xs font-semibold text-gray-400 cursor-not-allowed"

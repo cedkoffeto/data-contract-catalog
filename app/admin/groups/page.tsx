@@ -188,9 +188,12 @@ export default function GroupsPage() {
     await fetchGroups();
   }
 
-  const filteredGroups = groups.filter((g) =>
-    g.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filteredGroups = groups.filter((g) => {
+    if (g.name.toLowerCase().includes(search.toLowerCase())) return true;
+    return memberships
+      .filter((m) => m.group_id === g.id)
+      .some((m) => m.user_id.toLowerCase().includes(search.toLowerCase()));
+  });
 
   const getMembers = (groupId: number) =>
     memberships.filter((m) => m.group_id === groupId);
@@ -252,7 +255,7 @@ export default function GroupsPage() {
             className="flex-1 rounded-md border bg-white px-3 py-2 text-sm text-gray-900"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Filter by group name…"
+            placeholder="Filter by group name or member…"
           />
           <span className="whitespace-nowrap text-sm text-gray-400">
             {filteredGroups.length} of {groups.length} groups

@@ -334,6 +334,48 @@ describe("RBAC admin policy by id API", () => {
     });
   });
 
+  it("returns narrower policies when a broader conflict is detected on update", async () => {
+    mockAdminGate();
+    mockAuth();
+
+    const existingPolicy = {
+      id: 10, user_id: "editor.user", group_id: null, permission_name: "reader",
+      domain_scope: null, context_scope: null, data_contract_scope: null
+    };
+    const narrower = {
+      id: 11, user_id: "editor.user", group_id: null, permission_id: 2, permission_name: "editor",
+      domain_scope: "crm", context_scope: null, data_contract_scope: null
+    };
+
+    mockAccessControl({
+      getAccessPolicy: vi.fn(async (id: unknown) =>
+        id === 10 ? existingPolicy : narrower
+      ),
+      checkPolicyConflicts: vi.fn(async () => ({
+        type: "broader",
+        message: "Broader policy",
+        existing: existingPolicy
+      })),
+      findNarrowerPolicies: vi.fn(async () => [11]),
+      listPermissions: vi.fn(async () => [
+        { id: 1, name: "admin" },
+        { id: 2, name: "editor" },
+        { id: 3, name: "reader" }
+      ])
+    });
+
+    const route = await import("../../app/api/admin/policies/[id]/route");
+    const response = await route.PATCH(
+      jsonRequest({ permissionId: 2, domainScope: "crm", force: false }),
+      { params: Promise.resolve({ id: "10" }) }
+    );
+
+    const payload = await readJson(response);
+    expect(response.status).toBe(409);
+    expect(payload.conflict.type).toBe("broader");
+    expect(payload.affectedPolicies).toHaveLength(2);
+  });
+
   it("deletes a policy by id", async () => {
     mockAdminGate();
     mockAuth();

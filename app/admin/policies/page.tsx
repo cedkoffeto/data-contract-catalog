@@ -330,15 +330,6 @@ export default function PoliciesPage() {
       .some((v) => v.toLowerCase().includes(search.toLowerCase()));
   });
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="h-36 rounded-lg border bg-gray-50" />
-        <div className="h-64 rounded-lg border bg-gray-50" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       {error && (
@@ -374,19 +365,23 @@ export default function PoliciesPage() {
         onCancel={() => { setEditTarget(null); resetForm(); }}
       />
 
-      <PolicyTable
-        policies={policies}
-        filteredPolicies={filteredPolicies}
-        search={search}
-        onSearchChange={setSearch}
-        groupMap={groupMap}
-        onViewUser={handleViewUser}
-        onViewGroupMembers={handleViewGroupMembers}
-        onEdit={openEdit}
-        onDelete={setDeleteTarget}
-        currentUserId={currentUserId}
-        minAdminUserId={minAdminUserId}
-      />
+      {loading ? (
+        <div className="h-64 rounded-lg border bg-gray-50" />
+      ) : (
+        <PolicyTable
+          policies={policies}
+          filteredPolicies={filteredPolicies}
+          search={search}
+          onSearchChange={setSearch}
+          groupMap={groupMap}
+          onViewUser={handleViewUser}
+          onViewGroupMembers={handleViewGroupMembers}
+          onEdit={openEdit}
+          onDelete={setDeleteTarget}
+          currentUserId={currentUserId}
+          minAdminUserId={minAdminUserId}
+        />
+      )}
 
       <ConfirmDialog
         open={deleteTarget !== null}
