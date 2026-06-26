@@ -34,8 +34,8 @@ export function DataModelEditor({
     if (!query) return nodes;
     const q = query.toLowerCase();
     return nodes.filter((n) => {
-      const d = n.data as { label: string; domain: string };
-      return d.label.toLowerCase().includes(q) || d.domain.toLowerCase().includes(q);
+      const d = n.data as { label?: string; domain?: string };
+      return d.label?.toLowerCase().includes(q) || d.domain?.toLowerCase().includes(q);
     });
   }, [nodes, query]);
 

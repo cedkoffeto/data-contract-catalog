@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useCallback, useState } from "react";
+import { useMemo, useCallback, useState, useEffect } from "react";
 import {
   ReactFlow,
   Background,
@@ -10,10 +10,9 @@ import {
   useEdgesState,
   type Node,
   type Edge,
-  type NodeMouseHandler,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { ContractTableNode, type ContractTableNodeData } from "./ContractTableNode";
+import { ContractTableNode } from "./ContractTableNode";
 import { layoutGraph, type LayoutDirection } from "@/src/lib/data-model";
 
 const nodeTypes = { contractTable: ContractTableNode };
@@ -25,7 +24,7 @@ export function ModelGraph({
   onNodeClick,
   direction,
 }: {
-  initialNodes: Node<ContractTableNodeData>[];
+  initialNodes: Node[];
   initialEdges: Edge[];
   filterQuery: string;
   onNodeClick: (slug: string) => void;
@@ -41,8 +40,8 @@ export function ModelGraph({
     if (!filterQuery) return laidOutNodes;
     const q = filterQuery.toLowerCase();
     return laidOutNodes.filter((n) => {
-      const d = n.data as ContractTableNodeData;
-      return d.label.toLowerCase().includes(q) || d.domain.toLowerCase().includes(q);
+      const d = n.data as { label: string; domain: string };
+      return d.label?.toLowerCase().includes(q) || d.domain?.toLowerCase().includes(q);
     });
   }, [laidOutNodes, filterQuery]);
 
@@ -57,12 +56,12 @@ export function ModelGraph({
   const [edges, setEdges, onEdgesChange] = useEdgesState(filteredEdges);
   const [highlightedNode, setHighlightedNode] = useState<string | null>(null);
 
-  // Sync nodes when filter changes
-  useMemo(() => setNodes(filteredNodes), [filteredNodes, setNodes]);
-  useMemo(() => setEdges(filteredEdges), [filteredEdges, setEdges]);
+  // Sync nodes/edges when filter changes
+  useEffect(() => { setNodes(filteredNodes); }, [filteredNodes, setNodes]);
+  useEffect(() => { setEdges(filteredEdges); }, [filteredEdges, setEdges]);
 
   // Attach onHeaderClick to each node
-  useMemo(() => {
+  useEffect(() => {
     setNodes((nds) =>
       nds.map((n) => ({
         ...n,
@@ -71,11 +70,11 @@ export function ModelGraph({
     );
   }, [onNodeClick, setNodes]);
 
-  const handleMouseEnter: NodeMouseHandler = useCallback((_event, node) => {
+  const handleMouseEnter = useCallback((_event: React.MouseEvent, node: Node) => {
     setHighlightedNode(node.id);
   }, []);
 
-  const handleMouseLeave: NodeMouseHandler = useCallback(() => {
+  const handleMouseLeave = useCallback(() => {
     setHighlightedNode(null);
   }, []);
 
@@ -113,7 +112,7 @@ export function ModelGraph({
         <Controls className="!rounded-lg !border !border-gray-200 !shadow-sm" />
         <MiniMap
           nodeStrokeColor="#94a3b8"
-          nodeColor={(n) => (n.data as ContractTableNodeData)?.color || "#94a3b8"}
+          nodeColor={(n) => ((n.data as { color?: string })?.color) || "#94a3b8"}
           maskColor="rgba(0,0,0,0.1)"
           className="!rounded-lg !border !border-gray-200 !shadow-sm"
         />

@@ -230,7 +230,9 @@ export function layoutGraph(nodes: Node[], edges: Edge[], direction: LayoutDirec
   g.setGraph({ rankdir: direction, nodesep: 40, ranksep: 80, marginx: 40, marginy: 40 });
 
   for (const node of nodes) {
-    g.setNode(node.id, { width: 220, height: node.data?.fields?.length ? node.data.fields.length * 28 + 60 : 80 });
+    const fields = (node.data as Record<string, unknown>)?.fields;
+    const fieldCount = Array.isArray(fields) ? fields.length : 0;
+    g.setNode(node.id, { width: 220, height: fieldCount ? fieldCount * 28 + 60 : 80 });
   }
   for (const edge of edges) {
     g.setEdge(edge.source, edge.target);
