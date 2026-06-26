@@ -1,20 +1,32 @@
 # Data Model Editor — Interactive Lineage Visualizer
 
-Visualise et explore le graphe de dépendances (lineage) entre les contrats de données du catalogue à partir d'un fichier d'index JSON global généré depuis les ~1000 fichiers YAML.
+Visualise et explore le graphe de dépendances (lineage) entre les contrats de données du catalogue.
 
 ## Architecture des données
 
 ### Source
 
-Les fichiers YAML de contrats sont stockés dans un dépôt Git externe :
+Les fichiers YAML de contrats sont stockés localement sous `contracts/` (ou chargés depuis un dépôt Git distant via `GITLAB_*`).
 
-- **Chemin :** `contracts/published/{bronze,silver,gold}/`
-- **Volume :** ~1018 fichiers (1001 bronze, 13 silver, 4 gold)
-- **Format :** Data Contract YAML v3 avec sections `asset`, `contract`, `quality`, `security`, `inputs`, `output`, `serving`, `operations`, `lineage`
+Les relations entre contrats sont définies dans des fichiers YAML dédiés sous `data-model/` :
 
-### Index JSON global
+```
+data-model/
+  model-global.yaml          ← fichier racine qui importe tous les domaines
+  bronze/                    ← domaines bronze
+    model-aml.yaml
+    model-agriculture.yaml
+    …
+  silver/                    ← domaines silver (curation manuelle)
+    model-crm.yaml
+    model-dat.yaml
+    …
+  gold/                      ← domaines gold
+    model-credit.yaml
+    model-gestionnaire2.yaml
+```
 
-Un index JSON (`data-model-index.json`) est généré à partir des 1018 fichiers YAML, contenant pour chaque contrat :
+### Types
 
 ```typescript
 interface DataModelContract {
@@ -27,25 +39,7 @@ interface DataModelContract {
 }
 ```
 
-### Fichiers de relations (Lineage)
-
-Les relations entre contrats sont définies dans des fichiers YAML dédiés sous `data-model/` :
-
-```
-data-model/
-  model-global.yaml          ← fichier racine qui importe tous les domaines
-  bronze/                    ← domaines auto-générés (layer inféré du dossier)
-    model-aml.yaml
-    model-crm.yaml
-    …
-  silver/                    ← domaines métier silver/gold (curation manuelle)
-    model-crm.yaml
-    model-dat.yaml
-    …
-  gold/                      ← domaines gold uniquement
-    model-credit.yaml
-    model-gestionnaire2.yaml
-```
+### Fichiers de relations
 
 - **Layer** déduit du sous-dossier parent (`bronze/`, `silver/`, `gold/`)
 - **Domain** vient du champ `domain:` dans le fichier
@@ -77,135 +71,120 @@ Le préfixe optionnel est décomposé par `:` dans l'ordre **layer → domain �
 - `layer:DOMAINE:CONTEXTE:slug.field` → tout est surchargé
 - `layer:slug.field` → layer surchargé, domain et context inchangés
 
-**Règle de désambiguïsation :** si le premier mot-clé est `bronze`, `silver` ou `gold`, c'est le layer. Les parties suivantes (jusqu'au slug) sont `domain` puis `context`. Quand seul le context diffère, le domain est aussi inclus pour éviter l'ambiguïté.
+**Règle de désambiguïsation :** si le premier mot-clé est `bronze`, `silver` ou `gold`, c'est le layer.
 
 #### Exemples
 
 ```yaml
-# silver/model-crm.yaml — defaults: layer=silver, domain=CRM, context=RELATION_CLIENT
+# silver/model-crm.yaml
 domain: CRM
 context: RELATION_CLIENT
 
 relations:
-  # Même layer, domain, context → juste slug.field
   - ref_name: "customer_reference"
     ref: "crm_activities.numero_personne_host > FICHE_SIGNAL:CLIENT:fiche_signaletique.numero_personne_host"
-
-  # Cross-layer : layer=gold, domain=CRM, context par défaut (RELATION_CLIENT)
   - ref_name: "feeds_gold"
     ref: "crm_ov.row_id > gold:CRM:crm.row_id"
-
-  # Cross-domain : domain=GESTIONNAIRE, même context
   - ref_name: "assigned_manager"
     ref: "GESTIONNAIRE:gestionnaire.manager_id - crm_comptes_rendu.row_id"
 ```
 
 ```yaml
-# bronze/model-aml.yaml — defaults: layer=bronze, domain=aml, context=aml_job
+# bronze/model-aml.yaml
 domain: aml
 context: aml_job
 
 relations:
-  # Intra-contexte : même layer, domaine, contexte
-  - ref_name: "aml_job_partition"
-    ref: "bronze_aml_aml_job_009.ID > bronze_aml_aml_job_013.ID"
-
-  # Cross-contexte : domain et context explicites (contexte différent)
   - ref_name: "cross_aml_aml_logs"
     ref: "bronze_aml_aml_job_009.ID > aml:aml_logs:bronze_aml_aml_logs_013.ID"
 ```
 
 ```yaml
-# gold/model-credit.yaml — defaults: layer=gold, domain=CREDIT, context=ENGAGEMENT
+# gold/model-credit.yaml
 domain: CREDIT
 context: ENGAGEMENT
 
 relations:
-  # Tout est différent des défauts → préfixe complet
   - ref_name: "feeds_gold"
     ref: "silver:PNB:RENTABILITE:pnb.numero_contrat > credit_engagement.engagement_id"
 ```
 
-## Fonctionnalités du composant DataModelEditor
+## Fonctionnalités
 
 ### Moteur graphique
 
 - **React Flow** pour le rendu et la manipulation du graphe (nœuds, arêtes, zoom/pan)
-- **dagre** pour l'auto-layout (disposition hiérarchique) avec Web Worker pour éviter de bloquer le thread principal
+- **dagre** pour l'auto-layout hiérarchique (LR ou TB)
+
+### Interface
+
+| Élément | Description |
+|---------|-------------|
+| **Panneau latéral gauche** | Collapsible, filtre par layer (Bronze/Silver/Gold) avec couleurs, recherche, liste des tables groupées par domaine, œil pour masquer/afficher chaque table, bouton tout masquer/afficher |
+| **Contrôles bas-gauche** | Zoom +/-, Fit view, boutons Detailed/Compact, boutons Left→Right / Top→Bottom |
+| **Side panel (drawer)** | Détails du contrat au clic sur un nœud |
+
+### Modes de vue
+
+- **Detailed** : affiche tous les champs de chaque contrat
+- **Compact** : affiche uniquement les champs reliés par au moins une relation (fallback sur tous si aucun champ ne match)
 
 ### Interactivité
 
 | Action | Comportement |
 |--------|-------------|
-| **Zoom/Pan** | Navigation fluide, performance maintenue pour ~1000 nœuds |
-| **Clic sur un nœud** | Ouvre un SidePanel (Drawer/Sheet) avec les détails du contrat (slug, domaine, champs, relations) |
-| **Survol d'un nœud** | Surligne les relations entrantes et sortantes directes, grise le reste |
-| **Recherche** | Barre de filtrage par domaine ou nom de contrat |
+| **Zoom/Pan** | Navigation fluide |
+| **Clic sur un nœud** | Ouvre le SidePanel avec les détails du contrat |
+| **Survol d'un nœud** | Surligne les voisins directs, grise le reste |
+| **Survol d'une arête** | Met le trait en gras (4px) avec drop-shadow, agrandit le label avec fond bleuté |
+| **Toggle œil** | Masque/affiche une table du graphe |
+| **Filtre layer** | Restreint la liste et le graphe à un layer |
 
 ### Représentation visuelle
 
-- Couleurs par domaine (palette arbitraire générée automatiquement)
-- Arêtes orientées avec libellé du `ref_name`
-- Badge de maturité (bronze/silver/gold) sur chaque nœud
-- Design minimaliste, typographie système, espacement Tailwind, bordures fines
+- Couleurs par domaine (palette générée par hash HSL)
+- Arêtes orientées (flèches `MarkerType.ArrowClosed`) avec libellé du `ref_name`
+- Badge de maturité coloré (bronze/ambre, silver/gris, gold/jaune) sur chaque nœud
+- Arêtes pleines si actives (`>` ou `<`), pointillées si statiques (`-`)
 
-## Implémentation technique
-
-### Pipeline de données
+## Pipeline de données
 
 ```
-1018 fichiers YAML
-      ↓ (parse + extrais slug, domain, context, fields)
-index JSON global (data-model-index.json)
-      ↓ (parse + resolve relations depuis bronze/*, silver/*, gold/*)
-parseContractsToGraph(data)
-      ↓
+API GET /api/data-model
+  ├── contracts/ → DataModelContract[]
+  └── data-model/*.yaml → LoadedModel[] (domain, context, layer, relations)
+              ↓
+parseContractsToGraph(contracts, models)
+  ├── expand() — résout les préfixes des refs
+  └── parseRef() — décompose "gauche > droite"
+              ↓
 { nodes: Node[], edges: Edge[] } ← format React Flow
+              ↓
+layoutGraph() — dagre (positionnement)
+              ↓
+ModelGraph — React Flow avec ContractTableNode + RelationEdge
 ```
 
-### Fonctions utilitaires
-
-| Fonction | Rôle |
-|----------|------|
-| `parseContractsToGraph(index, modelFiles)` | Transforme l'index JSON + les fichiers `model-*.yaml` en nœuds/arêtes React Flow avec résolution des préfixes relatifs |
-| `expand(side, defaults)` | Résout un préfixe `[layer:][domain:][context:]slug.field` en `{layer,domain,context,slug,field}` |
-| `parseRef(refStr, defaults)` | Parse `"gauche > droite"` en `{left, sign, right}` avec résolution des préfixes |
-
-### Composants React
+## Composants React
 
 | Composant | Rôle |
 |-----------|------|
-| `ModelGraph.tsx` | Conteneur React Flow + auto-layout dagre + events |
-| `ContractNode.tsx` | Nœud personnalisé (icône domaine, nom, badge maturité) |
-| `ContractEdge.tsx` | Arête personnalisée (libellé, highlight au hover) |
-| `SidePanel.tsx` | Drawer Next.js avec détails du contrat sélectionné |
-| `FilterBar.tsx` | Barre de recherche/filtre par domaine ou nom |
+| `ModelGraph.tsx` | Conteneur React Flow, filtres visibilité, layout |
+| `ContractTableNode.tsx` | Nœud personnalisé avec tableau de champs, handles |
+| `RelationEdge.tsx` | Arête personnalisée avec hover (bold + shadow + label agrandi) |
+| `FilterPanel.tsx` | Panneau latéral : filtre layer, recherche, liste groupée par domaine, toggles visibilité |
+| `GraphControls.tsx` | Contrôles superposés : zoom, mode vue, direction |
+| `SidePanel.tsx` | Drawer avec détails du contrat sélectionné |
+| `DataModelEditor.tsx` | Orchestrateur : state, layout, visibilité |
 
-### Optimisations performance
+## API
 
-- **React.memo** sur chaque nœud et arête
-- **Dagre en Web Worker** pour le layout (évite de bloquer le thread principal)
-- **Virtualisation** du SidePanel si les champs sont nombreux
-- **Chargement asynchrone** du fichier JSON + des modèles YAML
+| Route | Description |
+|-------|-------------|
+| `GET /api/data-model` | Retourne `{ contracts, models }` — tous les contrats + les fichiers de relations parsés |
 
-### Palette de couleurs par domaine
+## Pages
 
-Les couleurs sont générées par une fonction de hash du nom du domaine vers une teinte HSL, garantissant une répartition uniforme sans collision :
-
-```typescript
-function domainColor(domain: string): string {
-  let hash = 0;
-  for (let i = 0; i < domain.length; i++)
-    hash = domain.charCodeAt(i) + ((hash << 5) - hash);
-  return `hsl(${hash % 360}, 55%, 50%)`;
-}
-```
-
-## Pages et routes
-
-| Route | Composant | Description |
-|-------|-----------|-------------|
-| `/data-model` | `ModelGraph` | Visualisation du graphe complet |
-| API `GET /api/data-model` | — | Retourne l'index JSON + les relations résolues |
-
-Le layout s'intègre dans le thème Admin Dashboard existant (Tailwind, espacement cohérent).
+| Route | Description |
+|-------|-------------|
+| `/data-model` | Visualisation du graphe complet avec panneau de filtres |
