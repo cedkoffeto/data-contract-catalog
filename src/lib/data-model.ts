@@ -1,4 +1,4 @@
-import type { Node, Edge } from "@xyflow/react";
+import { MarkerType, type Node, type Edge } from "@xyflow/react";
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -198,6 +198,7 @@ export function parseContractsToGraph(
       if (edgeSet.has(edgeKey)) continue;
       edgeSet.add(edgeKey);
 
+      const isAnimated = parsed.sign !== "-";
       edges.push({
         id: edgeKey,
         source: srcId,
@@ -205,9 +206,26 @@ export function parseContractsToGraph(
         sourceHandle: src.field,
         targetHandle: tgt.field,
         label: rel.ref_name,
-        type: "smoothstep",
-        animated: parsed.sign !== "-",
-        style: { stroke: "#94a3b8", strokeWidth: 1.5 },
+        type: "relationEdge",
+        animated: isAnimated,
+        markerEnd: { type: MarkerType.ArrowClosed, color: isAnimated ? "#64748b" : "#94a3b8", width: 16, height: 16 },
+        style: {
+          stroke: isAnimated ? "#64748b" : "#94a3b8",
+          strokeWidth: isAnimated ? 2 : 1.5,
+          strokeDasharray: isAnimated ? undefined : "4 3",
+        },
+        labelStyle: {
+          fontSize: 10,
+          fontWeight: 600,
+          fontFamily: "monospace",
+          fill: "#334155",
+        },
+        labelBgStyle: {
+          fill: "#ffffff",
+          fillOpacity: 0.9,
+          rx: 3,
+        },
+        labelBgPadding: [6, 3] as [number, number],
       });
     }
   }
@@ -227,7 +245,7 @@ export type LayoutDirection = "LR" | "TB";
 export function layoutGraph(nodes: Node[], edges: Edge[], direction: LayoutDirection = "LR"): { nodes: Node[]; edges: Edge[] } {
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: direction, nodesep: 40, ranksep: 80, marginx: 40, marginy: 40 });
+  g.setGraph({ rankdir: direction, nodesep: 100, ranksep: 160, marginx: 80, marginy: 80 });
 
   for (const node of nodes) {
     const fields = (node.data as Record<string, unknown>)?.fields;

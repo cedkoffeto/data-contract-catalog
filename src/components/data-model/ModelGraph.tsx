@@ -4,7 +4,6 @@ import { useMemo, useCallback, useState, useEffect } from "react";
 import {
   ReactFlow,
   Background,
-  Controls,
   MiniMap,
   useNodesState,
   useEdgesState,
@@ -13,54 +12,41 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { ContractTableNode } from "./ContractTableNode";
-import { layoutGraph, type LayoutDirection } from "@/src/lib/data-model";
+import { RelationEdge } from "./RelationEdge";
+import { GraphControls } from "./GraphControls";
+import type { LayoutDirection } from "@/src/lib/data-model";
 
 const nodeTypes = { contractTable: ContractTableNode };
+const edgeTypes = { relationEdge: RelationEdge };
 
 export function ModelGraph({
   initialNodes,
   initialEdges,
-  filterQuery,
-  onNodeClick,
+  connectedFields,
+  viewMode,
+  visibleTables,
   direction,
+  onViewModeChange,
+  onDirectionChange,
+  onNodeClick,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
-  filterQuery: string;
-  onNodeClick: (slug: string) => void;
+  connectedFields: Map<string, Set<string>>;
+  viewMode: "detailed" | "compact";
+  visibleTables: Set<string>;
   direction: LayoutDirection;
+  onViewModeChange: (v: "detailed" | "compact") => void;
+  onDirectionChange: (d: LayoutDirection) => void;
+  onNodeClick: (slug: string) => void;
 }) {
-  // Apply filter + layout
-  const { nodes: laidOutNodes, edges: laidOutEdges } = useMemo(
-    () => layoutGraph(initialNodes, initialEdges, direction),
-    [initialNodes, initialEdges, direction],
-  );
-
-  const filteredNodes = useMemo(() => {
-    if (!filterQuery) return laidOutNodes;
-    const q = filterQuery.toLowerCase();
-    return laidOutNodes.filter((n) => {
-      const d = n.data as { label: string; domain: string };
-      return d.label?.toLowerCase().includes(q) || d.domain?.toLowerCase().includes(q);
-    });
-  }, [laidOutNodes, filterQuery]);
-
-  const filteredNodeIds = useMemo(() => new Set(filteredNodes.map((n) => n.id)), [filteredNodes]);
-
-  const filteredEdges = useMemo(
-    () => laidOutEdges.filter((e) => filteredNodeIds.has(e.source) && filteredNodeIds.has(e.target)),
-    [laidOutEdges, filteredNodeIds],
-  );
-
-  const [nodes, setNodes, onNodesChange] = useNodesState(filteredNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(filteredEdges);
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [highlightedNode, setHighlightedNode] = useState<string | null>(null);
 
-  // Sync nodes/edges when filter changes
-  useEffect(() => { setNodes(filteredNodes); }, [filteredNodes, setNodes]);
-  useEffect(() => { setEdges(filteredEdges); }, [filteredEdges, setEdges]);
+  useEffect(() => { setNodes(initialNodes); }, [initialNodes, setNodes]);
+  useEffect(() => { setEdges(initialEdges); }, [initialEdges, setEdges]);
 
-  // Attach onHeaderClick to each node
   useEffect(() => {
     setNodes((nds) =>
       nds.map((n) => ({
@@ -70,6 +56,33 @@ export function ModelGraph({
     );
   }, [onNodeClick, setNodes]);
 
+  // Compact mode: filter fields
+  const displayNodes = useMemo(() => {
+    return nodes.map((n) => {
+      if (viewMode === "detailed") return n;
+      const active = connectedFields.get(n.id);
+      if (!active || active.size === 0) return n;
+      const allFields = (n.data as { fields?: { name: string; type: string }[] })?.fields ?? [];
+      const compactFields = allFields.filter((f) => active.has(f.name));
+      return {
+        ...n,
+        data: { ...n.data, fields: compactFields.length > 0 ? compactFields : allFields },
+      };
+    });
+  }, [nodes, viewMode, connectedFields]);
+
+  // Filter by visibility
+  const filteredNodes = useMemo(() => {
+    return displayNodes.filter((n) => visibleTables.has(n.id));
+  }, [displayNodes, visibleTables]);
+
+  const filteredNodeIds = useMemo(() => new Set(filteredNodes.map((n) => n.id)), [filteredNodes]);
+
+  const filteredEdges = useMemo(
+    () => edges.filter((e) => filteredNodeIds.has(e.source) && filteredNodeIds.has(e.target)),
+    [edges, filteredNodeIds],
+  );
+
   const handleMouseEnter = useCallback((_event: React.MouseEvent, node: Node) => {
     setHighlightedNode(node.id);
   }, []);
@@ -78,7 +91,6 @@ export function ModelGraph({
     setHighlightedNode(null);
   }, []);
 
-  // Dim non-connected nodes on hover
   const nodeOpacity = useCallback(
     (node: Node) => {
       if (!highlightedNode) return 1;
@@ -94,22 +106,26 @@ export function ModelGraph({
   );
 
   return (
-    <div className="h-full w-full">
+    <div className="relative h-full w-full">
       <ReactFlow
-        nodes={nodes.map((n) => ({ ...n, style: { ...n.style, opacity: nodeOpacity(n) } }))}
-        edges={edges}
+        nodes={filteredNodes.map((n) => ({
+          ...n,
+          style: { ...n.style, opacity: nodeOpacity(n) },
+        }))}
+        edges={filteredEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeMouseEnter={handleMouseEnter}
         onNodeMouseLeave={handleMouseLeave}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         fitView
         minZoom={0.1}
         maxZoom={2}
         attributionPosition="bottom-left"
+        nodesDraggable={true}
       >
         <Background color="#f1f5f9" gap={16} />
-        <Controls className="!rounded-lg !border !border-gray-200 !shadow-sm" />
         <MiniMap
           nodeStrokeColor="#94a3b8"
           nodeColor={(n) => ((n.data as { color?: string })?.color) || "#94a3b8"}
@@ -117,6 +133,16 @@ export function ModelGraph({
           className="!rounded-lg !border !border-gray-200 !shadow-sm"
         />
       </ReactFlow>
+
+      {/* Custom controls overlay */}
+      <div className="absolute bottom-4 left-4 z-10">
+        <GraphControls
+          viewMode={viewMode}
+          onViewModeChange={onViewModeChange}
+          direction={direction}
+          onDirectionChange={onDirectionChange}
+        />
+      </div>
     </div>
   );
 }
