@@ -98,6 +98,18 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
     return Array.from(unique).sort((a, b) => a.localeCompare(b));
   }, [cards]);
 
+  const domainToContexts = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const card of cards) {
+      const d = card.domain.trim();
+      const c = card.context.trim();
+      if (!d || !c) continue;
+      if (!map.has(d)) map.set(d, new Set());
+      map.get(d)!.add(c);
+    }
+    return map;
+  }, [cards]);
+
   const maturities = useMemo(() => {
     const unique = new Set(cards.map((card) => card.maturity.trim()).filter(Boolean));
     return Array.from(unique).sort((a, b) => a.localeCompare(b));
@@ -117,6 +129,16 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
     }
     return [dc, cc, mc];
   }, [cards]);
+
+  const contextCountsFiltered = useMemo(() => {
+    const cc: Record<string, number> = {};
+    for (const card of cards) {
+      if (selectedDomain !== ALL_DOMAINS && card.domain.trim() !== selectedDomain) continue;
+      const c = card.context.trim();
+      if (c) cc[c] = (cc[c] ?? 0) + 1;
+    }
+    return cc;
+  }, [cards, selectedDomain]);
 
   const visibleCards = useMemo(() => {
     const query = debouncedSearch.trim().toLowerCase();
@@ -382,21 +404,62 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
               >
                 {t("allContexts")}
               </button>
-              {contexts.filter((c) => !contextFilter || humanize(c).toLowerCase().includes(contextFilter.toLowerCase())).map((context) => (
-                <button
-                  key={context}
-                  className={selectedContexts.has(context) ? "catalog-filter-pill is-active" : "catalog-filter-pill"}
-                  onClick={() => setSelectedContexts((prev) => {
-                    const next = new Set(prev);
-                    if (next.has(context)) next.delete(context); else next.add(context);
-                    return next;
-                  })}
-                  type="button"
-                >
-                  <span>{humanize(context)}</span>
-                  <span className="catalog-filter-badge">{contextCounts[context]}</span>
-                </button>
-              ))}
+              {(() => {
+                const filtered = contexts.filter((c) => !contextFilter || humanize(c).toLowerCase().includes(contextFilter.toLowerCase()));
+                if (selectedDomain === ALL_DOMAINS) {
+                  return filtered.map((context) => (
+                    <button
+                      key={context}
+                      className={selectedContexts.has(context) ? "catalog-filter-pill is-active" : "catalog-filter-pill"}
+                      onClick={() => setSelectedContexts((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(context)) next.delete(context); else next.add(context);
+                        return next;
+                      })}
+                      type="button"
+                    >
+                      <span>{humanize(context)}</span>
+                      <span className="catalog-filter-badge">{contextCounts[context]}</span>
+                    </button>
+                  ));
+                }
+                const domainContexts = domainToContexts.get(selectedDomain) ?? new Set();
+                const relevant = filtered.filter((c) => domainContexts.has(c));
+                const other = filtered.filter((c) => !domainContexts.has(c));
+                return (
+                  <>
+                    {relevant.map((context) => (
+                      <button
+                        key={context}
+                        className={selectedContexts.has(context) ? "catalog-filter-pill is-active" : "catalog-filter-pill"}
+                        onClick={() => setSelectedContexts((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(context)) next.delete(context); else next.add(context);
+                          return next;
+                        })}
+                        type="button"
+                      >
+                        <span>{humanize(context)}</span>
+                        <span className="catalog-filter-badge">{contextCountsFiltered[context] ?? 0}</span>
+                      </button>
+                    ))}
+                    {other.length > 0 && relevant.length > 0 && (
+                      <div className="mt-2 border-t border-gray-200 pt-2" />
+                    )}
+                    {other.map((context) => (
+                      <button
+                        key={context}
+                        className="catalog-filter-pill catalog-filter-pill--muted"
+                        disabled
+                        type="button"
+                      >
+                        <span>{humanize(context)}</span>
+                        <span className="catalog-filter-badge">{contextCounts[context]}</span>
+                      </button>
+                    ))}
+                  </>
+                );
+              })()}
             </div>
           </div>
 

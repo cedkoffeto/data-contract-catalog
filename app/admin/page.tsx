@@ -389,9 +389,9 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
                         {r.source === "app" ? "App" : "GitLab"}
                       </span>
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="whitespace-nowrap px-3 py-2">
                       {r.gitlabMrUrl ? (
-                        <a href={r.gitlabMrUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-blue-600 hover:underline">
+                        <a href={r.gitlabMrUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:underline">
                           <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14" aria-hidden="true"><path d="M3 2v12h10V7h-1v6H4V3h5V2H3zm7 0v1h2.3L7.15 8.15l.7.7L13 3.7V6h1V2h-4z"/></svg>
                           {t("viewMr")}
                         </a>
@@ -431,7 +431,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
                       ) : r.status === "conflicted" && r.gitlabMrUrl ? (
                         <button
                           onClick={() => window.open(r.gitlabMrUrl, "_blank", "noopener,noreferrer")}
-                          className="rounded-md px-2 py-1 text-xs font-bold text-blue-700 hover:bg-blue-200"
+                          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-bold text-blue-700 hover:bg-blue-200"
                           style={{ backgroundColor: "#dbeafe" }}
                         >
                           <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12" aria-hidden="true"><path d="M3 2v12h10V7h-1v6H4V3h5V2H3zm7 0v1h2.3L7.15 8.15l.7.7L13 3.7V6h1V2h-4z"/></svg>

@@ -1276,6 +1276,12 @@ a:has(> .kpi-card) {
   color: var(--ui-primary);
 }
 
+.catalog-filter-pill--muted {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .catalog-filter-summary {
   display: grid;
   grid-template-columns: repeat(1, minmax(0, 1fr));
