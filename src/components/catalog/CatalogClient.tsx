@@ -144,13 +144,15 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
 
   const handleTogglePin = useCallback(async (slug: string) => {
     const card = cardsRef.current.find((c) => c.slug === slug);
-    const next = !card?.isPinned;
-    setCards((prev) => prev.map((c) => (c.slug === slug ? { ...c, isPinned: next } : c)));
-    await fetch(`/api/contracts/${encodeURIComponent(slug)}/preferences`, {
+    if (!card) return;
+    const next = !card.isPinned;
+    const res = await fetch(`/api/contracts/${encodeURIComponent(slug)}/preferences`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isPinned: next }),
     });
+    if (!res.ok) return;
+    setCards((prev) => prev.map((c) => (c.slug === slug ? { ...c, isPinned: next } : c)));
   }, []);
 
   const handleToggleFavorite = useCallback(async (slug: string) => {

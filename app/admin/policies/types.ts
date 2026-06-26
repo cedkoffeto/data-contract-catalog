@@ -51,3 +51,10 @@ export type ViewUserPolicies = {
   policies: Policy[];
   loading: boolean;
 };
+
+export type ViewGroupMembers = {
+  groupId: number;
+  groupName: string;
+  members: string[];
+  loading: boolean;
+};

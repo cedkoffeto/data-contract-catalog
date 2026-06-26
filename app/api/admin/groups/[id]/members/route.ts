@@ -2,7 +2,22 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/src/lib/require-admin";
 import { auth } from "@/src/auth";
-import { addUserToGroup, removeUserFromGroup } from "@/src/lib/access-control";
+import { addUserToGroup, listGroupMembers, removeUserFromGroup } from "@/src/lib/access-control";
+
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const unauthorized = await requireAdmin();
+  if (unauthorized) return unauthorized;
+
+  const { id } = await params;
+  const groupId = parseInt(id, 10);
+
+  if (isNaN(groupId)) {
+    return NextResponse.json({ error: "Invalid group id" }, { status: 400 });
+  }
+
+  const members = await listGroupMembers(groupId);
+  return NextResponse.json({ members });
+}
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const unauthorized = await requireAdmin();

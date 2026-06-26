@@ -9,7 +9,7 @@ import { Toast } from "@/src/components/ui/Toast";
 import PolicyForm from "./PolicyForm";
 import PolicyTable from "./PolicyTable";
 import ConflictDialog from "./ConflictDialog";
-import type { ConflictDialog as ConflictDialogType, Policy, ViewUserPolicies } from "./types";
+import type { ConflictDialog as ConflictDialogType, Policy, ViewGroupMembers, ViewUserPolicies } from "./types";
 
 export default function PoliciesPage() {
   const [policies, setPolicies] = useState<Policy[]>([]);
@@ -50,6 +50,7 @@ export default function PoliciesPage() {
   const [formKey, setFormKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [viewUserPolicies, setViewUserPolicies] = useState<ViewUserPolicies | null>(null);
+  const [viewGroupMembers, setViewGroupMembers] = useState<ViewGroupMembers | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -239,6 +240,19 @@ export default function PoliciesPage() {
     await fetchData();
   }
 
+  async function handleViewGroupMembers(groupId: number, groupName: string) {
+    setViewGroupMembers({ groupId, groupName, members: [], loading: true });
+    try {
+      const res = await fetch(`/api/admin/groups/${groupId}/members`);
+      if (!res.ok) throw new Error("Failed to fetch");
+      const data = await res.json();
+      setViewGroupMembers({ groupId, groupName, members: data.members, loading: false });
+    } catch {
+      setViewGroupMembers(null);
+      setError("Failed to load group members");
+    }
+  }
+
   async function handleViewUser(userId: string) {
     setViewUserPolicies({ userId, policies: [], loading: true });
     try {
@@ -367,6 +381,7 @@ export default function PoliciesPage() {
         onSearchChange={setSearch}
         groupMap={groupMap}
         onViewUser={handleViewUser}
+        onViewGroupMembers={handleViewGroupMembers}
         onEdit={openEdit}
         onDelete={setDeleteTarget}
         currentUserId={currentUserId}
@@ -443,6 +458,61 @@ export default function PoliciesPage() {
                 {t("close")}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {viewGroupMembers && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
+          onClick={() => setViewGroupMembers(null)}
+        >
+          <div
+            className="flex max-h-[60vh] flex-col rounded-lg bg-white shadow-xl"
+            style={{ width: "min(50vw, 600px)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">
+                  Members of &ldquo;{viewGroupMembers.groupName}&rdquo;
+                </h3>
+                <p className="text-[11px] text-gray-400">
+                  {viewGroupMembers.members.length} member{viewGroupMembers.members.length !== 1 ? "s" : ""}
+                </p>
+              </div>
+              <button
+                onClick={() => setViewGroupMembers(null)}
+                className="editor-close-button"
+                aria-label="Close"
+                title="Close"
+                type="button"
+              >
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path d="M5.5 5.5l9 9m0-9l-9 9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            </div>
+
+            {viewGroupMembers.loading ? (
+              <div className="flex-1 px-4 py-8 text-center text-sm text-gray-400">Loading...</div>
+            ) : viewGroupMembers.members.length === 0 ? (
+              <div className="flex-1 px-4 py-8 text-center text-sm text-gray-400">No members</div>
+            ) : (
+              <div className="flex-1 overflow-y-auto px-4 py-2">
+                <div className="space-y-0.5">
+                  {viewGroupMembers.members.map((userId) => (
+                    <div
+                      key={userId}
+                      className="flex items-center gap-2 rounded px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
+                    >
+                      <span className="flex-1 font-mono truncate">{userId}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -32,6 +32,7 @@ export default function PolicyTable({
   onSearchChange,
   groupMap,
   onViewUser,
+  onViewGroupMembers,
   onEdit,
   onDelete,
   currentUserId,
@@ -43,6 +44,7 @@ export default function PolicyTable({
   onSearchChange: (v: string) => void;
   groupMap: Map<number, string>;
   onViewUser: (userId: string) => void;
+  onViewGroupMembers: (groupId: number, groupName: string) => void;
   onEdit: (p: Policy) => void;
   onDelete: (id: number) => void;
   currentUserId: string | null;
@@ -125,13 +127,23 @@ export default function PolicyTable({
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {p.user_id && (
+                        {p.user_id ? (
                           <button
                             onClick={() => onViewUser(p.user_id!)}
                             className="editor-soft-button"
                           >
                             <EyeIcon />
                             <span className="ml-1.5">View</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => onViewGroupMembers(p.group_id!, groupName)}
+                            className="editor-soft-button"
+                          >
+                            <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                              <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
+                            </svg>
+                            <span className="ml-1.5">Members</span>
                           </button>
                         )}
                         <button
