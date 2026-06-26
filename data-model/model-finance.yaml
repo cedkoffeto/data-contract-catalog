@@ -1,0 +1,34 @@
+# Finance Domain — Data Relations
+# Covers PNB, TITRES, and CREDIT which share portfolio/engagement concepts.
+# pnb + titres + titres_entete → gold/credit_engagement
+
+domain: CREDIT
+context: ENGAGEMENT
+
+relations:
+  # ── Customer master references ──
+  - ref_name: "customer_reference"
+    ref: "FICHE_SIGNAL:CLIENT:fiche_signaletique.numero_personne_host < PNB:RENTABILITE:pnb.numero_personne_host"
+
+  - ref_name: "customer_reference"
+    ref: "FICHE_SIGNAL:CLIENT:fiche_signaletique.numero_personne_host < :TITRES:titres.numero_personne_host"
+
+  - ref_name: "customer_reference"
+    ref: "FICHE_SIGNAL:CLIENT:fiche_signaletique.numero_personne_host < :TITRES:titres_entete.numero_personne_host"
+
+  # ── Titres hierarchy (header → detail) ──
+  - ref_name: "portfolio_header"
+    ref: "titres_entete.numero_personne_host - :TITRES:titres.numero_personne_host"
+
+  - ref_name: "portfolio_holds_securities"
+    ref: ":TITRES:titres_entete.compte_titre < :TITRES:titres.compte_titre"
+
+  # ── Silver → Gold aggregation ──
+  - ref_name: "feeds_gold"
+    ref: "PNB:RENTABILITE:pnb.loan_id > credit_engagement.engagement_id"
+
+  - ref_name: "feeds_gold"
+    ref: ":TITRES:titres.numero_personne_host > credit_engagement.engagement_id"
+
+  - ref_name: "feeds_gold"
+    ref: ":TITRES:titres_entete.numero_personne_host > credit_engagement.engagement_id"

@@ -1,0 +1,14 @@
+# e-banking Domain — Data Relations
+# Web device history tracking; references customer master for identity resolution.
+
+domain: e-banking
+context: digital_channels
+
+relations:
+  # ── Customer master reference ──
+  - ref_name: "customer_reference"
+    ref: "FICHE_SIGNAL:CLIENT:fiche_signaletique.numero_personne_host < ebk_web_device_history.customer_id"
+
+  # ── Tracks devices per customer ──
+  - ref_name: "device_per_customer"
+    ref: "ebk_web_device_history.customer_id < ebk_web_device_history.device_id"

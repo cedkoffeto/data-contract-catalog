@@ -1,0 +1,10 @@
+# CARTE Domain — Data Relations
+# Card equipment data has no direct gold aggregation (single silver contract).
+
+domain: CARTE
+context: EQUIPEMENT
+
+relations:
+  # ── Customer master reference ──
+  - ref_name: "customer_reference"
+    ref: "FICHE_SIGNAL:CLIENT:fiche_signaletique.numero_personne_host < carte.numero_personne_host"

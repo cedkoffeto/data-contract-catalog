@@ -1,0 +1,18 @@
+# GESTIONNAIRE Domain — Data Relations
+# Manager assignments link to customer master via fiche_signaletique.
+
+domain: GESTIONNAIRE
+context: RELATION_CLIENT
+
+relations:
+  # ── Customer master reference ──
+  - ref_name: "customer_reference"
+    ref: "FICHE_SIGNAL:CLIENT:fiche_signaletique.numero_personne_host < gestionnaire.customer_id"
+
+  # ── Manager information stored in fiche_signaletique JSON ──
+  - ref_name: "manager_info_in_customer"
+    ref: "gestionnaire.manager_id - FICHE_SIGNAL:CLIENT:fiche_signaletique.gestionnaire"
+
+  # ── Silver → Gold aggregation ──
+  - ref_name: "feeds_gold"
+    ref: "gestionnaire.manager_id > gold/gestionnaire.manager_id"

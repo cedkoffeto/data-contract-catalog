@@ -1,0 +1,11 @@
+# FICHE_SIGNAL Domain — Data Relations
+# Customer master data — most contracts reference this as the source of truth for customer identity.
+# This domain has no silver→gold flow within itself (fiche_signaletique stays at silver).
+
+domain: FICHE_SIGNAL
+context: CLIENT
+
+relations:
+  # ── Cross-domain: customer profile data consumed by GESTIONNAIRE ──
+  - ref_name: "profile_reference"
+    ref: "FICHE_SIGNAL:CLIENT:fiche_signaletique.numero_client - GESTIONNAIRE:RELATION_CLIENT:gestionnaire.customer_id"

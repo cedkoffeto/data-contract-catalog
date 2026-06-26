@@ -1,0 +1,15 @@
+# Data Model — Global Import File
+# Aggregates all domain-level relation definitions.
+
+domains:
+  - $ref: "./model-crm.yaml"
+  - $ref: "./model-dat.yaml"
+  - $ref: "./model-finance.yaml"
+  - $ref: "./model-gestionnaire.yaml"
+  - $ref: "./model-fiche-signal.yaml"
+  - $ref: "./model-carte.yaml"
+  - $ref: "./model-ebanking.yaml"
+
+# The parser resolves $ref relative to this file's directory.
+# Domain files declare `domain:` and `context:` used to resolve
+# relative slug references in the `ref:` field.
