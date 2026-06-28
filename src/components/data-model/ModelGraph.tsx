@@ -75,7 +75,7 @@ export function ModelGraph({
     if (!focusedTable) return;
     const node = nodes.find((n) => n.id === focusedTable);
     if (!node) return;
-    setCenter(node.position.x + (node.measured?.width ?? 220) / 2, node.position.y + (node.measured?.height ?? 100) / 2, { zoom: 1 });
+    setCenter(node.position.x + (node.measured?.width ?? 220) / 2, node.position.y + 20, { zoom: 1 });
   }, [focusedTable, nodes, setCenter]);
 
   const ctxValue = useMemo<ViewModeValue>(() => ({
