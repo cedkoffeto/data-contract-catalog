@@ -64,6 +64,7 @@ export function ModelGraph({
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [highlightedNode, setHighlightedNode] = useState<string | null>(null);
+  const [showGrid, setShowGrid] = useState(true);
 
   const { setCenter } = useReactFlow();
 
@@ -146,11 +147,12 @@ export function ModelGraph({
           maxZoom={2}
           attributionPosition="bottom-left"
           nodesDraggable={true}
+          nodeDragThreshold={5}
           panOnScroll={true}
           panOnScrollMode={PanOnScrollMode.Free}
           zoomActivationKeyCode="Control"
         >
-          <Background color="#f1f5f9" gap={16} />
+          {showGrid && <Background color="#f1f5f9" gap={16} />}
           <MiniMap
             pannable
             zoomable
@@ -166,6 +168,8 @@ export function ModelGraph({
               onViewModeChange={onViewModeChange}
               layoutMode={layoutMode}
               onLayoutModeChange={onLayoutModeChange}
+              showGrid={showGrid}
+              onToggleGrid={() => setShowGrid((v) => !v)}
             />
           </Panel>
         </ReactFlow>

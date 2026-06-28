@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useReactFlow, useViewport } from "@xyflow/react";
-import { ZoomIn, ZoomOut, Maximize2, Eye, LayoutTemplate, LayoutList, AlignEndHorizontal, AlignEndVertical, Layers, LayoutGrid, Check } from "lucide-react";
+import { ZoomIn, ZoomOut, Maximize2, Eye, LayoutTemplate, LayoutList, AlignEndHorizontal, AlignEndVertical, Layers, LayoutGrid, Grid3x3, Check } from "lucide-react";
 import type { LayoutMode } from "@/src/lib/data-model";
 
 const VIEW_MODES: { mode: "detailed" | "compact"; icon: React.ReactNode; label: string; description: string }[] = [
@@ -94,11 +94,15 @@ export function GraphControls({
   onViewModeChange,
   layoutMode,
   onLayoutModeChange,
+  showGrid,
+  onToggleGrid,
 }: {
   viewMode: "detailed" | "compact";
   onViewModeChange: (v: "detailed" | "compact") => void;
   layoutMode: LayoutMode;
   onLayoutModeChange: (d: LayoutMode) => void;
+  showGrid: boolean;
+  onToggleGrid: () => void;
 }) {
   const { zoomIn, zoomOut, fitView } = useReactFlow();
   const { zoom } = useViewport();
@@ -118,6 +122,13 @@ export function GraphControls({
       </button>
       <button onClick={() => fitView({ padding: 0.2 })} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Fit view">
         <Maximize2 size={16} />
+      </button>
+      <button
+        onClick={onToggleGrid}
+        className={`rounded-md p-1.5 hover:bg-gray-50 hover:text-gray-700 ${showGrid ? "bg-gray-100 text-gray-700" : "text-gray-400"}`}
+        title={showGrid ? "Hide grid" : "Show grid"}
+      >
+        <Grid3x3 size={16} />
       </button>
 
       {/* View mode — dropdown */}
