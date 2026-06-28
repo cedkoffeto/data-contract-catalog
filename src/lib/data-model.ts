@@ -1,4 +1,4 @@
-import { MarkerType, type Node, type Edge } from "@xyflow/react";
+import { type Node, type Edge } from "@xyflow/react";
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -202,6 +202,8 @@ export function parseContractsToGraph(
       edgeSet.add(edgeKey);
 
       const isAnimated = parsed.sign !== "-";
+      const cardSource = parsed.sign === ">" ? "many" : parsed.sign === "<" ? "one" : "many";
+      const cardTarget = parsed.sign === ">" ? "one" : parsed.sign === "<" ? "many" : "many";
       edges.push({
         id: edgeKey,
         source: srcId,
@@ -211,7 +213,7 @@ export function parseContractsToGraph(
         label: rel.ref_name,
         type: "relationEdge",
         animated: isAnimated,
-        markerEnd: { type: MarkerType.ArrowClosed, color: isAnimated ? "#64748b" : "#94a3b8", width: 16, height: 16 },
+        data: { cardSource, cardTarget },
         style: {
           stroke: isAnimated ? "#64748b" : "#94a3b8",
           strokeWidth: isAnimated ? 2 : 1.5,
