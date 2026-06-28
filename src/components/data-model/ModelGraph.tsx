@@ -4,6 +4,7 @@ import { createContext, useContext, useMemo, useCallback, useState, useEffect } 
 import {
   ReactFlow,
   Background,
+  BackgroundVariant,
   MiniMap,
   Panel,
   useNodesState,
@@ -156,7 +157,7 @@ export function ModelGraph({
           panOnScrollMode={PanOnScrollMode.Free}
           zoomActivationKeyCode="Control"
         >
-          {showGrid && <Background color="#f1f5f9" gap={16} />}
+          {showGrid && <Background variant={BackgroundVariant.Lines} color="#e2e8f0" gap={32} size={1} />}
           <MiniMap
             pannable
             zoomable

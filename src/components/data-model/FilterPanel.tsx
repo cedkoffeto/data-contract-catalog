@@ -31,6 +31,8 @@ export function FilterPanel({
   allVisible,
   focusedTable,
   onFocusTable,
+  layerFilter,
+  onLayerFilter,
 }: {
   nodes: Node[];
   visibleTables: Set<string>;
@@ -40,6 +42,8 @@ export function FilterPanel({
   allVisible: boolean;
   focusedTable: string | null;
   onFocusTable: (slug: string) => void;
+  layerFilter: string | null;
+  onLayerFilter: (layer: string | null) => void;
 }) {
   const [open, setOpen] = useState(true);
   const [width, setWidth] = useState(DEFAULT_WIDTH);
@@ -47,7 +51,6 @@ export function FilterPanel({
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
   const [query, setQuery] = useState("");
-  const [layerFilter, setLayerFilter] = useState<string | null>(null);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -126,13 +129,13 @@ export function FilterPanel({
           {/* Layer filter — pill toggle like Discussion */}
           <div className="flex border-b border-gray-200 px-3 py-2.5">
             <div className="inline-flex rounded-full border p-0.5" style={{ backgroundColor: "rgba(0,0,0,0.04)" }}>
-              {(["all", ...LAYERS] as const).map((item) => {
-                const isActive = item === "all" ? !layerFilter : layerFilter === item.id;
-                return (
-                  <button
-                    key={item === "all" ? "all" : item.id}
-                    type="button"
-                    onClick={() => setLayerFilter(item === "all" ? null : item.id)}
+                {(["all", ...LAYERS] as const).map((item) => {
+                  const isActive = item === "all" ? !layerFilter : layerFilter === item.id;
+                  return (
+                    <button
+                      key={item === "all" ? "all" : item.id}
+                      type="button"
+                      onClick={() => onLayerFilter(item === "all" ? null : item.id)}
                     className="inline-flex items-center rounded px-2.5 py-1 text-xs font-bold transition-colors"
                     style={{
                       backgroundColor: isActive ? "#1f2937" : "transparent",

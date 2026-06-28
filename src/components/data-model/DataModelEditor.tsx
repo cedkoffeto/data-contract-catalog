@@ -40,6 +40,7 @@ export function DataModelEditor({
 }) {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [focusedTable, setFocusedTable] = useState<string | null>(null);
+  const [layerFilter, setLayerFilter] = useState<string | null>(null);
   const [layoutMode, setLayoutMode] = useState<LayoutMode>("LR");
   const [viewMode, setViewMode] = useState<"detailed" | "compact">("detailed");
 
@@ -95,7 +96,15 @@ export function DataModelEditor({
     return visibleTablesState;
   }, [focusedTable, neighborIds, visibleTablesState]);
 
-  const allVisible = focusedTable ? true : visibleTablesState.size === rawNodes.length;
+  const filteredByLayer = useMemo(() => {
+    if (!layerFilter) return rawNodes;
+    return rawNodes.filter((n) => {
+      const d = n.data as { maturity?: string };
+      return (d.maturity || "bronze") === layerFilter;
+    });
+  }, [rawNodes, layerFilter]);
+
+  const allFilteredVisible = focusedTable ? true : filteredByLayer.every((n) => visibleTablesState.has(n.id));
 
   const handleToggleTable = useCallback((id: string) => {
     setVisibleTablesState((prev) => {
@@ -107,12 +116,17 @@ export function DataModelEditor({
   }, []);
 
   const handleToggleAll = useCallback(() => {
-    setVisibleTablesState((prev) =>
-      prev.size === rawNodes.length
-        ? new Set()
-        : new Set(rawNodes.map((n) => n.id)),
-    );
-  }, [rawNodes]);
+    const filteredIds = new Set(filteredByLayer.map((n) => n.id));
+    setVisibleTablesState((prev) => {
+      const allFilteredVisible = [...filteredIds].every((id) => prev.has(id));
+      const next = new Set(prev);
+      for (const id of filteredIds) {
+        if (allFilteredVisible) next.delete(id);
+        else next.add(id);
+      }
+      return next;
+    });
+  }, [filteredByLayer]);
 
   const handleToggleDomain = useCallback((_domain: string, nodeIds: string[]) => {
     setVisibleTablesState((prev) => {
@@ -154,9 +168,11 @@ export function DataModelEditor({
           onToggleTable={handleToggleTable}
           onToggleDomain={handleToggleDomain}
           onToggleAll={handleToggleAll}
-          allVisible={allVisible}
+          allVisible={allFilteredVisible}
           focusedTable={focusedTable}
           onFocusTable={handleFocusTable}
+          layerFilter={layerFilter}
+          onLayerFilter={setLayerFilter}
         />
 
         <div className="flex min-w-0 flex-1 flex-col">
