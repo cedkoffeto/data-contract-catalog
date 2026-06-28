@@ -110,6 +110,10 @@ contract:
         description: "Version de la logique produit"
         required: true
         pii_classification: "none"
+      - name: "manager_id"
+        type: "string"
+        description: "manager_id field"
+        required: false
 
 quality:
   checks:

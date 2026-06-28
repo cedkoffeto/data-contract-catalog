@@ -1,0 +1,20 @@
+asset:
+  id: "bronze/bronze_data_lake_data_lake_enriched_012"
+  name: "BRONZE DATA LAKE DATA LAKE ENRICHED 012"
+  maturity: "bronze"
+  domain: "data_lake"
+  context: "data_lake_enriched"
+  type: "dataset"
+  description: "Auto-generated contract for bronze_data_lake_data_lake_enriched_012"
+  version: "1.0.0"
+  status: "active"
+contract:
+  primary_key:
+    - "ID"
+  grain: "One row per entity"
+  schema:
+    fields:
+      - name: "ID"
+        type: "string"
+        description: "ID field"
+        required: true

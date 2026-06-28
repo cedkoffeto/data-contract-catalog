@@ -1,0 +1,20 @@
+asset:
+  id: "bronze/bronze_collections_collections_process_011"
+  name: "BRONZE COLLECTIONS COLLECTIONS PROCESS 011"
+  maturity: "bronze"
+  domain: "collections"
+  context: "collections_process"
+  type: "dataset"
+  description: "Auto-generated contract for bronze_collections_collections_process_011"
+  version: "1.0.0"
+  status: "active"
+contract:
+  primary_key:
+    - "ID"
+  grain: "One row per entity"
+  schema:
+    fields:
+      - name: "ID"
+        type: "string"
+        description: "ID field"
+        required: true

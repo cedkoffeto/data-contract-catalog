@@ -1,0 +1,20 @@
+asset:
+  id: "bronze/bronze_procurement_procurement_curated_017"
+  name: "BRONZE PROCUREMENT PROCUREMENT CURATED 017"
+  maturity: "bronze"
+  domain: "procurement"
+  context: "procurement_curated"
+  type: "dataset"
+  description: "Auto-generated contract for bronze_procurement_procurement_curated_017"
+  version: "1.0.0"
+  status: "active"
+contract:
+  primary_key:
+    - "ID"
+  grain: "One row per entity"
+  schema:
+    fields:
+      - name: "ID"
+        type: "string"
+        description: "ID field"
+        required: true

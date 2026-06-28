@@ -1,102 +1,142 @@
 "use client";
 
-import { useReactFlow } from "@xyflow/react";
-import { ZoomIn, ZoomOut, Maximize2, LayoutList, AlignEndHorizontal, AlignEndVertical } from "lucide-react";
-import type { LayoutDirection } from "@/src/lib/data-model";
+import { useState, useRef, useEffect } from "react";
+import { useReactFlow, useViewport } from "@xyflow/react";
+import { ZoomIn, ZoomOut, Maximize2, Eye, LayoutTemplate, LayoutList, AlignEndHorizontal, AlignEndVertical, Layers, LayoutGrid, Check } from "lucide-react";
+import type { LayoutMode } from "@/src/lib/data-model";
+
+const VIEW_MODES: { mode: "detailed" | "compact"; icon: React.ReactNode; label: string; description: string }[] = [
+  { mode: "detailed", icon: <LayoutList size={18} />, label: "Detailed", description: "Shows all fields with types and constraints for each table" },
+  { mode: "compact", icon: <LayoutList size={18} className="rotate-90" />, label: "Compact", description: "Shows only connected fields, minimizing visual clutter" },
+];
+
+const LAYOUT_MODES: { mode: LayoutMode; icon: React.ReactNode; label: string; description: string }[] = [
+  { mode: "LR", icon: <AlignEndHorizontal size={18} />, label: "Left to Right", description: "Organizes tables horizontally from left to right, showing data flow direction" },
+  { mode: "TB", icon: <AlignEndVertical size={18} />, label: "Top to Bottom", description: "Organizes tables vertically from top to bottom, emphasizing hierarchy" },
+  { mode: "layer", icon: <Layers size={18} />, label: "Layer clustering", description: "Groups tables by maturity layer (Bronze / Silver / Gold) in columns" },
+  { mode: "domain", icon: <LayoutGrid size={18} />, label: "Domain clustering", description: "Groups tables by business domain in columns" },
+];
+
+function Dropdown<T extends string>({
+  options,
+  value,
+  onChange,
+  triggerIcon,
+  title,
+}: {
+  options: { mode: T; icon: React.ReactNode; label: string; description: string }[];
+  value: T;
+  onChange: (v: T) => void;
+  triggerIcon: React.ReactNode;
+  title: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    if (open) document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="rounded-md p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+        title={title}
+      >
+        {triggerIcon}
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 bottom-full z-50 mb-2 w-64 rounded-lg border border-gray-200 bg-white shadow-xl">
+            <div className="flex flex-col py-1">
+              {options.map(({ mode, icon, label, description }) => {
+                const active = value === mode;
+                return (
+                  <button
+                    key={mode}
+                    onClick={() => { onChange(mode); setOpen(false); }}
+                    className={`flex items-start gap-3 px-3 py-2.5 text-left transition-colors ${active ? "bg-blue-50" : "hover:bg-gray-50"}`}
+                  >
+                    <span className={`mt-0.5 shrink-0 ${active ? "text-blue-700" : "text-gray-500"}`}>
+                      {icon}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-sm font-semibold ${active ? "text-blue-700" : "text-gray-900"}`}>
+                          {label}
+                        </span>
+                        {active && <Check size={12} className="shrink-0 text-blue-700" />}
+                      </div>
+                      <p className="mt-0.5 text-[11px] leading-snug text-gray-500">
+                        {description}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 export function GraphControls({
   viewMode,
   onViewModeChange,
-  direction,
-  onDirectionChange,
+  layoutMode,
+  onLayoutModeChange,
 }: {
   viewMode: "detailed" | "compact";
   onViewModeChange: (v: "detailed" | "compact") => void;
-  direction: LayoutDirection;
-  onDirectionChange: (d: LayoutDirection) => void;
+  layoutMode: LayoutMode;
+  onLayoutModeChange: (d: LayoutMode) => void;
 }) {
   const { zoomIn, zoomOut, fitView } = useReactFlow();
+  const { zoom } = useViewport();
+  const zoomPercent = Math.round(zoom * 100);
 
   return (
     <div className="flex flex-col gap-1.5 rounded-lg border border-gray-200 bg-white p-1.5 shadow-md">
       {/* Zoom */}
-      <button
-        onClick={() => zoomIn()}
-        className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-        title="Zoom in"
-      >
+      <button onClick={() => zoomIn()} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Zoom in">
         <ZoomIn size={16} />
       </button>
-      <button
-        onClick={() => zoomOut()}
-        className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-        title="Zoom out"
-      >
+      <div className="text-center text-[10px] font-semibold text-gray-500 tabular-nums">
+        {zoomPercent}%
+      </div>
+      <button onClick={() => zoomOut()} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Zoom out">
         <ZoomOut size={16} />
       </button>
-      <button
-        onClick={() => fitView({ padding: 0.2 })}
-        className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-        title="Fit view"
-      >
+      <button onClick={() => fitView({ padding: 0.2 })} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Fit view">
         <Maximize2 size={16} />
       </button>
 
-      <div className="border-t border-gray-200" />
+      {/* View mode — dropdown */}
+      <Dropdown
+        options={VIEW_MODES}
+        value={viewMode}
+        onChange={onViewModeChange}
+        triggerIcon={<Eye size={16} />}
+        title="Change view mode"
+      />
 
-      {/* View mode */}
-      <div className="flex flex-col gap-0.5">
-        <button
-          onClick={() => onViewModeChange("detailed")}
-          className={`rounded-md p-1.5 ${
-            viewMode === "detailed"
-              ? "bg-blue-100 text-blue-700"
-              : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-          }`}
-          title="Detailed view"
-        >
-          <LayoutList size={16} />
-        </button>
-        <button
-          onClick={() => onViewModeChange("compact")}
-          className={`rounded-md p-1.5 ${
-            viewMode === "compact"
-              ? "bg-blue-100 text-blue-700"
-              : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-          }`}
-          title="Compact view"
-        >
-          <LayoutList size={16} className="rotate-90" />
-        </button>
-      </div>
-
-      <div className="border-t border-gray-200" />
-
-      {/* Direction */}
-      <div className="flex flex-col gap-0.5">
-        <button
-          onClick={() => onDirectionChange("LR")}
-          className={`rounded-md p-1.5 ${
-            direction === "LR"
-              ? "bg-blue-100 text-blue-700"
-              : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-          }`}
-          title="Left to Right"
-        >
-          <AlignEndHorizontal size={16} />
-        </button>
-        <button
-          onClick={() => onDirectionChange("TB")}
-          className={`rounded-md p-1.5 ${
-            direction === "TB"
-              ? "bg-blue-100 text-blue-700"
-              : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-          }`}
-          title="Top to Bottom"
-        >
-          <AlignEndVertical size={16} />
-        </button>
-      </div>
+      {/* Layout mode — dropdown */}
+      <Dropdown
+        options={LAYOUT_MODES}
+        value={layoutMode}
+        onChange={onLayoutModeChange}
+        triggerIcon={<LayoutTemplate size={16} />}
+        title="Change layout"
+      />
     </div>
   );
 }

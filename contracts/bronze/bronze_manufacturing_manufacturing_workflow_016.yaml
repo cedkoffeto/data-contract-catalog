@@ -1,0 +1,20 @@
+asset:
+  id: "bronze/bronze_manufacturing_manufacturing_workflow_016"
+  name: "BRONZE MANUFACTURING MANUFACTURING WORKFLOW 016"
+  maturity: "bronze"
+  domain: "manufacturing"
+  context: "manufacturing_workflow"
+  type: "dataset"
+  description: "Auto-generated contract for bronze_manufacturing_manufacturing_workflow_016"
+  version: "1.0.0"
+  status: "active"
+contract:
+  primary_key:
+    - "ID"
+  grain: "One row per entity"
+  schema:
+    fields:
+      - name: "ID"
+        type: "string"
+        description: "ID field"
+        required: true

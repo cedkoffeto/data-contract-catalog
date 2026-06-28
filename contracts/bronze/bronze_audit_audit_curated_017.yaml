@@ -1,0 +1,20 @@
+asset:
+  id: "bronze/bronze_audit_audit_curated_017"
+  name: "BRONZE AUDIT AUDIT CURATED 017"
+  maturity: "bronze"
+  domain: "audit"
+  context: "audit_curated"
+  type: "dataset"
+  description: "Auto-generated contract for bronze_audit_audit_curated_017"
+  version: "1.0.0"
+  status: "active"
+contract:
+  primary_key:
+    - "ID"
+  grain: "One row per entity"
+  schema:
+    fields:
+      - name: "ID"
+        type: "string"
+        description: "ID field"
+        required: true

@@ -1,0 +1,20 @@
+asset:
+  id: "bronze/bronze_manufacturing_manufacturing_journal_006"
+  name: "BRONZE MANUFACTURING MANUFACTURING JOURNAL 006"
+  maturity: "bronze"
+  domain: "manufacturing"
+  context: "manufacturing_journal"
+  type: "dataset"
+  description: "Auto-generated contract for bronze_manufacturing_manufacturing_journal_006"
+  version: "1.0.0"
+  status: "active"
+contract:
+  primary_key:
+    - "ID"
+  grain: "One row per entity"
+  schema:
+    fields:
+      - name: "ID"
+        type: "string"
+        description: "ID field"
+        required: true

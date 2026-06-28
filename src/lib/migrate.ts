@@ -331,20 +331,6 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
     `,
   },
   {
-    id: "015_comment_hierarchy_index",
-    sql: `
-      CREATE INDEX IF NOT EXISTS idx_contract_comments_parent_id_id ON contract_comments(parent_id, id);
-    `,
-  },
-  {
-    id: "016_catalog_indexes",
-    sql: `
-      CREATE INDEX IF NOT EXISTS idx_access_policies_user_global
-        ON access_policies(user_id)
-        WHERE domain_scope IS NULL AND context_scope IS NULL AND data_contract_scope IS NULL;
-    `,
-  },
-  {
     id: "014_contract_change_requests",
     sql: `
       CREATE TABLE IF NOT EXISTS contract_change_requests (
@@ -375,12 +361,70 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
     `,
   },
   {
+    id: "015_comment_hierarchy_index",
+    sql: `
+      CREATE INDEX IF NOT EXISTS idx_contract_comments_parent_id_id ON contract_comments(parent_id, id);
+    `,
+  },
+  {
+    id: "016_catalog_indexes",
+    sql: `
+      CREATE INDEX IF NOT EXISTS idx_access_policies_user_global
+        ON access_policies(user_id)
+        WHERE domain_scope IS NULL AND context_scope IS NULL AND data_contract_scope IS NULL;
+    `,
+  },
+  {
     id: "016_add_updated_at",
     sql: `
+      CREATE TABLE IF NOT EXISTS access_requests (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        domain TEXT NOT NULL DEFAULT '',
+        context TEXT NOT NULL DEFAULT '',
+        data_contract TEXT NOT NULL DEFAULT '',
+        requested_permission TEXT NOT NULL DEFAULT 'reader',
+        message TEXT NOT NULL DEFAULT '',
+        status TEXT NOT NULL DEFAULT 'pending',
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+
       ALTER TABLE access_requests ADD COLUMN updated_at DATETIME;
       UPDATE access_requests SET updated_at = datetime('now') WHERE updated_at IS NULL;
+
       ALTER TABLE contract_change_requests ADD COLUMN updated_at DATETIME;
       UPDATE contract_change_requests SET updated_at = datetime('now') WHERE updated_at IS NULL;
+    `,
+  },
+  {
+    id: "017_ensure_core_tables",
+    sql: `
+      CREATE TABLE IF NOT EXISTS access_requests (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        domain TEXT NOT NULL DEFAULT '',
+        context TEXT NOT NULL DEFAULT '',
+        data_contract TEXT NOT NULL DEFAULT '',
+        requested_permission TEXT NOT NULL DEFAULT 'reader',
+        message TEXT NOT NULL DEFAULT '',
+        status TEXT NOT NULL DEFAULT 'pending',
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS contract_change_requests (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        contract_slug TEXT NOT NULL,
+        editor_id TEXT NOT NULL,
+        yaml_content TEXT NOT NULL,
+        original_sha TEXT NOT NULL DEFAULT '',
+        status TEXT NOT NULL DEFAULT 'pending',
+        gitlab_mr_id INTEGER,
+        gitlab_mr_url TEXT NOT NULL DEFAULT '',
+        rejection_reason TEXT NOT NULL DEFAULT '',
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        resolved_at DATETIME,
+        resolved_by TEXT
+      );
     `,
   },
 ];
@@ -395,17 +439,21 @@ export async function runMigrations(): Promise<void> {
     );
 
     for (const migration of MIGRATIONS) {
-      const rows = await query<{ c: number }>(
-        "SELECT COUNT(*) AS c FROM _migrations WHERE id = ?",
-        [migration.id],
-      );
-      const alreadyApplied = (rows[0]?.c ?? 0) > 0;
-      if (alreadyApplied) continue;
+      try {
+        const rows = await query<{ c: number }>(
+          "SELECT COUNT(*) AS c FROM _migrations WHERE id = ?",
+          [migration.id],
+        );
+        const alreadyApplied = (rows[0]?.c ?? 0) > 0;
+        if (alreadyApplied) continue;
 
-      await migrate(migration.sql);
+        await migrate(migration.sql);
 
-      await migrate("INSERT INTO _migrations (id) VALUES (?)", [migration.id]);
-      console.info("[migrate] Applied migration:", migration.id);
+        await migrate("INSERT OR IGNORE INTO _migrations (id) VALUES (?)", [migration.id]);
+        console.info("[migrate] Applied migration:", migration.id);
+      } catch (error) {
+        console.error(`[migrate] Migration ${migration.id} failed:`, error);
+      }
     }
 
     await migrateRolesToAccessPolicies();

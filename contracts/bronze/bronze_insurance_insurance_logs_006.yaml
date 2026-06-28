@@ -1,0 +1,20 @@
+asset:
+  id: "bronze/bronze_insurance_insurance_logs_006"
+  name: "BRONZE INSURANCE INSURANCE LOGS 006"
+  maturity: "bronze"
+  domain: "insurance"
+  context: "insurance_logs"
+  type: "dataset"
+  description: "Auto-generated contract for bronze_insurance_insurance_logs_006"
+  version: "1.0.0"
+  status: "active"
+contract:
+  primary_key:
+    - "ID"
+  grain: "One row per entity"
+  schema:
+    fields:
+      - name: "ID"
+        type: "string"
+        description: "ID field"
+        required: true

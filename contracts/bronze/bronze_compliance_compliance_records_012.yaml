@@ -1,0 +1,20 @@
+asset:
+  id: "bronze/bronze_compliance_compliance_records_012"
+  name: "BRONZE COMPLIANCE COMPLIANCE RECORDS 012"
+  maturity: "bronze"
+  domain: "compliance"
+  context: "compliance_records"
+  type: "dataset"
+  description: "Auto-generated contract for bronze_compliance_compliance_records_012"
+  version: "1.0.0"
+  status: "active"
+contract:
+  primary_key:
+    - "ID"
+  grain: "One row per entity"
+  schema:
+    fields:
+      - name: "ID"
+        type: "string"
+        description: "ID field"
+        required: true

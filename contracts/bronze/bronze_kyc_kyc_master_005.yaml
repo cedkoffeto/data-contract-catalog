@@ -1,0 +1,20 @@
+asset:
+  id: "bronze/bronze_kyc_kyc_master_005"
+  name: "BRONZE KYC KYC MASTER 005"
+  maturity: "bronze"
+  domain: "kyc"
+  context: "kyc_master"
+  type: "dataset"
+  description: "Auto-generated contract for bronze_kyc_kyc_master_005"
+  version: "1.0.0"
+  status: "active"
+contract:
+  primary_key:
+    - "ID"
+  grain: "One row per entity"
+  schema:
+    fields:
+      - name: "ID"
+        type: "string"
+        description: "ID field"
+        required: true

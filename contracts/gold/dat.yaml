@@ -210,6 +210,10 @@ contract:
         description: "Version de la logique produit"
         required: true
         pii_classification: "none"
+      - name: "numero_contrat"
+        type: "string"
+        description: "numero_contrat field"
+        required: false
 
 quality:
   checks:

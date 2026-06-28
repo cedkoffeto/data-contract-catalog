@@ -1,0 +1,20 @@
+asset:
+  id: "bronze/bronze_kyc_kyc_transactions_013"
+  name: "BRONZE KYC KYC TRANSACTIONS 013"
+  maturity: "bronze"
+  domain: "kyc"
+  context: "kyc_transactions"
+  type: "dataset"
+  description: "Auto-generated contract for bronze_kyc_kyc_transactions_013"
+  version: "1.0.0"
+  status: "active"
+contract:
+  primary_key:
+    - "ID"
+  grain: "One row per entity"
+  schema:
+    fields:
+      - name: "ID"
+        type: "string"
+        description: "ID field"
+        required: true

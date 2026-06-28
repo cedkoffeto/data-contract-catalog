@@ -401,6 +401,10 @@ contract:
         description: "Version de la logique produit"
         required: true
         pii_classification: "none"
+      - name: "row_id"
+        type: "string"
+        description: "row_id field"
+        required: false
 
 quality:
   checks:

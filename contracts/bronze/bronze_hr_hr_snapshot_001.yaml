@@ -1,0 +1,20 @@
+asset:
+  id: "bronze/bronze_hr_hr_snapshot_001"
+  name: "BRONZE HR HR SNAPSHOT 001"
+  maturity: "bronze"
+  domain: "hr"
+  context: "hr_snapshot"
+  type: "dataset"
+  description: "Auto-generated contract for bronze_hr_hr_snapshot_001"
+  version: "1.0.0"
+  status: "active"
+contract:
+  primary_key:
+    - "ID"
+  grain: "One row per entity"
+  schema:
+    fields:
+      - name: "ID"
+        type: "string"
+        description: "ID field"
+        required: true

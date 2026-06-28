@@ -135,6 +135,10 @@ contract:
         description: "Notes ou commentaires libres saisis sur l'activité"
         required: false
         pii_classification: "none"
+      - name: "row_id"
+        type: "string"
+        description: "row_id field"
+        required: false
 
 quality:
   checks:
@@ -228,6 +232,10 @@ serving:
     enabled: true
     tables:
       - name: "view_crm_activities"
+      - name: "row_id"
+        type: "string"
+        description: "row_id field"
+        required: false
         source_table: "crm_activities"
     notes: "Vue Hive pour les consommateurs des activités CRM"
 

@@ -137,6 +137,7 @@ export function parseContractsToGraph(
         slug: c.slug,
         maturity: c.maturity,
         domain: c.domain,
+        context: c.context,
         fields: c.fields,
         color: domainColor(c.domain),
       },
@@ -173,6 +174,7 @@ export function parseContractsToGraph(
             slug: srcContract.slug,
             maturity: srcContract.maturity,
             domain: srcContract.domain,
+            context: srcContract.context,
             fields: srcContract.fields,
             color: domainColor(srcContract.domain),
           },
@@ -188,6 +190,7 @@ export function parseContractsToGraph(
             slug: tgtContract.slug,
             maturity: tgtContract.maturity,
             domain: tgtContract.domain,
+            context: tgtContract.context,
             fields: tgtContract.fields,
             color: domainColor(tgtContract.domain),
           },
@@ -236,21 +239,29 @@ export function parseContractsToGraph(
   };
 }
 
-// ── dagre layout ───────────────────────────────────────────────────
+// ── Layout modes ────────────────────────────────────────────────────
 
 import dagre from "dagre";
 
-export type LayoutDirection = "LR" | "TB";
+export type LayoutMode = "LR" | "TB" | "layer" | "domain";
 
-export function layoutGraph(nodes: Node[], edges: Edge[], direction: LayoutDirection = "LR"): { nodes: Node[]; edges: Edge[] } {
+function nodeFieldCount(node: Node): number {
+  const fields = (node.data as Record<string, unknown>)?.fields;
+  return Array.isArray(fields) ? fields.length : 0;
+}
+
+function nodeHeight(node: Node): number {
+  const count = nodeFieldCount(node);
+  return count ? count * 28 + 60 : 80;
+}
+
+export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB" = "LR"): { nodes: Node[]; edges: Edge[] } {
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
   g.setGraph({ rankdir: direction, nodesep: 100, ranksep: 160, marginx: 80, marginy: 80 });
 
   for (const node of nodes) {
-    const fields = (node.data as Record<string, unknown>)?.fields;
-    const fieldCount = Array.isArray(fields) ? fields.length : 0;
-    g.setNode(node.id, { width: 220, height: fieldCount ? fieldCount * 28 + 60 : 80 });
+    g.setNode(node.id, { width: 220, height: nodeHeight(node) });
   }
   for (const edge of edges) {
     g.setEdge(edge.source, edge.target);
@@ -268,4 +279,107 @@ export function layoutGraph(nodes: Node[], edges: Edge[], direction: LayoutDirec
   });
 
   return { nodes: laidOut, edges };
+}
+
+export function layoutLayerGraph(nodes: Node[], _edges: Edge[]): { nodes: Node[]; edges: Edge[] } {
+  const LAYER_ORDER = ["bronze", "silver", "gold"];
+  const COLUMN_WIDTH = 380;
+  const VERTICAL_GAP = 50;
+
+  // Single pass: group + cache heights
+  const heights = new Map<string, number>();
+  const byLayer = new Map<string, Node[]>();
+  for (const n of nodes) {
+    const h = nodeHeight(n);
+    heights.set(n.id, h);
+    const maturity = ((n.data as Record<string, unknown>)?.maturity as string) || "bronze";
+    if (!byLayer.has(maturity)) byLayer.set(maturity, []);
+    byLayer.get(maturity)!.push(n);
+  }
+
+  // Compute positions
+  const positions = new Map<string, { x: number; y: number }>();
+
+  for (let colIdx = 0; colIdx < LAYER_ORDER.length; colIdx++) {
+    const ns = byLayer.get(LAYER_ORDER[colIdx]);
+    if (!ns) continue;
+
+    let totalHeight = 0;
+    for (const n of ns) totalHeight += heights.get(n.id)!;
+    totalHeight += (ns.length - 1) * VERTICAL_GAP;
+
+    let y = -totalHeight / 2;
+    const x = colIdx * COLUMN_WIDTH;
+
+    for (const n of ns) {
+      const h = heights.get(n.id)!;
+      positions.set(n.id, { x, y: y + h / 2 });
+      y += h + VERTICAL_GAP;
+    }
+  }
+
+  // Single output pass
+  const laidOut = nodes.map((n) => {
+    const pos = positions.get(n.id);
+    return pos ? { ...n, position: pos } : n;
+  });
+
+  return { nodes: laidOut, edges: _edges };
+}
+
+export function layoutDomainGraph(nodes: Node[], _edges: Edge[]): { nodes: Node[]; edges: Edge[] } {
+  const COLUMN_WIDTH = 280;
+  const DOMAIN_GAP_X = 120;
+  const VERTICAL_GAP = 40;
+
+  // Single pass: group + cache heights
+  const heights = new Map<string, number>();
+  const byDomain = new Map<string, Node[]>();
+  for (const n of nodes) {
+    heights.set(n.id, nodeHeight(n));
+    const domain = ((n.data as Record<string, unknown>)?.domain as string) || "Unknown";
+    if (!byDomain.has(domain)) byDomain.set(domain, []);
+    byDomain.get(domain)!.push(n);
+  }
+
+  const sortedEntries = Array.from(byDomain.entries()).sort(([a], [b]) => a.localeCompare(b));
+  const positions = new Map<string, { x: number; y: number }>();
+
+  let xOffset = -(sortedEntries.length * (COLUMN_WIDTH + DOMAIN_GAP_X) - DOMAIN_GAP_X) / 2;
+
+  for (const [, ns] of sortedEntries) {
+    let totalHeight = 0;
+    for (const n of ns) totalHeight += heights.get(n.id)!;
+    totalHeight += (ns.length - 1) * VERTICAL_GAP;
+
+    let y = -totalHeight / 2;
+
+    for (const n of ns) {
+      const h = heights.get(n.id)!;
+      positions.set(n.id, { x: xOffset, y: y + h / 2 });
+      y += h + VERTICAL_GAP;
+    }
+
+    xOffset += COLUMN_WIDTH + DOMAIN_GAP_X;
+  }
+
+  // Single output pass
+  const laidOut = nodes.map((n) => {
+    const pos = positions.get(n.id);
+    return pos ? { ...n, position: pos } : n;
+  });
+
+  return { nodes: laidOut, edges: _edges };
+}
+
+export function layoutByMode(nodes: Node[], edges: Edge[], mode: LayoutMode): { nodes: Node[]; edges: Edge[] } {
+  switch (mode) {
+    case "LR":
+    case "TB":
+      return layoutGraph(nodes, edges, mode);
+    case "layer":
+      return layoutLayerGraph(nodes, edges);
+    case "domain":
+      return layoutDomainGraph(nodes, edges);
+  }
 }

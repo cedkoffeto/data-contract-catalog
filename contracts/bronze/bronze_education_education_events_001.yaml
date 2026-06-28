@@ -1,0 +1,20 @@
+asset:
+  id: "bronze/bronze_education_education_events_001"
+  name: "BRONZE EDUCATION EDUCATION EVENTS 001"
+  maturity: "bronze"
+  domain: "education"
+  context: "education_events"
+  type: "dataset"
+  description: "Auto-generated contract for bronze_education_education_events_001"
+  version: "1.0.0"
+  status: "active"
+contract:
+  primary_key:
+    - "ID"
+  grain: "One row per entity"
+  schema:
+    fields:
+      - name: "ID"
+        type: "string"
+        description: "ID field"
+        required: true

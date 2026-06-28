@@ -1,0 +1,20 @@
+asset:
+  id: "bronze/bronze_reporting_reporting_journal_001"
+  name: "BRONZE REPORTING REPORTING JOURNAL 001"
+  maturity: "bronze"
+  domain: "reporting"
+  context: "reporting_journal"
+  type: "dataset"
+  description: "Auto-generated contract for bronze_reporting_reporting_journal_001"
+  version: "1.0.0"
+  status: "active"
+contract:
+  primary_key:
+    - "ID"
+  grain: "One row per entity"
+  schema:
+    fields:
+      - name: "ID"
+        type: "string"
+        description: "ID field"
+        required: true

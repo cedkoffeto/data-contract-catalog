@@ -1,0 +1,20 @@
+asset:
+  id: "bronze/bronze_legal_legal_enriched_015"
+  name: "BRONZE LEGAL LEGAL ENRICHED 015"
+  maturity: "bronze"
+  domain: "legal"
+  context: "legal_enriched"
+  type: "dataset"
+  description: "Auto-generated contract for bronze_legal_legal_enriched_015"
+  version: "1.0.0"
+  status: "active"
+contract:
+  primary_key:
+    - "ID"
+  grain: "One row per entity"
+  schema:
+    fields:
+      - name: "ID"
+        type: "string"
+        description: "ID field"
+        required: true

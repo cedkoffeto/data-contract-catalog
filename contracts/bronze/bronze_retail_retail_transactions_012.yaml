@@ -1,0 +1,20 @@
+asset:
+  id: "bronze/bronze_retail_retail_transactions_012"
+  name: "BRONZE RETAIL RETAIL TRANSACTIONS 012"
+  maturity: "bronze"
+  domain: "retail"
+  context: "retail_transactions"
+  type: "dataset"
+  description: "Auto-generated contract for bronze_retail_retail_transactions_012"
+  version: "1.0.0"
+  status: "active"
+contract:
+  primary_key:
+    - "ID"
+  grain: "One row per entity"
+  schema:
+    fields:
+      - name: "ID"
+        type: "string"
+        description: "ID field"
+        required: true

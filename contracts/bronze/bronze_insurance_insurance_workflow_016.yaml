@@ -1,0 +1,20 @@
+asset:
+  id: "bronze/bronze_insurance_insurance_workflow_016"
+  name: "BRONZE INSURANCE INSURANCE WORKFLOW 016"
+  maturity: "bronze"
+  domain: "insurance"
+  context: "insurance_workflow"
+  type: "dataset"
+  description: "Auto-generated contract for bronze_insurance_insurance_workflow_016"
+  version: "1.0.0"
+  status: "active"
+contract:
+  primary_key:
+    - "ID"
+  grain: "One row per entity"
+  schema:
+    fields:
+      - name: "ID"
+        type: "string"
+        description: "ID field"
+        required: true

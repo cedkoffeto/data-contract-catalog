@@ -1,0 +1,20 @@
+asset:
+  id: "bronze/bronze_digital_channels_digital_channels_history_011"
+  name: "BRONZE DIGITAL CHANNELS DIGITAL CHANNELS HISTORY 011"
+  maturity: "bronze"
+  domain: "digital_channels"
+  context: "digital_channels_history"
+  type: "dataset"
+  description: "Auto-generated contract for bronze_digital_channels_digital_channels_history_011"
+  version: "1.0.0"
+  status: "active"
+contract:
+  primary_key:
+    - "ID"
+  grain: "One row per entity"
+  schema:
+    fields:
+      - name: "ID"
+        type: "string"
+        description: "ID field"
+        required: true

@@ -158,6 +158,10 @@ contract:
         description: "Commentaire"
         required: false
         pii_classification: "sensitive"
+      - name: "row_id"
+        type: "string"
+        description: "row_id field"
+        required: false
 
 quality:
   checks:
@@ -258,6 +262,10 @@ serving:
     enabled: true
     tables:
       - name: "view_crm_comptes_rendu"
+      - name: "row_id"
+        type: "string"
+        description: "row_id field"
+        required: false
         source_table: "crm_comptes_rendu"
     notes: "Vue Hive pour les consommateurs des comptes rendus CRM"
 

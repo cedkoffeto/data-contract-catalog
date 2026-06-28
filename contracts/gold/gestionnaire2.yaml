@@ -1,0 +1,20 @@
+asset:
+  id: "gold/gestionnaire2"
+  name: "GESTIONNAIRE2"
+  maturity: "gold"
+  domain: "GESTIONNAIRE2"
+  context: "RELATION_CLIENT2"
+  type: "dataset"
+  description: "Auto-generated contract for gestionnaire2"
+  version: "1.0.0"
+  status: "active"
+contract:
+  primary_key:
+    - "manager_id"
+  grain: "One row per entity"
+  schema:
+    fields:
+      - name: "manager_id"
+        type: "string"
+        description: "manager_id field"
+        required: true

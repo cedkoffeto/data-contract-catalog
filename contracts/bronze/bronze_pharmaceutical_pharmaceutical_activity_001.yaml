@@ -1,0 +1,20 @@
+asset:
+  id: "bronze/bronze_pharmaceutical_pharmaceutical_activity_001"
+  name: "BRONZE PHARMACEUTICAL PHARMACEUTICAL ACTIVITY 001"
+  maturity: "bronze"
+  domain: "pharmaceutical"
+  context: "pharmaceutical_activity"
+  type: "dataset"
+  description: "Auto-generated contract for bronze_pharmaceutical_pharmaceutical_activity_001"
+  version: "1.0.0"
+  status: "active"
+contract:
+  primary_key:
+    - "ID"
+  grain: "One row per entity"
+  schema:
+    fields:
+      - name: "ID"
+        type: "string"
+        description: "ID field"
+        required: true

@@ -170,6 +170,10 @@ contract:
         description: "Version of product logic"
         required: true
         pii_classification: "none"
+      - name: "engagement_id"
+        type: "string"
+        description: "engagement_id field"
+        required: false
 
 quality:
   checks:

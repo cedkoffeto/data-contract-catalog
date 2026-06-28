@@ -1,0 +1,20 @@
+asset:
+  id: "bronze/bronze_streaming_streaming_profile_005"
+  name: "BRONZE STREAMING STREAMING PROFILE 005"
+  maturity: "bronze"
+  domain: "streaming"
+  context: "streaming_profile"
+  type: "dataset"
+  description: "Auto-generated contract for bronze_streaming_streaming_profile_005"
+  version: "1.0.0"
+  status: "active"
+contract:
+  primary_key:
+    - "ID"
+  grain: "One row per entity"
+  schema:
+    fields:
+      - name: "ID"
+        type: "string"
+        description: "ID field"
+        required: true

@@ -1,12 +1,15 @@
 "use client";
 
-import { useMemo, useCallback, useState, useEffect } from "react";
+import { createContext, useContext, useMemo, useCallback, useState, useEffect } from "react";
 import {
   ReactFlow,
   Background,
   MiniMap,
+  Panel,
   useNodesState,
   useEdgesState,
+  useReactFlow,
+  PanOnScrollMode,
   type Node,
   type Edge,
 } from "@xyflow/react";
@@ -14,10 +17,24 @@ import "@xyflow/react/dist/style.css";
 import { ContractTableNode } from "./ContractTableNode";
 import { RelationEdge } from "./RelationEdge";
 import { GraphControls } from "./GraphControls";
-import type { LayoutDirection } from "@/src/lib/data-model";
+import type { LayoutMode } from "@/src/lib/data-model";
 
 const nodeTypes = { contractTable: ContractTableNode };
 const edgeTypes = { relationEdge: RelationEdge };
+
+type ViewModeValue = {
+  viewMode: "detailed" | "compact";
+  connectedFields: Map<string, Set<string>>;
+  onHeaderClick: (slug: string) => void;
+  onFieldClick: (slug: string) => void;
+};
+
+export const ViewModeCtx = createContext<ViewModeValue>({
+  viewMode: "detailed",
+  connectedFields: new Map(),
+  onHeaderClick: () => {},
+  onFieldClick: () => {},
+});
 
 export function ModelGraph({
   initialNodes,
@@ -25,56 +42,53 @@ export function ModelGraph({
   connectedFields,
   viewMode,
   visibleTables,
-  direction,
+  layoutMode,
   onViewModeChange,
-  onDirectionChange,
+  onLayoutModeChange,
   onNodeClick,
+  onHeaderClick,
+  focusedTable,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
   connectedFields: Map<string, Set<string>>;
   viewMode: "detailed" | "compact";
   visibleTables: Set<string>;
-  direction: LayoutDirection;
+  layoutMode: LayoutMode;
   onViewModeChange: (v: "detailed" | "compact") => void;
-  onDirectionChange: (d: LayoutDirection) => void;
+  onLayoutModeChange: (d: LayoutMode) => void;
   onNodeClick: (slug: string) => void;
+  onHeaderClick: (slug: string) => void;
+  focusedTable: string | null;
 }) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [highlightedNode, setHighlightedNode] = useState<string | null>(null);
 
+  const { setCenter } = useReactFlow();
+
   useEffect(() => { setNodes(initialNodes); }, [initialNodes, setNodes]);
   useEffect(() => { setEdges(initialEdges); }, [initialEdges, setEdges]);
 
+  // Center on focused table
   useEffect(() => {
-    setNodes((nds) =>
-      nds.map((n) => ({
-        ...n,
-        data: { ...n.data, onHeaderClick: (slug: string) => onNodeClick(slug) },
-      })),
-    );
-  }, [onNodeClick, setNodes]);
+    if (!focusedTable) return;
+    const node = nodes.find((n) => n.id === focusedTable);
+    if (!node) return;
+    setCenter(node.position.x + (node.measured?.width ?? 220) / 2, node.position.y + (node.measured?.height ?? 100) / 2, { zoom: 1 });
+  }, [focusedTable, nodes, setCenter]);
 
-  // Compact mode: filter fields
-  const displayNodes = useMemo(() => {
-    return nodes.map((n) => {
-      if (viewMode === "detailed") return n;
-      const active = connectedFields.get(n.id);
-      if (!active || active.size === 0) return n;
-      const allFields = (n.data as { fields?: { name: string; type: string }[] })?.fields ?? [];
-      const compactFields = allFields.filter((f) => active.has(f.name));
-      return {
-        ...n,
-        data: { ...n.data, fields: compactFields.length > 0 ? compactFields : allFields },
-      };
-    });
-  }, [nodes, viewMode, connectedFields]);
+  const ctxValue = useMemo<ViewModeValue>(() => ({
+    viewMode,
+    connectedFields,
+    onHeaderClick,
+    onFieldClick: onNodeClick,
+  }), [viewMode, connectedFields, onHeaderClick, onNodeClick]);
 
   // Filter by visibility
   const filteredNodes = useMemo(() => {
-    return displayNodes.filter((n) => visibleTables.has(n.id));
-  }, [displayNodes, visibleTables]);
+    return nodes.filter((n) => visibleTables.has(n.id));
+  }, [nodes, visibleTables]);
 
   const filteredNodeIds = useMemo(() => new Set(filteredNodes.map((n) => n.id)), [filteredNodes]);
 
@@ -105,44 +119,53 @@ export function ModelGraph({
     [highlightedNode, edges],
   );
 
-  return (
-    <div className="relative h-full w-full">
-      <ReactFlow
-        nodes={filteredNodes.map((n) => ({
-          ...n,
-          style: { ...n.style, opacity: nodeOpacity(n) },
-        }))}
-        edges={filteredEdges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onNodeMouseEnter={handleMouseEnter}
-        onNodeMouseLeave={handleMouseLeave}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        fitView
-        minZoom={0.1}
-        maxZoom={2}
-        attributionPosition="bottom-left"
-        nodesDraggable={true}
-      >
-        <Background color="#f1f5f9" gap={16} />
-        <MiniMap
-          nodeStrokeColor="#94a3b8"
-          nodeColor={(n) => ((n.data as { color?: string })?.color) || "#94a3b8"}
-          maskColor="rgba(0,0,0,0.1)"
-          className="!rounded-lg !border !border-gray-200 !shadow-sm"
-        />
-      </ReactFlow>
+  const visibleNodes = useMemo(
+    () => filteredNodes.map((n) => ({ ...n, style: { ...n.style, opacity: nodeOpacity(n) } })),
+    [filteredNodes, nodeOpacity],
+  );
 
-      {/* Custom controls overlay */}
-      <div className="absolute bottom-4 left-4 z-10">
-        <GraphControls
-          viewMode={viewMode}
-          onViewModeChange={onViewModeChange}
-          direction={direction}
-          onDirectionChange={onDirectionChange}
-        />
+  return (
+    <ViewModeCtx.Provider value={ctxValue}>
+      <div className="relative h-full w-full">
+        <ReactFlow
+          nodes={visibleNodes}
+          edges={filteredEdges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onNodeMouseEnter={handleMouseEnter}
+          onNodeMouseLeave={handleMouseLeave}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          fitView={false}
+          defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+          minZoom={0.1}
+          maxZoom={2}
+          attributionPosition="bottom-left"
+          nodesDraggable={true}
+          panOnScroll={true}
+          panOnScrollMode={PanOnScrollMode.Free}
+          zoomActivationKeyCode="Control"
+        >
+          <Background color="#f1f5f9" gap={16} />
+          <MiniMap
+            pannable
+            zoomable
+            nodeStrokeColor="#94a3b8"
+            nodeColor={(n) => ((n.data as { color?: string })?.color) || "#94a3b8"}
+            maskColor="rgba(0,0,0,0.1)"
+            className="!rounded-lg !border !border-gray-200 !shadow-sm cursor-grab active:cursor-grabbing"
+            style={{ bottom: 16 }}
+          />
+          <Panel position="bottom-right" className="!m-0" style={{ bottom: 180, right: 12 }}>
+            <GraphControls
+              viewMode={viewMode}
+              onViewModeChange={onViewModeChange}
+              layoutMode={layoutMode}
+              onLayoutModeChange={onLayoutModeChange}
+            />
+          </Panel>
+        </ReactFlow>
       </div>
-    </div>
+    </ViewModeCtx.Provider>
   );
 }

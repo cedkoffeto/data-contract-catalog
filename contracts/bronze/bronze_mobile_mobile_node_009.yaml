@@ -1,0 +1,20 @@
+asset:
+  id: "bronze/bronze_mobile_mobile_node_009"
+  name: "BRONZE MOBILE MOBILE NODE 009"
+  maturity: "bronze"
+  domain: "mobile"
+  context: "mobile_node"
+  type: "dataset"
+  description: "Auto-generated contract for bronze_mobile_mobile_node_009"
+  version: "1.0.0"
+  status: "active"
+contract:
+  primary_key:
+    - "ID"
+  grain: "One row per entity"
+  schema:
+    fields:
+      - name: "ID"
+        type: "string"
+        description: "ID field"
+        required: true

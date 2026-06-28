@@ -98,6 +98,14 @@ contract:
         description: "Libellé de l'agence (division)"
         required: false
         pii_classification: "none"
+      - name: "customer_id"
+        type: "string"
+        description: "customer_id field"
+        required: false
+      - name: "manager_id"
+        type: "string"
+        description: "manager_id field"
+        required: false
 
 quality:
   checks:
@@ -225,6 +233,14 @@ serving:
     enabled: true
     tables:
       - name: "view_gestionnaire"
+      - name: "customer_id"
+        type: "string"
+        description: "customer_id field"
+        required: false
+      - name: "manager_id"
+        type: "string"
+        description: "manager_id field"
+        required: false
         source_table: "gestionnaire"
     notes: "Vue Hive pour les consommateurs avec la table gestionnaire enrichie"
 

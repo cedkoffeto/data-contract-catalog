@@ -6,5 +6,5 @@ context: CLIENT
 
 relations:
   - ref_name: "profile_reference"
-    ref: "fiche_signaletique.numero_client - GESTIONNAIRE:gestionnaire.customer_id"
+    ref: "fiche_signaletique.numero_client - GESTIONNAIRE:RELATION_CLIENT:gestionnaire.customer_id"
 

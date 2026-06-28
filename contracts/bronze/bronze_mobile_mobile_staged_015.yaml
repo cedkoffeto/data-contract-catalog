@@ -1,0 +1,20 @@
+asset:
+  id: "bronze/bronze_mobile_mobile_staged_015"
+  name: "BRONZE MOBILE MOBILE STAGED 015"
+  maturity: "bronze"
+  domain: "mobile"
+  context: "mobile_staged"
+  type: "dataset"
+  description: "Auto-generated contract for bronze_mobile_mobile_staged_015"
+  version: "1.0.0"
+  status: "active"
+contract:
+  primary_key:
+    - "ID"
+  grain: "One row per entity"
+  schema:
+    fields:
+      - name: "ID"
+        type: "string"
+        description: "ID field"
+        required: true

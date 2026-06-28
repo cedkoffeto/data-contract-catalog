@@ -1,0 +1,20 @@
+asset:
+  id: "bronze/bronze_security_security_incidents_008"
+  name: "BRONZE SECURITY SECURITY INCIDENTS 008"
+  maturity: "bronze"
+  domain: "security"
+  context: "security_incidents"
+  type: "dataset"
+  description: "Auto-generated contract for bronze_security_security_incidents_008"
+  version: "1.0.0"
+  status: "active"
+contract:
+  primary_key:
+    - "ID"
+  grain: "One row per entity"
+  schema:
+    fields:
+      - name: "ID"
+        type: "string"
+        description: "ID field"
+        required: true

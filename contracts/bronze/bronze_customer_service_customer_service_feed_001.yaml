@@ -1,0 +1,20 @@
+asset:
+  id: "bronze/bronze_customer_service_customer_service_feed_001"
+  name: "BRONZE CUSTOMER SERVICE CUSTOMER SERVICE FEED 001"
+  maturity: "bronze"
+  domain: "customer_service"
+  context: "customer_service_feed"
+  type: "dataset"
+  description: "Auto-generated contract for bronze_customer_service_customer_service_feed_001"
+  version: "1.0.0"
+  status: "active"
+contract:
+  primary_key:
+    - "ID"
+  grain: "One row per entity"
+  schema:
+    fields:
+      - name: "ID"
+        type: "string"
+        description: "ID field"
+        required: true

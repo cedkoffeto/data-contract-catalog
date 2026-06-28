@@ -4,10 +4,10 @@ import { useState, useMemo, useCallback } from "react";
 import { ReactFlowProvider } from "@xyflow/react";
 import {
   parseContractsToGraph,
-  layoutGraph,
+  layoutByMode,
   type DataModelContract,
   type LoadedModel,
-  type LayoutDirection,
+  type LayoutMode,
 } from "@/src/lib/data-model";
 import { ModelGraph } from "./ModelGraph";
 import { FilterPanel } from "./FilterPanel";
@@ -39,7 +39,8 @@ export function DataModelEditor({
   models: LoadedModel[];
 }) {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
-  const [direction, setDirection] = useState<LayoutDirection>("LR");
+  const [focusedTable, setFocusedTable] = useState<string | null>(null);
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>("LR");
   const [viewMode, setViewMode] = useState<"detailed" | "compact">("detailed");
 
   const { nodes: rawNodes, edges } = useMemo(
@@ -48,8 +49,8 @@ export function DataModelEditor({
   );
 
   const { nodes: laidOutNodes } = useMemo(
-    () => layoutGraph(rawNodes, edges, direction),
-    [rawNodes, edges, direction],
+    () => layoutByMode(rawNodes, edges, layoutMode),
+    [rawNodes, edges, layoutMode],
   );
 
   const connectedFields = useMemo(
@@ -57,28 +58,45 @@ export function DataModelEditor({
     [edges],
   );
 
-  const [visibleTables, setVisibleTables] = useState<Set<string>>(() =>
-    new Set(rawNodes.map((n) => n.id)),
-  );
+  // Build neighbor map from edges
+  const neighborIds = useMemo(() => {
+    const m = new Map<string, Set<string>>();
+    for (const e of edges) {
+      if (!m.has(e.source)) m.set(e.source, new Set());
+      if (!m.has(e.target)) m.set(e.target, new Set());
+      m.get(e.source)!.add(e.target);
+      m.get(e.target)!.add(e.source);
+    }
+    return m;
+  }, [edges]);
 
-  const allVisible = visibleTables.size === rawNodes.length;
-
-  const handleToggleTable = useCallback((id: string) => {
-    setVisibleTables((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  const handleFocusTable = useCallback((slug: string) => {
+    setFocusedTable((prev) => (prev === slug ? null : slug));
   }, []);
 
-  const handleToggleAll = useCallback(() => {
-    setVisibleTables((prev) =>
-      prev.size === rawNodes.length
-        ? new Set()
-        : new Set(rawNodes.map((n) => n.id)),
-    );
-  }, [rawNodes]);
+  const handleClearFocus = useCallback(() => {
+    setFocusedTable(null);
+  }, []);
+
+  // visibleTables derived from focus state
+  const visibleTables = useMemo(() => {
+    if (!focusedTable) {
+      return new Set(rawNodes.map((n) => n.id));
+    }
+    const ids = new Set<string>([focusedTable]);
+    const nbors = neighborIds.get(focusedTable);
+    if (nbors) {
+      for (const id of nbors) ids.add(id);
+    }
+    return ids;
+  }, [focusedTable, rawNodes, neighborIds]);
+
+  const allVisible = !focusedTable;
+
+  // Toggles are no-ops when focused
+  const handleToggleTable = useCallback((_id: string) => {}, []);
+  const handleToggleAll = useCallback(() => {}, []);
+  const handleToggleDomain = useCallback((_domain: string, _nodeIds: string[]) => {}, []);
 
   const selectedContract = useMemo(
     () => (selectedSlug ? contracts.find((c) => c.slug === selectedSlug) ?? null : null),
@@ -91,13 +109,16 @@ export function DataModelEditor({
 
   return (
     <ReactFlowProvider>
-      <div className="flex h-full gap-0 overflow-hidden">
+      <div className="absolute inset-0 flex gap-0 overflow-hidden">
         <FilterPanel
           nodes={rawNodes}
           visibleTables={visibleTables}
           onToggleTable={handleToggleTable}
+          onToggleDomain={handleToggleDomain}
           onToggleAll={handleToggleAll}
           allVisible={allVisible}
+          focusedTable={focusedTable}
+          onFocusTable={handleFocusTable}
         />
 
         <div className="flex min-w-0 flex-1 flex-col">
@@ -105,6 +126,14 @@ export function DataModelEditor({
             <span className="text-sm text-gray-500">
               {visibleTables.size} / {rawNodes.length} tables visible
             </span>
+            {focusedTable && (
+              <button
+                onClick={handleClearFocus}
+                className="ml-auto rounded-md bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+              >
+                Clear focus
+              </button>
+            )}
           </div>
 
           <div className="min-h-0 flex-1">
@@ -114,10 +143,12 @@ export function DataModelEditor({
               connectedFields={connectedFields}
               viewMode={viewMode}
               visibleTables={visibleTables}
-              direction={direction}
+              layoutMode={layoutMode}
               onViewModeChange={setViewMode}
-              onDirectionChange={setDirection}
+              onLayoutModeChange={setLayoutMode}
               onNodeClick={handleNodeClick}
+              onHeaderClick={handleFocusTable}
+              focusedTable={focusedTable}
             />
           </div>
         </div>

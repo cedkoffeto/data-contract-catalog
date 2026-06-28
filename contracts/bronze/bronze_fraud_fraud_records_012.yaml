@@ -1,0 +1,20 @@
+asset:
+  id: "bronze/bronze_fraud_fraud_records_012"
+  name: "BRONZE FRAUD FRAUD RECORDS 012"
+  maturity: "bronze"
+  domain: "fraud"
+  context: "fraud_records"
+  type: "dataset"
+  description: "Auto-generated contract for bronze_fraud_fraud_records_012"
+  version: "1.0.0"
+  status: "active"
+contract:
+  primary_key:
+    - "ID"
+  grain: "One row per entity"
+  schema:
+    fields:
+      - name: "ID"
+        type: "string"
+        description: "ID field"
+        required: true

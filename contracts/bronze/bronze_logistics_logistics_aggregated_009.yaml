@@ -1,0 +1,20 @@
+asset:
+  id: "bronze/bronze_logistics_logistics_aggregated_009"
+  name: "BRONZE LOGISTICS LOGISTICS AGGREGATED 009"
+  maturity: "bronze"
+  domain: "logistics"
+  context: "logistics_aggregated"
+  type: "dataset"
+  description: "Auto-generated contract for bronze_logistics_logistics_aggregated_009"
+  version: "1.0.0"
+  status: "active"
+contract:
+  primary_key:
+    - "ID"
+  grain: "One row per entity"
+  schema:
+    fields:
+      - name: "ID"
+        type: "string"
+        description: "ID field"
+        required: true

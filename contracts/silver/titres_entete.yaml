@@ -3,7 +3,7 @@ asset:
   id: "silver/titre_entete"
   name: "EN-TÊTE COMPTES TITRES"
   maturity: "silver"
-  domain: ""
+  domain: "TITRES"
   context: "TITRES"
   type: "data_product"
   description: >
