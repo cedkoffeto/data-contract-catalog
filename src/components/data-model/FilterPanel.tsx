@@ -105,19 +105,19 @@ export function FilterPanel({
       }`}
       style={{ width: open ? width : undefined }}
     >
-      <div className="flex items-center border-b border-gray-200 px-2.5 py-2">
-        <button
-          onClick={() => setOpen(!open)}
-          className="text-xs font-medium text-gray-500 hover:text-gray-700"
-          title={open ? "Close panel" : "Open panel"}
-        >
-          {open ? <PanelLeftClose size={15} /> : <PanelLeft size={15} />}
-        </button>
+      <div className="flex items-center border-b border-gray-200 pl-2.5 pr-0 py-2">
         {open && (
           <span className="flex-1 text-center text-sm font-bold text-gray-900">
             Data Model Editor
           </span>
         )}
+        <button
+          onClick={() => setOpen(!open)}
+          className="ml-auto shrink-0 text-xs font-medium text-gray-500 hover:text-gray-700"
+          title={open ? "Close panel" : "Open panel"}
+        >
+          {open ? <PanelLeftClose size={15} /> : <PanelLeft size={15} />}
+        </button>
       </div>
 
       {open && (
