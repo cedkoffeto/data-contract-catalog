@@ -79,6 +79,25 @@ export function ModelGraph({
     setNodes((nds) => nds.map((n) => ({ ...n, hidden: !visibleTables.has(n.id) })));
   }, [visibleTables, setNodes]);
 
+  const handleMouseEnter = useCallback((_event: React.MouseEvent, node: Node) => {
+    setHighlightedNode(node.id);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setHighlightedNode(null);
+  }, []);
+
+  // Precompute neighbor set when highlightedNode changes — O(E) once instead of O(E) per node
+  const highlightedNeighbors = useMemo(() => {
+    if (!highlightedNode) return null;
+    const nbors = new Set<string>();
+    for (const e of edges) {
+      if (e.source === highlightedNode) nbors.add(e.target);
+      if (e.target === highlightedNode) nbors.add(e.source);
+    }
+    return nbors;
+  }, [highlightedNode, edges]);
+
   // Update opacity when highlight changes
   useEffect(() => {
     if (!highlightedNeighbors) {
@@ -115,30 +134,11 @@ export function ModelGraph({
     [edges, visibleTables],
   );
 
-  const handleMouseEnter = useCallback((_event: React.MouseEvent, node: Node) => {
-    setHighlightedNode(node.id);
-  }, []);
-
-  const handleMouseLeave = useCallback(() => {
-    setHighlightedNode(null);
-  }, []);
-
-  // Precompute neighbor set when highlightedNode changes — O(E) once instead of O(E) per node
-  const highlightedNeighbors = useMemo(() => {
-    if (!highlightedNode) return null;
-    const nbors = new Set<string>();
-    for (const e of edges) {
-      if (e.source === highlightedNode) nbors.add(e.target);
-      if (e.target === highlightedNode) nbors.add(e.source);
-    }
-    return nbors;
-  }, [highlightedNode, edges]);
-
   return (
     <ViewModeCtx.Provider value={ctxValue}>
       <div className="relative h-full w-full">
         <ReactFlow
-          nodes={visibleNodes}
+          nodes={nodes}
           edges={filteredEdges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
