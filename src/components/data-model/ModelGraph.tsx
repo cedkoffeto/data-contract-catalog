@@ -157,7 +157,7 @@ export function ModelGraph({
           panOnScrollMode={PanOnScrollMode.Free}
           zoomActivationKeyCode="Control"
         >
-          {showGrid && <Background variant={BackgroundVariant.Lines} color="#e2e8f0" gap={4} size={1} />}
+          {showGrid && <Background variant={BackgroundVariant.Lines} color="#e2e8f0" gap={8} size={1} />}
           <MiniMap
             pannable
             zoomable
