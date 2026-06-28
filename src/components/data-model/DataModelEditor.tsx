@@ -179,7 +179,6 @@ export function DataModelEditor({
               onNodeClick={handleNodeClick}
               onHeaderClick={handleFocusTable}
               focusedTable={focusedTable}
-              selectedSlug={selectedSlug}
             />
           </div>
         </div>

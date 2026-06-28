@@ -48,7 +48,6 @@ export function ModelGraph({
   onNodeClick,
   onHeaderClick,
   focusedTable,
-  selectedSlug,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
@@ -61,7 +60,6 @@ export function ModelGraph({
   onNodeClick: (slug: string) => void;
   onHeaderClick: (slug: string) => void;
   focusedTable: string | null;
-  selectedSlug: string | null;
 }) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -80,18 +78,7 @@ export function ModelGraph({
     setCenter(node.position.x + (node.measured?.width ?? 220) / 2, node.position.y + 20, { zoom: 1 });
   }, [focusedTable, nodes, setCenter]);
 
-  // Center on selected table (from SidePanel / field click)
-  useEffect(() => {
-    if (!selectedSlug) return;
-    const id = nodes.find((n) => {
-      const d = n.data as { slug?: string };
-      return d.slug === selectedSlug;
-    })?.id;
-    if (!id) return;
-    const node = nodes.find((n) => n.id === id);
-    if (!node) return;
-    setCenter(node.position.x + (node.measured?.width ?? 220) / 2, node.position.y + 20, { zoom: 1 });
-  }, [selectedSlug, nodes, setCenter]);
+
 
   const ctxValue = useMemo<ViewModeValue>(() => ({
     viewMode,
