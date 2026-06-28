@@ -260,10 +260,10 @@ function nodeHeight(node: Node): number {
 export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB" = "LR"): { nodes: Node[]; edges: Edge[] } {
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: direction, nodesep: 100, ranksep: 160, marginx: 80, marginy: 80 });
+   g.setGraph({ rankdir: direction, nodesep: 120, ranksep: 200, marginx: 120, marginy: 120 });
 
   for (const node of nodes) {
-    g.setNode(node.id, { width: 220, height: nodeHeight(node) });
+    g.setNode(node.id, { width: 300, height: nodeHeight(node) });
   }
   for (const edge of edges) {
     g.setEdge(edge.source, edge.target);
@@ -284,9 +284,9 @@ export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB"
 }
 
 export function layoutLayerGraph(nodes: Node[], _edges: Edge[]): { nodes: Node[]; edges: Edge[] } {
-  const LAYER_ORDER = ["bronze", "silver", "gold"];
-  const COLUMN_WIDTH = 380;
-  const VERTICAL_GAP = 50;
+   const LAYER_ORDER = ["bronze", "silver", "gold"];
+  const COLUMN_WIDTH = 480;
+  const VERTICAL_GAP = 60;
 
   // Single pass: group + cache heights
   const heights = new Map<string, number>();
@@ -330,9 +330,9 @@ export function layoutLayerGraph(nodes: Node[], _edges: Edge[]): { nodes: Node[]
 }
 
 export function layoutDomainGraph(nodes: Node[], _edges: Edge[]): { nodes: Node[]; edges: Edge[] } {
-  const COLUMN_WIDTH = 280;
-  const DOMAIN_GAP_X = 120;
-  const VERTICAL_GAP = 40;
+  const COLUMN_WIDTH = 320;
+  const DOMAIN_GAP_X = 160;
+  const VERTICAL_GAP = 50;
 
   // Single pass: group + cache heights
   const heights = new Map<string, number>();
