@@ -147,6 +147,9 @@ export function ModelGraph({
           maxZoom={2}
           attributionPosition="bottom-left"
           nodesDraggable={true}
+          nodesConnectable={false}
+          edgesUpdatable={false}
+          onlyRenderVisibleElements={true}
           nodeDragThreshold={5}
           panOnScroll={true}
           panOnScrollMode={PanOnScrollMode.Free}
