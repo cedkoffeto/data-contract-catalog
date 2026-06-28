@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
-import { Search, Eye, EyeOff, PanelLeftClose, PanelLeft, GripVertical } from "lucide-react";
+import { Search, Eye, EyeOff, PanelLeftClose } from "lucide-react";
 import type { Node } from "@xyflow/react";
 
 const LAYERS = [
@@ -104,24 +104,32 @@ export function FilterPanel({
   return (
     <div
       className={`relative flex h-full min-h-0 flex-col border-r border-gray-200 bg-white shrink-0 ${
-        open ? "" : "w-10"
+        open ? "" : "w-auto"
       }`}
       style={{ width: open ? width : undefined }}
     >
-      <div className="flex items-center border-b border-gray-200 pl-2.5 pr-3 py-2">
-        {open && (
+      {open ? (
+        <div className="flex items-center border-b border-gray-200 pl-2.5 pr-3 py-2">
           <span className="flex-1 text-center text-sm font-bold text-gray-900">
             Data Model Editor
           </span>
-        )}
+          <button
+            onClick={() => setOpen(false)}
+            className="ml-auto shrink-0 rounded-md p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+            title="Close panel"
+          >
+            <PanelLeftClose size={18} />
+          </button>
+        </div>
+      ) : (
         <button
-          onClick={() => setOpen(!open)}
-          className="ml-auto shrink-0 rounded-md p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700"
-          title={open ? "Close panel" : "Open panel"}
+          onClick={() => setOpen(true)}
+          className="m-1.5 shrink-0 rounded-lg border border-gray-200 bg-white px-2.5 py-2 text-xs font-medium text-gray-600 shadow-sm hover:bg-gray-50 hover:text-gray-800"
+          title="Open panel"
         >
-          {open ? <PanelLeftClose size={18} /> : <PanelLeft size={18} />}
+          Open panel
         </button>
-      </div>
+      )}
 
       {open && (
         <>

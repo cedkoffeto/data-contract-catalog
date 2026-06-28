@@ -74,6 +74,27 @@ export function ModelGraph({
   useEffect(() => { setNodes(initialNodes); }, [initialNodes, setNodes]);
   useEffect(() => { setEdges(initialEdges); }, [initialEdges, setEdges]);
 
+  // Update hidden when visibleTables changes
+  useEffect(() => {
+    setNodes((nds) => nds.map((n) => ({ ...n, hidden: !visibleTables.has(n.id) })));
+  }, [visibleTables, setNodes]);
+
+  // Update opacity when highlight changes
+  useEffect(() => {
+    if (!highlightedNeighbors) {
+      setNodes((nds) => nds.map((n) => {
+        if (!n.style?.opacity || n.style.opacity === 1) return n;
+        const { opacity: _, ...rest } = n.style;
+        return { ...n, style: Object.keys(rest).length ? rest : undefined };
+      }));
+    } else {
+      setNodes((nds) => nds.map((n) => ({
+        ...n,
+        style: { ...n.style, opacity: highlightedNode === n.id || highlightedNeighbors.has(n.id) ? 1 : 0.25 },
+      })));
+    }
+  }, [highlightedNeighbors, highlightedNode, setNodes]);
+
   // Center on focused table
   useEffect(() => {
     if (!focusedTable) return;
@@ -82,8 +103,6 @@ export function ModelGraph({
     setCenter(node.position.x + (node.measured?.width ?? 220) / 2, node.position.y + 20, { zoom: 1 });
   }, [focusedTable, nodes, setCenter]);
 
-
-
   const ctxValue = useMemo<ViewModeValue>(() => ({
     viewMode,
     connectedFields,
@@ -91,16 +110,9 @@ export function ModelGraph({
     onFieldClick: onNodeClick,
   }), [viewMode, connectedFields, onHeaderClick, onNodeClick]);
 
-  // Filter by visibility
-  const filteredNodes = useMemo(() => {
-    return nodes.filter((n) => visibleTables.has(n.id));
-  }, [nodes, visibleTables]);
-
-  const filteredNodeIds = useMemo(() => new Set(filteredNodes.map((n) => n.id)), [filteredNodes]);
-
   const filteredEdges = useMemo(
-    () => edges.filter((e) => filteredNodeIds.has(e.source) && filteredNodeIds.has(e.target)),
-    [edges, filteredNodeIds],
+    () => edges.filter((e) => visibleTables.has(e.source) && visibleTables.has(e.target)),
+    [edges, visibleTables],
   );
 
   const handleMouseEnter = useCallback((_event: React.MouseEvent, node: Node) => {
@@ -121,15 +133,6 @@ export function ModelGraph({
     }
     return nbors;
   }, [highlightedNode, edges]);
-
-  const visibleNodes = useMemo(() => {
-    if (!highlightedNeighbors) return filteredNodes;
-    return filteredNodes.map((n) => {
-      const opacity = highlightedNode === n.id || highlightedNeighbors.has(n.id) ? 1 : 0.25;
-      if (n.style?.opacity === opacity) return n;
-      return { ...n, style: { ...n.style, opacity } };
-    });
-  }, [filteredNodes, highlightedNeighbors, highlightedNode]);
 
   return (
     <ViewModeCtx.Provider value={ctxValue}>
