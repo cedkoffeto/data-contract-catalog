@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { ReactFlowProvider } from "@xyflow/react";
 import {
   parseContractsToGraph,
@@ -12,7 +12,7 @@ import {
 import { ModelGraph } from "./ModelGraph";
 import { FilterPanel } from "./FilterPanel";
 import { SidePanel } from "./SidePanel";
-import type { Edge } from "@xyflow/react";
+import type { Edge, Node as FlowNode } from "@xyflow/react";
 
 function computeConnectedFields(edges: Edge[]): Map<string, Set<string>> {
   const map = new Map<string, Set<string>>();
@@ -48,10 +48,11 @@ export function DataModelEditor({
     [contracts, models],
   );
 
-  const { nodes: laidOutNodes } = useMemo(
-    () => layoutByMode(rawNodes, edges, layoutMode),
-    [rawNodes, edges, layoutMode],
-  );
+  const [laidOutNodes, setLaidOutNodes] = useState<FlowNode[]>(() => layoutByMode(rawNodes, edges, layoutMode).nodes);
+
+  useEffect(() => {
+    setLaidOutNodes(layoutByMode(rawNodes, edges, layoutMode).nodes);
+  }, [rawNodes, edges, layoutMode]);
 
   const connectedFields = useMemo(
     () => computeConnectedFields(edges),
@@ -137,6 +138,13 @@ export function DataModelEditor({
     setSelectedSlug(slug);
   }, []);
 
+  const handleFitViewVisible = useCallback(() => {
+    const visibleIds = new Set(visibleTables);
+    const visNodes = rawNodes.filter((n) => visibleIds.has(n.id));
+    const reLayouted = layoutByMode(visNodes, edges, layoutMode);
+    setLaidOutNodes(reLayouted.nodes);
+  }, [rawNodes, visibleTables, edges, layoutMode]);
+
   return (
     <ReactFlowProvider>
       <div className="absolute inset-0 flex gap-0 overflow-hidden">
@@ -179,6 +187,7 @@ export function DataModelEditor({
               onNodeClick={handleNodeClick}
               onHeaderClick={handleFocusTable}
               focusedTable={focusedTable}
+              onFitViewVisible={handleFitViewVisible}
             />
           </div>
         </div>

@@ -96,6 +96,7 @@ export function GraphControls({
   onLayoutModeChange,
   showGrid,
   onToggleGrid,
+  onFitViewVisible,
 }: {
   viewMode: "detailed" | "compact";
   onViewModeChange: (v: "detailed" | "compact") => void;
@@ -103,6 +104,7 @@ export function GraphControls({
   onLayoutModeChange: (d: LayoutMode) => void;
   showGrid: boolean;
   onToggleGrid: () => void;
+  onFitViewVisible: () => void;
 }) {
   const { zoomIn, zoomOut, fitView } = useReactFlow();
   const { zoom } = useViewport();
@@ -120,7 +122,7 @@ export function GraphControls({
       <button onClick={() => zoomOut()} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Zoom out">
         <ZoomOut size={16} />
       </button>
-      <button onClick={() => fitView({ padding: 0.2 })} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Fit view">
+      <button onClick={() => { onFitViewVisible(); setTimeout(() => fitView({ padding: 0.2 }), 50); }} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Fit view">
         <Maximize2 size={16} />
       </button>
       <button

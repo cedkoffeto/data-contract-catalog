@@ -48,6 +48,7 @@ export function ModelGraph({
   onNodeClick,
   onHeaderClick,
   focusedTable,
+  onFitViewVisible,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
@@ -60,6 +61,7 @@ export function ModelGraph({
   onNodeClick: (slug: string) => void;
   onHeaderClick: (slug: string) => void;
   focusedTable: string | null;
+  onFitViewVisible: () => void;
 }) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -172,6 +174,7 @@ export function ModelGraph({
               onLayoutModeChange={onLayoutModeChange}
               showGrid={showGrid}
               onToggleGrid={() => setShowGrid((v) => !v)}
+              onFitViewVisible={onFitViewVisible}
             />
           </Panel>
         </ReactFlow>
