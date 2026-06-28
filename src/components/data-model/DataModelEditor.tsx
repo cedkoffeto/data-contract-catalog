@@ -78,25 +78,55 @@ export function DataModelEditor({
     setFocusedTable(null);
   }, []);
 
-  // visibleTables derived from focus state
+  // State-based visibility toggles (only active when no focus)
+  const [visibleTablesState, setVisibleTablesState] = useState<Set<string>>(() =>
+    new Set(rawNodes.map((n) => n.id)),
+  );
+
+  // When focused, visibleTables is derived; otherwise use toggle state
   const visibleTables = useMemo(() => {
-    if (!focusedTable) {
-      return new Set(rawNodes.map((n) => n.id));
+    if (focusedTable) {
+      const ids = new Set<string>([focusedTable]);
+      const nbors = neighborIds.get(focusedTable);
+      if (nbors) for (const id of nbors) ids.add(id);
+      return ids;
     }
-    const ids = new Set<string>([focusedTable]);
-    const nbors = neighborIds.get(focusedTable);
-    if (nbors) {
-      for (const id of nbors) ids.add(id);
-    }
-    return ids;
-  }, [focusedTable, rawNodes, neighborIds]);
+    return visibleTablesState;
+  }, [focusedTable, neighborIds, visibleTablesState]);
 
-  const allVisible = !focusedTable;
+  const allVisible = focusedTable ? true : visibleTablesState.size === rawNodes.length;
 
-  // Toggles are no-ops when focused
-  const handleToggleTable = useCallback((_id: string) => {}, []);
-  const handleToggleAll = useCallback(() => {}, []);
-  const handleToggleDomain = useCallback((_domain: string, _nodeIds: string[]) => {}, []);
+  const handleToggleTable = useCallback((id: string) => {
+    setVisibleTablesState((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const handleToggleAll = useCallback(() => {
+    setVisibleTablesState((prev) =>
+      prev.size === rawNodes.length
+        ? new Set()
+        : new Set(rawNodes.map((n) => n.id)),
+    );
+  }, [rawNodes]);
+
+  const handleToggleDomain = useCallback((_domain: string, nodeIds: string[]) => {
+    setVisibleTablesState((prev) => {
+      const allVisible = nodeIds.every((id) => prev.has(id));
+      const next = new Set(prev);
+      for (const id of nodeIds) {
+        if (allVisible) next.delete(id);
+        else next.add(id);
+      }
+      return next;
+    });
+  }, []);
+
+  // When focused, toggles are no-ops (hide individual buttons in FilterPanel instead)
+  const filterTogglesDisabled = !!focusedTable;
 
   const selectedContract = useMemo(
     () => (selectedSlug ? contracts.find((c) => c.slug === selectedSlug) ?? null : null),
