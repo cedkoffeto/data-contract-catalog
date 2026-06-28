@@ -105,24 +105,26 @@ export function ModelGraph({
     setHighlightedNode(null);
   }, []);
 
-  const nodeOpacity = useCallback(
-    (node: Node) => {
-      if (!highlightedNode) return 1;
-      if (node.id === highlightedNode) return 1;
-      const hasEdge = edges.some(
-        (e) =>
-          (e.source === highlightedNode && e.target === node.id) ||
-          (e.target === highlightedNode && e.source === node.id),
-      );
-      return hasEdge ? 1 : 0.25;
-    },
-    [highlightedNode, edges],
-  );
+  // Precompute neighbor set when highlightedNode changes — O(E) once instead of O(E) per node
+  const highlightedNeighbors = useMemo(() => {
+    if (!highlightedNode) return null;
+    const nbors = new Set<string>();
+    for (const e of edges) {
+      if (e.source === highlightedNode) nbors.add(e.target);
+      if (e.target === highlightedNode) nbors.add(e.source);
+    }
+    return nbors;
+  }, [highlightedNode, edges]);
 
-  const visibleNodes = useMemo(
-    () => filteredNodes.map((n) => ({ ...n, style: { ...n.style, opacity: nodeOpacity(n) } })),
-    [filteredNodes, nodeOpacity],
-  );
+  const visibleNodes = useMemo(() => {
+    return filteredNodes.map((n) => {
+      let opacity = 1;
+      if (highlightedNeighbors && highlightedNode !== n.id) {
+        opacity = highlightedNeighbors.has(n.id) ? 1 : 0.25;
+      }
+      return { ...n, style: { ...n.style, opacity } };
+    });
+  }, [filteredNodes, highlightedNeighbors, highlightedNode]);
 
   return (
     <ViewModeCtx.Provider value={ctxValue}>
