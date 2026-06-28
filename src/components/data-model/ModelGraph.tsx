@@ -123,11 +123,10 @@ export function ModelGraph({
   }, [highlightedNode, edges]);
 
   const visibleNodes = useMemo(() => {
+    if (!highlightedNeighbors) return filteredNodes;
     return filteredNodes.map((n) => {
-      let opacity = 1;
-      if (highlightedNeighbors && highlightedNode !== n.id) {
-        opacity = highlightedNeighbors.has(n.id) ? 1 : 0.25;
-      }
+      const opacity = highlightedNode === n.id || highlightedNeighbors.has(n.id) ? 1 : 0.25;
+      if (n.style?.opacity === opacity) return n;
       return { ...n, style: { ...n.style, opacity } };
     });
   }, [filteredNodes, highlightedNeighbors, highlightedNode]);
