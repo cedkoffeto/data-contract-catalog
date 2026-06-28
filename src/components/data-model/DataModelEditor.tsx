@@ -175,7 +175,7 @@ export function DataModelEditor({
           onLayerFilter={setLayerFilter}
         />
 
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="relative flex min-w-0 flex-1 flex-col">
           <div className="min-h-0 flex-1">
             <ModelGraph
               initialNodes={laidOutNodes}
@@ -191,6 +191,19 @@ export function DataModelEditor({
               focusedTable={focusedTable}
               onFitViewVisible={handleFitViewVisible}
             />
+          </div>
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-1.5 shadow-sm">
+            <span className="text-sm text-gray-500">
+              {visibleTables.size} / {rawNodes.length} tables visible
+            </span>
+            {focusedTable && (
+              <button
+                onClick={handleClearFocus}
+                className="rounded-md bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+              >
+                Clear focus
+              </button>
+            )}
           </div>
         </div>
       </div>
