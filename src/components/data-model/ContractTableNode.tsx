@@ -42,8 +42,8 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
         selected ? "border-blue-500 ring-2 ring-blue-200" : ""
       }`}
       style={{
-        minWidth: 220,
-        maxWidth: 300,
+        minWidth: 260,
+        maxWidth: 420,
         borderColor: selected ? undefined : d.color,
         boxShadow: selected
           ? "0 10px 25px -5px rgba(0,0,0,0.15), 0 4px 10px -6px rgba(0,0,0,0.1)"
@@ -57,7 +57,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
         onClick={() => onHeaderClick(d.slug)}
       >
         <Table size={15} />
-        <span className="truncate text-sm font-semibold tracking-tight" title={`${d.label}\ndomain: ${d.domain}\ncontext: ${d.context ?? ""}\nslug: ${d.slug}`}>{d.slug}</span>
+        <span className="text-sm font-semibold tracking-tight" title={`${d.label}\ndomain: ${d.domain}\ncontext: ${d.context ?? ""}\nslug: ${d.slug}`}>{d.slug}</span>
         <span className={`ml-auto rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none ${maturityBadge[d.maturity as string] || maturityBadge.bronze}`}>
           {d.maturity as string}
         </span>
