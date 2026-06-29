@@ -8,11 +8,12 @@ import {
   type DataModelContract,
   type LoadedModel,
   type LayoutMode,
+  type ContractTableNodeData,
 } from "@/src/lib/data-model";
 import { ModelGraph } from "./ModelGraph";
 import { FilterPanel } from "./FilterPanel";
 import { SidePanel } from "./SidePanel";
-import type { Edge, Node as FlowNode } from "@xyflow/react";
+import { Position, type Edge, type Node as FlowNode } from "@xyflow/react";
 
 function computeConnectedFields(edges: Edge[]): Map<string, Set<string>> {
   const map = new Map<string, Set<string>>();
@@ -43,22 +44,32 @@ export function DataModelEditor({
   const [layerFilter, setLayerFilter] = useState<string | null>(null);
   const [layoutMode, setLayoutMode] = useState<LayoutMode>("LR");
   const [viewMode, setViewMode] = useState<"detailed" | "compact">("detailed");
+  const [fitKey, setFitKey] = useState(0);
 
   const { nodes: rawNodes, edges } = useMemo(
     () => parseContractsToGraph(contracts, models),
     [contracts, models],
   );
 
-  const [laidOutNodes, setLaidOutNodes] = useState<FlowNode[]>(() => layoutByMode(rawNodes, edges, layoutMode).nodes);
-
-  useEffect(() => {
-    setLaidOutNodes(layoutByMode(rawNodes, edges, layoutMode).nodes);
-  }, [rawNodes, edges, layoutMode]);
-
   const connectedFields = useMemo(
     () => computeConnectedFields(edges),
     [edges],
   );
+
+  const layoutEdges = useMemo(() => {
+    const isTB = layoutMode === "TB";
+    return edges.map((e) => ({
+      ...e,
+      sourcePosition: isTB ? Position.Bottom : Position.Right,
+      targetPosition: isTB ? Position.Top : Position.Left,
+    }));
+  }, [edges, layoutMode]);
+
+  const [laidOutNodes, setLaidOutNodes] = useState<FlowNode[]>(() => layoutByMode(rawNodes, layoutEdges, layoutMode, connectedFields, viewMode).nodes);
+
+  useEffect(() => {
+    setLaidOutNodes(layoutByMode(rawNodes, layoutEdges, layoutMode, connectedFields, viewMode).nodes);
+  }, [rawNodes, layoutEdges, layoutMode, connectedFields, viewMode]);
 
   // Build neighbor map from edges
   const neighborIds = useMemo(() => {
@@ -99,7 +110,7 @@ export function DataModelEditor({
   const filteredByLayer = useMemo(() => {
     if (!layerFilter) return rawNodes;
     return rawNodes.filter((n) => {
-      const d = n.data as { maturity?: string };
+      const d = n.data as ContractTableNodeData;
       return (d.maturity || "bronze") === layerFilter;
     });
   }, [rawNodes, layerFilter]);
@@ -116,17 +127,20 @@ export function DataModelEditor({
   }, []);
 
   const handleToggleAll = useCallback(() => {
-    const filteredIds = new Set(filteredByLayer.map((n) => n.id));
+    const targetIds = layerFilter
+      ? new Set(filteredByLayer.map((n) => n.id))
+      : new Set(rawNodes.map((n) => n.id));
     setVisibleTablesState((prev) => {
-      const allFilteredVisible = [...filteredIds].every((id) => prev.has(id));
+      const allVisible = [...targetIds].every((id) => prev.has(id));
       const next = new Set(prev);
-      for (const id of filteredIds) {
-        if (allFilteredVisible) next.delete(id);
+      for (const id of targetIds) {
+        if (allVisible) next.delete(id);
         else next.add(id);
       }
       return next;
     });
-  }, [filteredByLayer]);
+    setFitKey((k) => k + 1);
+  }, [rawNodes, layerFilter, filteredByLayer]);
 
   const handleToggleDomain = useCallback((_domain: string, nodeIds: string[]) => {
     setVisibleTablesState((prev) => {
@@ -138,10 +152,8 @@ export function DataModelEditor({
       }
       return next;
     });
+    setFitKey((k) => k + 1);
   }, []);
-
-  // When focused, toggles are no-ops (hide individual buttons in FilterPanel instead)
-  const filterTogglesDisabled = !!focusedTable;
 
   const selectedContract = useMemo(
     () => (selectedSlug ? contracts.find((c) => c.slug === selectedSlug) ?? null : null),
@@ -154,10 +166,15 @@ export function DataModelEditor({
 
   const handleFitViewVisible = useCallback(() => {
     const visibleIds = new Set(visibleTables);
-    const visNodes = rawNodes.filter((n) => visibleIds.has(n.id));
-    const reLayouted = layoutByMode(visNodes, edges, layoutMode);
-    setLaidOutNodes(reLayouted.nodes);
-  }, [rawNodes, visibleTables, edges, layoutMode]);
+    const visibleNodes = rawNodes.filter((n) => visibleIds.has(n.id));
+    const { nodes: laidOutVisible } = layoutByMode(visibleNodes, layoutEdges, layoutMode, connectedFields, viewMode);
+    const newPosMap = new Map(laidOutVisible.map((n) => [n.id, n]));
+    setLaidOutNodes((prev) => {
+      const prevMap = new Map(prev.map((n) => [n.id, n]));
+      return rawNodes.map((n) => newPosMap.get(n.id) ?? prevMap.get(n.id) ?? n);
+    });
+    setFitKey((k) => k + 1);
+  }, [rawNodes, layoutEdges, layoutMode, connectedFields, viewMode, visibleTables]);
 
   return (
     <ReactFlowProvider>
@@ -179,7 +196,7 @@ export function DataModelEditor({
           <div className="min-h-0 flex-1">
             <ModelGraph
               initialNodes={laidOutNodes}
-              initialEdges={edges}
+              initialEdges={layoutEdges}
               connectedFields={connectedFields}
               viewMode={viewMode}
               visibleTables={visibleTables}
@@ -190,6 +207,7 @@ export function DataModelEditor({
               onHeaderClick={handleFocusTable}
               focusedTable={focusedTable}
               onFitViewVisible={handleFitViewVisible}
+              fitKey={fitKey}
             />
           </div>
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-1.5 shadow-sm">
