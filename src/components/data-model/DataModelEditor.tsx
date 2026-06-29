@@ -167,7 +167,8 @@ export function DataModelEditor({
   const handleFitViewVisible = useCallback(() => {
     const visibleIds = new Set(visibleTables);
     const visibleNodes = rawNodes.filter((n) => visibleIds.has(n.id));
-    const { nodes: laidOutVisible } = layoutByMode(visibleNodes, layoutEdges, layoutMode, connectedFields, viewMode);
+    const visibleEdges = layoutEdges.filter((e) => visibleIds.has(e.source) && visibleIds.has(e.target));
+    const { nodes: laidOutVisible } = layoutByMode(visibleNodes, visibleEdges, layoutMode, connectedFields, viewMode);
     const newPosMap = new Map(laidOutVisible.map((n) => [n.id, n]));
     setLaidOutNodes((prev) => {
       const prevMap = new Map(prev.map((n) => [n.id, n]));
