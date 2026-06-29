@@ -125,7 +125,7 @@ export function DataModelEditor({
     });
   }, [rawNodes, layerFilter]);
 
-  const allFilteredVisible = focusedTable ? true : filteredByLayer.every((n) => visibleTablesState.has(n.id));
+  const allFilteredVisible = filteredByLayer.every((n) => visibleTablesState.has(n.id));
 
   const handleToggleTable = useCallback((id: string) => {
     setVisibleTablesState((prev) => {
@@ -202,7 +202,7 @@ export function DataModelEditor({
               initialEdges={layoutEdges}
               connectedFields={connectedFields}
               viewMode={viewMode}
-              visibleTables={visibleTables}
+          visibleTables={visibleTablesState}
               layoutMode={layoutMode}
               onViewModeChange={setViewMode}
               onLayoutModeChange={setLayoutMode}
