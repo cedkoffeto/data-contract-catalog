@@ -3,6 +3,7 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { Search, Eye, EyeOff, PanelLeftClose } from "lucide-react";
 import type { Node } from "@xyflow/react";
+import type { ContractTableNodeData } from "@/src/lib/data-model";
 
 const LAYERS = [
   { id: "bronze", label: "Bronze", activeClass: "bg-amber-500 text-white shadow-sm", inactiveClass: "bg-white text-amber-700 hover:bg-amber-50" },
@@ -22,6 +23,10 @@ const MIN_WIDTH = 160;
 const MAX_WIDTH = 600;
 const DEFAULT_WIDTH = 288;
 
+function nodeData(n: Node): ContractTableNodeData {
+  return n.data as ContractTableNodeData;
+}
+
 export function FilterPanel({
   nodes,
   visibleTables,
@@ -29,8 +34,7 @@ export function FilterPanel({
   onToggleDomain,
   onToggleAll,
   allVisible,
-  focusedTable,
-  onFocusTable,
+  onCenterTable,
   layerFilter,
   onLayerFilter,
 }: {
@@ -40,8 +44,7 @@ export function FilterPanel({
   onToggleDomain: (domain: string, nodeIds: string[]) => void;
   onToggleAll: () => void;
   allVisible: boolean;
-  focusedTable: string | null;
-  onFocusTable: (slug: string) => void;
+  onCenterTable: (slug: string) => void;
   layerFilter: string | null;
   onLayerFilter: (layer: string | null) => void;
 }) {
@@ -78,9 +81,9 @@ export function FilterPanel({
   // Group filtered nodes by domain
   const groupedByDomain = useMemo(() => {
     const filtered = nodes.filter((n) => {
-      const d = n.data as { maturity?: string; domain?: string; label?: string };
-      const layer = (d.maturity as string) || "bronze";
-      const domain = (d.domain as string) || "Unknown";
+      const d = nodeData(n);
+      const layer = d.maturity || "bronze";
+      const domain = d.domain || "Unknown";
       if (layerFilter && layer !== layerFilter) return false;
       if (query) {
         const q = query.toLowerCase();
@@ -92,7 +95,8 @@ export function FilterPanel({
 
     const grouped = new Map<string, Node[]>();
     for (const n of filtered) {
-      const domain = ((n.data as { domain?: string })?.domain as string) || "Unknown";
+      const d = nodeData(n);
+      const domain = d.domain || "Unknown";
       if (!grouped.has(domain)) grouped.set(domain, []);
       grouped.get(domain)!.push(n);
     }
@@ -124,10 +128,12 @@ export function FilterPanel({
       ) : (
         <button
           onClick={() => setOpen(true)}
-          className="m-1.5 shrink-0 rounded-lg border border-gray-200 bg-white px-2.5 py-2 text-xs font-medium text-gray-600 shadow-sm hover:bg-gray-50 hover:text-gray-800"
+          className="m-1.5 shrink-0 rounded-lg border border-gray-200 bg-white p-2 text-gray-500 shadow-sm hover:bg-gray-50 hover:text-gray-700"
           title="Open panel"
         >
-          Open panel
+          <span style={{ display: "inline-block", transform: "scaleX(-1)" }}>
+            <PanelLeftClose size={18} />
+          </span>
         </button>
       )}
 
@@ -198,20 +204,19 @@ export function FilterPanel({
                   </button>
                 </div>
                 {ns.map((n) => {
-                  const d = n.data as { label?: string; slug?: string; maturity?: string; color?: string };
+                  const d = nodeData(n);
                   const isVisible = visibleTables.has(n.id);
-                  const layer = (d.maturity as string) || "bronze";
                   return (
                     <div
                       key={n.id}
-                      className={`flex cursor-pointer items-center gap-2 border-b border-gray-100 px-3 py-1.5 text-xs hover:bg-gray-50 ${focusedTable === n.id ? "bg-blue-50" : ""}`}
-                      onClick={() => onFocusTable(n.id)}
+                      className={`flex items-center gap-2 border-b border-gray-100 px-3 py-1.5 text-xs ${isVisible ? "cursor-pointer hover:bg-gray-50" : "opacity-40"}`}
+                      onClick={isVisible ? () => onCenterTable(n.id) : undefined}
                     >
                       <div
-                        className={`h-2 w-2 shrink-0 rounded-full ${focusedTable === n.id ? "ring-2 ring-blue-300 ring-offset-1" : ""}`}
+                        className="h-2 w-2 shrink-0 rounded-full"
                         style={{ backgroundColor: d.color }}
                       />
-                      <span className={`flex-1 min-w-0 truncate font-medium ${focusedTable === n.id ? "text-blue-700" : "text-gray-700"}`} title={d.label ?? ""}>{d.slug}</span>
+                      <span className="flex-1 min-w-0 truncate font-medium text-gray-700" title={d.label ?? ""}>{d.slug}</span>
                       <button
                         onClick={(e) => { e.stopPropagation(); onToggleTable(n.id); }}
                         className="shrink-0 text-gray-400 hover:text-gray-600"

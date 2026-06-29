@@ -40,11 +40,12 @@ export function DataModelEditor({
   models: LoadedModel[];
 }) {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
-  const [focusedTable, setFocusedTable] = useState<string | null>(null);
   const [layerFilter, setLayerFilter] = useState<string | null>(null);
   const [layoutMode, setLayoutMode] = useState<LayoutMode>("LR");
   const [viewMode, setViewMode] = useState<"detailed" | "compact">("detailed");
   const [fitKey, setFitKey] = useState(0);
+  const [centerSlug, setCenterSlug] = useState<string | null>(null);
+  const [centerKey, setCenterKey] = useState(0);
 
   const { nodes: rawNodes, edges } = useMemo(
     () => parseContractsToGraph(contracts, models),
@@ -68,7 +69,7 @@ export function DataModelEditor({
   const [laidOutNodes, setLaidOutNodes] = useState<FlowNode[]>(() => layoutByMode(rawNodes, layoutEdges, layoutMode, connectedFields, viewMode).nodes);
 
   function relayoutVisible(prev: FlowNode[]): FlowNode[] {
-    const ids = new Set(visibleTables);
+    const ids = new Set(visibleTablesState);
     const visibleNodes = rawNodes.filter((n) => ids.has(n.id));
     const visibleEdges = layoutEdges.filter((e) => ids.has(e.source) && ids.has(e.target));
     const { nodes: laidOut } = layoutByMode(visibleNodes, visibleEdges, layoutMode, connectedFields, viewMode);
@@ -81,41 +82,14 @@ export function DataModelEditor({
     setLaidOutNodes(relayoutVisible);
   }, [rawNodes, layoutEdges, layoutMode, connectedFields, viewMode]);
 
-  // Build neighbor map from edges
-  const neighborIds = useMemo(() => {
-    const m = new Map<string, Set<string>>();
-    for (const e of edges) {
-      if (!m.has(e.source)) m.set(e.source, new Set());
-      if (!m.has(e.target)) m.set(e.target, new Set());
-      m.get(e.source)!.add(e.target);
-      m.get(e.target)!.add(e.source);
-    }
-    return m;
-  }, [edges]);
-
-  const handleFocusTable = useCallback((slug: string) => {
-    setFocusedTable((prev) => (prev === slug ? null : slug));
-  }, []);
-
-  const handleClearFocus = useCallback(() => {
-    setFocusedTable(null);
-  }, []);
-
-  // State-based visibility toggles (only active when no focus)
   const [visibleTablesState, setVisibleTablesState] = useState<Set<string>>(() =>
     new Set(rawNodes.map((n) => n.id)),
   );
 
-  // When focused, visibleTables is derived; otherwise use toggle state
-  const visibleTables = useMemo(() => {
-    if (focusedTable) {
-      const ids = new Set<string>([focusedTable]);
-      const nbors = neighborIds.get(focusedTable);
-      if (nbors) for (const id of nbors) ids.add(id);
-      return ids;
-    }
-    return visibleTablesState;
-  }, [focusedTable, neighborIds, visibleTablesState]);
+  const handleCenterView = useCallback((slug: string) => {
+    setCenterSlug(slug);
+    setCenterKey((k) => k + 1);
+  }, []);
 
   const filteredByLayer = useMemo(() => {
     if (!layerFilter) return rawNodes;
@@ -184,13 +158,12 @@ export function DataModelEditor({
       <div className="absolute inset-0 flex gap-0 overflow-hidden">
         <FilterPanel
           nodes={rawNodes}
-          visibleTables={visibleTables}
+          visibleTables={visibleTablesState}
           onToggleTable={handleToggleTable}
           onToggleDomain={handleToggleDomain}
           onToggleAll={handleToggleAll}
           allVisible={allFilteredVisible}
-          focusedTable={focusedTable}
-          onFocusTable={handleFocusTable}
+          onCenterTable={handleCenterView}
           layerFilter={layerFilter}
           onLayerFilter={setLayerFilter}
         />
@@ -202,29 +175,22 @@ export function DataModelEditor({
               initialEdges={layoutEdges}
               connectedFields={connectedFields}
               viewMode={viewMode}
-          visibleTables={visibleTablesState}
+              visibleTables={visibleTablesState}
               layoutMode={layoutMode}
               onViewModeChange={setViewMode}
               onLayoutModeChange={setLayoutMode}
               onNodeClick={handleNodeClick}
               onHeaderClick={handleNodeClick}
-              focusedTable={focusedTable}
               onFitViewVisible={handleFitViewVisible}
               fitKey={fitKey}
+              centerSlug={centerSlug}
+              centerKey={centerKey}
             />
           </div>
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-1.5 shadow-sm">
             <span className="text-sm text-gray-500">
-              {visibleTables.size} / {rawNodes.length} tables visible
+              {visibleTablesState.size} / {rawNodes.length} tables visible
             </span>
-            {focusedTable && (
-              <button
-                onClick={handleClearFocus}
-                className="rounded-md bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"
-              >
-                Clear focus
-              </button>
-            )}
           </div>
         </div>
       </div>

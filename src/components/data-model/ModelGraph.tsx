@@ -48,9 +48,10 @@ export function ModelGraph({
   onLayoutModeChange,
   onNodeClick,
   onHeaderClick,
-  focusedTable,
   onFitViewVisible,
   fitKey,
+  centerSlug,
+  centerKey,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
@@ -62,9 +63,10 @@ export function ModelGraph({
   onLayoutModeChange: (d: LayoutMode) => void;
   onNodeClick: (slug: string) => void;
   onHeaderClick: (slug: string) => void;
-  focusedTable: string | null;
   onFitViewVisible: () => void;
   fitKey: number;
+  centerSlug: string | null;
+  centerKey: number;
 }) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -73,6 +75,7 @@ export function ModelGraph({
 
   const { setCenter, fitView } = useReactFlow();
   const fitKeyRef = useRef(0);
+  const centerKeyRef = useRef(0);
 
   useEffect(() => { setEdges(initialEdges); }, [initialEdges, setEdges]);
 
@@ -124,13 +127,14 @@ export function ModelGraph({
     }
   }, [highlightedNeighbors, highlightedNode, setNodes]);
 
-  // Center on focused table
+  // Center on table from panel
   useEffect(() => {
-    if (!focusedTable) return;
-    const node = nodes.find((n) => n.id === focusedTable);
+    if (!centerSlug || centerKey <= centerKeyRef.current) return;
+    centerKeyRef.current = centerKey;
+    const node = nodes.find((n) => n.id === centerSlug);
     if (!node) return;
     setCenter(node.position.x + (node.measured?.width ?? 220) / 2, node.position.y + 20, { zoom: 1 });
-  }, [focusedTable, nodes, setCenter]);
+  }, [centerSlug, centerKey, nodes, setCenter]);
 
   // Fit view after re-layout — ref-guarded so it only fires once per fitKey increment
   useLayoutEffect(() => {
