@@ -76,12 +76,18 @@ export function ModelGraph({
 
   useEffect(() => { setEdges(initialEdges); }, [initialEdges, setEdges]);
 
+  // Sync layout changes + apply current visibility — loses drag positions
   useLayoutEffect(() => {
     setNodes(initialNodes.map((n) => ({
       ...n,
       hidden: !visibleTables.has(n.id),
     })));
-  }, [initialNodes, setNodes, visibleTables]);
+  }, [initialNodes, setNodes]);
+
+  // Toggle visibility — preserves dragged positions (uses callback form)
+  useEffect(() => {
+    setNodes((nds) => nds.map((n) => ({ ...n, hidden: !visibleTables.has(n.id) })));
+  }, [initialNodes, visibleTables, setNodes]);
 
   const handleMouseEnter = useCallback((_event: React.MouseEvent, node: Node) => {
     setHighlightedNode(node.id);
@@ -176,7 +182,7 @@ export function ModelGraph({
           zoomActivationKeyCode="Control"
         >
           {showGrid && <Background variant={BackgroundVariant.Lines} color="#e2e8f0" gap={8} size={1} />}
-          <Panel position="bottom-right" className="!m-0" style={{ bottom: 12, right: 12, display: 'flex', gap: 8, alignItems: 'stretch' }}>
+          <Panel position="bottom-right" className="!m-0" style={{ bottom: 12, right: 230 }}>
             <GraphControls
               viewMode={viewMode}
               onViewModeChange={onViewModeChange}
@@ -185,20 +191,20 @@ export function ModelGraph({
               showGrid={showGrid}
               onToggleGrid={() => setShowGrid((v) => !v)}
               onFitViewVisible={onFitViewVisible}
-              className="h-full justify-center"
-            />
-            <MiniMap
-              pannable
-              zoomable
-              nodeStrokeColor="#94a3b8"
-              nodeStrokeWidth={4}
-              nodeBorderRadius={2}
-              nodeColor={(n) => ((n.data as ContractTableNodeData)?.color) || "#94a3b8"}
-              maskColor="rgba(0,0,0,0.1)"
-              className="!rounded-lg !border !border-gray-200 !shadow-sm cursor-grab active:cursor-grabbing"
-              style={{ position: 'static' }}
             />
           </Panel>
+          <MiniMap
+            pannable
+            zoomable
+            position="bottom-right"
+            nodeStrokeColor="#94a3b8"
+            nodeStrokeWidth={4}
+            nodeBorderRadius={2}
+            nodeColor={(n) => ((n.data as ContractTableNodeData)?.color) || "#94a3b8"}
+            maskColor="rgba(0,0,0,0.1)"
+            className="!rounded-lg !border !border-gray-200 !shadow-sm cursor-grab active:cursor-grabbing"
+            style={{ bottom: 12, right: 12 }}
+          />
         </ReactFlow>
       </div>
     </ViewModeCtx.Provider>

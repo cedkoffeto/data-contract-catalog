@@ -67,8 +67,18 @@ export function DataModelEditor({
 
   const [laidOutNodes, setLaidOutNodes] = useState<FlowNode[]>(() => layoutByMode(rawNodes, layoutEdges, layoutMode, connectedFields, viewMode).nodes);
 
+  function relayoutVisible(prev: FlowNode[]): FlowNode[] {
+    const ids = new Set(visibleTables);
+    const visibleNodes = rawNodes.filter((n) => ids.has(n.id));
+    const visibleEdges = layoutEdges.filter((e) => ids.has(e.source) && ids.has(e.target));
+    const { nodes: laidOut } = layoutByMode(visibleNodes, visibleEdges, layoutMode, connectedFields, viewMode);
+    const newPosMap = new Map(laidOut.map((n) => [n.id, n]));
+    const prevMap = new Map(prev.map((n) => [n.id, n]));
+    return rawNodes.map((n) => newPosMap.get(n.id) ?? prevMap.get(n.id) ?? n);
+  }
+
   useEffect(() => {
-    setLaidOutNodes(layoutByMode(rawNodes, layoutEdges, layoutMode, connectedFields, viewMode).nodes);
+    setLaidOutNodes(relayoutVisible);
   }, [rawNodes, layoutEdges, layoutMode, connectedFields, viewMode]);
 
   // Build neighbor map from edges
@@ -164,18 +174,10 @@ export function DataModelEditor({
     setSelectedSlug(slug);
   }, []);
 
-  const handleFitViewVisible = useCallback(() => {
-    const visibleIds = new Set(visibleTables);
-    const visibleNodes = rawNodes.filter((n) => visibleIds.has(n.id));
-    const visibleEdges = layoutEdges.filter((e) => visibleIds.has(e.source) && visibleIds.has(e.target));
-    const { nodes: laidOutVisible } = layoutByMode(visibleNodes, visibleEdges, layoutMode, connectedFields, viewMode);
-    const newPosMap = new Map(laidOutVisible.map((n) => [n.id, n]));
-    setLaidOutNodes((prev) => {
-      const prevMap = new Map(prev.map((n) => [n.id, n]));
-      return rawNodes.map((n) => newPosMap.get(n.id) ?? prevMap.get(n.id) ?? n);
-    });
+  function handleFitViewVisible() {
+    setLaidOutNodes(relayoutVisible);
     setFitKey((k) => k + 1);
-  }, [rawNodes, layoutEdges, layoutMode, connectedFields, viewMode, visibleTables]);
+  }
 
   return (
     <ReactFlowProvider>
@@ -205,7 +207,7 @@ export function DataModelEditor({
               onViewModeChange={setViewMode}
               onLayoutModeChange={setLayoutMode}
               onNodeClick={handleNodeClick}
-              onHeaderClick={handleFocusTable}
+              onHeaderClick={handleNodeClick}
               focusedTable={focusedTable}
               onFitViewVisible={handleFitViewVisible}
               fitKey={fitKey}
