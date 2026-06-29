@@ -1,33 +1,24 @@
 "use client";
 
-import { memo, useContext, useMemo } from "react";
+import { memo, useContext, useEffect, useMemo } from "react";
 import type { NodeProps } from "@xyflow/react";
 import { Handle, Position } from "@xyflow/react";
 import { Table, Key } from "lucide-react";
 import { ViewModeCtx } from "./ModelGraph";
+import type { ContractTableNodeData } from "@/src/lib/data-model";
 
-export type ContractTableNodeData = Record<string, unknown> & {
-  label: string;
-  slug: string;
-  maturity: "bronze" | "silver" | "gold";
-  domain: string;
-  context?: string;
-  fields: { name: string; type: string }[];
-  color: string;
-  onHeaderClick?: (slug: string) => void;
-  onFieldClick?: (slug: string) => void;
-};
+const STYLE_ID = "dcc-turbo-spinner";
 
 const maturityBadge: Record<string, string> = {
-  bronze: "bg-amber-600 text-white border-amber-700",
-  silver: "bg-slate-400 text-white border-slate-500",
-  gold:   "bg-yellow-500 text-white border-yellow-600",
+  bronze: "bg-amber-100 text-amber-700",
+  silver: "bg-slate-100 text-slate-600",
+  gold:   "bg-yellow-100 text-yellow-700",
 };
 
 export const ContractTableNode = memo(function ContractTableNode({ selected, id, data }: NodeProps) {
   const d = data as ContractTableNodeData;
   const { viewMode, connectedFields, onHeaderClick, onFieldClick } = useContext(ViewModeCtx);
-  const allFields = d.fields as { name: string; type: string }[];
+  const allFields = d.fields;
   const nodeConnected = connectedFields.get(id);
   const connectedSet = nodeConnected ?? new Set<string>();
 
@@ -36,55 +27,92 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
     return allFields.filter((f) => connectedSet.has(f.name));
   }, [allFields, viewMode, connectedSet]);
 
+  // Inject spinner keyframes once
+  useEffect(() => {
+    if (typeof document !== "undefined" && !document.getElementById(STYLE_ID)) {
+      const s = document.createElement("style");
+      s.id = STYLE_ID;
+      s.textContent = `
+        @keyframes dcc-turbo-spin {
+          100% { transform: translate(-50%, -50%) rotate(-360deg); }
+        }
+      `;
+      document.head.appendChild(s);
+    }
+  }, []);
+
   return (
     <div
-      className={`rounded-xl border-2 bg-white shadow-xl transition-shadow hover:shadow-2xl ${
-        selected ? "border-blue-500 ring-2 ring-blue-200" : ""
+      className={`overflow-hidden rounded-lg shadow-md transition-shadow hover:shadow-lg ${
+        selected ? "ring-2 ring-blue-500" : ""
       }`}
       style={{
-        minWidth: 260,
-        maxWidth: 420,
-        borderColor: selected ? undefined : d.color,
-        boxShadow: selected
-          ? "0 10px 25px -5px rgba(0,0,0,0.15), 0 4px 10px -6px rgba(0,0,0,0.1)"
-          : `0 8px 20px -6px ${d.color}40, 0 2px 6px -2px rgba(0,0,0,0.08)`,
+        minWidth: 220,
+        maxWidth: 380,
+        padding: 2,
+        position: "relative",
       }}
     >
-      {/* Header */}
+      {/* Gradient disc — larger than container, circular, clipped by overflow-hidden */}
       <div
-        className="flex cursor-pointer items-center gap-2 rounded-t-[10px] px-3 py-2.5 text-white"
-        style={{ backgroundColor: d.color }}
-        onClick={() => onHeaderClick(d.slug)}
-      >
-        <Table size={15} />
-        <span className="text-sm font-semibold tracking-tight" title={`${d.label}\ndomain: ${d.domain}\ncontext: ${d.context ?? ""}\nslug: ${d.slug}`}>{d.slug}</span>
-        <span className={`ml-auto rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none ${maturityBadge[d.maturity as string] || maturityBadge.bronze}`}>
-          {d.maturity as string}
-        </span>
-      </div>
+        className="pointer-events-none absolute"
+        style={{
+          left: "50%",
+          top: "50%",
+          width: "calc(100% * 1.41421356237)",
+          paddingBottom: "calc(100% * 1.41421356237)",
+          borderRadius: "100%",
+          background: `conic-gradient(from -160deg at 50% 50%, ${d.color}, ${d.color}aa, ${d.color}44, ${d.color}aa, ${d.color})`,
+          transform: selected ? "translate(-50%, -50%)" : "translate(-50%, -50%)",
+          animation: selected ? "dcc-turbo-spin 4s linear infinite" : "none",
+        }}
+      />
 
-      {/* Fields */}
-      <div className="divide-y divide-gray-100">
-        {fields.length === 0 && (
-          <div className="px-3 py-2 text-xs italic text-gray-400">No fields</div>
-        )}
-        {fields.map((f) => {
-          const isConnected = connectedSet.has(f.name);
-          return (
-            <div key={f.name} className="relative flex cursor-pointer items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50" onClick={() => onFieldClick?.(d.slug)}>
-              <Handle type="target" position={Position.Left} id={f.name} className="!opacity-0 !pointer-events-none" />
-              {isConnected ? (
-                <Key size={11} className="shrink-0 text-amber-500" />
-              ) : (
-                <span className="w-[11px] shrink-0" />
-              )}
-              <span className="font-mono text-[11px] font-medium">{f.name}</span>
-              <span className="ml-auto text-[10px] text-gray-400">{f.type}</span>
-              <Handle type="source" position={Position.Right} id={f.name} className="!opacity-0 !pointer-events-none" />
-            </div>
-          );
-        })}
+      {/* Inner content — masks the gradient core so only the 2px padding shows it */}
+      <div className="relative rounded-[7px] bg-white">
+        {/* Color accent strip */}
+        <div style={{ height: 4, backgroundColor: d.color }} />
+
+        {/* Header */}
+        <div
+          className="flex cursor-pointer items-center gap-2 px-3 py-2"
+          onClick={() => onHeaderClick(d.slug)}
+        >
+          <Table size={14} style={{ color: d.color }} />
+          <span className="min-w-0 truncate text-sm font-semibold tracking-tight text-gray-900" title={`${d.label}\ndomain: ${d.domain}\ncontext: ${d.context ?? ""}\nslug: ${d.slug}`}>{d.slug}</span>
+          <span className={`ml-auto rounded px-1.5 py-[2px] text-[9px] font-bold uppercase leading-none ${maturityBadge[d.maturity as string] || maturityBadge.bronze}`}>
+            {d.maturity as string}
+          </span>
+        </div>
+
+        {/* Separator between header and fields */}
+        <div className="mx-3" style={{ height: 1, backgroundColor: d.color, opacity: 0.3 }} />
+
+        {/* Fields */}
+        <div>
+          {fields.length === 0 && (
+            <div className="px-3 py-2 text-xs italic text-gray-400">No fields</div>
+          )}
+          {fields.map((f) => {
+            const isConnected = connectedSet.has(f.name);
+            return (
+              <div key={f.name} className="relative flex cursor-pointer items-center gap-2 border-t border-gray-50 px-3 py-[7px] text-xs text-gray-700 hover:bg-gray-50" onClick={() => onFieldClick?.(d.slug)}>
+                <Handle type="target" position={Position.Left} id={f.name} className="!opacity-0 !pointer-events-none" />
+                {isConnected ? (
+                  <Key size={10} className="shrink-0 text-amber-500" />
+                ) : (
+                  <span className="w-[10px] shrink-0" />
+                )}
+                <span className={`font-mono text-[11px] leading-none ${isConnected ? "font-bold text-gray-900" : "text-gray-600"}`}>{f.name}</span>
+                <span className="ml-auto text-[10px] leading-none text-gray-400">{f.type}</span>
+                <Handle type="source" position={Position.Right} id={f.name} className="!opacity-0 !pointer-events-none" />
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
+}, (prev, next) => {
+  return prev.selected === next.selected && prev.id === next.id && prev.data === next.data;
 });

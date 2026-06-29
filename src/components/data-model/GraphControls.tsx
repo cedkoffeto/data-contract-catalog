@@ -97,6 +97,7 @@ export function GraphControls({
   showGrid,
   onToggleGrid,
   onFitViewVisible,
+  className,
 }: {
   viewMode: "detailed" | "compact";
   onViewModeChange: (v: "detailed" | "compact") => void;
@@ -105,13 +106,14 @@ export function GraphControls({
   showGrid: boolean;
   onToggleGrid: () => void;
   onFitViewVisible: () => void;
+  className?: string;
 }) {
   const { zoomIn, zoomOut, fitView } = useReactFlow();
   const { zoom } = useViewport();
   const zoomPercent = Math.round(zoom * 100);
 
   return (
-    <div className="flex flex-col gap-1.5 rounded-lg border border-gray-200 bg-white p-1.5 shadow-md">
+    <div className={`flex flex-col gap-1.5 rounded-lg border border-gray-200 bg-white p-1.5 shadow-md ${className ?? ""}`}>
       {/* Zoom */}
       <button onClick={() => zoomIn()} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Zoom in">
         <ZoomIn size={16} />
@@ -122,7 +124,7 @@ export function GraphControls({
       <button onClick={() => zoomOut()} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Zoom out">
         <ZoomOut size={16} />
       </button>
-      <button onClick={() => { onFitViewVisible(); setTimeout(() => fitView({ padding: 0.2 }), 50); }} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Fit view">
+      <button onClick={() => { onFitViewVisible(); }} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Fit view">
         <Maximize2 size={16} />
       </button>
       <button

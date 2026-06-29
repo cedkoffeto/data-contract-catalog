@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useMemo, useCallback, useState, useEffect } from "react";
+import { createContext, useContext, useMemo, useCallback, useState, useEffect, useLayoutEffect, useRef } from "react";
 import {
   ReactFlow,
   Background,
@@ -18,7 +18,7 @@ import "@xyflow/react/dist/style.css";
 import { ContractTableNode } from "./ContractTableNode";
 import { RelationEdge } from "./RelationEdge";
 import { GraphControls } from "./GraphControls";
-import type { LayoutMode } from "@/src/lib/data-model";
+import type { LayoutMode, ContractTableNodeData } from "@/src/lib/data-model";
 
 const nodeTypes = { contractTable: ContractTableNode };
 const edgeTypes = { relationEdge: RelationEdge };
@@ -50,6 +50,7 @@ export function ModelGraph({
   onHeaderClick,
   focusedTable,
   onFitViewVisible,
+  fitKey,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
@@ -63,21 +64,24 @@ export function ModelGraph({
   onHeaderClick: (slug: string) => void;
   focusedTable: string | null;
   onFitViewVisible: () => void;
+  fitKey: number;
 }) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [highlightedNode, setHighlightedNode] = useState<string | null>(null);
   const [showGrid, setShowGrid] = useState(true);
 
-  const { setCenter } = useReactFlow();
+  const { setCenter, fitView } = useReactFlow();
+  const fitKeyRef = useRef(0);
 
-  useEffect(() => { setNodes(initialNodes); }, [initialNodes, setNodes]);
   useEffect(() => { setEdges(initialEdges); }, [initialEdges, setEdges]);
 
-  // Update hidden when visibleTables changes
-  useEffect(() => {
-    setNodes((nds) => nds.map((n) => ({ ...n, hidden: !visibleTables.has(n.id) })));
-  }, [visibleTables, setNodes]);
+  useLayoutEffect(() => {
+    setNodes(initialNodes.map((n) => ({
+      ...n,
+      hidden: !visibleTables.has(n.id),
+    })));
+  }, [initialNodes, setNodes, visibleTables]);
 
   const handleMouseEnter = useCallback((_event: React.MouseEvent, node: Node) => {
     setHighlightedNode(node.id);
@@ -122,6 +126,17 @@ export function ModelGraph({
     setCenter(node.position.x + (node.measured?.width ?? 220) / 2, node.position.y + 20, { zoom: 1 });
   }, [focusedTable, nodes, setCenter]);
 
+  // Fit view after re-layout — ref-guarded so it only fires once per fitKey increment
+  useLayoutEffect(() => {
+    if (fitKey > fitKeyRef.current) {
+      fitKeyRef.current = fitKey;
+      const hasVisible = visibleTables.size > 0;
+      requestAnimationFrame(() => {
+        if (hasVisible) fitView({ padding: 0.2, includeHiddenNodes: false });
+      });
+    }
+  }, [fitKey, fitView, visibleTables]);
+
   const ctxValue = useMemo<ViewModeValue>(() => ({
     viewMode,
     connectedFields,
@@ -161,16 +176,7 @@ export function ModelGraph({
           zoomActivationKeyCode="Control"
         >
           {showGrid && <Background variant={BackgroundVariant.Lines} color="#e2e8f0" gap={8} size={1} />}
-          <MiniMap
-            pannable
-            zoomable
-            nodeStrokeColor="#94a3b8"
-            nodeColor={(n) => ((n.data as { color?: string })?.color) || "#94a3b8"}
-            maskColor="rgba(0,0,0,0.1)"
-            className="!rounded-lg !border !border-gray-200 !shadow-sm cursor-grab active:cursor-grabbing"
-            style={{ bottom: 16 }}
-          />
-          <Panel position="bottom-right" className="!m-0" style={{ bottom: 180, right: 12 }}>
+          <Panel position="bottom-right" className="!m-0" style={{ bottom: 12, right: 12, display: 'flex', gap: 8, alignItems: 'stretch' }}>
             <GraphControls
               viewMode={viewMode}
               onViewModeChange={onViewModeChange}
@@ -179,6 +185,18 @@ export function ModelGraph({
               showGrid={showGrid}
               onToggleGrid={() => setShowGrid((v) => !v)}
               onFitViewVisible={onFitViewVisible}
+              className="h-full justify-center"
+            />
+            <MiniMap
+              pannable
+              zoomable
+              nodeStrokeColor="#94a3b8"
+              nodeStrokeWidth={4}
+              nodeBorderRadius={2}
+              nodeColor={(n) => ((n.data as ContractTableNodeData)?.color) || "#94a3b8"}
+              maskColor="rgba(0,0,0,0.1)"
+              className="!rounded-lg !border !border-gray-200 !shadow-sm cursor-grab active:cursor-grabbing"
+              style={{ position: 'static' }}
             />
           </Panel>
         </ReactFlow>
