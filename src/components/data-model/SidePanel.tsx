@@ -85,7 +85,7 @@ export function SidePanel({
     >
       <div
         className="flex max-h-[70vh] flex-col rounded-lg bg-white shadow-xl"
-        style={{ width: "min(50vw, 560px)" }}
+        style={{ width: "min(65vw, 800px)" }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
