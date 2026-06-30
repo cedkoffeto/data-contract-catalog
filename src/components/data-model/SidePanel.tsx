@@ -17,8 +17,8 @@ function contractId(c: DataModelContract): string {
 }
 
 const nodeStyle = {
-  padding: "2px 8px",
-  fontSize: 10,
+  padding: "1px 6px",
+  fontSize: 8,
   border: "1px solid #d1d5db",
   borderRadius: 4,
   background: "#fff",
@@ -40,7 +40,7 @@ function RelationGraph({
 }) {
   const selfId = contractId(contract);
   const count = relations.length;
-  const spacing = 32;
+  const spacing = 26;
   const totalHeight = Math.max(0, (count - 1) * spacing);
 
   const nodes = useMemo<Node[]>(() => {
@@ -76,7 +76,7 @@ function RelationGraph({
       animated: true,
       style: { stroke: "#94a3b8", strokeWidth: 1.5 },
       label: edge.label as string,
-      labelStyle: { fontSize: 8, fill: "#94a3b8" },
+      labelStyle: { fontSize: 7, fill: "#94a3b8" },
     }));
   }, [relations, direction, selfId]);
 
