@@ -174,13 +174,13 @@ export function GraphControls({
           onChange={(e) => setZoomInput(e.target.value)}
           onBlur={handleZoomChange}
           onKeyDown={(e) => { if (e.key === "Enter") handleZoomChange(); if (e.key === "Escape") setEditingZoom(false); }}
-          className="h-6 w-14 rounded border border-gray-300 px-1 text-center text-[10px] font-semibold text-gray-700 tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          className="h-7 w-14 rounded border border-gray-300 px-1 text-center text-[10px] font-semibold text-gray-700 tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           autoFocus
         />
       ) : (
         <button
           onClick={() => { setZoomInput(String(zoomPercent)); setEditingZoom(true); }}
-          className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-gray-500 tabular-nums hover:bg-gray-50 hover:text-gray-700"
+          className="flex h-7 items-center rounded px-1.5 py-1 text-[10px] font-semibold text-gray-500 tabular-nums hover:bg-gray-50 hover:text-gray-700"
           title="Click to set zoom percentage"
         >
           {zoomPercent}%
@@ -218,7 +218,7 @@ export function GraphControls({
         title="Change layout"
       />
       <div className="mx-0.5 h-5 w-px bg-gray-200" />
-      <span className="whitespace-nowrap text-[11px] font-medium text-gray-400 select-none">
+      <span className="flex h-7 items-center whitespace-nowrap text-[11px] font-medium text-gray-400 select-none">
         {visibleCount} / {totalCount} tables visible
       </span>
       <div className="mx-0.5 h-5 w-px bg-gray-200" />
