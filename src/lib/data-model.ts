@@ -231,6 +231,21 @@ export function parseContractsToGraph(
     }
   }
 
+  // Assign offset indices to parallel edges (same source + target) to prevent overlap
+  const pairCount = new Map<string, number>();
+  for (const e of edges) {
+    const key = `${e.source}|${e.target}`;
+    pairCount.set(key, (pairCount.get(key) ?? 0) + 1);
+  }
+  const pairIdx = new Map<string, number>();
+  for (const e of edges) {
+    const key = `${e.source}|${e.target}`;
+    const total = pairCount.get(key)!;
+    const idx = pairIdx.get(key) ?? 0;
+    pairIdx.set(key, idx + 1);
+    e.data = { ...(e.data as object || {}), parallelOffset: idx - (total - 1) / 2 };
+  }
+
   return {
     nodes: Array.from(nodeMap.values()),
     edges,

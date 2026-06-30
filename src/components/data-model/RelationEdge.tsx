@@ -65,12 +65,16 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
 
   const { source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style, label, data, animated } = props;
 
+  const edgeData = (data ?? {}) as { cardSource?: string; cardTarget?: string; parallelOffset?: number };
+  const parallelOffset = edgeData.parallelOffset ?? 0;
+  const offsetPx = parallelOffset * 18;
+
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
-    sourceY,
+    sourceY: sourceY + offsetPx,
     sourcePosition,
     targetX,
-    targetY,
+    targetY: targetY + offsetPx,
     targetPosition,
   });
 
@@ -88,9 +92,8 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
     }
   }, []);
 
-  const cd = (data ?? {}) as { cardSource?: string; cardTarget?: string };
-  const cardSource = cd.cardSource === "many" ? "many" : "one";
-  const cardTarget = cd.cardTarget === "many" ? "many" : "one";
+  const cardSource = edgeData.cardSource === "many" ? "many" : "one";
+  const cardTarget = edgeData.cardTarget === "many" ? "many" : "one";
 
   const baseStrokeWidth = ((style as React.CSSProperties)?.strokeWidth as number) || 2;
   const isAnimated = !!animated;
