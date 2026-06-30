@@ -90,7 +90,7 @@ function RelationGraph({
     [onCenterView, selfId],
   );
 
-  const height = Math.max(50, count * spacing + 10);
+  const height = Math.max(80, count * spacing + 20);
 
   return (
     <div style={{ height, width: "100%" }}>
@@ -99,6 +99,7 @@ function RelationGraph({
         edges={edges}
         onNodeClick={onNodeClick}
         fitView
+        fitViewOptions={{ padding: 0.2 }}
         proOptions={{ hideAttribution: true }}
         panOnDrag={false}
         zoomOnScroll={false}
