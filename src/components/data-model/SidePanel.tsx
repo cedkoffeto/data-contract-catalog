@@ -28,6 +28,7 @@ export function SidePanel({
   onClose: () => void;
   onCenterView?: (slug: string) => void;
 }) {
+  const [tab, setTab] = useState<"fields" | "details">("fields");
   const [query, setQuery] = useState("");
 
   useEffect(() => {
@@ -101,121 +102,135 @@ export function SidePanel({
           </button>
         </div>
 
-        {/* Body */}
-        <div className="flex flex-1 flex-col overflow-hidden">
-          {/* Metadata row */}
-          <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-2 text-xs text-gray-600">
-            <span className={`rounded px-1 py-0.5 text-[10px] font-semibold ${maturityBadge[contract.maturity] || maturityBadge.bronze}`}>
-              {contract.maturity}
-            </span>
-            <span>{contract.domain}</span>
-            <span className="text-gray-400">{contract.context}</span>
-          </div>
+        {/* Tab bar */}
+        <div className="flex border-b border-gray-100">
+          <button
+            onClick={() => setTab("fields")}
+            className={`flex-1 px-4 py-1.5 text-[11px] font-semibold transition-colors ${tab === "fields" ? "border-b-2 border-blue-600 text-blue-700" : "text-gray-500 hover:text-gray-700"}`}
+          >
+            Fields
+          </button>
+          <button
+            onClick={() => setTab("details")}
+            className={`flex-1 px-4 py-1.5 text-[11px] font-semibold transition-colors ${tab === "details" ? "border-b-2 border-blue-600 text-blue-700" : "text-gray-500 hover:text-gray-700"}`}
+          >
+            Details
+          </button>
+        </div>
 
-          {/* Description */}
-          {contract.description && (
-            <div className="border-b border-gray-100 px-4 py-2 text-xs text-gray-600 leading-relaxed">
-              {contract.description}
+        {/* Tab content */}
+        {tab === "fields" ? (
+          <>
+            {/* Field search */}
+            <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-1.5">
+              <Search size={12} className="shrink-0 text-gray-400" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search fields..."
+                className="min-w-0 flex-1 text-xs text-gray-700 outline-none placeholder:text-gray-400"
+              />
             </div>
-          )}
 
-          {/* Relations */}
-          {(incoming.length > 0 || outgoing.length > 0) && (
-            <div className="border-b border-gray-100 px-4 py-1.5">
-              {outgoing.length > 0 && (
-                <div className="mb-1.5">
-                  <h3 className="text-[9px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">
-                    Outgoing ({outgoing.length})
-                  </h3>
-                  <div className="space-y-0.5">
-                    {outgoing.map(({ edge, other }) => (
-                      <button
-                        key={edge.id}
-                        onClick={() => onCenterView?.(contractId(other))}
-                        className="flex w-full items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-left hover:bg-gray-50 transition-colors"
-                      >
-                        <ArrowRight size={8} className="shrink-0 text-amber-500" />
-                        <span className="font-mono text-gray-700 truncate">{other.slug}</span>
-                        <span className="ml-auto text-[9px] text-gray-400 truncate">{edge.label as string}</span>
-                      </button>
-                    ))}
-                  </div>
+            {/* Fields list */}
+            <div className="flex-1 overflow-y-auto">
+              {filteredFields.length === 0 ? (
+                <div className="px-4 py-6 text-center text-xs text-gray-400">
+                  {query ? "No fields match your search" : "No fields"}
                 </div>
-              )}
-              {incoming.length > 0 && (
-                <div>
-                  <h3 className="text-[9px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">
-                    Incoming ({incoming.length})
-                  </h3>
-                  <div className="space-y-0.5">
-                    {incoming.map(({ edge, other }) => (
-                      <button
-                        key={edge.id}
-                        onClick={() => onCenterView?.(contractId(other))}
-                        className="flex w-full items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-left hover:bg-gray-50 transition-colors"
-                      >
-                        <ArrowLeft size={8} className="shrink-0 text-blue-500" />
-                        <span className="font-mono text-gray-700 truncate">{other.slug}</span>
-                        <span className="ml-auto text-[9px] text-gray-400 truncate">{edge.label as string}</span>
-                      </button>
-                    ))}
-                  </div>
+              ) : (
+                <div className="divide-y divide-gray-50">
+                  {filteredFields.map((f) => (
+                    <div key={f.name} className="flex items-center gap-2 px-4 py-2 text-xs hover:bg-gray-50">
+                      <span className="font-mono font-medium text-gray-900">{f.name}</span>
+                      <span className="ml-auto text-[11px] text-gray-400">{f.type}</span>
+                      {f.description && (
+                        <span className="text-[10px] text-gray-400 truncate max-w-[100px]" title={f.description}>
+                          {f.description}
+                        </span>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
-          )}
 
-          {/* Field search */}
-          <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-1.5">
-            <Search size={12} className="shrink-0 text-gray-400" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search fields..."
-              className="min-w-0 flex-1 text-xs text-gray-700 outline-none placeholder:text-gray-400"
-            />
-          </div>
-
-          {/* Fields list */}
+            {/* Link */}
+            <div className="flex items-center justify-between border-t border-gray-100 px-4 py-2">
+              <button
+                onClick={() => window.open(`/${contract.slug}`, "_blank", "noopener,noreferrer")}
+                className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 transition-colors"
+              >
+                <ExternalLink size={12} />
+                Open contract detail
+              </button>
+            </div>
+          </>
+        ) : (
           <div className="flex-1 overflow-y-auto">
-            {filteredFields.length === 0 ? (
-              <div className="px-4 py-6 text-center text-xs text-gray-400">
-                {query ? "No fields match your search" : "No fields"}
+            {/* Metadata row */}
+            <div className="flex items-center gap-3 border-b border-gray-100 px-4 py-2 text-xs text-gray-600">
+              <span className={`rounded px-1 py-0.5 text-[10px] font-semibold ${maturityBadge[contract.maturity] || maturityBadge.bronze}`}>
+                {contract.maturity}
+              </span>
+              <span>{contract.domain}</span>
+              <span className="text-gray-400">{contract.context}</span>
+            </div>
+
+            {/* Description */}
+            {contract.description && (
+              <div className="border-b border-gray-100 px-4 py-2 text-xs text-gray-600 leading-relaxed">
+                {contract.description}
               </div>
-            ) : (
-              <div className="divide-y divide-gray-50">
-                {filteredFields.map((f) => (
-                  <div key={f.name} className="flex items-center gap-2 px-4 py-2 text-xs hover:bg-gray-50">
-                    <span className="font-mono font-medium text-gray-900">{f.name}</span>
-                    <span className="ml-auto text-[11px] text-gray-400">{f.type}</span>
-                    {f.description && (
-                      <span className="text-[10px] text-gray-400 truncate max-w-[100px]" title={f.description}>
-                        {f.description}
-                      </span>
-                    )}
+            )}
+
+            {/* Relations */}
+            {(incoming.length > 0 || outgoing.length > 0) && (
+              <div className="px-4 py-1.5">
+                {outgoing.length > 0 && (
+                  <div className="mb-1.5">
+                    <h3 className="text-[9px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">
+                      Outgoing ({outgoing.length})
+                    </h3>
+                    <div className="space-y-0.5">
+                      {outgoing.map(({ edge, other }) => (
+                        <button
+                          key={edge.id}
+                          onClick={() => onCenterView?.(contractId(other))}
+                          className="flex w-full items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-left hover:bg-gray-50 transition-colors"
+                        >
+                          <ArrowRight size={8} className="shrink-0 text-amber-500" />
+                          <span className="font-mono text-gray-700 truncate">{other.slug}</span>
+                          <span className="ml-auto text-[9px] text-gray-400 truncate">{edge.label as string}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                ))}
+                )}
+                {incoming.length > 0 && (
+                  <div>
+                    <h3 className="text-[9px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">
+                      Incoming ({incoming.length})
+                    </h3>
+                    <div className="space-y-0.5">
+                      {incoming.map(({ edge, other }) => (
+                        <button
+                          key={edge.id}
+                          onClick={() => onCenterView?.(contractId(other))}
+                          className="flex w-full items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-left hover:bg-gray-50 transition-colors"
+                        >
+                          <ArrowLeft size={8} className="shrink-0 text-blue-500" />
+                          <span className="font-mono text-gray-700 truncate">{other.slug}</span>
+                          <span className="ml-auto text-[9px] text-gray-400 truncate">{edge.label as string}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
-        </div>
-
-        {/* Footer with link */}
-        <div className="flex items-center justify-between border-t border-gray-100 px-4 py-2">
-          <button
-            onClick={() => window.open(`/${contract.slug}`, "_blank", "noopener,noreferrer")}
-            className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 transition-colors"
-          >
-            <ExternalLink size={12} />
-            Open contract detail
-          </button>
-          <button
-            onClick={onClose}
-            className="rounded-md px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 transition-colors"
-          >
-            Close
-          </button>
-        </div>
+        )}
       </div>
     </div>
   );
