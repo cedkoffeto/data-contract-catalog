@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { X, Search, ExternalLink, ArrowRight, ArrowLeft } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Search, ArrowRight, ArrowLeft, ExternalLink } from "lucide-react";
 import type { DataModelContract } from "@/src/lib/data-model";
 import type { Edge } from "@xyflow/react";
 
@@ -29,6 +29,16 @@ export function SidePanel({
   onCenterView?: (slug: string) => void;
 }) {
   const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    if (contract) {
+      document.addEventListener("keydown", handleEscape);
+      return () => document.removeEventListener("keydown", handleEscape);
+    }
+  }, [contract, onClose]);
 
   const filteredFields = useMemo(() => {
     if (!query) return contract?.fields ?? [];
@@ -68,20 +78,26 @@ export function SidePanel({
   if (!contract) return null;
 
   return (
-    <>
-      {/* Backdrop */}
-      <div className="absolute inset-0 z-40 bg-black/15" onClick={onClose} />
-
-      {/* Sheet */}
-      <div className="absolute bottom-0 right-0 top-0 z-50 flex w-full max-w-sm flex-col border-l border-gray-200 bg-white shadow-xl">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
+      onClick={onClose}
+    >
+      <div
+        className="flex max-h-[70vh] flex-col rounded-lg bg-white shadow-xl"
+        style={{ width: "min(50vw, 560px)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-2.5">
+        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
           <div className="min-w-0 flex-1">
-            <h2 className="truncate text-sm font-semibold text-gray-900">{contract.name}</h2>
+            <h3 className="truncate text-sm font-semibold text-gray-900">{contract.name}</h3>
             <p className="truncate text-[11px] text-gray-500 font-mono">{contract.slug}</p>
           </div>
-          <button onClick={onClose} className="ml-2 rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
-            <X size={15} />
+          <button onClick={onClose} className="editor-close-button" aria-label="Close" type="button">
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M5.5 5.5l9 9m0-9l-9 9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </button>
         </div>
 
@@ -103,17 +119,6 @@ export function SidePanel({
             </div>
           )}
 
-          {/* Link to contract detail */}
-          <a
-            href={`/${contract.slug}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 border-b border-gray-100 px-4 py-2 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition-colors"
-          >
-            <ExternalLink size={12} />
-            Open contract detail
-          </a>
-
           {/* Relations */}
           {(incoming.length > 0 || outgoing.length > 0) && (
             <div className="border-b border-gray-100 px-4 py-2">
@@ -123,7 +128,7 @@ export function SidePanel({
                     Outgoing ({outgoing.length})
                   </h3>
                   <div className="space-y-1">
-                    {outgoing.map(({ edge, other, field }) => (
+                    {outgoing.map(({ edge, other }) => (
                       <button
                         key={edge.id}
                         onClick={() => onCenterView?.(contractId(other))}
@@ -143,7 +148,7 @@ export function SidePanel({
                     Incoming ({incoming.length})
                   </h3>
                   <div className="space-y-1">
-                    {incoming.map(({ edge, other, field }) => (
+                    {incoming.map(({ edge, other }) => (
                       <button
                         key={edge.id}
                         onClick={() => onCenterView?.(contractId(other))}
@@ -195,12 +200,23 @@ export function SidePanel({
           </div>
         </div>
 
-        <style>{`
-          @keyframes dcc-turbo-spin {
-            100% { transform: translate(-50%, -50%) rotate(-360deg); }
-          }
-        `}</style>
+        {/* Footer with link */}
+        <div className="flex items-center justify-between border-t border-gray-100 px-4 py-2">
+          <button
+            onClick={() => window.open(`/${contract.slug}`, "_blank", "noopener,noreferrer")}
+            className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 transition-colors"
+          >
+            <ExternalLink size={12} />
+            Open contract detail
+          </button>
+          <button
+            onClick={onClose}
+            className="rounded-md px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 transition-colors"
+          >
+            Close
+          </button>
+        </div>
       </div>
-    </>
+    </div>
   );
 }
