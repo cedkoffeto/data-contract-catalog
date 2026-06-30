@@ -121,22 +121,22 @@ export function SidePanel({
 
           {/* Relations */}
           {(incoming.length > 0 || outgoing.length > 0) && (
-            <div className="border-b border-gray-100 px-4 py-2">
+            <div className="border-b border-gray-100 px-4 py-1.5">
               {outgoing.length > 0 && (
-                <div className="mb-2">
-                  <h3 className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1">
+                <div className="mb-1.5">
+                  <h3 className="text-[9px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">
                     Outgoing ({outgoing.length})
                   </h3>
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     {outgoing.map(({ edge, other }) => (
                       <button
                         key={edge.id}
                         onClick={() => onCenterView?.(contractId(other))}
-                        className="flex w-full items-center gap-1.5 rounded px-2 py-1 text-[11px] text-left hover:bg-gray-50 transition-colors"
+                        className="flex w-full items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-left hover:bg-gray-50 transition-colors"
                       >
-                        <ArrowRight size={10} className="shrink-0 text-amber-500" />
+                        <ArrowRight size={8} className="shrink-0 text-amber-500" />
                         <span className="font-mono text-gray-700 truncate">{other.slug}</span>
-                        <span className="ml-auto text-[10px] text-gray-400 truncate">{edge.label as string}</span>
+                        <span className="ml-auto text-[9px] text-gray-400 truncate">{edge.label as string}</span>
                       </button>
                     ))}
                   </div>
@@ -144,19 +144,19 @@ export function SidePanel({
               )}
               {incoming.length > 0 && (
                 <div>
-                  <h3 className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1">
+                  <h3 className="text-[9px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">
                     Incoming ({incoming.length})
                   </h3>
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     {incoming.map(({ edge, other }) => (
                       <button
                         key={edge.id}
                         onClick={() => onCenterView?.(contractId(other))}
-                        className="flex w-full items-center gap-1.5 rounded px-2 py-1 text-[11px] text-left hover:bg-gray-50 transition-colors"
+                        className="flex w-full items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-left hover:bg-gray-50 transition-colors"
                       >
-                        <ArrowLeft size={10} className="shrink-0 text-blue-500" />
+                        <ArrowLeft size={8} className="shrink-0 text-blue-500" />
                         <span className="font-mono text-gray-700 truncate">{other.slug}</span>
-                        <span className="ml-auto text-[10px] text-gray-400 truncate">{edge.label as string}</span>
+                        <span className="ml-auto text-[9px] text-gray-400 truncate">{edge.label as string}</span>
                       </button>
                     ))}
                   </div>
