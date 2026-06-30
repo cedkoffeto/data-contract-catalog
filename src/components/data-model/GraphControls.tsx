@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useReactFlow, useViewport } from "@xyflow/react";
-import { ZoomIn, ZoomOut, Maximize2, Eye, LayoutTemplate, LayoutList, AlignEndHorizontal, AlignEndVertical, Layers, LayoutGrid, Grid3x3, Check, Download, Moon, Sun } from "lucide-react";
+import { ZoomIn, ZoomOut, Maximize2, Eye, LayoutTemplate, LayoutList, AlignEndHorizontal, AlignEndVertical, Layers, LayoutGrid, Grid3x3, Check, Download } from "lucide-react";
 import type { LayoutMode } from "@/src/lib/data-model";
 
 const VIEW_MODES: { mode: "detailed" | "compact"; icon: React.ReactNode; label: string; description: string }[] = [
@@ -54,7 +54,7 @@ function Dropdown<T extends string>({
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 bottom-full z-50 mb-2 w-64 rounded-lg border border-gray-200 bg-white shadow-xl">
+          <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-lg border border-gray-200 bg-white shadow-xl">
             <div className="flex flex-col py-1">
               {options.map(({ mode, icon, label, description }) => {
                 const active = value === mode;
@@ -97,8 +97,6 @@ export function GraphControls({
   showGrid,
   onToggleGrid,
   onFitViewVisible,
-  darkMode,
-  onDarkModeChange,
   className,
 }: {
   viewMode: "detailed" | "compact";
@@ -108,8 +106,6 @@ export function GraphControls({
   showGrid: boolean;
   onToggleGrid: () => void;
   onFitViewVisible: () => void;
-  darkMode: boolean;
-  onDarkModeChange: (v: boolean) => void;
   className?: string;
 }) {
   const { zoomIn, zoomOut } = useReactFlow();
@@ -147,7 +143,7 @@ export function GraphControls({
   }, []);
 
   return (
-    <div className={`flex flex-col gap-1.5 rounded-lg border border-gray-200 bg-white p-1.5 shadow-md ${className ?? ""}`}>
+    <div className={`flex flex-row items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1 shadow-md ${className ?? ""}`}>
       {/* Zoom */}
       <button onClick={() => zoomIn()} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Zoom in">
         <ZoomIn size={16} />
@@ -186,16 +182,9 @@ export function GraphControls({
         triggerIcon={<LayoutTemplate size={16} />}
         title="Change layout"
       />
-      <div className="my-0.5 border-t border-gray-100" />
+      <div className="mx-0.5 h-5 w-px bg-gray-200" />
       <button onClick={handleExportPng} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Export as PNG">
         <Download size={16} />
-      </button>
-      <button
-        onClick={() => onDarkModeChange(!darkMode)}
-        className={`rounded-md p-1.5 hover:bg-gray-50 hover:text-gray-700 ${darkMode ? "bg-gray-100 text-gray-700" : "text-gray-400"}`}
-        title={darkMode ? "Light mode" : "Dark mode"}
-      >
-        {darkMode ? <Sun size={16} /> : <Moon size={16} />}
       </button>
     </div>
   );

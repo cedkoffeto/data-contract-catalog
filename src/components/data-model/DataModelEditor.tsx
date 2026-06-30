@@ -51,15 +51,6 @@ export function DataModelEditor({
   const STORAGE_KEY = "dcc-data-model-prefs";
   const initialised = useRef(false);
 
-  const [darkMode, setDarkMode] = useState(() => {
-    if (typeof window === "undefined") return false;
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) return JSON.parse(stored).darkMode ?? false;
-    } catch {}
-    return false;
-  });
-
   useEffect(() => {
     if (initialised.current) return;
     initialised.current = true;
@@ -70,7 +61,6 @@ export function DataModelEditor({
       if (prefs.layoutMode) setLayoutMode(prefs.layoutMode);
       if (prefs.viewMode) setViewMode(prefs.viewMode);
       if (prefs.layerFilter) setLayerFilter(prefs.layerFilter);
-      if (prefs.darkMode !== undefined) setDarkMode(prefs.darkMode);
     } catch {}
   }, []);
 
@@ -146,7 +136,6 @@ export function DataModelEditor({
   useEffect(() => { savePrefs({ layoutMode }); }, [layoutMode]);
   useEffect(() => { savePrefs({ viewMode }); }, [viewMode]);
   useEffect(() => { savePrefs({ layerFilter }); }, [layerFilter]);
-  useEffect(() => { savePrefs({ darkMode }); }, [darkMode]);
 
   const handleCenterView = useCallback((slug: string) => {
     setCenterSlug(slug);
@@ -250,8 +239,6 @@ export function DataModelEditor({
               centerSlug={centerSlug}
               centerKey={centerKey}
               searchQuery={searchQuery}
-              darkMode={darkMode}
-              onDarkModeChange={setDarkMode}
             />
           </div>
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-1.5 shadow-sm dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300">
