@@ -159,8 +159,8 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
             padding: "2px 6px",
             pointerEvents: "none",
             whiteSpace: "nowrap",
-            opacity: isEdgeHighlighted ? 1 : 0.2,
-            transition: "all 120ms ease",
+            opacity: hovered ? (isEdgeHighlighted ? 1 : 0.6) : 0,
+            transition: "opacity 120ms ease",
           }}
         >
           {label as string}
