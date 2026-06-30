@@ -32,6 +32,11 @@ export function SidePanel({
   const [query, setQuery] = useState("");
 
   useEffect(() => {
+    setTab("fields");
+    setQuery("");
+  }, [contract]);
+
+  useEffect(() => {
     function handleEscape(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
     }
