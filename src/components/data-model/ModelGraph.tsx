@@ -237,7 +237,7 @@ export function ModelGraph({
           panOnScrollMode={PanOnScrollMode.Free}
           zoomActivationKeyCode="Control"
         >
-          {showGrid && <Background variant={BackgroundVariant.Lines} color="#e2e8f0" gap={20} size={0.5} />}
+          {showGrid && <Background variant={BackgroundVariant.Lines} color="#e2e8f0" gap={10} size={0.5} />}
           <Panel position="bottom-center" className="!m-0" style={{ bottom: 12 }}>
             <GraphControls
               viewMode={viewMode}
