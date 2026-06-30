@@ -16,7 +16,9 @@ function contractId(c: DataModelContract): string {
   return `${c.maturity}_${c.slug}`;
 }
 
-const nodeStyle = {
+const nodeGap = 193;
+
+const nodeStyle: Record<string, string | number> = {
   padding: "1px 6px",
   fontSize: 8,
   border: "1px solid #d1d5db",
@@ -59,7 +61,7 @@ function RelationGraph({
       result.push({
         id: contractId(other),
         type: "default",
-        position: { x: direction === "outgoing" ? 140 : -140, y },
+        position: { x: direction === "outgoing" ? nodeGap : -nodeGap, y },
         data: { label: other.slug },
         style: nodeStyle,
       });
