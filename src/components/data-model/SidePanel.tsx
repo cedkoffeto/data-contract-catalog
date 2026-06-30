@@ -280,41 +280,37 @@ export function SidePanel({
             )}
 
             {/* Relations */}
-            {(incoming.length > 0 || outgoing.length > 0) && (
-              <div className="px-4 py-1.5">
-                {outgoing.length > 0 && (
-                  <div className="mb-1.5">
-                    <h3 className="text-[5px] font-semibold tracking-wider text-gray-400 mb-0.5">
-                      Outgoing ({outgoing.length})
-                    </h3>
-                    <RelationGraph
-                      contract={contract}
-                      relations={outgoing}
-                      direction="outgoing"
-                      onCenterView={onCenterView}
-                    />
-                  </div>
-                )}
-                {incoming.length > 0 && (
-                  <div>
-                    <h3 className="text-[5px] font-semibold tracking-wider text-gray-400 mb-0.5">
-                      Incoming ({incoming.length})
-                    </h3>
-                    <div className="space-y-0.5">
-                      {incoming.map(({ edge, other }) => (
-                        <button
-                          key={edge.id}
-                          onClick={() => onCenterView?.(contractId(other))}
-                          className="flex w-full items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-left hover:bg-gray-50 transition-colors"
-                        >
-                          <ArrowLeft size={8} className="shrink-0 text-blue-500" />
-                          <span className="font-mono text-gray-700 truncate">{other.slug}</span>
-                          <span className="ml-auto text-[9px] text-gray-400 truncate">{edge.label as string}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+            {outgoing.length > 0 && (
+              <div className="border-b border-gray-100 px-4 py-2">
+                <h3 className="text-[10px] font-semibold text-gray-500 mb-1">
+                  Outgoing ({outgoing.length})
+                </h3>
+                <RelationGraph
+                  contract={contract}
+                  relations={outgoing}
+                  direction="outgoing"
+                  onCenterView={onCenterView}
+                />
+              </div>
+            )}
+            {incoming.length > 0 && (
+              <div className="px-4 py-2">
+                <h3 className="text-[10px] font-semibold text-gray-500 mb-1">
+                  Incoming ({incoming.length})
+                </h3>
+                <div className="space-y-0.5">
+                  {incoming.map(({ edge, other }) => (
+                    <button
+                      key={edge.id}
+                      onClick={() => onCenterView?.(contractId(other))}
+                      className="flex w-full items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-left hover:bg-gray-50 transition-colors"
+                    >
+                      <ArrowLeft size={8} className="shrink-0 text-blue-500" />
+                      <span className="font-mono text-gray-700 truncate">{other.slug}</span>
+                      <span className="ml-auto text-[9px] text-gray-400 truncate">{edge.label as string}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
