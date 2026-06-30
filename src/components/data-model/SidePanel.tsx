@@ -202,8 +202,8 @@ export function SidePanel({
                           className="flex w-full items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-left hover:bg-gray-50 transition-colors"
                         >
                           <ArrowRight size={8} className="shrink-0 text-amber-500" />
-                          <span className="font-mono text-gray-700 truncate text-[9px]">{other.slug}</span>
-                          <span className="ml-auto text-[10px] text-gray-400 truncate">{edge.label as string}</span>
+                          <span className="font-mono text-gray-700 truncate text-[11px]">{other.slug}</span>
+                          <span className="ml-auto text-[11px] text-gray-400 truncate">{edge.label as string}</span>
                         </button>
                       ))}
                     </div>
