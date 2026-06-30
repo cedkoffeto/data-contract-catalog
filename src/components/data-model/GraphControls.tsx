@@ -112,6 +112,7 @@ export function GraphControls({
   onDarkModeChange: (v: boolean) => void;
   className?: string;
 }) {
+  const { zoomIn, zoomOut } = useReactFlow();
   const { zoom } = useViewport();
   const zoomPercent = Math.round(zoom * 100);
 

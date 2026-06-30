@@ -15,10 +15,10 @@ const maturityBadge: Record<string, string> = {
   gold:   "bg-yellow-100 text-yellow-700",
 };
 
-export const ContractTableNode = memo(function ContractTableNode({ selected, id, data, className }: NodeProps) {
+export const ContractTableNode = memo(function ContractTableNode({ selected, id, data }: NodeProps) {
   const d = data as ContractTableNodeData;
-  const { viewMode, connectedFields, onHeaderClick, onFieldClick } = useContext(ViewModeCtx);
-  const isSearchMatch = typeof className === "string" && className.includes("search-match");
+  const { viewMode, connectedFields, onHeaderClick, onFieldClick, searchMatchIds } = useContext(ViewModeCtx);
+  const isSearchMatch = searchMatchIds?.has(id) ?? false;
   const allFields = d.fields;
   const nodeConnected = connectedFields.get(id);
   const connectedSet = nodeConnected ?? new Set<string>();
@@ -120,5 +120,5 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
     </div>
   );
 }, (prev, next) => {
-  return prev.selected === next.selected && prev.id === next.id && prev.data === next.data && prev.className === next.className;
+  return prev.selected === next.selected && prev.id === next.id && prev.data === next.data;
 });

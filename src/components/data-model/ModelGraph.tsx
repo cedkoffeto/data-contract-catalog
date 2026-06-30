@@ -30,6 +30,7 @@ type ViewModeValue = {
   onFieldClick: (slug: string) => void;
   highlightedNode: string | null;
   highlightedNeighbors: Set<string> | null;
+  searchMatchIds: Set<string> | null;
 };
 
 export const ViewModeCtx = createContext<ViewModeValue>({
@@ -39,6 +40,7 @@ export const ViewModeCtx = createContext<ViewModeValue>({
   onFieldClick: () => {},
   highlightedNode: null,
   highlightedNeighbors: null,
+  searchMatchIds: null,
 });
 
 const DARK_STYLE_ID = "dcc-data-model-dark";
@@ -112,6 +114,7 @@ export function ModelGraph({
   centerKey,
   searchQuery,
   darkMode,
+  onDarkModeChange,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
@@ -257,7 +260,8 @@ export function ModelGraph({
     onFieldClick: onNodeClick,
     highlightedNode,
     highlightedNeighbors,
-  }), [viewMode, connectedFields, onHeaderClick, onNodeClick, highlightedNode, highlightedNeighbors]);
+    searchMatchIds,
+  }), [viewMode, connectedFields, onHeaderClick, onNodeClick, highlightedNode, highlightedNeighbors, searchMatchIds]);
 
   const filteredEdges = useMemo(
     () => edges.filter((e) => visibleTables.has(e.source) && visibleTables.has(e.target)),
@@ -290,7 +294,7 @@ export function ModelGraph({
           panOnScrollMode={PanOnScrollMode.Free}
           zoomActivationKeyCode="Control"
         >
-          {showGrid && <Background variant={BackgroundVariant.Lines} color="#e2e8f0" gap={8} size={1} />}
+          {showGrid && <Background variant={BackgroundVariant.Lines} color="#e2e8f0" gap={20} size={0.5} />}
           <Panel position="bottom-right" className="!m-0" style={{ bottom: 12, right: 230 }}>
             <GraphControls
               viewMode={viewMode}
