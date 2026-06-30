@@ -174,16 +174,19 @@ export function GraphControls({
           onChange={(e) => setZoomInput(e.target.value)}
           onBlur={handleZoomChange}
           onKeyDown={(e) => { if (e.key === "Enter") handleZoomChange(); if (e.key === "Escape") setEditingZoom(false); }}
-          className="h-7 w-14 rounded border border-gray-300 px-1 text-center text-[6px] font-semibold text-gray-700 tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          className="h-7 w-14 rounded border border-gray-300 px-1 text-center font-semibold text-gray-700 tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          style={{ fontSize: 6 }}
           autoFocus
         />
       ) : (
         <button
           onClick={() => { setZoomInput(String(zoomPercent)); setEditingZoom(true); }}
-          className="flex h-7 items-center rounded px-1.5 text-[6px] font-semibold text-gray-500 tabular-nums hover:bg-gray-50 hover:text-gray-700"
+          className="flex h-7 items-center rounded px-1 hover:bg-gray-50 hover:text-gray-700"
           title="Click to set zoom percentage"
         >
-          {zoomPercent}%
+          <span className="font-semibold text-gray-500 tabular-nums" style={{ fontSize: 6 }}>
+            {zoomPercent}%
+          </span>
         </button>
       )}
       <button onClick={() => zoomOut()} className="flex h-7 w-7 items-center justify-center rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Zoom out">
