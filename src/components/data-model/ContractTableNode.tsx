@@ -49,6 +49,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
       }`}
       style={{
         minWidth: 220,
+        maxWidth: 320,
         padding: 2,
         position: "relative",
       }}
@@ -74,9 +75,9 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
         <div style={{ height: 4, backgroundColor: d.color }} />
 
         {/* Header */}
-        <div className="flex cursor-grab active:cursor-grabbing items-center gap-2 px-3 py-2">
+        <div className="flex min-w-0 cursor-grab active:cursor-grabbing items-center gap-2 px-3 py-2">
           <span className="flex h-5 cursor-pointer items-center" onClick={(e) => { e.stopPropagation(); onHeaderClick(d.slug); }} title="Open contract detail"><Table size={14} style={{ color: d.color }} /></span>
-          <span className="flex h-5 items-center text-sm font-semibold tracking-tight text-gray-900" title={`${d.label}\ndomain: ${d.domain}\ncontext: ${d.context ?? ""}\nslug: ${d.slug}`}>{d.slug}</span>
+          <span className="flex h-5 min-w-0 items-center text-sm font-semibold tracking-tight text-gray-900" title={`${d.label}\ndomain: ${d.domain}\ncontext: ${d.context ?? ""}\nslug: ${d.slug}`}><span className="truncate">{d.slug}</span></span>
           <span className={`ml-auto flex shrink-0 h-5 items-center rounded px-1.5 text-[9px] font-bold uppercase leading-none ${maturityBadge[d.maturity as string] || maturityBadge.bronze}`}>
             {d.maturity as string}
           </span>
@@ -98,15 +99,15 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
           {fields.map((f) => {
             const isConnected = connectedSet.has(f.name);
             return (
-              <div key={f.name} className="relative flex cursor-pointer items-center gap-2 border-t border-gray-50 px-3 py-[7px] text-xs text-gray-700 hover:bg-gray-50" onClick={() => onFieldClick?.(d.slug)}>
+              <div key={f.name} className="relative flex min-w-0 cursor-pointer items-center gap-2 border-t border-gray-50 px-3 py-[7px] text-xs text-gray-700 hover:bg-gray-50" onClick={() => onFieldClick?.(d.slug)}>
                 {isConnected && <Handle type="target" position={Position.Left} id={f.name} className="!w-1.5 !h-1.5 !border-2 !border-gray-400 !bg-white" style={{ left: -1 }} />}
                 {isConnected ? (
                   <Key size={10} className="shrink-0 text-amber-500" />
                 ) : (
                   <span className="w-[10px] shrink-0" />
                 )}
-                <span className={`font-mono text-[11px] leading-none ${isConnected ? "font-bold text-gray-900" : "text-gray-600"}`}>{f.name}</span>
-                <span className="ml-auto text-[10px] leading-none text-gray-400">{f.type}</span>
+                <span className={`min-w-0 font-mono text-[11px] leading-none ${isConnected ? "font-bold text-gray-900" : "text-gray-600"}`}><span className="truncate">{f.name}</span></span>
+                <span className="ml-auto min-w-0 text-[10px] leading-none text-gray-400"><span className="truncate">{f.type}</span></span>
                 {isConnected && <Handle type="source" position={Position.Right} id={f.name} className="!w-1.5 !h-1.5 !border-2 !border-gray-400 !bg-white" style={{ right: -1 }} />}
               </div>
             );

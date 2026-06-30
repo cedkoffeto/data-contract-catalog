@@ -47,6 +47,20 @@ export function DataModelEditor({
   const [centerSlug, setCenterSlug] = useState<string | null>(null);
   const [centerKey, setCenterKey] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
+  const [containerWidth, setContainerWidth] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const STORAGE_KEY = "dcc-data-model-prefs";
   const initialised = useRef(false);
@@ -113,13 +127,13 @@ export function DataModelEditor({
     }));
   }, [edges, layoutMode]);
 
-  const [laidOutNodes, setLaidOutNodes] = useState<FlowNode[]>(() => layoutByMode(rawNodes, layoutEdges, layoutMode, connectedFields, viewMode).nodes);
+  const [laidOutNodes, setLaidOutNodes] = useState<FlowNode[]>(() => layoutByMode(rawNodes, layoutEdges, layoutMode, connectedFields, viewMode, containerWidth).nodes);
 
   function relayoutVisible(prev: FlowNode[]): FlowNode[] {
     const ids = new Set(visibleTablesState);
     const visibleNodes = rawNodes.filter((n) => ids.has(n.id));
     const visibleEdges = layoutEdges.filter((e) => ids.has(e.source) && ids.has(e.target));
-    const { nodes: laidOut } = layoutByMode(visibleNodes, visibleEdges, layoutMode, connectedFields, viewMode);
+    const { nodes: laidOut } = layoutByMode(visibleNodes, visibleEdges, layoutMode, connectedFields, viewMode, containerWidth);
     const newPosMap = new Map(laidOut.map((n) => [n.id, n]));
     const prevMap = new Map(prev.map((n) => [n.id, n]));
     return rawNodes.map((n) => newPosMap.get(n.id) ?? prevMap.get(n.id) ?? n);
@@ -127,7 +141,7 @@ export function DataModelEditor({
 
   useEffect(() => {
     setLaidOutNodes(relayoutVisible);
-  }, [rawNodes, layoutEdges, layoutMode, connectedFields, viewMode]);
+  }, [rawNodes, layoutEdges, layoutMode, connectedFields, viewMode, containerWidth]);
 
   const [visibleTablesState, setVisibleTablesState] = useState<Set<string>>(() =>
     new Set(rawNodes.map((n) => n.id)),
@@ -221,7 +235,7 @@ export function DataModelEditor({
           onQueryChange={setSearchQuery}
         />
 
-        <div className="relative flex min-w-0 flex-1 flex-col">
+        <div ref={containerRef} className="relative flex min-w-0 flex-1 flex-col">
           <div className="min-h-0 flex-1">
             <ModelGraph
               initialNodes={laidOutNodes}

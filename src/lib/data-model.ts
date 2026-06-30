@@ -286,7 +286,7 @@ function nodeWidth(node: Node): number {
   return Math.max(Math.ceil(Math.max(slugPx, maxFieldPx) + 60), 220);
 }
 
-export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB" = "LR", connectedFields?: Map<string, Set<string>>, viewMode?: "detailed" | "compact"): { nodes: Node[]; edges: Edge[] } {
+export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB" = "LR", connectedFields?: Map<string, Set<string>>, viewMode?: "detailed" | "compact", containerWidth?: number): { nodes: Node[]; edges: Edge[] } {
   // Separate isolated nodes (no edges) from connected ones
   const connectedIds = new Set<string>();
   for (const e of edges) {
@@ -324,9 +324,11 @@ export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB"
   }
 
   // Position isolated nodes in a grid left of the connected graph
-  // Column-major: fill downward first (up to 4 per column), then rightward
+  // Column-major: fill downward first (up to maxRows per column), then rightward
   if (isolated.length > 0) {
-    const maxRows = 4;
+    const maxRows = containerWidth
+      ? Math.max(2, Math.min(8, Math.floor((containerWidth * 0.35) / 280)))
+      : 4;
     const gap = 30;
     const sorted = isolated.slice().sort((a, b) => {
       const sa = (a.data as ContractTableNodeData).slug || "";
@@ -501,11 +503,11 @@ export function layoutDomainGraph(nodes: Node[], _edges: Edge[], connectedFields
   return { nodes: laidOut, edges: _edges };
 }
 
-export function layoutByMode(nodes: Node[], edges: Edge[], mode: LayoutMode, connectedFields?: Map<string, Set<string>>, viewMode?: "detailed" | "compact"): { nodes: Node[]; edges: Edge[] } {
+export function layoutByMode(nodes: Node[], edges: Edge[], mode: LayoutMode, connectedFields?: Map<string, Set<string>>, viewMode?: "detailed" | "compact", containerWidth?: number): { nodes: Node[]; edges: Edge[] } {
   switch (mode) {
     case "LR":
     case "TB":
-      return layoutGraph(nodes, edges, mode, connectedFields, viewMode);
+      return layoutGraph(nodes, edges, mode, connectedFields, viewMode, containerWidth);
     case "layer":
       return layoutLayerGraph(nodes, edges, connectedFields, viewMode);
     case "domain":
