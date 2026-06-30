@@ -48,6 +48,11 @@ export function DataModelEditor({
   const [centerKey, setCenterKey] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
 
+  const { nodes: rawNodes, edges } = useMemo(
+    () => parseContractsToGraph(contracts, models),
+    [contracts, models],
+  );
+
   const searchMatchIds = useMemo(() => {
     if (!searchQuery) return null;
     const q = searchQuery.toLowerCase();
@@ -70,11 +75,6 @@ export function DataModelEditor({
       setCenterKey((k) => k + 1);
     }
   }, [searchMatchIds]);
-
-  const { nodes: rawNodes, edges } = useMemo(
-    () => parseContractsToGraph(contracts, models),
-    [contracts, models],
-  );
 
   const connectedFields = useMemo(
     () => computeConnectedFields(edges),

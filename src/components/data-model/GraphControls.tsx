@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useReactFlow, useViewport } from "@xyflow/react";
-import { ZoomIn, ZoomOut, Maximize2, Eye, LayoutTemplate, LayoutList, AlignEndHorizontal, AlignEndVertical, Layers, LayoutGrid, Grid3x3, Check } from "lucide-react";
+import { ZoomIn, ZoomOut, Maximize2, Eye, LayoutTemplate, LayoutList, AlignEndHorizontal, AlignEndVertical, Layers, LayoutGrid, Grid3x3, Check, Download } from "lucide-react";
 import type { LayoutMode } from "@/src/lib/data-model";
 
 const VIEW_MODES: { mode: "detailed" | "compact"; icon: React.ReactNode; label: string; description: string }[] = [
@@ -108,9 +108,38 @@ export function GraphControls({
   onFitViewVisible: () => void;
   className?: string;
 }) {
-  const { zoomIn, zoomOut, fitView } = useReactFlow();
   const { zoom } = useViewport();
   const zoomPercent = Math.round(zoom * 100);
+
+  const handleExportPng = useCallback(() => {
+    const viewport = document.querySelector(".react-flow__viewport") as SVGElement | null;
+    if (!viewport) return;
+    const clone = viewport.cloneNode(true) as SVGElement;
+    const rect = viewport.getBoundingClientRect();
+    clone.setAttribute("width", String(rect.width));
+    clone.setAttribute("height", String(rect.height));
+    const svgData = new XMLSerializer().serializeToString(clone);
+    const canvas = document.createElement("canvas");
+    canvas.width = rect.width * 2;
+    canvas.height = rect.height * 2;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.scale(2, 2);
+    const img = new Image();
+    const blob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    img.onload = () => {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+      const a = document.createElement("a");
+      a.download = "data-model-graph.png";
+      a.href = canvas.toDataURL("image/png");
+      a.click();
+    };
+    img.src = url;
+  }, []);
 
   return (
     <div className={`flex flex-col gap-1.5 rounded-lg border border-gray-200 bg-white p-1.5 shadow-md ${className ?? ""}`}>
@@ -152,6 +181,10 @@ export function GraphControls({
         triggerIcon={<LayoutTemplate size={16} />}
         title="Change layout"
       />
+      <div className="my-0.5 border-t border-gray-100" />
+      <button onClick={handleExportPng} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Export as PNG">
+        <Download size={16} />
+      </button>
     </div>
   );
 }
