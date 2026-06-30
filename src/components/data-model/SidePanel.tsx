@@ -85,7 +85,7 @@ export function SidePanel({
       onClick={onClose}
     >
       <div
-        className="flex max-h-[70vh] flex-col rounded-lg bg-white shadow-xl"
+        className="flex h-[65vh] flex-col rounded-lg bg-white shadow-xl"
         style={{ width: "min(65vw, 800px)" }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -103,19 +103,21 @@ export function SidePanel({
         </div>
 
         {/* Tab bar */}
-        <div className="flex border-b border-gray-100">
-          <button
-            onClick={() => setTab("fields")}
-            className={`flex-1 px-4 py-1.5 text-[11px] font-semibold transition-colors ${tab === "fields" ? "border-b-2 border-blue-600 text-blue-700" : "text-gray-500 hover:text-gray-700"}`}
-          >
-            Fields
-          </button>
-          <button
-            onClick={() => setTab("details")}
-            className={`flex-1 px-4 py-1.5 text-[11px] font-semibold transition-colors ${tab === "details" ? "border-b-2 border-blue-600 text-blue-700" : "text-gray-500 hover:text-gray-700"}`}
-          >
-            Details
-          </button>
+        <div className="border-b border-gray-100 px-4 py-1.5">
+          <div className="editor-tabs">
+            <button
+              onClick={() => setTab("fields")}
+              className={`editor-tabs__item${tab === "fields" ? " is-active" : ""}`}
+            >
+              Fields
+            </button>
+            <button
+              onClick={() => setTab("details")}
+              className={`editor-tabs__item${tab === "details" ? " is-active" : ""}`}
+            >
+              Details
+            </button>
+          </div>
         </div>
 
         {/* Tab content */}
