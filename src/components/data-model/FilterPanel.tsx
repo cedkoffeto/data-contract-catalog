@@ -110,7 +110,7 @@ export function FilterPanel({
 
   return (
     <div
-      className={`relative flex h-full min-h-0 flex-col border-r border-gray-200 bg-white shrink-0 ${
+      className={`data-model-filter-panel relative flex h-full min-h-0 flex-col border-r border-gray-200 bg-white shrink-0 ${
         open ? "" : "w-auto"
       }`}
       style={{ width: open ? width : undefined }}

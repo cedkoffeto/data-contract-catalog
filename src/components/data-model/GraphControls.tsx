@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useReactFlow, useViewport } from "@xyflow/react";
-import { ZoomIn, ZoomOut, Maximize2, Eye, LayoutTemplate, LayoutList, AlignEndHorizontal, AlignEndVertical, Layers, LayoutGrid, Grid3x3, Check, Download } from "lucide-react";
+import { ZoomIn, ZoomOut, Maximize2, Eye, LayoutTemplate, LayoutList, AlignEndHorizontal, AlignEndVertical, Layers, LayoutGrid, Grid3x3, Check, Download, Moon, Sun } from "lucide-react";
 import type { LayoutMode } from "@/src/lib/data-model";
 
 const VIEW_MODES: { mode: "detailed" | "compact"; icon: React.ReactNode; label: string; description: string }[] = [
@@ -97,6 +97,8 @@ export function GraphControls({
   showGrid,
   onToggleGrid,
   onFitViewVisible,
+  darkMode,
+  onDarkModeChange,
   className,
 }: {
   viewMode: "detailed" | "compact";
@@ -106,6 +108,8 @@ export function GraphControls({
   showGrid: boolean;
   onToggleGrid: () => void;
   onFitViewVisible: () => void;
+  darkMode: boolean;
+  onDarkModeChange: (v: boolean) => void;
   className?: string;
 }) {
   const { zoom } = useViewport();
@@ -184,6 +188,13 @@ export function GraphControls({
       <div className="my-0.5 border-t border-gray-100" />
       <button onClick={handleExportPng} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Export as PNG">
         <Download size={16} />
+      </button>
+      <button
+        onClick={() => onDarkModeChange(!darkMode)}
+        className={`rounded-md p-1.5 hover:bg-gray-50 hover:text-gray-700 ${darkMode ? "bg-gray-100 text-gray-700" : "text-gray-400"}`}
+        title={darkMode ? "Light mode" : "Dark mode"}
+      >
+        {darkMode ? <Sun size={16} /> : <Moon size={16} />}
       </button>
     </div>
   );

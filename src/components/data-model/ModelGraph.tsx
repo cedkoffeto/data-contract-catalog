@@ -41,6 +41,60 @@ export const ViewModeCtx = createContext<ViewModeValue>({
   highlightedNeighbors: null,
 });
 
+const DARK_STYLE_ID = "dcc-data-model-dark";
+
+function injectDarkCss(dark: boolean) {
+  if (typeof document === "undefined") return;
+  const existing = document.getElementById(DARK_STYLE_ID);
+  if (!dark) {
+    if (existing) existing.remove();
+    return;
+  }
+  if (existing) return;
+  const s = document.createElement("style");
+  s.id = DARK_STYLE_ID;
+  s.textContent = `
+    .data-model-dark .react-flow__node text { fill: #e2e8f0 !important; }
+    .data-model-dark .react-flow__node .text-gray-900 { color: #e2e8f0 !important; }
+    .data-model-dark .react-flow__node .text-gray-700 { color: #cbd5e1 !important; }
+    .data-model-dark .react-flow__node .text-gray-600 { color: #94a3b8 !important; }
+    .data-model-dark .react-flow__node .text-gray-500 { color: #64748b !important; }
+    .data-model-dark .react-flow__node .text-gray-400 { color: #64748b !important; }
+    .data-model-dark .react-flow__node .bg-white { background-color: #1e293b !important; }
+    .data-model-dark .react-flow__node .bg-gray-50 { background-color: #0f172a !important; }
+    .data-model-dark .react-flow__node .border-gray-50 { border-color: #334155 !important; }
+    .data-model-dark .react-flow__node .border-gray-100 { border-color: #334155 !important; }
+    .data-model-dark .react-flow__node .hover\\:bg-gray-50:hover { background-color: #334155 !important; }
+    .data-model-dark .react-flow__node .shadow-md { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.4) !important; }
+    .data-model-dark .react-flow__node .hover\\:shadow-lg:hover { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5) !important; }
+    .data-model-dark .react-flow__minimap { background-color: #0f172a !important; border-color: #334155 !important; }
+    .data-model-dark .react-flow__background { background-color: #0f172a !important; }
+    .data-model-dark .react-flow__background pattern line { stroke: #1e293b !important; }
+    .data-model-dark .data-model-filter-panel { background-color: #111827 !important; border-color: #334155 !important; }
+    .data-model-dark .data-model-filter-panel .text-gray-900 { color: #e2e8f0 !important; }
+    .data-model-dark .data-model-filter-panel .text-gray-700 { color: #cbd5e1 !important; }
+    .data-model-dark .data-model-filter-panel .text-gray-500 { color: #64748b !important; }
+    .data-model-dark .data-model-filter-panel .text-gray-400 { color: #64748b !important; }
+    .data-model-dark .data-model-filter-panel .bg-white { background-color: #1e293b !important; }
+    .data-model-dark .data-model-filter-panel .bg-gray-50 { background-color: #0f172a !important; }
+    .data-model-dark .data-model-filter-panel .bg-gray-100 { background-color: #1e293b !important; }
+    .data-model-dark .data-model-filter-panel .bg-gray-200 { background-color: #334155 !important; }
+    .data-model-dark .data-model-filter-panel .border-gray-200 { border-color: #334155 !important; }
+    .data-model-dark .data-model-filter-panel .border-gray-100 { border-color: #334155 !important; }
+    .data-model-dark .data-model-filter-panel .hover\\:bg-gray-50:hover { background-color: #1e293b !important; }
+    .data-model-dark .data-model-filter-panel input { background-color: #1e293b !important; color: #e2e8f0 !important; }
+    .data-model-dark .data-model-filter-panel input::placeholder { color: #475569 !important; }
+    .data-model-dark .bg-white.shadow-xl { background-color: #111827 !important; }
+    .data-model-dark .border-gray-100 { border-color: #334155 !important; }
+    .data-model-dark .text-gray-900 { color: #e2e8f0 !important; }
+    .data-model-dark .text-gray-700 { color: #cbd5e1 !important; }
+    .data-model-dark .text-gray-600 { color: #94a3b8 !important; }
+    .data-model-dark .text-gray-500 { color: #64748b !important; }
+    .data-model-dark .text-gray-400 { color: #64748b !important; }
+  `;
+  document.head.appendChild(s);
+}
+
 export function ModelGraph({
   initialNodes,
   initialEdges,
@@ -57,6 +111,7 @@ export function ModelGraph({
   centerSlug,
   centerKey,
   searchQuery,
+  darkMode,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
@@ -73,6 +128,8 @@ export function ModelGraph({
   centerSlug: string | null;
   centerKey: number;
   searchQuery?: string;
+  darkMode?: boolean;
+  onDarkModeChange?: (v: boolean) => void;
 }) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -179,6 +236,9 @@ export function ModelGraph({
     setCenter(node.position.x + (node.measured?.width ?? 220) / 2, node.position.y + 20, { zoom: 1 });
   }, [centerSlug, centerKey, nodes, setCenter]);
 
+  // Inject/remove dark mode CSS
+  useEffect(() => { injectDarkCss(!!darkMode); }, [darkMode]);
+
   // Fit view after re-layout — ref-guarded so it only fires once per fitKey increment
   useLayoutEffect(() => {
     if (fitKey > fitKeyRef.current) {
@@ -206,7 +266,7 @@ export function ModelGraph({
 
   return (
     <ViewModeCtx.Provider value={ctxValue}>
-      <div className="relative h-full w-full">
+      <div className={`relative h-full w-full${darkMode ? " data-model-dark" : ""}`}>
         <ReactFlow
           nodes={nodes}
           edges={filteredEdges}
@@ -240,6 +300,8 @@ export function ModelGraph({
               showGrid={showGrid}
               onToggleGrid={() => setShowGrid((v) => !v)}
               onFitViewVisible={onFitViewVisible}
+              darkMode={!!darkMode}
+              onDarkModeChange={(v) => onDarkModeChange?.(v)}
             />
           </Panel>
           <MiniMap
