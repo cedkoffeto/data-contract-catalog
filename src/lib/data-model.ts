@@ -314,7 +314,7 @@ export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB"
   // Position isolated nodes in a grid left of the connected graph
   if (isolated.length > 0) {
     const cols = 4;
-    const cellW = 300;
+    const cellW = 330;
     const sorted = isolated.slice().sort((a, b) => {
       const sa = (a.data as ContractTableNodeData).slug || "";
       const sb = (b.data as ContractTableNodeData).slug || "";
