@@ -53,6 +53,7 @@ function parseContractFromRaw(
     domain,
     context,
     name: (asset.name as string) || slug,
+    description: asset.description as string | undefined,
     fields,
   };
 }

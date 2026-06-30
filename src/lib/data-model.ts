@@ -14,6 +14,7 @@ export type DataModelContract = {
   domain: string;
   context: string;
   name: string;
+  description?: string;
   fields: ContractField[];
 };
 

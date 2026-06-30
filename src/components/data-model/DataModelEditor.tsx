@@ -195,7 +195,13 @@ export function DataModelEditor({
         </div>
       </div>
 
-      <SidePanel contract={selectedContract} onClose={() => setSelectedSlug(null)} />
+      <SidePanel
+        contract={selectedContract}
+        contracts={contracts}
+        edges={edges}
+        onClose={() => setSelectedSlug(null)}
+        onCenterView={handleCenterView}
+      />
     </ReactFlowProvider>
   );
 }
