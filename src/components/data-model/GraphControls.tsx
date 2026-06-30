@@ -112,9 +112,22 @@ export function GraphControls({
   totalCount: number;
   className?: string;
 }) {
-  const { zoomIn, zoomOut } = useReactFlow();
+  const [editingZoom, setEditingZoom] = useState(false);
+  const [zoomInput, setZoomInput] = useState("");
+  const zoomInputRef = useRef<HTMLInputElement>(null);
+  const { zoomIn, zoomOut, zoomTo } = useReactFlow();
   const { zoom } = useViewport();
   const zoomPercent = Math.round(zoom * 100);
+
+  useEffect(() => {
+    if (editingZoom) zoomInputRef.current?.select();
+  }, [editingZoom]);
+
+  const handleZoomChange = useCallback(() => {
+    setEditingZoom(false);
+    const val = parseInt(zoomInput, 10);
+    if (!isNaN(val) && val > 0) zoomTo(val / 100, { duration: 0 });
+  }, [zoomInput, zoomTo]);
 
   const handleExportPng = useCallback(() => {
     const viewport = document.querySelector(".react-flow__viewport") as SVGElement | null;
@@ -152,9 +165,27 @@ export function GraphControls({
       <button onClick={() => zoomIn()} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Zoom in">
         <ZoomIn size={16} />
       </button>
-      <div className="text-center text-[10px] font-semibold text-gray-500 tabular-nums">
-        {zoomPercent}%
-      </div>
+      {editingZoom ? (
+        <input
+          ref={zoomInputRef}
+          type="number"
+          min={1}
+          value={zoomInput}
+          onChange={(e) => setZoomInput(e.target.value)}
+          onBlur={handleZoomChange}
+          onKeyDown={(e) => { if (e.key === "Enter") handleZoomChange(); if (e.key === "Escape") setEditingZoom(false); }}
+          className="h-6 w-14 rounded border border-gray-300 px-1 text-center text-[10px] font-semibold text-gray-700 tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          autoFocus
+        />
+      ) : (
+        <button
+          onClick={() => { setZoomInput(String(zoomPercent)); setEditingZoom(true); }}
+          className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-gray-500 tabular-nums hover:bg-gray-50 hover:text-gray-700"
+          title="Click to set zoom percentage"
+        >
+          {zoomPercent}%
+        </button>
+      )}
       <button onClick={() => zoomOut()} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Zoom out">
         <ZoomOut size={16} />
       </button>
