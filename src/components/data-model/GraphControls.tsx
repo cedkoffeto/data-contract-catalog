@@ -175,7 +175,7 @@ export function GraphControls({
           onBlur={handleZoomChange}
           onKeyDown={(e) => { if (e.key === "Enter") handleZoomChange(); if (e.key === "Escape") setEditingZoom(false); }}
           className="h-7 w-14 rounded border border-gray-300 px-1 text-center font-semibold text-gray-700 tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-          style={{ fontSize: 6 }}
+          style={{ fontSize: 10 }}
           autoFocus
         />
       ) : (
@@ -184,7 +184,7 @@ export function GraphControls({
           className="flex h-7 items-center rounded px-1 hover:bg-gray-50 hover:text-gray-700"
           title="Click to set zoom percentage"
         >
-          <span className="font-semibold text-gray-500 tabular-nums" style={{ fontSize: 6 }}>
+          <span className="font-semibold text-gray-500 tabular-nums" style={{ fontSize: 10 }}>
             {zoomPercent}%
           </span>
         </button>
