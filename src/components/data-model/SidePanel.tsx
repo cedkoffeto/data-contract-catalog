@@ -16,7 +16,7 @@ function contractId(c: DataModelContract): string {
   return `${c.maturity}_${c.slug}`;
 }
 
-const nodeGap = 193;
+const nodeGap = 300;
 
 const nodeStyle: Record<string, string | number> = {
   padding: "1px 6px",
