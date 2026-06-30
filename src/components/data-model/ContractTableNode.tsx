@@ -44,7 +44,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
 
   return (
     <div
-      className={`overflow-hidden rounded-lg shadow-md transition-shadow hover:shadow-lg ${
+      className={`overflow-hidden rounded-2xl shadow-md transition-shadow hover:shadow-lg ${
         selected ? "ring-2 ring-blue-500" : isSearchMatch ? "ring-2 ring-green-500" : ""
       }`}
       style={{
@@ -70,7 +70,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
       />
 
       {/* Inner content — masks the gradient core so only the 2px padding shows it */}
-      <div className="relative rounded-[7px] bg-white">
+      <div className="relative overflow-hidden rounded-[14px] bg-white">
         {/* Color accent strip */}
         <div style={{ height: 4, backgroundColor: d.color }} />
 
