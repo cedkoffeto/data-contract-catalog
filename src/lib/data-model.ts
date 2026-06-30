@@ -288,7 +288,8 @@ export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB"
   // Layout connected nodes with dagre
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: direction, nodesep: 120, ranksep: 200, marginx: 120, marginy: 120 });
+  const isCompact = viewMode === "compact";
+  g.setGraph({ rankdir: direction, nodesep: isCompact ? 50 : 80, ranksep: isCompact ? 100 : 150, marginx: 80, marginy: 80 });
 
   for (const node of connected) {
     g.setNode(node.id, { width: 300, height: nodeHeight(node, connectedFields, viewMode) });
@@ -313,32 +314,51 @@ export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB"
   // Position isolated nodes in a grid left of the connected graph
   if (isolated.length > 0) {
     const cols = 4;
-    const cellW = 320;
-    const cellH = 80;
-    const minX = connected.length > 0
-      ? Math.min(...Array.from(laidOut.values()).map((n) => n.position.x)) - cellW - 80
-      : -((Math.min(isolated.length, cols) * cellW) / 2);
-
+    const cellW = 300;
     const sorted = isolated.slice().sort((a, b) => {
       const sa = (a.data as ContractTableNodeData).slug || "";
       const sb = (b.data as ContractTableNodeData).slug || "";
       return sa.localeCompare(sb);
     });
 
-    const totalRows = Math.ceil(sorted.length / cols);
-    const gridHeight = totalRows * cellH;
-    const startY = -gridHeight / 2 + cellH / 2;
+    // Compute actual height for each isolated table
+    const heights = new Map<string, number>();
+    for (const n of sorted) {
+      heights.set(n.id, nodeHeight(n, connectedFields, viewMode));
+    }
 
+    const totalRows = Math.ceil(sorted.length / cols);
+    const rowHeights: number[] = [];
+    for (let r = 0; r < totalRows; r++) {
+      let maxH = 0;
+      for (let c = 0; c < cols; c++) {
+        const idx = r * cols + c;
+        if (idx < sorted.length) {
+          maxH = Math.max(maxH, heights.get(sorted[idx].id)!);
+        }
+      }
+      rowHeights.push(maxH);
+    }
+    const totalGridHeight = rowHeights.reduce((s, h) => s + h, 0) + (totalRows - 1) * 20;
+
+    const minX = connected.length > 0
+      ? Math.min(...Array.from(laidOut.values()).map((n) => n.position.x)) - cellW - 80
+      : -((Math.min(isolated.length, cols) * cellW) / 2);
+
+    let yOff = -totalGridHeight / 2;
     for (let i = 0; i < sorted.length; i++) {
       const col = i % cols;
       const row = Math.floor(i / cols);
+      const rowH = rowHeights[row];
+      const nodeH = heights.get(sorted[i].id)!;
       laidOut.set(sorted[i].id, {
         ...sorted[i],
         position: {
-          x: minX + col * cellW,
-          y: startY + row * cellH,
+          x: minX + col * cellW + (cellW - 300) / 2,
+          y: yOff + (rowH - nodeH) / 2,
         },
       });
+      if (col === cols - 1) yOff += rowH + 20;
     }
   }
 
