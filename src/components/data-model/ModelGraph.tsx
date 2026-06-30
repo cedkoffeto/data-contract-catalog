@@ -255,11 +255,17 @@ export function ModelGraph({
             pannable
             zoomable
             position="bottom-right"
-            nodeStrokeColor="#94a3b8"
-            nodeStrokeWidth={4}
-            nodeBorderRadius={2}
-            nodeColor={(n) => ((n.data as ContractTableNodeData)?.color) || "#94a3b8"}
-            maskColor="rgba(0,0,0,0.1)"
+            nodeColor={(n) => {
+              if (n.hidden) return "#e2e8f0";
+              return ((n.data as ContractTableNodeData)?.color) || "#94a3b8";
+            }}
+            nodeStrokeColor={(n) => {
+              if (n.hidden) return "#f1f5f9";
+              return ((n.data as ContractTableNodeData)?.color) || "#64748b";
+            }}
+            nodeStrokeWidth={3}
+            nodeBorderRadius={3}
+            maskColor="rgba(0,0,0,0.08)"
             className="!rounded-lg !border !border-gray-200 !shadow-sm cursor-grab active:cursor-grabbing"
             style={{ bottom: 12, right: 12 }}
           />
