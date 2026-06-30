@@ -274,6 +274,18 @@ function nodeHeight(node: Node, connectedFields?: Map<string, Set<string>>, view
   return Math.max(count * 28 + 60, 90);
 }
 
+function nodeWidth(node: Node): number {
+  const data = node.data as ContractTableNodeData;
+  const slugPx = data.slug.length * 8.5;
+  let maxFieldPx = 0;
+  for (const f of data.fields) {
+    const namePx = f.name.length * 6.6;
+    const typePx = f.type.length * 6;
+    maxFieldPx = Math.max(maxFieldPx, namePx + typePx + 10);
+  }
+  return Math.max(Math.ceil(Math.max(slugPx, maxFieldPx) + 60), 220);
+}
+
 export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB" = "LR", connectedFields?: Map<string, Set<string>>, viewMode?: "detailed" | "compact"): { nodes: Node[]; edges: Edge[] } {
   // Separate isolated nodes (no edges) from connected ones
   const connectedIds = new Set<string>();
@@ -292,7 +304,7 @@ export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB"
   g.setGraph({ rankdir: direction, nodesep: isCompact ? 50 : 80, ranksep: isCompact ? 100 : 150, marginx: 80, marginy: 80 });
 
   for (const node of connected) {
-    g.setNode(node.id, { width: 300, height: nodeHeight(node, connectedFields, viewMode) });
+    g.setNode(node.id, { width: nodeWidth(node), height: nodeHeight(node, connectedFields, viewMode) });
   }
   for (const edge of edges) {
     g.setEdge(edge.source, edge.target);
@@ -314,36 +326,44 @@ export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB"
   // Position isolated nodes in a grid left of the connected graph
   if (isolated.length > 0) {
     const cols = 4;
-    const cellW = 330;
+    const gap = 30;
     const sorted = isolated.slice().sort((a, b) => {
       const sa = (a.data as ContractTableNodeData).slug || "";
       const sb = (b.data as ContractTableNodeData).slug || "";
       return sa.localeCompare(sb);
     });
 
-    // Compute actual height for each isolated table
+    // Compute actual dimensions for each isolated table
+    const widths = new Map<string, number>();
     const heights = new Map<string, number>();
     for (const n of sorted) {
+      widths.set(n.id, nodeWidth(n));
       heights.set(n.id, nodeHeight(n, connectedFields, viewMode));
     }
 
     const totalRows = Math.ceil(sorted.length / cols);
     const rowHeights: number[] = [];
+    const rowWidths: number[] = [];
     for (let r = 0; r < totalRows; r++) {
       let maxH = 0;
+      let totalW = 0;
       for (let c = 0; c < cols; c++) {
         const idx = r * cols + c;
         if (idx < sorted.length) {
+          const w = widths.get(sorted[idx].id)!;
           maxH = Math.max(maxH, heights.get(sorted[idx].id)!);
+          totalW += w + (c > 0 ? gap : 0);
         }
       }
       rowHeights.push(maxH);
+      rowWidths.push(totalW);
     }
     const totalGridHeight = rowHeights.reduce((s, h) => s + h, 0) + (totalRows - 1) * 20;
+    const maxRowWidth = Math.max(...rowWidths);
 
     const minX = connected.length > 0
-      ? Math.min(...Array.from(laidOut.values()).map((n) => n.position.x)) - cellW - 80
-      : -((Math.min(isolated.length, cols) * cellW) / 2);
+      ? Math.min(...Array.from(laidOut.values()).map((n) => n.position.x)) - maxRowWidth - 80
+      : -maxRowWidth / 2;
 
     let yOff = -totalGridHeight / 2;
     for (let i = 0; i < sorted.length; i++) {
@@ -351,10 +371,19 @@ export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB"
       const row = Math.floor(i / cols);
       const rowH = rowHeights[row];
       const nodeH = heights.get(sorted[i].id)!;
+      const nodeW = widths.get(sorted[i].id)!;
+      // Compute x by accumulating widths of previous columns in this row
+      let xAcc = minX;
+      for (let c = 0; c < col; c++) {
+        const idx = row * cols + c;
+        if (idx < sorted.length) {
+          xAcc += widths.get(sorted[idx].id)! + gap;
+        }
+      }
       laidOut.set(sorted[i].id, {
         ...sorted[i],
         position: {
-          x: minX + col * cellW + (cellW - 300) / 2,
+          x: xAcc,
           y: yOff + (rowH - nodeH) / 2,
         },
       });
