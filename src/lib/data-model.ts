@@ -260,11 +260,22 @@ function nodeHeight(node: Node, connectedFields?: Map<string, Set<string>>, view
 }
 
 export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB" = "LR", connectedFields?: Map<string, Set<string>>, viewMode?: "detailed" | "compact"): { nodes: Node[]; edges: Edge[] } {
+  // Separate isolated nodes (no edges) from connected ones
+  const connectedIds = new Set<string>();
+  for (const e of edges) {
+    connectedIds.add(e.source);
+    connectedIds.add(e.target);
+  }
+
+  const isolated = nodes.filter((n) => !connectedIds.has(n.id));
+  const connected = nodes.filter((n) => connectedIds.has(n.id));
+
+  // Layout connected nodes with dagre
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-   g.setGraph({ rankdir: direction, nodesep: 120, ranksep: 200, marginx: 120, marginy: 120 });
+  g.setGraph({ rankdir: direction, nodesep: 120, ranksep: 200, marginx: 120, marginy: 120 });
 
-  for (const node of nodes) {
+  for (const node of connected) {
     g.setNode(node.id, { width: 300, height: nodeHeight(node, connectedFields, viewMode) });
   }
   for (const edge of edges) {
@@ -273,16 +284,50 @@ export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB"
 
   dagre.layout(g);
 
-  const laidOut = nodes.map((node) => {
+  const laidOut = new Map<string, Node>();
+  for (const node of connected) {
     const dagNode = g.node(node.id);
-    if (!dagNode) return node;
-    return {
-      ...node,
-      position: { x: dagNode.x - (dagNode.width || 220) / 2, y: dagNode.y - (dagNode.height || 80) / 2 },
-    };
-  });
+    if (dagNode) {
+      laidOut.set(node.id, {
+        ...node,
+        position: { x: dagNode.x - (dagNode.width || 220) / 2, y: dagNode.y - (dagNode.height || 80) / 2 },
+      });
+    }
+  }
 
-  return { nodes: laidOut, edges };
+  // Position isolated nodes in a grid left of the connected graph
+  if (isolated.length > 0) {
+    const cols = 4;
+    const cellW = 320;
+    const cellH = 80;
+    const minX = connected.length > 0
+      ? Math.min(...Array.from(laidOut.values()).map((n) => n.position.x)) - cellW - 80
+      : -((Math.min(isolated.length, cols) * cellW) / 2);
+
+    const sorted = isolated.slice().sort((a, b) => {
+      const sa = (a.data as ContractTableNodeData).slug || "";
+      const sb = (b.data as ContractTableNodeData).slug || "";
+      return sa.localeCompare(sb);
+    });
+
+    const totalRows = Math.ceil(sorted.length / cols);
+    const gridHeight = totalRows * cellH;
+    const startY = -gridHeight / 2 + cellH / 2;
+
+    for (let i = 0; i < sorted.length; i++) {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      laidOut.set(sorted[i].id, {
+        ...sorted[i],
+        position: {
+          x: minX + col * cellW,
+          y: startY + row * cellH,
+        },
+      });
+    }
+  }
+
+  return { nodes: nodes.map((n) => laidOut.get(n.id) || n), edges };
 }
 
 export function layoutLayerGraph(nodes: Node[], _edges: Edge[], connectedFields?: Map<string, Set<string>>, viewMode?: "detailed" | "compact"): { nodes: Node[]; edges: Edge[] } {
