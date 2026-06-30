@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
-import { Search, ArrowRight, ArrowLeft, ExternalLink } from "lucide-react";
-import { ReactFlow, type Node, type Edge } from "@xyflow/react";
+import { useState, useMemo, useEffect, useCallback, memo } from "react";
+import { Search, ExternalLink } from "lucide-react";
+import { ReactFlow, MarkerType, type Node, type Edge } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import type { DataModelContract } from "@/src/lib/data-model";
 
@@ -17,71 +17,110 @@ function contractId(c: DataModelContract): string {
 }
 
 const nodeGap = 300;
+const ySpacing = 28;
 
-const nodeStyle: Record<string, string | number> = {
-  padding: "1px 6px",
-  fontSize: 8,
-  border: "1px solid #d1d5db",
-  borderRadius: 4,
-  background: "#fff",
-  color: "#374151",
-  fontFamily: "ui-monospace, SFMono-Regular, monospace",
-  cursor: "pointer",
-  width: "auto",
-};
+const MiniNode = memo(function MiniNode({ data }: { data: { label: string; isCurrent?: boolean } }) {
+  return (
+    <div className="flex flex-col items-center gap-px">
+      <div
+        className="rounded-full"
+        style={{
+          width: 12,
+          height: 12,
+          backgroundColor: data.isCurrent ? "#f97316" : "#fff",
+          border: data.isCurrent ? "2px solid #f97316" : "2px solid #94a3b8",
+        }}
+      />
+      <span style={{ fontSize: 7, lineHeight: "8px", color: "#4b5563", whiteSpace: "nowrap" }}>
+        {data.label}
+      </span>
+    </div>
+  );
+});
+
+const nodeTypes = { miniNode: MiniNode };
 
 function RelationGraph({
   contract,
-  relations,
-  direction,
+  incoming,
+  outgoing,
   onCenterView,
 }: {
   contract: DataModelContract;
-  relations: { edge: Edge; other: DataModelContract }[];
-  direction: "outgoing" | "incoming";
+  incoming: { edge: Edge; other: DataModelContract }[];
+  outgoing: { edge: Edge; other: DataModelContract }[];
   onCenterView?: (slug: string) => void;
 }) {
   const selfId = contractId(contract);
-  const count = relations.length;
-  const spacing = 26;
-  const totalHeight = Math.max(0, (count - 1) * spacing);
+  const maxCount = Math.max(incoming.length, outgoing.length);
+  const totalHeight = Math.max(0, (maxCount - 1) * ySpacing);
 
   const nodes = useMemo<Node[]>(() => {
     const result: Node[] = [
       {
         id: selfId,
-        type: "default",
+        type: "miniNode",
         position: { x: 0, y: 0 },
-        data: { label: contract.slug },
-        style: { ...nodeStyle, fontWeight: 600, cursor: "default", borderColor: "#94a3b8" },
+        data: { label: contract.slug, isCurrent: true },
+        draggable: false,
+        style: { cursor: "default" },
       },
     ];
-    for (let i = 0; i < count; i++) {
-      const { other } = relations[i];
-      const y = -totalHeight / 2 + i * spacing;
+    for (let i = 0; i < incoming.length; i++) {
+      const y = -totalHeight / 2 + i * ySpacing;
       result.push({
-        id: contractId(other),
-        type: "default",
-        position: { x: direction === "outgoing" ? nodeGap : -nodeGap, y },
-        data: { label: other.slug },
-        style: nodeStyle,
+        id: contractId(incoming[i].other),
+        type: "miniNode",
+        position: { x: -nodeGap, y },
+        data: { label: incoming[i].other.slug },
+        draggable: false,
+        style: { cursor: "pointer" },
+      });
+    }
+    for (let i = 0; i < outgoing.length; i++) {
+      const y = -totalHeight / 2 + i * ySpacing;
+      result.push({
+        id: contractId(outgoing[i].other),
+        type: "miniNode",
+        position: { x: nodeGap, y },
+        data: { label: outgoing[i].other.slug },
+        draggable: false,
+        style: { cursor: "pointer" },
       });
     }
     return result;
-  }, [selfId, contract, count, relations, direction, spacing, totalHeight]);
+  }, [selfId, contract, incoming, outgoing, totalHeight]);
 
   const edges = useMemo<Edge[]>(() => {
-    return relations.map(({ edge, other }) => ({
-      id: edge.id,
-      source: direction === "outgoing" ? selfId : contractId(other),
-      target: direction === "outgoing" ? contractId(other) : selfId,
-      type: "smoothstep",
-      animated: true,
-      style: { stroke: "#94a3b8", strokeWidth: 1.5 },
-      label: edge.label as string,
-      labelStyle: { fontSize: 7, fill: "#94a3b8" },
-    }));
-  }, [relations, direction, selfId]);
+    const result: Edge[] = [];
+    for (const { edge, other } of incoming) {
+      result.push({
+        id: edge.id,
+        source: contractId(other),
+        target: selfId,
+        type: "smoothstep",
+        animated: true,
+        markerEnd: { type: MarkerType.ArrowClosed, width: 10, height: 10, color: "#94a3b8" },
+        style: { stroke: "#94a3b8", strokeWidth: 1.5 },
+        label: edge.label as string,
+        labelStyle: { fontSize: 7, fill: "#94a3b8" },
+      });
+    }
+    for (const { edge, other } of outgoing) {
+      result.push({
+        id: edge.id,
+        source: selfId,
+        target: contractId(other),
+        type: "smoothstep",
+        animated: true,
+        markerEnd: { type: MarkerType.ArrowClosed, width: 10, height: 10, color: "#94a3b8" },
+        style: { stroke: "#94a3b8", strokeWidth: 1.5 },
+        label: edge.label as string,
+        labelStyle: { fontSize: 7, fill: "#94a3b8" },
+      });
+    }
+    return result;
+  }, [incoming, outgoing, selfId]);
 
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
@@ -90,13 +129,14 @@ function RelationGraph({
     [onCenterView, selfId],
   );
 
-  const height = Math.max(80, count * spacing + 20);
+  const height = Math.max(60, maxCount * ySpacing + 10);
 
   return (
     <div style={{ height, width: "100%" }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
+        nodeTypes={nodeTypes}
         onNodeClick={onNodeClick}
         fitView
         fitViewOptions={{ padding: 0.2 }}
@@ -284,37 +324,14 @@ export function SidePanel({
             )}
 
             {/* Relations */}
-            {outgoing.length > 0 && (
-              <div className="border-b border-gray-100 px-4 py-2">
-                <h3 className="text-[10px] font-semibold text-gray-500 mb-1">
-                  Outgoing ({outgoing.length})
-                </h3>
+            {(incoming.length > 0 || outgoing.length > 0) && (
+              <div className="px-4 py-2">
                 <RelationGraph
                   contract={contract}
-                  relations={outgoing}
-                  direction="outgoing"
+                  incoming={incoming}
+                  outgoing={outgoing}
                   onCenterView={onCenterView}
                 />
-              </div>
-            )}
-            {incoming.length > 0 && (
-              <div className="px-4 py-2">
-                <h3 className="text-[10px] font-semibold text-gray-500 mb-1">
-                  Incoming ({incoming.length})
-                </h3>
-                <div className="space-y-0.5">
-                  {incoming.map(({ edge, other }) => (
-                    <button
-                      key={edge.id}
-                      onClick={() => onCenterView?.(contractId(other))}
-                      className="flex w-full items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-left hover:bg-gray-50 transition-colors"
-                    >
-                      <ArrowLeft size={8} className="shrink-0 text-blue-500" />
-                      <span className="font-mono text-gray-700 truncate">{other.slug}</span>
-                      <span className="ml-auto text-[9px] text-gray-400 truncate">{edge.label as string}</span>
-                    </button>
-                  ))}
-                </div>
               </div>
             )}
           </div>
