@@ -28,6 +28,8 @@ type ViewModeValue = {
   connectedFields: Map<string, Set<string>>;
   onHeaderClick: (slug: string) => void;
   onFieldClick: (slug: string) => void;
+  highlightedNode: string | null;
+  highlightedNeighbors: Set<string> | null;
 };
 
 export const ViewModeCtx = createContext<ViewModeValue>({
@@ -35,6 +37,8 @@ export const ViewModeCtx = createContext<ViewModeValue>({
   connectedFields: new Map(),
   onHeaderClick: () => {},
   onFieldClick: () => {},
+  highlightedNode: null,
+  highlightedNeighbors: null,
 });
 
 export function ModelGraph({
@@ -152,7 +156,9 @@ export function ModelGraph({
     connectedFields,
     onHeaderClick,
     onFieldClick: onNodeClick,
-  }), [viewMode, connectedFields, onHeaderClick, onNodeClick]);
+    highlightedNode,
+    highlightedNeighbors,
+  }), [viewMode, connectedFields, onHeaderClick, onNodeClick, highlightedNode, highlightedNeighbors]);
 
   const filteredEdges = useMemo(
     () => edges.filter((e) => visibleTables.has(e.source) && visibleTables.has(e.target)),

@@ -1,12 +1,13 @@
 "use client";
 
-import { memo, useState, useEffect, useMemo } from "react";
+import { memo, useState, useEffect, useMemo, useContext } from "react";
 import {
   getSmoothStepPath,
   EdgeLabelRenderer,
   Position,
   type EdgeProps,
 } from "@xyflow/react";
+import { ViewModeCtx } from "./ModelGraph";
 
 const animStyleId = "dcc-edge-flow";
 
@@ -60,8 +61,9 @@ function CardinalitySymbol({ x, y, position, side, type }: { x: number; y: numbe
 
 export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
   const [hovered, setHovered] = useState(false);
+  const { highlightedNode, highlightedNeighbors } = useContext(ViewModeCtx);
 
-  const { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style, label, data, animated } = props;
+  const { source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style, label, data, animated } = props;
 
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
@@ -93,14 +95,22 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
   const baseStrokeWidth = ((style as React.CSSProperties)?.strokeWidth as number) || 2;
   const isAnimated = !!animated;
 
+  const isEdgeHighlighted = useMemo(() => {
+    if (!highlightedNode || !highlightedNeighbors) return true;
+    const isSourceHighlighted = source === highlightedNode || highlightedNeighbors.has(source);
+    const isTargetHighlighted = target === highlightedNode || highlightedNeighbors.has(target);
+    return isSourceHighlighted && isTargetHighlighted;
+  }, [highlightedNode, highlightedNeighbors, source, target]);
+
   const pathStyle: React.CSSProperties = useMemo(() => ({
     ...(style as React.CSSProperties),
     strokeDasharray: isAnimated ? "8 6" : (style as React.CSSProperties)?.strokeDasharray || "4 3",
     animation: isAnimated
       ? `dcc-flow ${hovered ? "0.3s" : "0.8s"} linear infinite`
       : undefined,
-    transition: "stroke 0.2s, filter 0.2s",
-  }), [style, isAnimated, hovered]);
+    opacity: isEdgeHighlighted ? 1 : 0.15,
+    transition: "stroke 0.2s, filter 0.2s, opacity 0.2s",
+  }), [style, isAnimated, hovered, isEdgeHighlighted]);
 
   return (
     <g
@@ -116,7 +126,7 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
           stroke="#94a3b8"
           strokeWidth={baseStrokeWidth + 2}
           strokeLinecap="round"
-          opacity={0.15}
+          opacity={isEdgeHighlighted ? 0.15 : 0.03}
         />
       )}
       <path
@@ -127,8 +137,10 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
         filter={hovered ? "drop-shadow(0 0 6px rgba(100,116,139,0.4))" : undefined}
         strokeLinecap="round"
       />
-      <CardinalitySymbol x={sourceX} y={sourceY} position={sourcePosition} side="source" type={cardSource} />
-      <CardinalitySymbol x={targetX} y={targetY} position={targetPosition} side="target" type={cardTarget} />
+      <g opacity={isEdgeHighlighted ? 1 : 0.2}>
+        <CardinalitySymbol x={sourceX} y={sourceY} position={sourcePosition} side="source" type={cardSource} />
+        <CardinalitySymbol x={targetX} y={targetY} position={targetPosition} side="target" type={cardTarget} />
+      </g>
       <EdgeLabelRenderer>
         <div
           style={{
@@ -144,6 +156,7 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
             padding: "2px 6px",
             pointerEvents: "none",
             whiteSpace: "nowrap",
+            opacity: isEdgeHighlighted ? 1 : 0.2,
             transition: "all 120ms ease",
           }}
         >
