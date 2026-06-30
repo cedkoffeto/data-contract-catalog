@@ -49,7 +49,6 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
       }`}
       style={{
         minWidth: 220,
-        maxWidth: 380,
         padding: 2,
         position: "relative",
       }}
@@ -77,8 +76,8 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
         {/* Header */}
         <div className="flex cursor-grab active:cursor-grabbing items-center gap-2 px-3 py-2">
           <span className="flex h-5 cursor-pointer items-center" onClick={(e) => { e.stopPropagation(); onHeaderClick(d.slug); }} title="Open contract detail"><Table size={14} style={{ color: d.color }} /></span>
-          <span className="flex h-5 items-center min-w-0 truncate text-sm font-semibold tracking-tight text-gray-900" title={`${d.label}\ndomain: ${d.domain}\ncontext: ${d.context ?? ""}\nslug: ${d.slug}`}>{d.slug}</span>
-          <span className={`ml-auto flex h-5 items-center rounded px-1.5 text-[9px] font-bold uppercase leading-none ${maturityBadge[d.maturity as string] || maturityBadge.bronze}`}>
+          <span className="flex h-5 items-center text-sm font-semibold tracking-tight text-gray-900" title={`${d.label}\ndomain: ${d.domain}\ncontext: ${d.context ?? ""}\nslug: ${d.slug}`}>{d.slug}</span>
+          <span className={`ml-auto flex shrink-0 h-5 items-center rounded px-1.5 text-[9px] font-bold uppercase leading-none ${maturityBadge[d.maturity as string] || maturityBadge.bronze}`}>
             {d.maturity as string}
           </span>
         </div>
