@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { Search, ArrowRight, ArrowLeft, ExternalLink } from "lucide-react";
+import { ReactFlow, type Node, type Edge } from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
 import type { DataModelContract } from "@/src/lib/data-model";
-import type { Edge } from "@xyflow/react";
 
 const maturityBadge: Record<string, string> = {
   bronze: "bg-amber-100 text-amber-800",
@@ -13,6 +14,98 @@ const maturityBadge: Record<string, string> = {
 
 function contractId(c: DataModelContract): string {
   return `${c.maturity}_${c.slug}`;
+}
+
+const nodeStyle = {
+  padding: "2px 8px",
+  fontSize: 10,
+  border: "1px solid #d1d5db",
+  borderRadius: 4,
+  background: "#fff",
+  color: "#374151",
+  fontFamily: "ui-monospace, SFMono-Regular, monospace",
+  cursor: "pointer",
+};
+
+function RelationGraph({
+  contract,
+  relations,
+  direction,
+  onCenterView,
+}: {
+  contract: DataModelContract;
+  relations: { edge: Edge; other: DataModelContract }[];
+  direction: "outgoing" | "incoming";
+  onCenterView?: (slug: string) => void;
+}) {
+  const selfId = contractId(contract);
+  const count = relations.length;
+  const spacing = 32;
+  const totalHeight = Math.max(0, (count - 1) * spacing);
+
+  const nodes = useMemo<Node[]>(() => {
+    const result: Node[] = [
+      {
+        id: selfId,
+        type: "default",
+        position: { x: 0, y: 0 },
+        data: { label: contract.slug },
+        style: { ...nodeStyle, fontWeight: 600, cursor: "default", borderColor: "#94a3b8" },
+      },
+    ];
+    for (let i = 0; i < count; i++) {
+      const { other } = relations[i];
+      const y = -totalHeight / 2 + i * spacing;
+      result.push({
+        id: contractId(other),
+        type: "default",
+        position: { x: direction === "outgoing" ? 140 : -140, y },
+        data: { label: other.slug },
+        style: nodeStyle,
+      });
+    }
+    return result;
+  }, [selfId, contract, count, relations, direction, spacing, totalHeight]);
+
+  const edges = useMemo<Edge[]>(() => {
+    return relations.map(({ edge, other }) => ({
+      id: edge.id,
+      source: direction === "outgoing" ? selfId : contractId(other),
+      target: direction === "outgoing" ? contractId(other) : selfId,
+      type: "smoothstep",
+      animated: true,
+      style: { stroke: "#94a3b8", strokeWidth: 1.5 },
+      label: edge.label as string,
+      labelStyle: { fontSize: 8, fill: "#94a3b8" },
+    }));
+  }, [relations, direction, selfId]);
+
+  const onNodeClick = useCallback(
+    (_: React.MouseEvent, node: Node) => {
+      if (node.id !== selfId) onCenterView?.(node.id);
+    },
+    [onCenterView, selfId],
+  );
+
+  const height = Math.max(50, count * spacing + 10);
+
+  return (
+    <div style={{ height, width: "100%" }}>
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodeClick={onNodeClick}
+        fitView
+        proOptions={{ hideAttribution: true }}
+        panOnDrag={false}
+        zoomOnScroll={false}
+        zoomOnPinch={false}
+        zoomOnDoubleClick={false}
+        nodesDraggable={false}
+        nodesConnectable={false}
+      />
+    </div>
+  );
 }
 
 export function SidePanel({
@@ -194,19 +287,12 @@ export function SidePanel({
                     <h3 className="text-[5px] font-semibold tracking-wider text-gray-400 mb-0.5">
                       Outgoing ({outgoing.length})
                     </h3>
-                    <div className="space-y-0.5">
-                      {outgoing.map(({ edge, other }) => (
-                        <button
-                          key={edge.id}
-                          onClick={() => onCenterView?.(contractId(other))}
-                          className="flex w-full items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-left hover:bg-gray-50 transition-colors"
-                        >
-                          <ArrowRight size={8} className="shrink-0 text-amber-500" />
-                          <span className="font-mono text-gray-700 truncate text-[11px]">{other.slug}</span>
-                          <span className="ml-auto text-[11px] text-gray-400 truncate">{edge.label as string}</span>
-                        </button>
-                      ))}
-                    </div>
+                    <RelationGraph
+                      contract={contract}
+                      relations={outgoing}
+                      direction="outgoing"
+                      onCenterView={onCenterView}
+                    />
                   </div>
                 )}
                 {incoming.length > 0 && (
