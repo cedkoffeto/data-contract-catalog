@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useState, useEffect, useMemo } from "react";
 import {
   getSmoothStepPath,
   EdgeLabelRenderer,
@@ -8,37 +8,52 @@ import {
   type EdgeProps,
 } from "@xyflow/react";
 
+const animStyleId = "dcc-edge-flow";
+
+function edgeOffset(position: Position, side: "source" | "target", distance: number): { dx: number; dy: number } {
+  if (side === "source") {
+    if (position === Position.Right)  return { dx:  distance, dy: 0 };
+    if (position === Position.Left)   return { dx: -distance, dy: 0 };
+    if (position === Position.Top)    return { dx: 0, dy: -distance };
+    if (position === Position.Bottom) return { dx: 0, dy:  distance };
+  }
+  if (position === Position.Left)   return { dx: -distance, dy: 0 };
+  if (position === Position.Right)  return { dx:  distance, dy: 0 };
+  if (position === Position.Bottom) return { dx: 0, dy:  distance };
+  if (position === Position.Top)    return { dx: 0, dy: -distance };
+  return { dx: distance, dy: 0 };
+}
+
 function CardinalitySymbol({ x, y, position, side, type }: { x: number; y: number; position: Position; side: "source" | "target"; type: "one" | "many" }) {
+  const offset = 8;
+  const spread = 7;
+  const { dx, dy } = edgeOffset(position, side, offset);
   const isLeftRight = position === Position.Left || position === Position.Right;
 
   if (type === "one") {
     if (isLeftRight) {
-      return <line x1={x} y1={y - 6} x2={x} y2={y + 6} stroke="#94a3b8" strokeWidth={2} />;
+      return <line x1={x + dx} y1={y - spread} x2={x + dx} y2={y + spread} stroke="#64748b" strokeWidth={3} strokeLinecap="round" />;
     }
-    return <line x1={x - 6} y1={y} x2={x + 6} y2={y} stroke="#94a3b8" strokeWidth={2} />;
+    return <line x1={x - spread} y1={y + dy} x2={x + spread} y2={y + dy} stroke="#64748b" strokeWidth={3} strokeLinecap="round" />;
   }
 
-  // many — crow's foot: three lines converging at (x,y) and spreading into the entity
-  const spread = 5;
+  const cx = x + dx;
+  const cy = y + dy;
+
   if (isLeftRight) {
-    // into = direction INTO the entity (away from the edge path)
-    const into = side === "source" ? -1 : 1;
-    const tipX = x + into * 7;
     return (
-      <g stroke="#94a3b8" strokeWidth={1.5} fill="none">
-        <line x1={x} y1={y} x2={tipX} y2={y - spread} />
-        <line x1={x} y1={y} x2={tipX} y2={y + spread} />
-        <line x1={x} y1={y} x2={tipX} y2={y} />
+      <g stroke="#64748b" strokeWidth={2.5} fill="none" strokeLinecap="round">
+        <line x1={cx} y1={cy} x2={x} y2={y - spread} />
+        <line x1={cx} y1={cy} x2={x} y2={y} />
+        <line x1={cx} y1={cy} x2={x} y2={y + spread} />
       </g>
     );
   }
-  const into = side === "source" ? -1 : 1;
-  const tipY = y + into * 7;
   return (
-    <g stroke="#94a3b8" strokeWidth={1.5} fill="none">
-      <line x1={x} y1={y} x2={x - spread} y2={tipY} />
-      <line x1={x} y1={y} x2={x + spread} y2={tipY} />
-      <line x1={x} y1={y} x2={x} y2={tipY} />
+    <g stroke="#64748b" strokeWidth={2.5} fill="none" strokeLinecap="round">
+      <line x1={cx} y1={cy} x2={x - spread} y2={y} />
+      <line x1={cx} y1={cy} x2={x} y2={y} />
+      <line x1={cx} y1={cy} x2={x + spread} y2={y} />
     </g>
   );
 }
@@ -46,7 +61,7 @@ function CardinalitySymbol({ x, y, position, side, type }: { x: number; y: numbe
 export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
   const [hovered, setHovered] = useState(false);
 
-  const { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style, label, data } = props;
+  const { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style, label, data, animated } = props;
 
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
@@ -57,9 +72,35 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
     targetPosition,
   });
 
+  useEffect(() => {
+    if (typeof document !== "undefined" && !document.getElementById(animStyleId)) {
+      const s = document.createElement("style");
+      s.id = animStyleId;
+      s.textContent = `
+        @keyframes dcc-flow {
+          0% { stroke-dashoffset: 24; }
+          100% { stroke-dashoffset: 0; }
+        }
+      `;
+      document.head.appendChild(s);
+    }
+  }, []);
+
   const cd = (data ?? {}) as { cardSource?: string; cardTarget?: string };
   const cardSource = cd.cardSource === "many" ? "many" : "one";
   const cardTarget = cd.cardTarget === "many" ? "many" : "one";
+
+  const baseStrokeWidth = ((style as React.CSSProperties)?.strokeWidth as number) || 2;
+  const isAnimated = !!animated;
+
+  const pathStyle: React.CSSProperties = useMemo(() => ({
+    ...(style as React.CSSProperties),
+    strokeDasharray: isAnimated ? "8 6" : (style as React.CSSProperties)?.strokeDasharray || "4 3",
+    animation: isAnimated
+      ? `dcc-flow ${hovered ? "0.3s" : "0.8s"} linear infinite`
+      : undefined,
+    transition: "stroke 0.2s, filter 0.2s",
+  }), [style, isAnimated, hovered]);
 
   return (
     <g
@@ -68,16 +109,25 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
       style={{ cursor: "pointer" }}
     >
       <path d={edgePath} fill="none" stroke="transparent" strokeWidth={20} />
+      {isAnimated && (
+        <path
+          d={edgePath}
+          fill="none"
+          stroke="#94a3b8"
+          strokeWidth={baseStrokeWidth + 2}
+          strokeLinecap="round"
+          opacity={0.15}
+        />
+      )}
       <path
         d={edgePath}
         fill="none"
-        style={style}
-        strokeWidth={hovered ? 4 : ((style as React.CSSProperties)?.strokeWidth as number) || 2}
-        filter={hovered ? "drop-shadow(0 0 6px rgba(0,0,0,0.3))" : undefined}
+        style={pathStyle}
+        strokeWidth={hovered ? baseStrokeWidth * 2 : baseStrokeWidth}
+        filter={hovered ? "drop-shadow(0 0 6px rgba(100,116,139,0.4))" : undefined}
+        strokeLinecap="round"
       />
-      {/* Source cardinality */}
       <CardinalitySymbol x={sourceX} y={sourceY} position={sourcePosition} side="source" type={cardSource} />
-      {/* Target cardinality */}
       <CardinalitySymbol x={targetX} y={targetY} position={targetPosition} side="target" type={cardTarget} />
       <EdgeLabelRenderer>
         <div

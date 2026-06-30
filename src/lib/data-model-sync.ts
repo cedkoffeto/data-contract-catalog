@@ -21,6 +21,58 @@ function layerFromPath(fp: string): string {
   return "bronze";
 }
 
+function parseContractFromRaw(
+  raw: string,
+  slug: string,
+  defaultMaturity: string,
+): DataModelContract | null {
+  let doc: Record<string, unknown>;
+  try { doc = yaml.load(raw) as Record<string, unknown>; } catch { return null; }
+  const asset = doc?.asset as Record<string, unknown> | undefined;
+  if (!asset) return null;
+
+  const domain = ((asset.domain as string) || "").trim();
+  const context = ((asset.context as string) || "").trim();
+  const maturity = (asset.maturity as string) || defaultMaturity;
+
+  const fields: ContractField[] = [];
+  const schema = (doc.contract as Record<string, unknown>)?.schema as Record<string, unknown> | undefined;
+  if (schema?.fields && Array.isArray(schema.fields)) {
+    for (const f of schema.fields as Record<string, unknown>[]) {
+      fields.push({
+        name: (f.name as string) || "",
+        type: (f.type as string) || "string",
+        description: f.description as string | undefined,
+      });
+    }
+  }
+
+  return {
+    slug,
+    maturity: maturity as "bronze" | "silver" | "gold",
+    domain,
+    context,
+    name: (asset.name as string) || slug,
+    fields,
+  };
+}
+
+function parseModelFromRaw(raw: string, filePath: string): LoadedModel | null {
+  let doc: Record<string, unknown>;
+  try { doc = yaml.load(raw) as Record<string, unknown>; } catch { return null; }
+  const domain = (doc.domain as string) || "";
+  const context = (doc.context as string) || "";
+  const layer = layerFromPath(filePath);
+  const rawRels = doc.relations;
+  const relations: { ref_name: string; ref: string }[] = [];
+  if (Array.isArray(rawRels)) {
+    for (const r of rawRels as Record<string, unknown>[]) {
+      relations.push({ ref_name: (r.ref_name as string) || "", ref: (r.ref as string) || "" });
+    }
+  }
+  return { domain, context, layer, sourceFile: path.basename(filePath), relations };
+}
+
 function readLocalDataModel(): { contracts: DataModelContract[]; models: LoadedModel[] } {
   const DATA_MODEL_DIR = path.join(process.cwd(), "data-model");
   const CONTRACTS_DIR = path.join(process.cwd(), "contracts");
@@ -37,54 +89,20 @@ function readLocalDataModel(): { contracts: DataModelContract[]; models: LoadedM
     return files;
   }
 
-  const contractFiles = walk(CONTRACTS_DIR);
   const contracts: DataModelContract[] = [];
-
-  for (const fp of contractFiles) {
+  for (const fp of walk(CONTRACTS_DIR)) {
     const raw = fs.readFileSync(fp, "utf-8");
-    let doc: Record<string, unknown>;
-    try { doc = yaml.load(raw) as Record<string, unknown>; } catch { continue; }
-    const asset = doc?.asset as Record<string, unknown> | undefined;
-    if (!asset) continue;
-
-    const domain = ((asset.domain as string) || "").trim();
-    const context = ((asset.context as string) || "").trim();
-    const maturity = (asset.maturity as string) || path.basename(path.dirname(fp));
     const slug = path.basename(fp, ".yaml");
-
-    const fields: ContractField[] = [];
-    const schema = (doc.contract as Record<string, unknown>)?.schema as Record<string, unknown> | undefined;
-    if (schema?.fields && Array.isArray(schema.fields)) {
-      for (const f of schema.fields as Record<string, unknown>[]) {
-        fields.push({
-          name: (f.name as string) || "",
-          type: (f.type as string) || "string",
-          description: f.description as string | undefined,
-        });
-      }
-    }
-
-    contracts.push({ slug, maturity: maturity as "bronze" | "silver" | "gold", domain, context, name: (asset.name as string) || slug, fields });
+    const maturity = path.basename(path.dirname(fp));
+    const parsed = parseContractFromRaw(raw, slug, maturity);
+    if (parsed) contracts.push(parsed);
   }
 
-  const modelFiles = walk(DATA_MODEL_DIR).filter((f) => path.basename(f) !== "model-global.yaml");
   const models: LoadedModel[] = [];
-
-  for (const fp of modelFiles) {
+  for (const fp of walk(DATA_MODEL_DIR).filter((f) => path.basename(f) !== "model-global.yaml")) {
     const raw = fs.readFileSync(fp, "utf-8");
-    let doc: Record<string, unknown>;
-    try { doc = yaml.load(raw) as Record<string, unknown>; } catch { continue; }
-    const domain = (doc.domain as string) || "";
-    const context = (doc.context as string) || "";
-    const layer = layerFromPath(fp);
-    const rawRels = doc.relations;
-    const relations: { ref_name: string; ref: string }[] = [];
-    if (Array.isArray(rawRels)) {
-      for (const r of rawRels as Record<string, unknown>[]) {
-        relations.push({ ref_name: (r.ref_name as string) || "", ref: (r.ref as string) || "" });
-      }
-    }
-    models.push({ domain, context, layer, sourceFile: path.basename(fp), relations });
+    const parsed = parseModelFromRaw(raw, fp);
+    if (parsed) models.push(parsed);
   }
 
   return { contracts, models };
@@ -97,26 +115,9 @@ function parseContractsFromArchive(archiveFiles: Map<string, Buffer>): DataModel
   for (const filePath of yamlPaths) {
     const buf = archiveFiles.get(filePath);
     if (!buf) continue;
-    const raw = buf.toString("utf-8");
-    let doc: Record<string, unknown>;
-    try { doc = yaml.load(raw) as Record<string, unknown>; } catch { continue; }
-    const asset = doc?.asset as Record<string, unknown> | undefined;
-    if (!asset) continue;
-
-    const domain = ((asset.domain as string) || "").trim();
-    const context = ((asset.context as string) || "").trim();
-    const maturity = (asset.maturity as string) || "bronze";
     const slug = path.basename(filePath, ".yaml");
-
-    const fields: ContractField[] = [];
-    const schema = (doc.contract as Record<string, unknown>)?.schema as Record<string, unknown> | undefined;
-    if (schema?.fields && Array.isArray(schema.fields)) {
-      for (const f of schema.fields as Record<string, unknown>[]) {
-        fields.push({ name: (f.name as string) || "", type: (f.type as string) || "string", description: f.description as string | undefined });
-      }
-    }
-
-    contracts.push({ slug, maturity: maturity as "bronze" | "silver" | "gold", domain, context, name: (asset.name as string) || slug, fields });
+    const parsed = parseContractFromRaw(buf.toString("utf-8"), slug, "bronze");
+    if (parsed) contracts.push(parsed);
   }
 
   return contracts;
@@ -131,20 +132,8 @@ function parseModelsFromArchive(archiveFiles: Map<string, Buffer>): LoadedModel[
   for (const filePath of yamlPaths) {
     const buf = archiveFiles.get(filePath);
     if (!buf) continue;
-    const raw = buf.toString("utf-8");
-    let doc: Record<string, unknown>;
-    try { doc = yaml.load(raw) as Record<string, unknown>; } catch { continue; }
-    const domain = (doc.domain as string) || "";
-    const context = (doc.context as string) || "";
-    const layer = layerFromPath(filePath);
-    const rawRels = doc.relations;
-    const relations: { ref_name: string; ref: string }[] = [];
-    if (Array.isArray(rawRels)) {
-      for (const r of rawRels as Record<string, unknown>[]) {
-        relations.push({ ref_name: (r.ref_name as string) || "", ref: (r.ref as string) || "" });
-      }
-    }
-    models.push({ domain, context, layer, sourceFile: path.basename(filePath), relations });
+    const parsed = parseModelFromRaw(buf.toString("utf-8"), filePath);
+    if (parsed) models.push(parsed);
   }
 
   return models;

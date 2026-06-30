@@ -90,12 +90,33 @@ export type GraphData = {
   edges: Edge[];
 };
 
+export type ContractTableNodeData = Record<string, unknown> & {
+  label: string;
+  slug: string;
+  maturity: "bronze" | "silver" | "gold";
+  domain: string;
+  context?: string;
+  fields: { name: string; type: string; description?: string }[];
+  color: string;
+};
+
 export type LoadedModel = {
   domain: string;
   context: string;
   relations: { ref_name: string; ref: string }[];
   sourceFile: string;
   layer: string;
+};
+
+const layerStroke: Record<string, string> = {
+  bronze: "#b45309",
+  silver: "#475569",
+  gold: "#a16207",
+};
+const layerStrokeLight: Record<string, string> = {
+  bronze: "#d97706",
+  silver: "#64748b",
+  gold: "#ca8a04",
 };
 
 function domainColor(domain: string): string {
@@ -107,6 +128,23 @@ function domainColor(domain: string): string {
 
 function slugToId(slug: string, maturity: string): string {
   return `${maturity}_${slug}`;
+}
+
+function createNode(c: DataModelContract): Node {
+  return {
+    id: slugToId(c.slug, c.maturity),
+    type: "contractTable",
+    position: { x: 0, y: 0 },
+    data: {
+      label: c.name,
+      slug: c.slug,
+      maturity: c.maturity,
+      domain: c.domain,
+      context: c.context,
+      fields: c.fields,
+      color: domainColor(c.domain),
+    },
+  };
 }
 
 export function parseContractsToGraph(
@@ -128,20 +166,7 @@ export function parseContractsToGraph(
   for (const c of contracts) {
     const id = slugToId(c.slug, c.maturity);
     if (nodeMap.has(id)) continue;
-    nodeMap.set(id, {
-      id,
-      type: "contractTable",
-      position: { x: 0, y: 0 },
-      data: {
-        label: c.name,
-        slug: c.slug,
-        maturity: c.maturity,
-        domain: c.domain,
-        context: c.context,
-        fields: c.fields,
-        color: domainColor(c.domain),
-      },
-    });
+    nodeMap.set(id, createNode(c));
   }
 
   // 2. Resolve relations → edges
@@ -163,44 +188,14 @@ export function parseContractsToGraph(
       const srcId = slugToId(srcContract.slug, srcContract.maturity);
       const tgtId = slugToId(tgtContract.slug, tgtContract.maturity);
 
-      // Ensure nodes exist for referenced contracts too
-      if (!nodeMap.has(srcId)) {
-        nodeMap.set(srcId, {
-          id: srcId,
-          type: "contractTable",
-          position: { x: 0, y: 0 },
-          data: {
-            label: srcContract.name,
-            slug: srcContract.slug,
-            maturity: srcContract.maturity,
-            domain: srcContract.domain,
-            context: srcContract.context,
-            fields: srcContract.fields,
-            color: domainColor(srcContract.domain),
-          },
-        });
-      }
-      if (!nodeMap.has(tgtId)) {
-        nodeMap.set(tgtId, {
-          id: tgtId,
-          type: "contractTable",
-          position: { x: 0, y: 0 },
-          data: {
-            label: tgtContract.name,
-            slug: tgtContract.slug,
-            maturity: tgtContract.maturity,
-            domain: tgtContract.domain,
-            context: tgtContract.context,
-            fields: tgtContract.fields,
-            color: domainColor(tgtContract.domain),
-          },
-        });
-      }
+      if (!nodeMap.has(srcId)) nodeMap.set(srcId, createNode(srcContract));
+      if (!nodeMap.has(tgtId)) nodeMap.set(tgtId, createNode(tgtContract));
 
       const edgeKey = `${srcId}.${src.field}->${tgtId}.${tgt.field}`;
       if (edgeSet.has(edgeKey)) continue;
       edgeSet.add(edgeKey);
 
+      const srcLayer = srcContract.maturity || "bronze";
       const isAnimated = parsed.sign !== "-";
       const cardSource = parsed.sign === ">" ? "many" : parsed.sign === "<" ? "one" : "many";
       const cardTarget = parsed.sign === ">" ? "one" : parsed.sign === "<" ? "many" : "many";
@@ -215,7 +210,7 @@ export function parseContractsToGraph(
         animated: isAnimated,
         data: { cardSource, cardTarget },
         style: {
-          stroke: isAnimated ? "#64748b" : "#94a3b8",
+          stroke: isAnimated ? layerStroke[srcLayer] : layerStrokeLight[srcLayer],
           strokeWidth: isAnimated ? 2 : 1.5,
           strokeDasharray: isAnimated ? undefined : "4 3",
         },
@@ -248,22 +243,28 @@ import dagre from "dagre";
 export type LayoutMode = "LR" | "TB" | "layer" | "domain";
 
 function nodeFieldCount(node: Node): number {
-  const fields = (node.data as Record<string, unknown>)?.fields;
-  return Array.isArray(fields) ? fields.length : 0;
+  const data = node.data as ContractTableNodeData;
+  return data.fields ? data.fields.length : 0;
 }
 
-function nodeHeight(node: Node): number {
-  const count = nodeFieldCount(node);
+function nodeCompactCount(node: Node, connectedFields: Map<string, Set<string>>): number {
+  return connectedFields.get(node.id)?.size ?? 0;
+}
+
+function nodeHeight(node: Node, connectedFields?: Map<string, Set<string>>, viewMode?: "detailed" | "compact"): number {
+  const count = viewMode === "compact" && connectedFields
+    ? nodeCompactCount(node, connectedFields)
+    : nodeFieldCount(node);
   return count ? count * 28 + 60 : 80;
 }
 
-export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB" = "LR"): { nodes: Node[]; edges: Edge[] } {
+export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB" = "LR", connectedFields?: Map<string, Set<string>>, viewMode?: "detailed" | "compact"): { nodes: Node[]; edges: Edge[] } {
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
    g.setGraph({ rankdir: direction, nodesep: 120, ranksep: 200, marginx: 120, marginy: 120 });
 
   for (const node of nodes) {
-    g.setNode(node.id, { width: 300, height: nodeHeight(node) });
+    g.setNode(node.id, { width: 300, height: nodeHeight(node, connectedFields, viewMode) });
   }
   for (const edge of edges) {
     g.setEdge(edge.source, edge.target);
@@ -283,7 +284,7 @@ export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB"
   return { nodes: laidOut, edges };
 }
 
-export function layoutLayerGraph(nodes: Node[], _edges: Edge[]): { nodes: Node[]; edges: Edge[] } {
+export function layoutLayerGraph(nodes: Node[], _edges: Edge[], connectedFields?: Map<string, Set<string>>, viewMode?: "detailed" | "compact"): { nodes: Node[]; edges: Edge[] } {
    const LAYER_ORDER = ["bronze", "silver", "gold"];
   const COLUMN_WIDTH = 480;
   const VERTICAL_GAP = 60;
@@ -292,9 +293,9 @@ export function layoutLayerGraph(nodes: Node[], _edges: Edge[]): { nodes: Node[]
   const heights = new Map<string, number>();
   const byLayer = new Map<string, Node[]>();
   for (const n of nodes) {
-    const h = nodeHeight(n);
+    const h = nodeHeight(n, connectedFields, viewMode);
     heights.set(n.id, h);
-    const maturity = ((n.data as Record<string, unknown>)?.maturity as string) || "bronze";
+    const maturity = (n.data as ContractTableNodeData).maturity || "bronze";
     if (!byLayer.has(maturity)) byLayer.set(maturity, []);
     byLayer.get(maturity)!.push(n);
   }
@@ -329,7 +330,7 @@ export function layoutLayerGraph(nodes: Node[], _edges: Edge[]): { nodes: Node[]
   return { nodes: laidOut, edges: _edges };
 }
 
-export function layoutDomainGraph(nodes: Node[], _edges: Edge[]): { nodes: Node[]; edges: Edge[] } {
+export function layoutDomainGraph(nodes: Node[], _edges: Edge[], connectedFields?: Map<string, Set<string>>, viewMode?: "detailed" | "compact"): { nodes: Node[]; edges: Edge[] } {
   const COLUMN_WIDTH = 320;
   const DOMAIN_GAP_X = 160;
   const VERTICAL_GAP = 50;
@@ -338,8 +339,8 @@ export function layoutDomainGraph(nodes: Node[], _edges: Edge[]): { nodes: Node[
   const heights = new Map<string, number>();
   const byDomain = new Map<string, Node[]>();
   for (const n of nodes) {
-    heights.set(n.id, nodeHeight(n));
-    const domain = ((n.data as Record<string, unknown>)?.domain as string) || "Unknown";
+    heights.set(n.id, nodeHeight(n, connectedFields, viewMode));
+    const domain = (n.data as ContractTableNodeData).domain || "Unknown";
     if (!byDomain.has(domain)) byDomain.set(domain, []);
     byDomain.get(domain)!.push(n);
   }
@@ -374,14 +375,14 @@ export function layoutDomainGraph(nodes: Node[], _edges: Edge[]): { nodes: Node[
   return { nodes: laidOut, edges: _edges };
 }
 
-export function layoutByMode(nodes: Node[], edges: Edge[], mode: LayoutMode): { nodes: Node[]; edges: Edge[] } {
+export function layoutByMode(nodes: Node[], edges: Edge[], mode: LayoutMode, connectedFields?: Map<string, Set<string>>, viewMode?: "detailed" | "compact"): { nodes: Node[]; edges: Edge[] } {
   switch (mode) {
     case "LR":
     case "TB":
-      return layoutGraph(nodes, edges, mode);
+      return layoutGraph(nodes, edges, mode, connectedFields, viewMode);
     case "layer":
-      return layoutLayerGraph(nodes, edges);
+      return layoutLayerGraph(nodes, edges, connectedFields, viewMode);
     case "domain":
-      return layoutDomainGraph(nodes, edges);
+      return layoutDomainGraph(nodes, edges, connectedFields, viewMode);
   }
 }
