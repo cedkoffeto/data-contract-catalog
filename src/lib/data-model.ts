@@ -254,9 +254,9 @@ function nodeCompactCount(node: Node, connectedFields: Map<string, Set<string>>)
 
 function nodeHeight(node: Node, connectedFields?: Map<string, Set<string>>, viewMode?: "detailed" | "compact"): number {
   const count = viewMode === "compact" && connectedFields
-    ? nodeCompactCount(node, connectedFields)
+    ? Math.max(nodeCompactCount(node, connectedFields), 2)
     : nodeFieldCount(node);
-  return count ? count * 28 + 60 : 80;
+  return Math.max(count * 28 + 60, 90);
 }
 
 export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB" = "LR", connectedFields?: Map<string, Set<string>>, viewMode?: "detailed" | "compact"): { nodes: Node[]; edges: Edge[] } {

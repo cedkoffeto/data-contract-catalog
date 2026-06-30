@@ -94,6 +94,11 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
           {fields.length === 0 && (
             <div className="px-3 py-2 text-xs italic text-gray-400">No fields</div>
           )}
+          {viewMode === "compact" && allFields.length > fields.length && (
+            <div className="px-3 py-1.5 text-[10px] text-gray-400 border-t border-gray-50">
+              {fields.length} connected · {allFields.length - fields.length} hidden
+            </div>
+          )}
           {fields.map((f) => {
             const isConnected = connectedSet.has(f.name);
             return (
