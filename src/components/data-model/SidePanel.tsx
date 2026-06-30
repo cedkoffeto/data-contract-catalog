@@ -191,7 +191,7 @@ export function SidePanel({
               <div className="px-4 py-1.5">
                 {outgoing.length > 0 && (
                   <div className="mb-1.5">
-                    <h3 className="text-[7px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">
+                    <h3 className="text-[5px] font-semibold tracking-wider text-gray-400 mb-0.5">
                       Outgoing ({outgoing.length})
                     </h3>
                     <div className="space-y-0.5">
@@ -211,7 +211,7 @@ export function SidePanel({
                 )}
                 {incoming.length > 0 && (
                   <div>
-                    <h3 className="text-[8px] font-semibold uppercase tracking-wider text-gray-400 mb-0.5">
+                    <h3 className="text-[5px] font-semibold tracking-wider text-gray-400 mb-0.5">
                       Incoming ({incoming.length})
                     </h3>
                     <div className="space-y-0.5">
