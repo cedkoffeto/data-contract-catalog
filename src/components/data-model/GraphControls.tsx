@@ -45,7 +45,7 @@ function Dropdown<T extends string>({
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="rounded-md p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+        className="flex h-7 w-7 items-center justify-center rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-700"
         title={title}
       >
         {triggerIcon}
@@ -160,9 +160,9 @@ export function GraphControls({
   }, []);
 
   return (
-    <div className={`flex flex-row items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1 shadow-md ${className ?? ""}`}>
+    <div className={`flex flex-row items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 shadow-md ${className ?? ""}`}>
       {/* Zoom */}
-      <button onClick={() => zoomIn()} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Zoom in">
+      <button onClick={() => zoomIn()} className="flex h-7 w-7 items-center justify-center rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Zoom in">
         <ZoomIn size={16} />
       </button>
       {editingZoom ? (
@@ -180,21 +180,21 @@ export function GraphControls({
       ) : (
         <button
           onClick={() => { setZoomInput(String(zoomPercent)); setEditingZoom(true); }}
-          className="flex h-7 items-center rounded px-1.5 py-1 text-[10px] font-semibold text-gray-500 tabular-nums hover:bg-gray-50 hover:text-gray-700"
+          className="flex h-7 items-center rounded px-1.5 text-[10px] font-semibold text-gray-500 tabular-nums hover:bg-gray-50 hover:text-gray-700"
           title="Click to set zoom percentage"
         >
           {zoomPercent}%
         </button>
       )}
-      <button onClick={() => zoomOut()} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Zoom out">
+      <button onClick={() => zoomOut()} className="flex h-7 w-7 items-center justify-center rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Zoom out">
         <ZoomOut size={16} />
       </button>
-      <button onClick={() => { onFitViewVisible(); }} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Fit view">
+      <button onClick={() => { onFitViewVisible(); }} className="flex h-7 w-7 items-center justify-center rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Fit view">
         <Maximize2 size={16} />
       </button>
       <button
         onClick={onToggleGrid}
-        className={`rounded-md p-1.5 hover:bg-gray-50 hover:text-gray-700 ${showGrid ? "bg-gray-100 text-gray-700" : "text-gray-400"}`}
+        className={`flex h-7 w-7 items-center justify-center rounded-md hover:bg-gray-50 hover:text-gray-700 ${showGrid ? "bg-gray-100 text-gray-700" : "text-gray-400"}`}
         title={showGrid ? "Hide grid" : "Show grid"}
       >
         <Grid3x3 size={16} />
@@ -217,12 +217,12 @@ export function GraphControls({
         triggerIcon={<LayoutTemplate size={16} />}
         title="Change layout"
       />
-      <div className="mx-0.5 h-5 w-px bg-gray-200" />
+      <div className="mx-0.5 h-7 w-px bg-gray-200" />
       <span className="flex h-7 items-center whitespace-nowrap text-[11px] font-medium text-gray-400 select-none">
         {visibleCount} / {totalCount} tables visible
       </span>
-      <div className="mx-0.5 h-5 w-px bg-gray-200" />
-      <button onClick={handleExportPng} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Export as PNG">
+      <div className="mx-0.5 h-7 w-px bg-gray-200" />
+      <button onClick={handleExportPng} className="flex h-7 w-7 items-center justify-center rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Export as PNG">
         <Download size={16} />
       </button>
     </div>
