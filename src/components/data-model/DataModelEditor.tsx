@@ -239,12 +239,9 @@ export function DataModelEditor({
               centerSlug={centerSlug}
               centerKey={centerKey}
               searchQuery={searchQuery}
+              visibleCount={visibleTablesState.size}
+              totalCount={rawNodes.length}
             />
-          </div>
-          <div className="absolute bottom-14 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-1.5 shadow-sm">
-            <span className="text-sm text-gray-500">
-              {visibleTablesState.size} / {rawNodes.length} tables visible
-            </span>
           </div>
         </div>
       </div>

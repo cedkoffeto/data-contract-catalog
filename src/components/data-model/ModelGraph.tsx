@@ -59,6 +59,8 @@ export function ModelGraph({
   centerSlug,
   centerKey,
   searchQuery,
+  visibleCount,
+  totalCount,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
@@ -75,6 +77,8 @@ export function ModelGraph({
   centerSlug: string | null;
   centerKey: number;
   searchQuery?: string;
+  visibleCount: number;
+  totalCount: number;
 }) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -243,6 +247,8 @@ export function ModelGraph({
               showGrid={showGrid}
               onToggleGrid={() => setShowGrid((v) => !v)}
               onFitViewVisible={onFitViewVisible}
+              visibleCount={visibleCount}
+              totalCount={totalCount}
             />
           </Panel>
           <MiniMap

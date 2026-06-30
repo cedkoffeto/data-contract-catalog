@@ -97,6 +97,8 @@ export function GraphControls({
   showGrid,
   onToggleGrid,
   onFitViewVisible,
+  visibleCount,
+  totalCount,
   className,
 }: {
   viewMode: "detailed" | "compact";
@@ -106,6 +108,8 @@ export function GraphControls({
   showGrid: boolean;
   onToggleGrid: () => void;
   onFitViewVisible: () => void;
+  visibleCount: number;
+  totalCount: number;
   className?: string;
 }) {
   const { zoomIn, zoomOut } = useReactFlow();
@@ -182,6 +186,10 @@ export function GraphControls({
         triggerIcon={<LayoutTemplate size={16} />}
         title="Change layout"
       />
+      <div className="mx-0.5 h-5 w-px bg-gray-200" />
+      <span className="whitespace-nowrap text-[11px] font-medium text-gray-400 select-none">
+        {visibleCount} / {totalCount} tables visible
+      </span>
       <div className="mx-0.5 h-5 w-px bg-gray-200" />
       <button onClick={handleExportPng} className="rounded-md p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Export as PNG">
         <Download size={16} />
