@@ -69,7 +69,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
       />
 
       {/* Inner content — masks the gradient core so only the 2px padding shows it */}
-      <div className="relative overflow-hidden rounded-[14px] bg-white">
+      <div className="relative rounded-[14px] bg-white">
         {/* Color accent strip */}
         <div style={{ height: 4, backgroundColor: d.color }} />
 
@@ -99,7 +99,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
             const isConnected = connectedSet.has(f.name);
             return (
               <div key={f.name} className="relative flex cursor-pointer items-center gap-2 border-t border-gray-50 px-3 py-[7px] text-xs text-gray-700 hover:bg-gray-50" onClick={() => onFieldClick?.(d.slug)}>
-                <Handle type="target" position={Position.Left} id={f.name} className="!opacity-0 !pointer-events-none" />
+                {isConnected && <Handle type="target" position={Position.Left} id={f.name} className="!w-1.5 !h-1.5 !border-2 !border-gray-400 !bg-white" style={{ left: -1 }} />}
                 {isConnected ? (
                   <Key size={10} className="shrink-0 text-amber-500" />
                 ) : (
@@ -107,7 +107,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
                 )}
                 <span className={`font-mono text-[11px] leading-none ${isConnected ? "font-bold text-gray-900" : "text-gray-600"}`}>{f.name}</span>
                 <span className="ml-auto text-[10px] leading-none text-gray-400">{f.type}</span>
-                <Handle type="source" position={Position.Right} id={f.name} className="!opacity-0 !pointer-events-none" />
+                {isConnected && <Handle type="source" position={Position.Right} id={f.name} className="!w-1.5 !h-1.5 !border-2 !border-gray-400 !bg-white" style={{ right: -1 }} />}
               </div>
             );
           })}
