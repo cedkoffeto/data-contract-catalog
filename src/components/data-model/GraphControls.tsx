@@ -54,7 +54,7 @@ function Dropdown<T extends string>({
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-lg border border-gray-200 bg-white shadow-xl">
+          <div className="absolute left-1/2 z-50 mb-2 w-64 -translate-x-1/2 bottom-full rounded-lg border border-gray-200 bg-white shadow-xl">
             <div className="flex flex-col py-1">
               {options.map(({ mode, icon, label, description }) => {
                 const active = value === mode;
