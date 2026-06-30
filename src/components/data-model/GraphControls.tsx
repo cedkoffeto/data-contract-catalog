@@ -175,7 +175,7 @@ export function GraphControls({
           onBlur={handleZoomChange}
           onKeyDown={(e) => { if (e.key === "Enter") handleZoomChange(); if (e.key === "Escape") setEditingZoom(false); }}
           className="h-7 w-14 rounded border border-gray-300 px-1 text-center font-semibold text-gray-700 tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-          style={{ fontSize: 10 }}
+          style={{ fontSize: 12 }}
           autoFocus
         />
       ) : (
