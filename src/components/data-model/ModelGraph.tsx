@@ -56,6 +56,7 @@ export function ModelGraph({
   fitKey,
   centerSlug,
   centerKey,
+  searchQuery,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
@@ -71,6 +72,7 @@ export function ModelGraph({
   fitKey: number;
   centerSlug: string | null;
   centerKey: number;
+  searchQuery?: string;
 }) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -115,13 +117,50 @@ export function ModelGraph({
     return nbors;
   }, [highlightedNode, edges]);
 
-  // Update opacity when highlight changes
+  // Compute search-matching node IDs
+  const searchMatchIds = useMemo(() => {
+    if (!searchQuery) return null;
+    const q = searchQuery.toLowerCase();
+    return new Set(
+      initialNodes
+        .filter((n) => {
+          const d = n.data as ContractTableNodeData;
+          const label = d.label?.toLowerCase() || "";
+          const slug = d.slug?.toLowerCase() || "";
+          const domain = d.domain?.toLowerCase() || "";
+          const context = d.context?.toLowerCase() || "";
+          return label.includes(q) || slug.includes(q) || domain.includes(q) || context.includes(q);
+        })
+        .map((n) => n.id),
+    );
+  }, [searchQuery, initialNodes]);
+
+  // Update opacity when highlight or search changes
   useEffect(() => {
-    if (!highlightedNeighbors) {
+    if (searchMatchIds && searchMatchIds.size > 0) {
+      setNodes((nds) => nds.map((n) => {
+        const isMatch = searchMatchIds.has(n.id);
+        const hasSearchRing = n.className?.includes("search-match");
+        const newClassName = isMatch ? "search-match" : undefined;
+        if (!isMatch) {
+          return {
+            ...n,
+            style: { ...n.style, opacity: 0.3 },
+            className: n.className?.replace("search-match", "").trim() || undefined,
+          };
+        }
+        return {
+          ...n,
+          style: { ...n.style, opacity: 1 },
+          className: newClassName,
+        };
+      }));
+    } else if (!highlightedNeighbors) {
       setNodes((nds) => nds.map((n) => {
         if (!n.style?.opacity || n.style.opacity === 1) return n;
         const { opacity: _, ...rest } = n.style;
-        return { ...n, style: Object.keys(rest).length ? rest : undefined };
+        const cls = n.className?.replace("search-match", "").trim() || undefined;
+        return { ...n, style: Object.keys(rest).length ? rest : undefined, className: cls };
       }));
     } else {
       setNodes((nds) => nds.map((n) => ({
@@ -129,7 +168,7 @@ export function ModelGraph({
         style: { ...n.style, opacity: highlightedNode === n.id || highlightedNeighbors.has(n.id) ? 1 : 0.25 },
       })));
     }
-  }, [highlightedNeighbors, highlightedNode, setNodes]);
+  }, [highlightedNeighbors, highlightedNode, searchMatchIds, setNodes]);
 
   // Center on table from panel
   useEffect(() => {

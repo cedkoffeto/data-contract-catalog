@@ -37,6 +37,8 @@ export function FilterPanel({
   onCenterTable,
   layerFilter,
   onLayerFilter,
+  query,
+  onQueryChange,
 }: {
   nodes: Node[];
   visibleTables: Set<string>;
@@ -47,13 +49,14 @@ export function FilterPanel({
   onCenterTable: (slug: string) => void;
   layerFilter: string | null;
   onLayerFilter: (layer: string | null) => void;
+  query: string;
+  onQueryChange: (q: string) => void;
 }) {
   const [open, setOpen] = useState(true);
   const [width, setWidth] = useState(DEFAULT_WIDTH);
   const [resizing, setResizing] = useState(false);
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
-  const [query, setQuery] = useState("");
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -168,7 +171,7 @@ export function FilterPanel({
             <Search size={13} className="shrink-0 text-gray-400" />
             <input
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => onQueryChange(e.target.value)}
               placeholder="Filter tables..."
               className="min-w-0 flex-1 text-xs text-gray-700 outline-none placeholder:text-gray-400"
             />

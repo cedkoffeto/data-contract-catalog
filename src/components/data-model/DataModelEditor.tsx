@@ -46,6 +46,30 @@ export function DataModelEditor({
   const [fitKey, setFitKey] = useState(0);
   const [centerSlug, setCenterSlug] = useState<string | null>(null);
   const [centerKey, setCenterKey] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const searchMatchIds = useMemo(() => {
+    if (!searchQuery) return null;
+    const q = searchQuery.toLowerCase();
+    const ids = rawNodes
+      .filter((n) => {
+        const d = n.data as ContractTableNodeData;
+        const label = d.label?.toLowerCase() || "";
+        const slug = d.slug?.toLowerCase() || "";
+        const domain = d.domain?.toLowerCase() || "";
+        const context = d.context?.toLowerCase() || "";
+        return label.includes(q) || slug.includes(q) || domain.includes(q) || context.includes(q);
+      })
+      .map((n) => n.id);
+    return ids.length > 0 ? ids : null;
+  }, [searchQuery, rawNodes]);
+
+  useEffect(() => {
+    if (searchMatchIds && searchMatchIds.length > 0) {
+      setCenterSlug(searchMatchIds[0]);
+      setCenterKey((k) => k + 1);
+    }
+  }, [searchMatchIds]);
 
   const { nodes: rawNodes, edges } = useMemo(
     () => parseContractsToGraph(contracts, models),
@@ -166,6 +190,8 @@ export function DataModelEditor({
           onCenterTable={handleCenterView}
           layerFilter={layerFilter}
           onLayerFilter={setLayerFilter}
+          query={searchQuery}
+          onQueryChange={setSearchQuery}
         />
 
         <div className="relative flex min-w-0 flex-1 flex-col">
@@ -185,6 +211,7 @@ export function DataModelEditor({
               fitKey={fitKey}
               centerSlug={centerSlug}
               centerKey={centerKey}
+              searchQuery={searchQuery}
             />
           </div>
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-1.5 shadow-sm">
