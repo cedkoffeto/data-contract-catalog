@@ -69,26 +69,25 @@ function injectDarkCss(dark: boolean) {
     .data-model-dark .react-flow__node .hover\\:bg-gray-50:hover { background-color: #334155 !important; }
     .data-model-dark .react-flow__node .shadow-md { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.4) !important; }
     .data-model-dark .react-flow__node .hover\\:shadow-lg:hover { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5) !important; }
-    .data-model-dark .react-flow__node .bg-white { background-color: #0f172a !important; }
-    .data-model-dark .react-flow__minimap { background-color: #1e293b !important; border-color: #475569 !important; }
-    .data-model-dark .react-flow__background { background-color: #1e293b !important; }
-    .data-model-dark .react-flow__background pattern line { stroke: #475569 !important; }
-    .data-model-dark .data-model-filter-panel { background-color: #1e293b !important; border-color: #475569 !important; }
+    .data-model-dark .react-flow__minimap { background-color: #0f172a !important; border-color: #334155 !important; }
+    .data-model-dark .react-flow__background { background-color: #0f172a !important; }
+    .data-model-dark .react-flow__background pattern line { stroke: #1e293b !important; }
+    .data-model-dark .data-model-filter-panel { background-color: #111827 !important; border-color: #334155 !important; }
     .data-model-dark .data-model-filter-panel .text-gray-900 { color: #e2e8f0 !important; }
     .data-model-dark .data-model-filter-panel .text-gray-700 { color: #cbd5e1 !important; }
     .data-model-dark .data-model-filter-panel .text-gray-500 { color: #64748b !important; }
     .data-model-dark .data-model-filter-panel .text-gray-400 { color: #64748b !important; }
-    .data-model-dark .data-model-filter-panel .bg-white { background-color: #0f172a !important; }
+    .data-model-dark .data-model-filter-panel .bg-white { background-color: #1e293b !important; }
     .data-model-dark .data-model-filter-panel .bg-gray-50 { background-color: #0f172a !important; }
-    .data-model-dark .data-model-filter-panel .bg-gray-100 { background-color: #0f172a !important; }
+    .data-model-dark .data-model-filter-panel .bg-gray-100 { background-color: #1e293b !important; }
     .data-model-dark .data-model-filter-panel .bg-gray-200 { background-color: #334155 !important; }
-    .data-model-dark .data-model-filter-panel .border-gray-200 { border-color: #475569 !important; }
-    .data-model-dark .data-model-filter-panel .border-gray-100 { border-color: #475569 !important; }
-    .data-model-dark .data-model-filter-panel .hover\\:bg-gray-50:hover { background-color: #334155 !important; }
-    .data-model-dark .data-model-filter-panel input { background-color: #0f172a !important; color: #e2e8f0 !important; }
+    .data-model-dark .data-model-filter-panel .border-gray-200 { border-color: #334155 !important; }
+    .data-model-dark .data-model-filter-panel .border-gray-100 { border-color: #334155 !important; }
+    .data-model-dark .data-model-filter-panel .hover\\:bg-gray-50:hover { background-color: #1e293b !important; }
+    .data-model-dark .data-model-filter-panel input { background-color: #1e293b !important; color: #e2e8f0 !important; }
     .data-model-dark .data-model-filter-panel input::placeholder { color: #475569 !important; }
-    .data-model-dark .bg-white.shadow-xl { background-color: #1e293b !important; }
-    .data-model-dark .border-gray-100 { border-color: #475569 !important; }
+    .data-model-dark .bg-white.shadow-xl { background-color: #111827 !important; }
+    .data-model-dark .border-gray-100 { border-color: #334155 !important; }
     .data-model-dark .text-gray-900 { color: #e2e8f0 !important; }
     .data-model-dark .text-gray-700 { color: #cbd5e1 !important; }
     .data-model-dark .text-gray-600 { color: #94a3b8 !important; }
