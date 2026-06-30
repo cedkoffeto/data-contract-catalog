@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { ReactFlowProvider } from "@xyflow/react";
 import {
   parseContractsToGraph,
@@ -47,7 +47,39 @@ export function DataModelEditor({
   const [centerSlug, setCenterSlug] = useState<string | null>(null);
   const [centerKey, setCenterKey] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
-  const [darkMode, setDarkMode] = useState(false);
+
+  const STORAGE_KEY = "dcc-data-model-prefs";
+  const initialised = useRef(false);
+
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) return JSON.parse(stored).darkMode ?? false;
+    } catch {}
+    return false;
+  });
+
+  useEffect(() => {
+    if (initialised.current) return;
+    initialised.current = true;
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (!stored) return;
+      const prefs = JSON.parse(stored);
+      if (prefs.layoutMode) setLayoutMode(prefs.layoutMode);
+      if (prefs.viewMode) setViewMode(prefs.viewMode);
+      if (prefs.layerFilter) setLayerFilter(prefs.layerFilter);
+      if (prefs.darkMode !== undefined) setDarkMode(prefs.darkMode);
+    } catch {}
+  }, []);
+
+  function savePrefs(partial: Record<string, unknown>) {
+    try {
+      const current = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...current, ...partial }));
+    } catch {}
+  }
 
   const { nodes: rawNodes, edges } = useMemo(
     () => parseContractsToGraph(contracts, models),
@@ -110,6 +142,11 @@ export function DataModelEditor({
   const [visibleTablesState, setVisibleTablesState] = useState<Set<string>>(() =>
     new Set(rawNodes.map((n) => n.id)),
   );
+
+  useEffect(() => { savePrefs({ layoutMode }); }, [layoutMode]);
+  useEffect(() => { savePrefs({ viewMode }); }, [viewMode]);
+  useEffect(() => { savePrefs({ layerFilter }); }, [layerFilter]);
+  useEffect(() => { savePrefs({ darkMode }); }, [darkMode]);
 
   const handleCenterView = useCallback((slug: string) => {
     setCenterSlug(slug);
