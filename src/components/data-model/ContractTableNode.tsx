@@ -79,9 +79,9 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
           className="flex cursor-pointer items-center gap-2 px-3 py-2"
           onClick={() => onHeaderClick(d.slug)}
         >
-          <Table size={14} style={{ color: d.color }} />
-          <span className="min-w-0 truncate text-sm font-semibold tracking-tight text-gray-900" title={`${d.label}\ndomain: ${d.domain}\ncontext: ${d.context ?? ""}\nslug: ${d.slug}`}>{d.slug}</span>
-          <span className={`ml-auto rounded px-1.5 py-[2px] text-[9px] font-bold uppercase leading-none ${maturityBadge[d.maturity as string] || maturityBadge.bronze}`}>
+          <span className="flex h-5 items-center"><Table size={14} style={{ color: d.color }} /></span>
+          <span className="flex h-5 items-center min-w-0 truncate text-sm font-semibold tracking-tight text-gray-900" title={`${d.label}\ndomain: ${d.domain}\ncontext: ${d.context ?? ""}\nslug: ${d.slug}`}>{d.slug}</span>
+          <span className={`ml-auto flex h-5 items-center rounded px-1.5 text-[9px] font-bold uppercase leading-none ${maturityBadge[d.maturity as string] || maturityBadge.bronze}`}>
             {d.maturity as string}
           </span>
         </div>
