@@ -27,6 +27,7 @@ const nodeStyle: Record<string, string | number> = {
   color: "#374151",
   fontFamily: "ui-monospace, SFMono-Regular, monospace",
   cursor: "pointer",
+  width: "auto",
 };
 
 function RelationGraph({
