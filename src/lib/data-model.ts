@@ -324,8 +324,9 @@ export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB"
   }
 
   // Position isolated nodes in a grid left of the connected graph
+  // Column-major: fill downward first (up to 4 per column), then rightward
   if (isolated.length > 0) {
-    const cols = 4;
+    const maxRows = 4;
     const gap = 30;
     const sorted = isolated.slice().sort((a, b) => {
       const sa = (a.data as ContractTableNodeData).slug || "";
@@ -333,7 +334,9 @@ export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB"
       return sa.localeCompare(sb);
     });
 
-    // Compute actual dimensions for each isolated table
+    const totalCols = Math.ceil(sorted.length / maxRows);
+
+    // Compute actual dimensions
     const widths = new Map<string, number>();
     const heights = new Map<string, number>();
     for (const n of sorted) {
@@ -341,53 +344,66 @@ export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB"
       heights.set(n.id, nodeHeight(n, connectedFields, viewMode));
     }
 
-    const totalRows = Math.ceil(sorted.length / cols);
-    const rowHeights: number[] = [];
-    const rowWidths: number[] = [];
-    for (let r = 0; r < totalRows; r++) {
-      let maxH = 0;
-      let totalW = 0;
-      for (let c = 0; c < cols; c++) {
-        const idx = r * cols + c;
+    // Column width = max width of all items in that column
+    const colWidths: number[] = [];
+    for (let c = 0; c < totalCols; c++) {
+      let maxW = 0;
+      for (let r = 0; r < maxRows; r++) {
+        const idx = c * maxRows + r;
         if (idx < sorted.length) {
-          const w = widths.get(sorted[idx].id)!;
+          maxW = Math.max(maxW, widths.get(sorted[idx].id)!);
+        }
+      }
+      colWidths.push(maxW);
+    }
+
+    // Row height = max height of all items in that row (for alignment)
+    const rowHeights: number[] = [];
+    for (let r = 0; r < maxRows; r++) {
+      let maxH = 0;
+      for (let c = 0; c < totalCols; c++) {
+        const idx = c * maxRows + r;
+        if (idx < sorted.length) {
           maxH = Math.max(maxH, heights.get(sorted[idx].id)!);
-          totalW += w + (c > 0 ? gap : 0);
         }
       }
       rowHeights.push(maxH);
-      rowWidths.push(totalW);
     }
-    const totalGridHeight = rowHeights.reduce((s, h) => s + h, 0) + (totalRows - 1) * 20;
-    const maxRowWidth = Math.max(...rowWidths);
 
-    const minX = connected.length > 0
-      ? Math.min(...Array.from(laidOut.values()).map((n) => n.position.x)) - maxRowWidth - 80
-      : -maxRowWidth / 2;
+    const totalGridWidth = colWidths.reduce((s, w) => s + w, 0) + (totalCols - 1) * gap;
+    const totalGridHeight = rowHeights.reduce((s, h) => s + h, 0) + (Math.min(sorted.length, maxRows) - 1) * gap;
 
-    let yOff = -totalGridHeight / 2;
+    const gridLeft = connected.length > 0
+      ? Math.min(...Array.from(laidOut.values()).map((n) => n.position.x)) - totalGridWidth - 80
+      : -totalGridWidth / 2;
+
+    // Accumulate column X offsets
+    const colXOffsets: number[] = [];
+    let xAcc = gridLeft;
+    for (let c = 0; c < totalCols; c++) {
+      colXOffsets.push(xAcc);
+      xAcc += colWidths[c] + gap;
+    }
+
+    // Accumulate row Y offsets (centered vertically)
+    const rowYOffsets: number[] = [];
+    let yAcc = -totalGridHeight / 2;
+    for (let r = 0; r < maxRows; r++) {
+      rowYOffsets.push(yAcc);
+      yAcc += rowHeights[r] + gap;
+    }
+
     for (let i = 0; i < sorted.length; i++) {
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      const rowH = rowHeights[row];
+      const col = Math.floor(i / maxRows);
+      const row = i % maxRows;
       const nodeH = heights.get(sorted[i].id)!;
-      const nodeW = widths.get(sorted[i].id)!;
-      // Compute x by accumulating widths of previous columns in this row
-      let xAcc = minX;
-      for (let c = 0; c < col; c++) {
-        const idx = row * cols + c;
-        if (idx < sorted.length) {
-          xAcc += widths.get(sorted[idx].id)! + gap;
-        }
-      }
       laidOut.set(sorted[i].id, {
         ...sorted[i],
         position: {
-          x: xAcc,
-          y: yOff + (rowH - nodeH) / 2,
+          x: colXOffsets[col],
+          y: rowYOffsets[row] + (rowHeights[row] - nodeH) / 2,
         },
       });
-      if (col === cols - 1) yOff += rowH + 20;
     }
   }
 
