@@ -241,7 +241,7 @@ export function DataModelEditor({
               searchQuery={searchQuery}
             />
           </div>
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-1.5 shadow-sm dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300">
+          <div className="absolute bottom-14 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-1.5 shadow-sm">
             <span className="text-sm text-gray-500">
               {visibleTablesState.size} / {rawNodes.length} tables visible
             </span>
