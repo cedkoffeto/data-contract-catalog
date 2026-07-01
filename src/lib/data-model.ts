@@ -324,19 +324,13 @@ export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB"
   }
 
   // Position isolated nodes in a grid left of the connected graph
-  // Column-major: fill downward first (up to maxRows per column), then rightward
   if (isolated.length > 0) {
-    const maxRows = containerWidth
-      ? Math.max(2, Math.min(8, Math.floor((containerWidth * 0.35) / 280)))
-      : 4;
     const gap = 30;
     const sorted = isolated.slice().sort((a, b) => {
       const sa = (a.data as ContractTableNodeData).slug || "";
       const sb = (b.data as ContractTableNodeData).slug || "";
       return sa.localeCompare(sb);
     });
-
-    const totalCols = Math.ceil(sorted.length / maxRows);
 
     // Compute actual dimensions
     const widths = new Map<string, number>();
@@ -346,66 +340,128 @@ export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB"
       heights.set(n.id, nodeHeight(n, connectedFields, viewMode));
     }
 
-    // Column width = max width of all items in that column
-    const colWidths: number[] = [];
-    for (let c = 0; c < totalCols; c++) {
-      let maxW = 0;
-      for (let r = 0; r < maxRows; r++) {
-        const idx = c * maxRows + r;
-        if (idx < sorted.length) {
-          maxW = Math.max(maxW, widths.get(sorted[idx].id)!);
-        }
-      }
-      colWidths.push(maxW);
-    }
+    if (direction === "LR") {
+      // Row-major: 4 per row, fill left to right
+      const cols = 4;
+      const totalRows = Math.ceil(sorted.length / cols);
 
-    // Row height = max height of all items in that row (for alignment)
-    const rowHeights: number[] = [];
-    for (let r = 0; r < maxRows; r++) {
-      let maxH = 0;
+      // Column width = max width of all items in that column position
+      const colWidths: number[] = [];
+      for (let c = 0; c < cols; c++) {
+        let maxW = 0;
+        for (let r = 0; r < totalRows; r++) {
+          const idx = r * cols + c;
+          if (idx < sorted.length) maxW = Math.max(maxW, widths.get(sorted[idx].id)!);
+        }
+        colWidths.push(maxW);
+      }
+
+      // Row height = max height of all items in that row
+      const rowHeights: number[] = [];
+      for (let r = 0; r < totalRows; r++) {
+        let maxH = 0;
+        for (let c = 0; c < cols; c++) {
+          const idx = r * cols + c;
+          if (idx < sorted.length) maxH = Math.max(maxH, heights.get(sorted[idx].id)!);
+        }
+        rowHeights.push(maxH);
+      }
+
+      const totalGridWidth = colWidths.reduce((s, w) => s + w, 0) + (cols - 1) * gap;
+      const totalGridHeight = rowHeights.reduce((s, h) => s + h, 0) + (totalRows - 1) * gap;
+
+      const gridLeft = connected.length > 0
+        ? Math.min(...Array.from(laidOut.values()).map((n) => n.position.x)) - totalGridWidth - 80
+        : -totalGridWidth / 2;
+
+      // Column X offsets
+      const colXOffsets: number[] = [];
+      let xAcc = gridLeft;
+      for (let c = 0; c < cols; c++) {
+        colXOffsets.push(xAcc);
+        xAcc += colWidths[c] + gap;
+      }
+
+      // Row Y offsets
+      const rowYOffsets: number[] = [];
+      let yAcc = -totalGridHeight / 2;
+      for (let r = 0; r < totalRows; r++) {
+        rowYOffsets.push(yAcc);
+        yAcc += rowHeights[r] + gap;
+      }
+
+      for (let i = 0; i < sorted.length; i++) {
+        const row = Math.floor(i / cols);
+        const col = i % cols;
+        const nodeH = heights.get(sorted[i].id)!;
+        laidOut.set(sorted[i].id, {
+          ...sorted[i],
+          position: {
+            x: colXOffsets[col],
+            y: rowYOffsets[row] + (rowHeights[row] - nodeH) / 2,
+          },
+        });
+      }
+    } else {
+      // Column-major: fill downward first (up to maxRows per column), then rightward
+      const maxRows = containerWidth
+        ? Math.max(2, Math.min(8, Math.floor((containerWidth * 0.35) / 280)))
+        : 4;
+      const totalCols = Math.ceil(sorted.length / maxRows);
+
+      const colWidths: number[] = [];
       for (let c = 0; c < totalCols; c++) {
-        const idx = c * maxRows + r;
-        if (idx < sorted.length) {
-          maxH = Math.max(maxH, heights.get(sorted[idx].id)!);
+        let maxW = 0;
+        for (let r = 0; r < maxRows; r++) {
+          const idx = c * maxRows + r;
+          if (idx < sorted.length) maxW = Math.max(maxW, widths.get(sorted[idx].id)!);
         }
+        colWidths.push(maxW);
       }
-      rowHeights.push(maxH);
-    }
 
-    const totalGridWidth = colWidths.reduce((s, w) => s + w, 0) + (totalCols - 1) * gap;
-    const totalGridHeight = rowHeights.reduce((s, h) => s + h, 0) + (Math.min(sorted.length, maxRows) - 1) * gap;
+      const rowHeights: number[] = [];
+      for (let r = 0; r < maxRows; r++) {
+        let maxH = 0;
+        for (let c = 0; c < totalCols; c++) {
+          const idx = c * maxRows + r;
+          if (idx < sorted.length) maxH = Math.max(maxH, heights.get(sorted[idx].id)!);
+        }
+        rowHeights.push(maxH);
+      }
 
-    const gridLeft = connected.length > 0
-      ? Math.min(...Array.from(laidOut.values()).map((n) => n.position.x)) - totalGridWidth - 80
-      : -totalGridWidth / 2;
+      const totalGridWidth = colWidths.reduce((s, w) => s + w, 0) + (totalCols - 1) * gap;
+      const totalGridHeight = rowHeights.reduce((s, h) => s + h, 0) + (Math.min(sorted.length, maxRows) - 1) * gap;
 
-    // Accumulate column X offsets
-    const colXOffsets: number[] = [];
-    let xAcc = gridLeft;
-    for (let c = 0; c < totalCols; c++) {
-      colXOffsets.push(xAcc);
-      xAcc += colWidths[c] + gap;
-    }
+      const gridLeft = connected.length > 0
+        ? Math.min(...Array.from(laidOut.values()).map((n) => n.position.x)) - totalGridWidth - 80
+        : -totalGridWidth / 2;
 
-    // Accumulate row Y offsets (centered vertically)
-    const rowYOffsets: number[] = [];
-    let yAcc = -totalGridHeight / 2;
-    for (let r = 0; r < maxRows; r++) {
-      rowYOffsets.push(yAcc);
-      yAcc += rowHeights[r] + gap;
-    }
+      const colXOffsets: number[] = [];
+      let xAcc = gridLeft;
+      for (let c = 0; c < totalCols; c++) {
+        colXOffsets.push(xAcc);
+        xAcc += colWidths[c] + gap;
+      }
 
-    for (let i = 0; i < sorted.length; i++) {
-      const col = Math.floor(i / maxRows);
-      const row = i % maxRows;
-      const nodeH = heights.get(sorted[i].id)!;
-      laidOut.set(sorted[i].id, {
-        ...sorted[i],
-        position: {
-          x: colXOffsets[col],
-          y: rowYOffsets[row] + (rowHeights[row] - nodeH) / 2,
-        },
-      });
+      const rowYOffsets: number[] = [];
+      let yAcc = -totalGridHeight / 2;
+      for (let r = 0; r < maxRows; r++) {
+        rowYOffsets.push(yAcc);
+        yAcc += rowHeights[r] + gap;
+      }
+
+      for (let i = 0; i < sorted.length; i++) {
+        const col = Math.floor(i / maxRows);
+        const row = i % maxRows;
+        const nodeH = heights.get(sorted[i].id)!;
+        laidOut.set(sorted[i].id, {
+          ...sorted[i],
+          position: {
+            x: colXOffsets[col],
+            y: rowYOffsets[row] + (rowHeights[row] - nodeH) / 2,
+          },
+        });
+      }
     }
   }
 
