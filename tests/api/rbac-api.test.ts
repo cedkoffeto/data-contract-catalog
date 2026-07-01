@@ -372,7 +372,7 @@ describe("RBAC admin policy by id API", () => {
 
     const payload = await readJson(response);
     expect(response.status).toBe(409);
-    expect(payload.conflict.type).toBe("broader");
+    expect((payload as Record<string, { type: string }>).conflict.type).toBe("broader");
     expect(payload.affectedPolicies).toHaveLength(2);
   });
 
