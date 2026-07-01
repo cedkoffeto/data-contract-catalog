@@ -393,12 +393,11 @@ export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB"
       for (let i = 0; i < sorted.length; i++) {
         const row = Math.floor(i / cols);
         const col = i % cols;
-        const nodeH = heights.get(sorted[i].id)!;
         laidOut.set(sorted[i].id, {
           ...sorted[i],
           position: {
             x: colXOffsets[col],
-            y: rowYOffsets[row] + (rowHeights[row] - nodeH) / 2,
+            y: rowYOffsets[row],
           },
         });
       }
