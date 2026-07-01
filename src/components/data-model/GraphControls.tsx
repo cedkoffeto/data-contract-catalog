@@ -136,7 +136,7 @@ export function GraphControls({
     const minimap = el.querySelector(".react-flow__minimap") as HTMLElement | null;
     if (minimap) minimap.style.display = "none";
     try {
-      const dataUrl = await toPng(el, { backgroundColor: "#ffffff", pixelRatio: 2 });
+      const dataUrl = await toPng(el, { backgroundColor: "#f8f9fa", pixelRatio: 2 });
       const a = document.createElement("a");
       a.download = "data-model-graph.png";
       a.href = dataUrl;

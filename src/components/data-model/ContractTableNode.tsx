@@ -44,7 +44,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
 
   return (
     <div
-      className={`overflow-hidden rounded-2xl shadow-md transition-shadow hover:shadow-lg ${
+      className={`overflow-hidden rounded-2xl border border-gray-200 shadow-md transition-shadow hover:shadow-lg ${
         selected ? "ring-2 ring-blue-500" : isSearchMatch ? "ring-2 ring-green-500" : ""
       }`}
       style={{
