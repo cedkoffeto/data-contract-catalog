@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { toPng } from "html-to-image";
 import { useReactFlow, useViewport } from "@xyflow/react";
 import { ZoomIn, ZoomOut, Maximize2, Eye, LayoutTemplate, LayoutList, AlignEndHorizontal, AlignEndVertical, Layers, LayoutGrid, Grid3x3, Check, Download } from "lucide-react";
 import type { LayoutMode } from "@/src/lib/data-model";
@@ -129,34 +130,16 @@ export function GraphControls({
     if (!isNaN(val) && val > 0) zoomTo(val / 100, { duration: 0 });
   }, [zoomInput, zoomTo]);
 
-  const handleExportPng = useCallback(() => {
-    const viewport = document.querySelector(".react-flow__viewport") as SVGElement | null;
-    if (!viewport) return;
-    const clone = viewport.cloneNode(true) as SVGElement;
-    const rect = viewport.getBoundingClientRect();
-    clone.setAttribute("width", String(rect.width));
-    clone.setAttribute("height", String(rect.height));
-    const svgData = new XMLSerializer().serializeToString(clone);
-    const canvas = document.createElement("canvas");
-    canvas.width = rect.width * 2;
-    canvas.height = rect.height * 2;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.scale(2, 2);
-    const img = new Image();
-    const blob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    img.onload = () => {
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0);
-      URL.revokeObjectURL(url);
+  const handleExportPng = useCallback(async () => {
+    const el = document.querySelector(".react-flow") as HTMLElement | null;
+    if (!el) return;
+    try {
+      const dataUrl = await toPng(el, { backgroundColor: "#ffffff", pixelRatio: 2 });
       const a = document.createElement("a");
       a.download = "data-model-graph.png";
-      a.href = canvas.toDataURL("image/png");
+      a.href = dataUrl;
       a.click();
-    };
-    img.src = url;
+    } catch {}
   }, []);
 
   return (
