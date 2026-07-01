@@ -116,9 +116,10 @@ export function GraphControls({
   const [editingZoom, setEditingZoom] = useState(false);
   const [zoomInput, setZoomInput] = useState("");
   const zoomInputRef = useRef<HTMLInputElement>(null);
-  const { zoomIn, zoomOut, zoomTo } = useReactFlow();
+  const { zoomIn, zoomOut, zoomTo, getNodes } = useReactFlow();
   const { zoom } = useViewport();
   const zoomPercent = Math.round(zoom * 100);
+  const [exportScope, setExportScope] = useState<"visible" | "selection">("visible");
 
   useEffect(() => {
     if (editingZoom) zoomInputRef.current?.select();
@@ -135,6 +136,22 @@ export function GraphControls({
     if (!el) return;
     const minimap = el.querySelector(".react-flow__minimap") as HTMLElement | null;
     if (minimap) minimap.style.display = "none";
+
+    // Hide unselected nodes when exporting selection
+    const nodes = getNodes();
+    const hidden: { node: HTMLElement; prevDisplay: string }[] = [];
+    if (exportScope === "selection") {
+      const selectedIds = new Set(nodes.filter((n) => n.selected).map((n) => n.id));
+      el.querySelectorAll(".react-flow__node").forEach((nodeEl) => {
+        const htmlEl = nodeEl as HTMLElement;
+        const id = htmlEl.dataset?.id || htmlEl.getAttribute("data-id") || "";
+        if (id && !selectedIds.has(id)) {
+          hidden.push({ node: htmlEl, prevDisplay: htmlEl.style.display });
+          htmlEl.style.display = "none";
+        }
+      });
+    }
+
     try {
       const dataUrl = await toPng(el, { backgroundColor: "#f8f9fa", pixelRatio: 2 });
       const a = document.createElement("a");
@@ -142,8 +159,9 @@ export function GraphControls({
       a.href = dataUrl;
       a.click();
     } catch {}
+    for (const { node, prevDisplay } of hidden) node.style.display = prevDisplay;
     if (minimap) minimap.style.display = "";
-  }, []);
+  }, [exportScope, getNodes]);
 
   return (
     <div className={`flex flex-row items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 shadow-md ${className ?? ""}`}>
@@ -211,9 +229,18 @@ export function GraphControls({
         {visibleCount} / {totalCount} tables visible
       </span>
       <div className="mx-0.5 h-7 w-px bg-gray-200" />
-      <button onClick={handleExportPng} className="flex h-7 w-7 items-center justify-center rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Export as PNG">
-        <Download size={16} />
-      </button>
+      <div className="relative flex items-center">
+        <button onClick={handleExportPng} className="flex h-7 w-7 items-center justify-center rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Export as PNG">
+          <Download size={16} />
+        </button>
+        <button
+          onClick={() => setExportScope(exportScope === "visible" ? "selection" : "visible")}
+          className="flex h-7 items-center px-1 text-[9px] font-semibold uppercase tracking-wider text-gray-400 hover:text-gray-600"
+          title={exportScope === "visible" ? "Export all visible tables" : "Export only selected tables"}
+        >
+          {exportScope === "visible" ? "All" : "Sel"}
+        </button>
+      </div>
     </div>
   );
 }
