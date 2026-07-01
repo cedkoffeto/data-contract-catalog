@@ -133,6 +133,8 @@ export function GraphControls({
   const handleExportPng = useCallback(async () => {
     const el = document.querySelector(".react-flow") as HTMLElement | null;
     if (!el) return;
+    const minimap = el.querySelector(".react-flow__minimap") as HTMLElement | null;
+    if (minimap) minimap.style.display = "none";
     try {
       const dataUrl = await toPng(el, { backgroundColor: "#ffffff", pixelRatio: 2 });
       const a = document.createElement("a");
@@ -140,6 +142,7 @@ export function GraphControls({
       a.href = dataUrl;
       a.click();
     } catch {}
+    if (minimap) minimap.style.display = "";
   }, []);
 
   return (
