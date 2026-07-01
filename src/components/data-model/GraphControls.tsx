@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { toPng } from "html-to-image";
 import { useReactFlow, useViewport } from "@xyflow/react";
 import { ZoomIn, ZoomOut, Maximize2, Eye, LayoutTemplate, LayoutList, AlignEndHorizontal, AlignEndVertical, Layers, LayoutGrid, Grid3x3, Check, Download } from "lucide-react";
@@ -119,7 +120,7 @@ export function GraphControls({
   const { zoomIn, zoomOut, zoomTo, getNodes } = useReactFlow();
   const { zoom } = useViewport();
   const zoomPercent = Math.round(zoom * 100);
-  const [exportScope, setExportScope] = useState<"visible" | "selection">("visible");
+  const [exportOpen, setExportOpen] = useState(false);
 
   useEffect(() => {
     if (editingZoom) zoomInputRef.current?.select();
@@ -131,20 +132,19 @@ export function GraphControls({
     if (!isNaN(val) && val > 0) zoomTo(val / 100, { duration: 0 });
   }, [zoomInput, zoomTo]);
 
-  const handleExportPng = useCallback(async () => {
+  const doExport = useCallback(async (scope: "visible" | "selection") => {
     const el = document.querySelector(".react-flow") as HTMLElement | null;
     if (!el) return;
     const minimap = el.querySelector(".react-flow__minimap") as HTMLElement | null;
     if (minimap) minimap.style.display = "none";
 
-    // Hide unselected nodes when exporting selection
     const nodes = getNodes();
     const hidden: { node: HTMLElement; prevDisplay: string }[] = [];
-    if (exportScope === "selection") {
+    if (scope === "selection") {
       const selectedIds = new Set(nodes.filter((n) => n.selected).map((n) => n.id));
       el.querySelectorAll(".react-flow__node").forEach((nodeEl) => {
         const htmlEl = nodeEl as HTMLElement;
-        const id = htmlEl.dataset?.id || htmlEl.getAttribute("data-id") || "";
+        const id = htmlEl.getAttribute("data-id") || "";
         if (id && !selectedIds.has(id)) {
           hidden.push({ node: htmlEl, prevDisplay: htmlEl.style.display });
           htmlEl.style.display = "none";
@@ -161,7 +161,8 @@ export function GraphControls({
     } catch {}
     for (const { node, prevDisplay } of hidden) node.style.display = prevDisplay;
     if (minimap) minimap.style.display = "";
-  }, [exportScope, getNodes]);
+    setExportOpen(false);
+  }, [getNodes]);
 
   return (
     <div className={`flex flex-row items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 shadow-md ${className ?? ""}`}>
@@ -229,18 +230,42 @@ export function GraphControls({
         {visibleCount} / {totalCount} tables visible
       </span>
       <div className="mx-0.5 h-7 w-px bg-gray-200" />
-      <div className="relative flex items-center">
-        <button onClick={handleExportPng} className="flex h-7 w-7 items-center justify-center rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Export as PNG">
-          <Download size={16} />
-        </button>
-        <button
-          onClick={() => setExportScope(exportScope === "visible" ? "selection" : "visible")}
-          className="flex h-7 items-center px-1 text-[9px] font-semibold uppercase tracking-wider text-gray-400 hover:text-gray-600"
-          title={exportScope === "visible" ? "Export all visible tables" : "Export only selected tables"}
-        >
-          {exportScope === "visible" ? "All" : "Sel"}
-        </button>
-      </div>
+      <button onClick={() => setExportOpen(true)} className="flex h-7 w-7 items-center justify-center rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Export as PNG">
+        <Download size={16} />
+      </button>
+      {exportOpen && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setExportOpen(false)} />
+          <div className="relative z-10 w-full max-w-xs rounded-lg bg-white p-5 shadow-xl">
+            <h3 className="text-sm font-semibold text-gray-900">Export PNG</h3>
+            <div className="mt-3 flex flex-col gap-2">
+              <button
+                onClick={() => doExport("visible")}
+                className="w-full rounded-lg border border-gray-200 px-4 py-3 text-left text-xs font-semibold text-gray-900 hover:bg-gray-50"
+              >
+                <div className="text-sm">All visible</div>
+                <div className="mt-0.5 text-[11px] font-normal text-gray-500">Exporter toutes les tables visibles</div>
+              </button>
+              <button
+                onClick={() => doExport("selection")}
+                className="w-full rounded-lg border border-gray-200 px-4 py-3 text-left text-xs font-semibold text-gray-900 hover:bg-gray-50"
+              >
+                <div className="text-sm">Selection</div>
+                <div className="mt-0.5 text-[11px] font-normal text-gray-500">Exporter uniquement les tables sélectionnées</div>
+              </button>
+            </div>
+            <div className="mt-3 flex justify-end">
+              <button
+                onClick={() => setExportOpen(false)}
+                className="rounded-md px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
