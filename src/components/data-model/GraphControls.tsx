@@ -117,7 +117,7 @@ export function GraphControls({
   const [editingZoom, setEditingZoom] = useState(false);
   const [zoomInput, setZoomInput] = useState("");
   const zoomInputRef = useRef<HTMLInputElement>(null);
-  const { zoomIn, zoomOut, zoomTo, getNodes } = useReactFlow();
+  const { zoomIn, zoomOut, zoomTo, getNodes, fitView } = useReactFlow();
   const { zoom } = useViewport();
   const zoomPercent = Math.round(zoom * 100);
   const [exportOpen, setExportOpen] = useState(false);
@@ -132,25 +132,19 @@ export function GraphControls({
     if (!isNaN(val) && val > 0) zoomTo(val / 100, { duration: 0 });
   }, [zoomInput, zoomTo]);
 
-  const doExport = useCallback(async (scope: "visible" | "selection") => {
+  const doExport = useCallback(async (scope: "all" | "visible") => {
     const el = document.querySelector(".react-flow") as HTMLElement | null;
     if (!el) return;
+
+    // Fit view to visible nodes before capturing "visible" scope
+    if (scope === "visible") fitView({ duration: 0 });
+
+    // Wait one frame for React Flow to re-render after fitView
+    await new Promise((r) => requestAnimationFrame(r));
+    await new Promise((r) => requestAnimationFrame(r));
+
     const minimap = el.querySelector(".react-flow__minimap") as HTMLElement | null;
     if (minimap) minimap.style.display = "none";
-
-    const nodes = getNodes();
-    const hidden: { node: HTMLElement; prevDisplay: string }[] = [];
-    if (scope === "selection") {
-      const selectedIds = new Set(nodes.filter((n) => n.selected).map((n) => n.id));
-      el.querySelectorAll(".react-flow__node").forEach((nodeEl) => {
-        const htmlEl = nodeEl as HTMLElement;
-        const id = htmlEl.getAttribute("data-id") || "";
-        if (id && !selectedIds.has(id)) {
-          hidden.push({ node: htmlEl, prevDisplay: htmlEl.style.display });
-          htmlEl.style.display = "none";
-        }
-      });
-    }
 
     try {
       const dataUrl = await toPng(el, { backgroundColor: "#f8f9fa", pixelRatio: 2 });
@@ -159,10 +153,9 @@ export function GraphControls({
       a.href = dataUrl;
       a.click();
     } catch {}
-    for (const { node, prevDisplay } of hidden) node.style.display = prevDisplay;
     if (minimap) minimap.style.display = "";
     setExportOpen(false);
-  }, [getNodes]);
+  }, [fitView]);
 
   return (
     <div className={`flex flex-row items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 shadow-md ${className ?? ""}`}>
@@ -240,18 +233,18 @@ export function GraphControls({
             <h3 className="text-sm font-semibold text-gray-900">Export PNG</h3>
             <div className="mt-3 flex flex-col gap-2">
               <button
+                onClick={() => doExport("all")}
+                className="w-full rounded-lg border border-gray-200 px-4 py-3 text-left text-xs font-semibold text-gray-900 hover:bg-gray-50"
+              >
+                <div className="text-sm">Tout</div>
+                <div className="mt-0.5 text-[11px] font-normal text-gray-500">Exporter l&apos;intégralité du graphe</div>
+              </button>
+              <button
                 onClick={() => doExport("visible")}
                 className="w-full rounded-lg border border-gray-200 px-4 py-3 text-left text-xs font-semibold text-gray-900 hover:bg-gray-50"
               >
-                <div className="text-sm">All visible</div>
-                <div className="mt-0.5 text-[11px] font-normal text-gray-500">Exporter toutes les tables visibles</div>
-              </button>
-              <button
-                onClick={() => doExport("selection")}
-                className="w-full rounded-lg border border-gray-200 px-4 py-3 text-left text-xs font-semibold text-gray-900 hover:bg-gray-50"
-              >
-                <div className="text-sm">Selection</div>
-                <div className="mt-0.5 text-[11px] font-normal text-gray-500">Exporter uniquement les tables sélectionnées</div>
+                <div className="text-sm">Ce qui est visible</div>
+                <div className="mt-0.5 text-[11px] font-normal text-gray-500">Exporter uniquement la zone visible à l&apos;écran</div>
               </button>
             </div>
             <div className="mt-3 flex justify-end">
