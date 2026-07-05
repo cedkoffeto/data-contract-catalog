@@ -7,6 +7,15 @@ import type { Session } from "next-auth";
 
 import { requireApiAuth, getGlobalPermissions } from "@/src/lib/require-auth";
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function flattenFields(fields: any[], prefix = ""): any[] {
   return fields.flatMap((field) => {
     const name = `${prefix}${field.name ?? ""}`;
@@ -33,13 +42,13 @@ function toCsv(rows: Array<Record<string, string>>) {
 function toPrintHtml(contract: { slug: string; yamlRaw: string; data: any }) {
   const asset = contract.data.asset ?? {};
   const fields = flattenFields(contract.data.contract?.schema?.fields ?? []);
-  const rows = fields.map((field) => `<tr><td>${field.field}</td><td>${field.type}</td><td>${field.description}</td></tr>`).join("");
+  const rows = fields.map((field) => `<tr><td>${escapeHtml(field.field)}</td><td>${escapeHtml(field.type)}</td><td>${escapeHtml(field.description)}</td></tr>`).join("");
 
   return `<!doctype html>
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>${asset.name ?? contract.slug}</title>
+  <title>${escapeHtml(asset.name ?? contract.slug)}</title>
   <style>
     body { font-family: Arial, sans-serif; color: #111827; margin: 32px; }
     h1 { color: #f97316; }
@@ -54,13 +63,13 @@ function toPrintHtml(contract: { slug: string; yamlRaw: string; data: any }) {
   </style>
 </head>
 <body>
-  <h1>${asset.name ?? contract.slug}</h1>
-  <p>${asset.description ?? ""}</p>
+  <h1>${escapeHtml(asset.name ?? contract.slug)}</h1>
+  <p>${escapeHtml(asset.description ?? "")}</p>
   <dl class="meta">
-    <div><dt>Slug</dt><dd>${contract.slug}</dd></div>
-    <div><dt>Version</dt><dd>${asset.version ?? ""}</dd></div>
-    <div><dt>Domain</dt><dd>${asset.domain ?? ""}</dd></div>
-    <div><dt>Maturity</dt><dd>${asset.maturity ?? ""}</dd></div>
+    <div><dt>Slug</dt><dd>${escapeHtml(contract.slug)}</dd></div>
+    <div><dt>Version</dt><dd>${escapeHtml(asset.version ?? "")}</dd></div>
+    <div><dt>Domain</dt><dd>${escapeHtml(asset.domain ?? "")}</dd></div>
+    <div><dt>Maturity</dt><dd>${escapeHtml(asset.maturity ?? "")}</dd></div>
   </dl>
   <h2>Fields</h2>
   <table>

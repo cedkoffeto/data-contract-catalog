@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { IBM_Plex_Mono, Manrope } from "next/font/google";
 
 import { ensureStartup, awaitStartup } from "@/src/lib/startup";
-import { AuditSessionProvider } from "@/src/components/AuditSessionProvider";
+import { Providers } from "@/src/components/Providers";
 import "./globals.css";
 
 ensureStartup();
@@ -27,7 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html className="h-full" lang="en" style={{ overflowY: "scroll" }}>
       <body className={`${manrope.variable} ${ibmPlexMono.variable} app-body h-full`}>
-        <AuditSessionProvider>{children}</AuditSessionProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

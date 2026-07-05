@@ -1,4 +1,6 @@
-import { t } from "@/src/lib/i18n";
+"use client";
+
+import { useT } from "@/src/lib/use-i18n";
 import type { Asset } from "@/src/lib/types";
 
 function getReadableValue(value?: string) {
@@ -12,6 +14,7 @@ export function ContractHeader({
   asset: Asset;
   showActions?: boolean;
 }) {
+  const { t } = useT();
   const tags = asset.tags ?? [];
   const owner =
     asset.owners?.business_owner?.name ??

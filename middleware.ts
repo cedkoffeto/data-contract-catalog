@@ -25,9 +25,44 @@ function clearAuthCookies(response: NextResponse) {
   return response;
 }
 
+function csrfGuard(method: string, request: NextRequest): void {
+  if (method === "GET" || method === "HEAD" || method === "OPTIONS") return;
+
+  const origin = request.headers.get("origin");
+  const referer = request.headers.get("referer")?.split("?")[0] ?? null;
+
+  const allowedOriginRaw = process.env.NEXTAUTH_URL ?? "";
+  if (!allowedOriginRaw) return;
+
+  const allowed = allowedOriginRaw.replace(/\/+$/, "").toLowerCase();
+
+  const matchOrigin = (value: string | null): boolean => {
+    if (!value) return false;
+    return value.replace(/\/+$/, "").toLowerCase() === allowed;
+  };
+
+  if (!matchOrigin(origin) && !matchOrigin(referer)) {
+    throw new Error("CSRF origin mismatch");
+  }
+}
+
 export async function middleware(request: NextRequest) {
-  const { nextUrl } = request;
+  const { nextUrl, method } = request;
   const { pathname, search } = nextUrl;
+
+  const isApiRoute = pathname.startsWith("/api");
+  const isMutation = ["POST", "PUT", "PATCH", "DELETE"].includes(method);
+
+  if (isApiRoute && isMutation && !pathname.startsWith("/api/auth")) {
+    try {
+      csrfGuard(method, request);
+    } catch {
+      return NextResponse.json(
+        { error: "CSRF validation failed: request origin not allowed" },
+        { status: 403 }
+      );
+    }
+  }
 
   const isPublicPath = PUBLIC_PATHS.has(pathname);
   const isAuthRoute = pathname.startsWith("/api/auth");
