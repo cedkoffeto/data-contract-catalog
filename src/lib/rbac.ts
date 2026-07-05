@@ -112,8 +112,9 @@ async function searchKeycloakUsers(queryStr: string): Promise<string[]> {
 
   const kcBase = issuer.replace(/\/realms\/.*$/, "");
   const realm = issuer.split("/").pop() ?? "data-contracts";
-  const adminUser = process.env.KC_ADMIN ?? "admin";
-  const adminPass = process.env.KC_ADMIN_PASSWORD ?? "admin";
+  const adminUser = process.env.KC_ADMIN;
+  const adminPass = process.env.KC_ADMIN_PASSWORD;
+  if (!adminUser || !adminPass) return [];
 
   try {
     const tokenRes = await fetch(`${kcBase}/realms/master/protocol/openid-connect/token`, {
