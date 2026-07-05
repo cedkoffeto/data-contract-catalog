@@ -2,6 +2,18 @@ import { migrate, query } from "@/src/lib/db";
 
 export type PermissionLevel = "admin" | "editor" | "reader";
 
+async function columnExists(table: string, column: string): Promise<boolean> {
+  const rows = await query<{ name: string }>(
+    `SELECT name FROM pragma_table_info(?) WHERE name = ?`,
+    [table, column],
+  );
+  return rows.length > 0;
+}
+
+type Migration =
+  | { id: string; sql: string }
+  | { id: string; run: () => Promise<void> };
+
 async function migrateRolesToAccessPolicies() {
   const existing = await query<{ c: number }>(
     "SELECT COUNT(*) AS c FROM access_policies WHERE user_id IS NOT NULL",
@@ -88,7 +100,7 @@ async function seedDefaultPolicies() {
   }
 }
 
-const MIGRATIONS: Array<{ id: string; sql: string }> = [
+const MIGRATIONS: Migration[] = [
   {
     id: "001_full_schema",
     sql: `
@@ -211,20 +223,35 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
 
       CREATE INDEX IF NOT EXISTS idx_access_requests_status ON access_requests(status);
       CREATE INDEX IF NOT EXISTS idx_access_requests_user_id ON access_requests(user_id);
-      CREATE INDEX IF NOT EXISTS idx_access_requests_requested_permission ON access_requests(requested_permission);
     `,
+  },
+  {
+    id: "003b_access_requests_permission_index",
+    run: async () => {
+      if (await columnExists("access_requests", "requested_permission")) {
+        await migrate(
+          "CREATE INDEX IF NOT EXISTS idx_access_requests_requested_permission ON access_requests(requested_permission)",
+        );
+      }
+    },
   },
   {
     id: "004_audit_session_id",
-    sql: `
-      ALTER TABLE audit_log ADD COLUMN session_id TEXT DEFAULT '';
-    `,
+    run: async () => {
+      if (!(await columnExists("audit_log", "session_id"))) {
+        await migrate("ALTER TABLE audit_log ADD COLUMN session_id TEXT DEFAULT ''");
+      }
+    },
   },
   {
     id: "005_access_request_permission",
-    sql: `
-      CREATE INDEX IF NOT EXISTS idx_access_requests_requested_permission ON access_requests(requested_permission);
-    `,
+    run: async () => {
+      if (await columnExists("access_requests", "requested_permission")) {
+        await migrate(
+          "CREATE INDEX IF NOT EXISTS idx_access_requests_requested_permission ON access_requests(requested_permission)",
+        );
+      }
+    },
   },
   {
     id: "006_contract_comments",
@@ -310,25 +337,30 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
   },
   {
     id: "011_comment_target_field",
-    sql: `
-      ALTER TABLE contract_comments ADD COLUMN target_field TEXT;
-
-      CREATE INDEX IF NOT EXISTS idx_contract_comments_target_field ON contract_comments(contract_slug, target_field);
-    `,
+    run: async () => {
+      if (!(await columnExists("contract_comments", "target_field"))) {
+        await migrate("ALTER TABLE contract_comments ADD COLUMN target_field TEXT");
+      }
+      await migrate("CREATE INDEX IF NOT EXISTS idx_contract_comments_target_field ON contract_comments(contract_slug, target_field)");
+    },
   },
   {
     id: "012_remove_is_pinned",
-    sql: `
-      DROP INDEX IF EXISTS idx_user_contract_preferences_pinned;
-      ALTER TABLE user_contract_preferences DROP COLUMN is_pinned;
-    `,
+    run: async () => {
+      await migrate("DROP INDEX IF EXISTS idx_user_contract_preferences_pinned");
+      if (await columnExists("user_contract_preferences", "is_pinned")) {
+        await migrate("ALTER TABLE user_contract_preferences DROP COLUMN is_pinned");
+      }
+    },
   },
   {
     id: "013_add_is_pinned",
-    sql: `
-      ALTER TABLE user_contract_preferences ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0;
-      CREATE INDEX IF NOT EXISTS idx_user_contract_preferences_pinned ON user_contract_preferences(user_id, is_pinned);
-    `,
+    run: async () => {
+      if (!(await columnExists("user_contract_preferences", "is_pinned"))) {
+        await migrate("ALTER TABLE user_contract_preferences ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0");
+      }
+      await migrate("CREATE INDEX IF NOT EXISTS idx_user_contract_preferences_pinned ON user_contract_preferences(user_id, is_pinned)");
+    },
   },
   {
     id: "014_contract_change_requests",
@@ -376,25 +408,31 @@ const MIGRATIONS: Array<{ id: string; sql: string }> = [
   },
   {
     id: "016_add_updated_at",
-    sql: `
-      CREATE TABLE IF NOT EXISTS access_requests (
-        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-        user_id TEXT NOT NULL,
-        domain TEXT NOT NULL DEFAULT '',
-        context TEXT NOT NULL DEFAULT '',
-        data_contract TEXT NOT NULL DEFAULT '',
-        requested_permission TEXT NOT NULL DEFAULT 'reader',
-        message TEXT NOT NULL DEFAULT '',
-        status TEXT NOT NULL DEFAULT 'pending',
-        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-      );
+    run: async () => {
+      await migrate(`
+        CREATE TABLE IF NOT EXISTS access_requests (
+          id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+          user_id TEXT NOT NULL,
+          domain TEXT NOT NULL DEFAULT '',
+          context TEXT NOT NULL DEFAULT '',
+          data_contract TEXT NOT NULL DEFAULT '',
+          requested_permission TEXT NOT NULL DEFAULT 'reader',
+          message TEXT NOT NULL DEFAULT '',
+          status TEXT NOT NULL DEFAULT 'pending',
+          created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
 
-      ALTER TABLE access_requests ADD COLUMN updated_at DATETIME;
-      UPDATE access_requests SET updated_at = datetime('now') WHERE updated_at IS NULL;
+      if (!(await columnExists("access_requests", "updated_at"))) {
+        await migrate("ALTER TABLE access_requests ADD COLUMN updated_at DATETIME");
+      }
+      await migrate("UPDATE access_requests SET updated_at = datetime('now') WHERE updated_at IS NULL");
 
-      ALTER TABLE contract_change_requests ADD COLUMN updated_at DATETIME;
-      UPDATE contract_change_requests SET updated_at = datetime('now') WHERE updated_at IS NULL;
-    `,
+      if (!(await columnExists("contract_change_requests", "updated_at"))) {
+        await migrate("ALTER TABLE contract_change_requests ADD COLUMN updated_at DATETIME");
+      }
+      await migrate("UPDATE contract_change_requests SET updated_at = datetime('now') WHERE updated_at IS NULL");
+    },
   },
   {
     id: "017_ensure_core_tables",
@@ -447,7 +485,11 @@ export async function runMigrations(): Promise<void> {
         const alreadyApplied = (rows[0]?.c ?? 0) > 0;
         if (alreadyApplied) continue;
 
-        await migrate(migration.sql);
+        if ("sql" in migration) {
+          await migrate(migration.sql);
+        } else {
+          await migration.run();
+        }
 
         await migrate("INSERT OR IGNORE INTO _migrations (id) VALUES (?)", [migration.id]);
         console.info("[migrate] Applied migration:", migration.id);
