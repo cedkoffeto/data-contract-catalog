@@ -66,7 +66,11 @@ async function saveToGitLab(
 }
 
 function saveToLocal(filePath: string, content: string): void {
-  const fullPath = path.resolve(contractsRoot, filePath.replace(/^contracts\//, ""));
+  const normalized = path.normalize(filePath.replace(/^contracts\//, ""));
+  const fullPath = path.resolve(contractsRoot, normalized);
+  if (!fullPath.startsWith(path.resolve(contractsRoot))) {
+    throw new Error(`Path traversal detected: ${filePath}`);
+  }
   fs.mkdirSync(path.dirname(fullPath), { recursive: true });
   fs.writeFileSync(fullPath, content, "utf-8");
 }
