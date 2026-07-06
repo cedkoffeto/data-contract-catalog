@@ -65,7 +65,7 @@ export default async function ContractRoutePage({ params }: { params: Promise<{ 
   const canAdmin = allPerms.includes("admin");
 
   if (!canRead) {
-    return <Forbidden slug={slug} domain={domain} context={context} />;
+    notFound();
   }
 
   const [discussion, subscription, prefs] = await Promise.all([

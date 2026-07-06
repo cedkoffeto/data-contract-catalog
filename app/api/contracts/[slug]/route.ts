@@ -27,7 +27,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
   if (!permissions.includes("admin")) {
     const allowed = await authorize(userId, contractDomain, contractCtx, "read", slug);
     if (!allowed) {
-      return NextResponse.json({ error: "Forbidden: insufficient permissions on this contract" }, { status: 403 });
+      return NextResponse.json({ error: `Contract "${slug}" not found` }, { status: 404 });
     }
   }
 
