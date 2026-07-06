@@ -155,34 +155,35 @@ En pratique:
 
 ```text
 app/
-  api/                               # Route handlers Next.js
-  docs/                              # Documentation API
-  editor/                            # Workspace d'edition
   [slug]/                            # Detail d'un contrat
+  admin/                             # Dashboard, groupes, polices d'accès
+  api/                               # Route handlers Next.js (46 endpoints)
+  data-model/                        # Visualisation graphe du data model
+  docs/                              # Documentation API (Swagger)
+  editor/                            # Workspace d'edition
+  login/                             # Page de connexion
   layout.tsx                         # Layout racine
   page.tsx                           # Catalogue
 
 src/
   auth.ts                            # Config NextAuth + Keycloak
   components/
+    admin/                           # UI admin (PolicyTable, GroupForm, Dashboard)
     catalog/                         # Pages/composants catalogue
     contract/                        # Rendu detail d'un contrat
+    data-model/                      # Graphe React Flow (ModelGraph, nodes, edges)
     editor/                          # Workspace d'edition YAML + formulaire
     layout/                          # Navbar, shell, login, footer
     ui/                              # Composants UI reutilisables
-  lib/
-    contracts.ts                     # Lecture/aggregation des contrats
-    gitlab.ts                        # Historique et lecture GitLab
-    git-source.ts                    # Resolution de ref Git
-    editor-schema.ts                 # Schema de l'editeur
-    openapi.ts                       # Generation du spec OpenAPI
-    require-auth.ts                  # Garde API
-    types.ts                         # Types metier
+  lib/                               # 34 modules (voir tableau ci-dessous)
 
 contracts/                           # Data contracts YAML
+data-model/                          # Relations inter-contrats (bronze/silver/gold)
 schema/                              # Schemas et templates
 keycloak/                            # Export de realm pour dev local
+prisma/                              # Schema Prisma + base SQLite
 public/                              # Assets statiques
+tests/                               # Tests unitaires et API (vitest)
 ```
 
 ## Pages et parcours utilisateur
@@ -382,27 +383,297 @@ npm run start
 npm run typecheck
 ```
 
-## Endpoints exposes
+## Pages
 
-### Pages
+| Route | Description |
+|---|---|
+| `/` | Catalogue des contrats |
+| `/:slug` | Détail d'un contrat |
+| `/editor` | Workspace d'édition YAML / formulaire |
+| `/editor?file=:path` | Édition d'un fichier spécifique |
+| `/data-model` | Visualisation du data model (graphe React Flow) |
+| `/docs` | Documentation Swagger / OpenAPI |
+| `/login` | Page de connexion |
+| `/admin` | Dashboard admin (audit log, stats) |
+| `/admin/groups` | Gestion des groupes RBAC |
+| `/admin/policies` | Gestion des polices d'accès |
 
-- `/` : catalogue
-- `/:slug` : detail d'un contrat
-- `/editor` : workspace d'edition
-- `/docs` : documentation Swagger/Scalar
-- `/login` : page de connexion
+## API — Routes complètes
 
-### API
+### Contrats
 
-- `/api/healthz` : health check
-- `/api/contracts` : liste des contrats
-- `/api/contracts/search` : recherche catalogue
-- `/api/contracts/:slug` : detail d'un contrat
-- `/api/contracts/:slug/history` : historique GitLab du fichier
-- `/api/contracts/:slug/repository-content?ref=<sha>` : contenu du fichier a une revision
-- `/api/openapi` : specification OpenAPI generee
+| Méthode | Route | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/contracts` | Session | Liste des contrats (filtrée par droits) |
+| `GET` | `/api/contracts/search?q=` | Session | Recherche full-text |
+| `GET` | `/api/contracts/:slug` | Session | Détail d'un contrat |
+| `GET` | `/api/contracts/:slug/history` | Session | Historique GitLab du fichier |
+| `GET` | `/api/contracts/:slug/repository-content?ref=` | Session | Contenu à une révision |
+| `GET` | `/api/contracts/:slug/export?format=` | Session | Export (yaml/csv/html) |
+| `POST` | `/api/contracts/:slug/submit` | Session | Soumettre une mise à jour |
+| `POST` | `/api/contracts/:slug/preferences` | Session | Sauvegarder préférences (favori, épinglé) |
+| `GET` | `/api/contracts/:slug/preferences` | Session | Lire préférences |
 
-## Comment les contrats sont charges
+### Change Requests
+
+| Méthode | Route | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/contracts/:slug/change-requests` | Session | CR d'un contrat |
+| `POST` | `/api/contracts/:slug/change-requests` | Session | Créer un CR (→ GitLab MR) |
+| `GET` | `/api/change-requests` | Admin | Tous les CR |
+| `PATCH` | `/api/change-requests/:id` | Admin | Merge / reject un CR |
+| `POST` | `/api/change-requests/sync` | Admin | Synchroniser CR avec GitLab MR |
+
+### Commentaires & Issues
+
+| Méthode | Route | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/contracts/:slug/comments` | Session | Commentaires d'un contrat |
+| `POST` | `/api/contracts/:slug/comments` | Session | Ajouter un commentaire (avec @mentions) |
+| `DELETE` | `/api/contracts/:slug/comments/:id` | Session | Supprimer (si propriétaire) |
+| `GET` | `/api/contracts/:slug/discussion-summary` | Session | Nb commentaires + issues |
+| `GET` | `/api/contracts/:slug/issues` | Session | Issues d'un contrat |
+| `POST` | `/api/contracts/:slug/issues` | Session | Créer une issue |
+| `PATCH` | `/api/contract-issues/:id` | Session | Changer statut (open/fixed/false_alert) |
+
+### Accès
+
+| Méthode | Route | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/access-requests` | Admin | Liste des demandes |
+| `POST` | `/api/access-requests` | Session | Créer une demande d'accès |
+| `GET` | `/api/access-requests/my` | Session | Mes demandes |
+| `PATCH` | `/api/access-requests/:id` | Admin | Approuver / rejeter |
+
+### Notifications
+
+| Méthode | Route | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/notifications` | Session | Mes notifications (20 dernières) |
+| `GET` | `/api/notifications/unread` | Session | Nb non-lues |
+| `POST` | `/api/notifications/read` | Session | Marquer comme lues |
+| `POST` | `/api/notifications/unread` | Session | Marquer comme non-lues |
+
+### Abonnements
+
+| Méthode | Route | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/subscriptions` | Session | Mes abonnements |
+| `GET` | `/api/contracts/:slug/subscription` | Session | État abonnement |
+| `POST` | `/api/contracts/:slug/subscription` | Session | S'abonner / se désabonner |
+
+### Admin
+
+| Méthode | Route | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/admin/dashboard` | Admin | Stats + audit log |
+| `GET` | `/api/admin/permissions` | Admin | Types de permissions |
+| `GET` | `/api/admin/scopes` | Admin | Domaines + contextes existants |
+| `GET` | `/api/admin/users/search` | Admin | Rechercher utilisateurs (Keycloak + local) |
+| `GET` | `/api/admin/policies` | Admin | Polices d'accès |
+| `POST` | `/api/admin/policies` | Admin | Créer une police |
+| `PATCH` | `/api/admin/policies/:id` | Admin | Modifier une police |
+| `DELETE` | `/api/admin/policies/:id` | Admin | Supprimer une police |
+| `GET` | `/api/admin/policies/effective` | Admin | Polices effectives d'un utilisateur |
+| `GET` | `/api/admin/groups` | Admin | Groupes |
+| `POST` | `/api/admin/groups` | Admin | Créer un groupe |
+| `DELETE` | `/api/admin/groups/:id` | Admin | Supprimer un groupe |
+| `GET` | `/api/admin/groups/:id/members` | Admin | Membres d'un groupe |
+| `POST` | `/api/admin/groups/:id/members` | Admin | Ajouter un membre |
+| `DELETE` | `/api/admin/groups/:id/members` | Admin | Retirer un membre |
+| `GET` | `/api/admin/groups/memberships` | Admin | Toutes les appartenances |
+| `GET` | `/api/admin/contracts` | Admin | Tous les contrats |
+| `GET` | `/api/users` | Admin | Liste utilisateurs (recherche) |
+
+### Data Model & Divers
+
+| Méthode | Route | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/data-model` | Session | Graphe du data model |
+| `GET` | `/api/openapi` | Publique | Spec OpenAPI générée |
+| `GET` | `/api/healthz` | Publique | Health check |
+| `GET` | `/api/user/preferences` | Session | Préférences utilisateur |
+| `PUT` | `/api/user/preferences` | Session | Màj préférences (canal notification) |
+
+## Système de notifications
+
+Les notifications sont stockées dans la table SQLite `notifications` et servies via l'API REST. Chaque notification cible un `user_id` spécifique et peut contenir un `contract_slug`, un `type`, un `title`, un `message` et des `metadata` JSON.
+
+### Types de notifications et déclencheurs
+
+| Type | Déclencheur | Destinataire(s) | Navigation au clic |
+|---|---|---|---|
+| `mention` | @mention dans un commentaire | Utilisateur mentionné | `/:slug#comment-:id` |
+| `comment_reply` | Réponse à un commentaire | Auteur du commentaire parent | `/:slug#comment-:id` |
+| `contract.created` | Nouveau contrat soumis | Admins + users scope | `/:slug` |
+| `contract.submitted` | Contrat existant mis à jour | Admins + abonnés (canal `in_app`) | `/:slug` |
+| `contract_updated` | Merge manuel ou sync GitLab | Abonnés du contrat | `/:slug` |
+| `change_request_created` | CR créé (avec ou sans GitLab) | Éditeur + admins | `/admin?tab=changes&highlight=:id` |
+| `change_request_merged` | Admin merge un CR | Éditeur du CR | `/admin?tab=changes&highlight=:id` |
+| `change_request_approved` | Sync GitLab détecte MR merged | Éditeur du CR | `/admin?tab=changes&highlight=:id` |
+| `change_request_rejected` | Admin reject / MR closed | Éditeur du CR | `/admin?tab=changes&highlight=:id` |
+| `access_request` | Création / approbation / rejet | Admins (création) / demandeur (statut) | `/:slug` ou `/admin` |
+| `policy_updated` | Création / modification / suppression d'une police d'accès | Utilisateur concerné (ou membres du groupe) | `/admin?tab=policies` |
+| `group_membership` | Ajout / retrait d'un groupe | Utilisateur concerné | — (aucune route dédiée) |
+
+### Canaux de notification
+
+Le canal de notification est déterminé par la préférence utilisateur (`user_preferences.notification_channel`) :
+- `in_app` : notifications dans l'interface (cloche)
+- `email` : (réservé, envoi email non implémenté)
+- `both` : les deux
+
+Les abonnements (`subscriptions`) lient un utilisateur à un contrat avec un canal. Seul le canal `in_app` est actif.
+
+### API notifications
+
+| Méthode | Route | Description |
+|---|---|---|
+| `GET` | `/api/notifications` | 20 dernières notifications |
+| `GET` | `/api/notifications/unread` | Nombre de non-lues |
+| `POST` | `/api/notifications/read` | Marquer comme lues |
+| `POST` | `/api/notifications/unread` | Marquer comme non-lues |
+
+## RBAC — Contrôle d'accès
+
+Le RBAC utilise 4 tables SQLite : `permissions`, `access_policies`, `groups`, `user_group`.
+
+### Niveaux de scope (hiérarchiques)
+
+1. **Global** — `domain_scope = NULL, context_scope = NULL` (s'applique partout)
+2. **Domaine** — `domain_scope = "finance"` (tous les contextes de ce domaine)
+3. **Contexte** — `domain_scope + context_scope` (domaine + contexte spécifique)
+4. **Contrat** — `domain_scope + context_scope + data_contract_scope` (slug précis)
+
+L'héritage est automatique : un accès Global donne accès à tous les niveaux inférieurs.
+Les permissions peuvent cibler un utilisateur (`user_id`) ou un groupe (`group_id`).
+
+### Permissions
+
+| Permission | Priorité | Accès |
+|---|---|---|
+| `admin` | 3 | Tout voir, tout modifier, gérer les polices/groupes |
+| `editor` | 2 | Voir + modifier les contrats de son scope |
+| `reader` | 1 | Lecture seule sur son scope |
+
+### Groupes
+
+Les groupes sont des ensembles d'utilisateurs. Une police d'accès attachée à un groupe s'applique à tous ses membres.
+La gestion se fait depuis `/admin/groups`.
+
+## Audit log
+
+Chaque action importante est tracée dans la table `audit_log` :
+
+| Champ | Description |
+|---|---|
+| `action` | Type d'action (19 valeurs : `auth.login`, `policy.create`, `group.add_member`, etc.) |
+| `actor_id` | Utilisateur ayant déclenché l'action |
+| `target_type` | `user`, `contract`, `policy`, `group`, `system` |
+| `target_id` | Identifiant de la cible |
+| `details` | JSON libre |
+| `session_id` | ID de session côté client (UUID stocké en sessionStorage + cookie) |
+| `created_at` | Timestamp |
+
+Le dashboard admin (`/admin`) expose l'audit log avec recherche et pagination.
+
+## Change Requests
+
+Les Change Requests (CR) permettent de proposer des modifications aux contrats via un workflow GitLab :
+
+1. **Création** : l'éditeur soumet son YAML → création d'une branche GitLab + commit + MR
+2. **Review** : les admins voient le CR dans `/admin?tab=changes`
+3. **Merge** : l'admin merge → le MR GitLab est accepté, la modification est appliquée
+4. **Reject** : l'admin reject → le MR GitLab est fermé
+5. **Sync** : un job admin scanne les MR GitLab externes pour synchroniser les CR
+
+Sources : `app` (créé depuis l'interface) ou `external` (importé depuis GitLab).
+
+## Data model
+
+Le projet peut visualiser un graphe de data model via `/data-model` grâce à React Flow.
+
+- Les nœuds représentent des contrats (avec leur maturité : bronze/silver/gold)
+- Les arêtes représentent des relations (foreign keys)
+- 4 modes de layout : Left-Right, Top-Bottom, Layer columns, Domain columns
+- Filtres par couche (bronze/silver/gold) et par table
+- Chargement depuis `data-model/` (YAML) ou via GitLab
+
+## Abonnements
+
+Un utilisateur peut s'abonner à un contrat pour recevoir des notifications lors des mises à jour.
+
+- `GET /api/subscriptions` — ses abonnements
+- `POST /api/contracts/:slug/subscription` — s'abonner / se désabonner (body: `{ channel: "in_app" }` ou `{}`)
+- Les abonnés sont notifiés sur `contract.submitted` et `contract_updated`
+
+## Préférences utilisateur
+
+- **Par contrat** : `is_favorite`, `is_pinned` (API `/api/contracts/:slug/preferences`)
+- **Globales** : `notification_channel` (`in_app` / `email` / `both`) (API `/api/user/preferences`)
+
+## Variables d'environnement — Référence complète
+
+```bash
+# === Authentification (obligatoire) ===
+NEXTAUTH_URL=http://localhost:3000
+AUTH_SECRET=replace-with-a-long-random-secret
+AUTH_KEYCLOAK_ID=data-contract-hub
+AUTH_KEYCLOAK_SECRET=local-dev-secret
+AUTH_KEYCLOAK_ISSUER=http://localhost:8080/realms/data-contracts
+
+# === GitLab (optionnel — sans, pas de historique ni MR) ===
+GITLAB_BASE_URL=https://gitlab.example.com
+GITLAB_PROJECT_ID=my-group/data-contracts
+GITLAB_REPOSITORY_URL=https://gitlab.example.com/my-group/data-contracts
+GITLAB_TOKEN=glpat-xxxxxxxxxxxxxxxx
+GITLAB_REF=main
+
+# === Keycloak admin (optionnel — pour la recherche d'utilisateurs) ===
+KC_ADMIN=admin
+KC_ADMIN_PASSWORD=admin
+
+# === Application ===
+DATABASE_URL=file:./prisma/data/rbac.db   # Chemin de la base SQLite (Prisma)
+DB_PATH=prisma/data/rbac.db               # Chemin direct (sql.js)
+CONTRACTS_PATH=./contracts                # Dossier des contrats locaux
+```
+
+## Librairies `src/lib/`
+
+| Fichier | Rôle |
+|---|---|
+| `contracts.ts` | Lecture/agrégation des contrats (local + GitLab) |
+| `contract-writer.ts` | Écriture des contrats (local + GitLab) |
+| `gitlab.ts` | API GitLab (historique, contenu, MR) |
+| `git-sync.ts` | Téléchargement archive GitLab tar.gz |
+| `git-source.ts` | Résolution de ref Git |
+| `access-control.ts` | RBAC : polices, groupes, scopes, conflits |
+| `rbac.ts` | Permissions, admin check, recherche utilisateurs |
+| `require-auth.ts` | Garde API (session + permissions) |
+| `api-error.ts` | Helper d'erreur API générique |
+| `csrf.ts` | Validation CSRF (Origin/Referer) |
+| `audit.ts` | Écriture de l'audit log |
+| `audit-session.ts` | ID de session côté client pour l'audit |
+| `notifications.ts` | CRUD notifications |
+| `subscriptions.ts` | Abonnements utilisateur ⇔ contrat |
+| `comments.ts` | Commentaires, @mentions, réponses |
+| `issues.ts` | Issues (open/fixed/false_alert) |
+| `change-requests.ts` | Cycle de vie des change requests |
+| `preferences.ts` | Préférences utilisateur (favori, épinglé, canal) |
+| `data-model.ts` | Graphe React Flow du data model |
+| `data-model-sync.ts` | Sync data model (local + GitLab) |
+| `editor-schema.ts` | Schema JSON de l'éditeur |
+| `openapi.ts` | Génération spec OpenAPI via Zod |
+| `diff.ts` | Diffs YAML (unified, side-by-side, structural) |
+| `types.ts` | Types métier |
+| `catalog-filter.ts` | Filtrage RBAC du catalogue |
+| `format.ts` | Utilitaires (clsx, cn, statusColor) |
+| `db.ts` | Wrapper SQLite (sql.js) |
+| `migrate.ts` | Migrations DB (17 migrations, auto au démarrage) |
+| `startup.ts` | Initialisation app (migrations) |
+| `i18n.ts` | Dictionnaire i18n en/fr |
+| `use-i18n.ts` | Hook i18n pour composants client |
 
 Le chargement passe principalement par [src/lib/contracts.ts](src/lib/contracts.ts).
 
