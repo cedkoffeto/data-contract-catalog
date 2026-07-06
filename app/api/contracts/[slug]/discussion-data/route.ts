@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
-
+import { apiError } from "@/src/lib/api-error";
+ 
 import { listContractComments } from "@/src/lib/comments";
 import { getContractBySlug } from "@/src/lib/contracts";
 import { listContractIssues } from "@/src/lib/issues";
@@ -52,9 +53,6 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
     return NextResponse.json({ comments, issues, users });
   } catch (error) {
     console.error("[discussion-data] Failed to load discussion:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unable to load discussion" },
-      { status: 500 },
-    );
+    return apiError(error);
   }
 }

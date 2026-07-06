@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
+import { apiError } from "@/src/lib/api-error";
 import { requireAdmin } from "@/src/lib/require-admin";
 import { auth } from "@/src/auth";
 import { addUserToGroup, listGroupMembers, removeUserFromGroup } from "@/src/lib/access-control";
@@ -40,8 +41,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     await addUserToGroup({ userId: userId.trim(), groupId, actorId: session!.user!.email! });
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to add member";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return apiError(error, 400);
   }
 }
 
@@ -66,7 +66,6 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     await removeUserFromGroup({ userId: userId.trim(), groupId, actorId: session!.user!.email! });
     return NextResponse.json({ success: true });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to remove member";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return apiError(error, 400);
   }
 }

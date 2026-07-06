@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
+import { apiError } from "@/src/lib/api-error";
 import { requireAdmin } from "@/src/lib/require-admin";
 import { auth } from "@/src/auth";
 import { deleteGroup } from "@/src/lib/access-control";
@@ -20,7 +21,6 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
     await deleteGroup({ id: groupId, actorId: session!.user!.email! });
     return NextResponse.json({ success: true });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to delete group";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return apiError(error, 400);
   }
 }

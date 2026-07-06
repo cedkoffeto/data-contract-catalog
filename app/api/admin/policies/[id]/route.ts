@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
+import { apiError } from "@/src/lib/api-error";
 import { requireAdmin } from "@/src/lib/require-admin";
 import { auth } from "@/src/auth";
 import {
@@ -103,8 +104,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     return NextResponse.json(policy);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to update policy";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return apiError(error, 400);
   }
 }
 
@@ -125,7 +125,6 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     await deleteAccessPolicy({ id: policyId, actorId: session!.user!.email!, sessionId });
     return NextResponse.json({ success: true });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to delete policy";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return apiError(error, 400);
   }
 }

@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
+import { apiError } from "@/src/lib/api-error";
 import { requireAdmin } from "@/src/lib/require-admin";
 import { auth } from "@/src/auth";
 import { listGroups, createGroup } from "@/src/lib/access-control";
@@ -29,7 +30,6 @@ export async function POST(request: Request) {
     const group = await createGroup({ name: name.trim(), actorId: session!.user!.email!, sessionId });
     return NextResponse.json(group, { status: 201 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to create group";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return apiError(error, 400);
   }
 }

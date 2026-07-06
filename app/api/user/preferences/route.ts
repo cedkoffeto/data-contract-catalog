@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
-
+import { apiError } from "@/src/lib/api-error";
+ 
 import { requireApiAuth } from "@/src/lib/require-auth";
 import { getUserPreference, setUserPreference } from "@/src/lib/subscriptions";
 import type { NotificationChannel } from "@/src/lib/subscriptions";
@@ -19,7 +20,7 @@ export async function GET() {
       preference: pref ?? { user_id: userId, notification_channel: "in_app" },
     });
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Internal server error" }, { status: 500 });
+    return apiError(e);
   }
 }
 
@@ -42,6 +43,6 @@ export async function PUT(req: Request) {
     await setUserPreference(userId, channel as NotificationChannel);
     return NextResponse.json({ success: true });
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Internal server error" }, { status: 500 });
+    return apiError(e);
   }
 }

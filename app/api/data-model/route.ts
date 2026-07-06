@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/src/lib/api-error";
 import { loadDataModel } from "@/src/lib/data-model-sync";
 import { requireApiAuth } from "@/src/lib/require-auth";
 
@@ -13,9 +14,6 @@ export async function GET() {
     return NextResponse.json(data);
   } catch (error) {
     console.error("[api/data-model] Failed to load data model:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to load data model" },
-      { status: 500 },
-    );
+    return apiError(error);
   }
 }

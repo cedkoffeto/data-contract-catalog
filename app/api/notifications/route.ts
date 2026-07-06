@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
-
+import { apiError } from "@/src/lib/api-error";
+ 
 import { getUserNotifications } from "@/src/lib/notifications";
 import { requireApiAuth } from "@/src/lib/require-auth";
 
@@ -28,6 +29,6 @@ export async function GET() {
       })),
     });
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Internal server error" }, { status: 500 });
+    return apiError(e);
   }
 }

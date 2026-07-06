@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
-
+import { apiError } from "@/src/lib/api-error";
+ 
 import { getContractBySlug } from "@/src/lib/contracts";
 import { getGitLabFileContent, isGitLabConfigurationError } from "@/src/lib/gitlab";
 import { requireApiAuth, getGlobalPermissions } from "@/src/lib/require-auth";
@@ -37,13 +38,6 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
     const payload = await getGitLabFileContent(slug, ref);
     return NextResponse.json(payload);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to load repository file";
-
-    return NextResponse.json(
-      { error: message },
-      {
-        status: isGitLabConfigurationError(error) ? 503 : 500
-      }
-    );
+    return apiError(error, isGitLabConfigurationError(error) ? 503 : 500);
   }
 }

@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
-
+import { apiError } from "@/src/lib/api-error";
+ 
 import { requireApiAuth } from "@/src/lib/require-auth";
 import { getSubscription, subscribe, unsubscribe } from "@/src/lib/subscriptions";
 import { extractSessionId } from "@/src/lib/audit-session";
@@ -19,7 +20,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
     const subscription = await getSubscription(userId, slug);
     return NextResponse.json({ subscription });
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Internal server error" }, { status: 500 });
+    return apiError(e);
   }
 }
 
@@ -46,6 +47,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
     const subscription = await subscribe({ userId, contractSlug: slug, actorId: userId, sessionId });
     return NextResponse.json({ subscription });
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Internal server error" }, { status: 500 });
+    return apiError(e);
   }
 }

@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
-
+import { apiError } from "@/src/lib/api-error";
+ 
 import { getContractBySlug } from "@/src/lib/contracts";
 import { getGitLabContractFilePath, getGitLabFileHistory, isGitLabConfigurationError } from "@/src/lib/gitlab";
 import { requireApiAuth, getGlobalPermissions } from "@/src/lib/require-auth";
@@ -71,13 +72,6 @@ export async function GET(_request: Request, context: { params: Promise<{ slug: 
       ...toErrorLogPayload(error)
     });
 
-    const message = error instanceof Error ? error.message : "Failed to load repository history";
-
-    return NextResponse.json(
-      { error: message },
-      {
-        status: isGitLabConfigurationError(error) ? 503 : 500
-      }
-    );
+    return apiError(error, isGitLabConfigurationError(error) ? 503 : 500);
   }
 }

@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
-
+import { apiError } from "@/src/lib/api-error";
+ 
 import fs from "node:fs";
 
 import { saveContractFile } from "@/src/lib/contract-writer";
@@ -107,6 +108,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
 
     return NextResponse.json({ success: true, slug });
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Internal server error" }, { status: 500 });
+    return apiError(e);
   }
 }

@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
-
+import { apiError } from "@/src/lib/api-error";
+ 
 import { authorize } from "@/src/lib/access-control";
 import { createChangeRequest, listChangeRequests } from "@/src/lib/change-requests";
 import { getContractBySlug } from "@/src/lib/contracts";
@@ -134,8 +135,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
 
     return NextResponse.json({ changeRequest: cr }, { status: 201 });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "Internal server error";
-    console.error("[change-requests] POST error:", msg);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return apiError(error);
   }
 }
