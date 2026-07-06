@@ -11,6 +11,7 @@ export default async function LoginPage({
   const callbackUrl =
     typeof resolved?.callbackUrl === "string" &&
     resolved.callbackUrl.startsWith("/") &&
+    !resolved.callbackUrl.startsWith("//") &&
     !resolved.callbackUrl.startsWith("/api/auth") &&
     !resolved.callbackUrl.startsWith("/realms/")
       ? resolved.callbackUrl
