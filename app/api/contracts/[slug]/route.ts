@@ -35,7 +35,6 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
     slug: contract.slug,
     stem: contract.stem,
     maturity: contract.maturity,
-    fullPath: contract.fullPath,
     yamlRaw: contract.yamlRaw,
     data: contract.data
   });
