@@ -218,7 +218,7 @@ export const dictionaries = {
     adminGroups: "Groups",
     adminPolicies: "Policies",
     keyMetrics: "Key Metrics",
-    auditLog: "Audit Log",
+    auditLog: "Audit Logs",
     filterAudit: "Filter by action, actor or target\u2026",
     entries: "entries",
     entriesCount: "{count} entries",

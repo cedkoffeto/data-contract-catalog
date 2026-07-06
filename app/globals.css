@@ -552,14 +552,11 @@ a {
 }
 
 .notification-dropdown__item {
-  display: block;
+  display: flex;
+  align-items: stretch;
   width: 100%;
-  padding: 0.65rem 0.85rem;
-  border: 0;
   border-bottom: 1px solid rgba(148, 163, 184, 0.06);
   background: transparent;
-  text-align: left;
-  cursor: pointer;
   transition: background 0.1s;
 }
 
@@ -573,6 +570,58 @@ a {
 
 .notification-dropdown__item.is-unread:hover {
   background: rgba(249, 115, 22, 0.08);
+}
+
+.notification-dropdown__item-body {
+  flex: 1;
+  display: block;
+  padding: 0.65rem 0 0.65rem 0.85rem;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.notification-dropdown__toggle-read {
+  display: flex;
+  align-items: center;
+  padding: 0 0.6rem;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--ui-text-soft);
+  opacity: 0.4;
+  transition: opacity 0.1s;
+  position: relative;
+}
+
+.notification-dropdown__item:hover .notification-dropdown__toggle-read {
+  opacity: 1;
+}
+
+.notification-dropdown__toggle-read:hover {
+  color: var(--ui-primary);
+}
+
+.notification-dropdown__toggle-read::after {
+  content: attr(aria-label);
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 6px);
+  transform: translateY(-50%);
+  white-space: nowrap;
+  font-size: 0.68rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #1e293b;
+  color: #f1f5f9;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.notification-dropdown__toggle-read:hover::after {
+  opacity: 1;
 }
 
 .notification-dropdown__item-header {
@@ -590,6 +639,21 @@ a {
 
 .is-unread .notification-dropdown__item-title {
   font-weight: 750;
+}
+
+.notification-dropdown__item-indicator {
+  flex-shrink: 0;
+}
+
+.is-unread .notification-dropdown__item-indicator::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: #f97316;
+  vertical-align: middle;
 }
 
 .notification-dropdown__item-time {
@@ -674,7 +738,7 @@ a:has(> .kpi-card) {
 
 .kpi-card__value {
   margin: 0.15rem 0 0;
-  font-size: 2.5rem;
+  font-size: 3.5rem;
   font-weight: 950;
   color: var(--ui-text);
   letter-spacing: -0.03em;

@@ -216,6 +216,16 @@ export function NotificationBell() {
   }
 
   async function handleNotificationClick(n: NotificationItem) {
+    if (!n.isRead) {
+      await fetch("/api/notifications/read", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [n.id] }),
+      });
+      setNotifications((prev) => prev.map((item) => (item.id === n.id ? { ...item, isRead: true } : item)));
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    }
+
     const metadata = parseMetadata(n.metadata);
     const contractSlug = typeof metadata.contractSlug === "string" && metadata.contractSlug ? metadata.contractSlug : n.contractSlug;
     const commentId = typeof metadata.commentId === "number" ? metadata.commentId : null;
@@ -236,16 +246,6 @@ export function NotificationBell() {
       window.location.href = "/admin?tab=policies";
     } else if (contractSlug) {
       window.location.href = `/${contractSlug}`;
-    }
-
-    if (!n.isRead) {
-      await fetch("/api/notifications/read", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: [n.id] }),
-      });
-      setNotifications((prev) => prev.map((item) => (item.id === n.id ? { ...item, isRead: true } : item)));
-      setUnreadCount((prev) => Math.max(0, prev - 1));
     }
   }
 
@@ -333,18 +333,36 @@ export function NotificationBell() {
                   <p className="notification-dropdown__empty">{t("noNotifications")}</p>
                 ) : (
                   notifications.map((n) => (
-                    <button
+                    <div
                       key={n.id}
                       className={`notification-dropdown__item${n.isRead ? "" : " is-unread"}`}
-                      onClick={() => void handleNotificationClick(n)}
-                      type="button"
                     >
-                      <div className="notification-dropdown__item-header">
-                        <span className="notification-dropdown__item-title">{n.title}</span>
-                        <span className="notification-dropdown__item-time">{formatDate(n.createdAt)}</span>
-                      </div>
-                      {n.message ? <p className="notification-dropdown__item-msg">{n.message}</p> : null}
-                    </button>
+                      <button
+                        className="notification-dropdown__item-body"
+                        onClick={() => void handleNotificationClick(n)}
+                        type="button"
+                      >
+                        <div className="notification-dropdown__item-header">
+                          <span className="notification-dropdown__item-title"><span className="notification-dropdown__item-indicator" />{n.title}</span>
+                          <span className="notification-dropdown__item-time">{formatDate(n.createdAt)}</span>
+                        </div>
+                        {n.message ? <p className="notification-dropdown__item-msg">{n.message}</p> : null}
+                      </button>
+                      <button
+                        className="notification-dropdown__toggle-read"
+                        onClick={(e) => { e.stopPropagation(); void handleToggleRead(n.id, n.isRead); }}
+                        type="button"
+                        aria-label={n.isRead ? "Mark as unread" : "Mark as read"}
+                      >
+                        <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12" aria-hidden="true">
+                          {n.isRead ? (
+                            <path d="M7.5 1a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM6.5 4a.5.5 0 01.5.5V7h2a.5.5 0 010 1H6.5a.5.5 0 01-.5-.5v-3a.5.5 0 01.5-.5z" />
+                          ) : (
+                            <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 1.5a5.5 5.5 0 110 11 5.5 5.5 0 010-11zM7.25 4v4.5L11 10.3l.5-.87L8.25 8V4h-1z" />
+                          )}
+                        </svg>
+                      </button>
+                    </div>
                   ))
                 )}
               </div>

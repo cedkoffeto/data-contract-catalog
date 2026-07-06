@@ -36,14 +36,14 @@ export async function GET() {
 
   return Response.json({
     contractsCount,
-    groupCount: groupCountResult?.c ?? 0,
-    memberCount: memberCountResult?.c ?? 0,
-    userCount: userCountResult?.c ?? 0,
-    policyCount: policyCountResult?.c ?? 0,
-    notificationsCount: notifCountResult?.c ?? 0,
-    unreadNotificationsCount: unreadResult?.c ?? 0,
-    subscriptionsCount: subCountResult?.c ?? 0,
-    auditCount: auditCountResult?.c ?? 0,
+    groupCount: Number(groupCountResult?.c ?? 0),
+    memberCount: Number(memberCountResult?.c ?? 0),
+    userCount: Number(userCountResult?.c ?? 0),
+    policyCount: Number(policyCountResult?.c ?? 0),
+    notificationsCount: Number(notifCountResult?.c ?? 0),
+    unreadNotificationsCount: Number(unreadResult?.c ?? 0),
+    subscriptionsCount: Number(subCountResult?.c ?? 0),
+    auditCount: Number(auditCountResult?.c ?? 0),
     recentLogs: recentLogs ?? [],
   });
 }
