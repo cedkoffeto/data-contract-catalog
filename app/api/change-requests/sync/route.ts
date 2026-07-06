@@ -67,9 +67,7 @@ export async function POST() {
         await updateChangeRequestStatus({ id: cr.id, status: "rejected", resolvedBy: "sync", gitlabMrId: mr.iid, gitlabMrUrl: mr.web_url, rejectionReason: "MR was closed without merge" });
         results.push({ id: cr.id, action: "rejected" });
       }
-    } catch {
-      // Skip if GitLab API fails for this MR
-    }
+      } catch { console.warn("[sync] Failed to sync MR for CR", cr.id); }
   }
 
   // ── Step 2: Scan external MRs not tracked in DB ──
@@ -89,7 +87,7 @@ export async function POST() {
     let changes: Array<{ new_path: string }>;
     try {
       changes = (await api.MergeRequests.showChanges(config.projectId, mr.iid)).changes as Array<{ new_path: string }>;
-    } catch {
+    } catch { console.warn("[sync] Failed to get changes for MR", mr.iid);
       return;
     }
 
@@ -127,9 +125,7 @@ export async function POST() {
               }))
           );
         }
-      } catch {
-        // Likely duplicate, skip
-      }
+      } catch { console.warn("[sync] Failed to insert external CR for", slug); }
     }
   }
 
@@ -159,9 +155,7 @@ export async function POST() {
     for (const mr of openedMrs) {
       await processMr(api, config, mr, "pending");
     }
-  } catch {
-    // GitLab API unavailable, skip external scan
-  }
+  } catch { console.warn("[sync] GitLab API unavailable, skip external scan"); }
 
   return NextResponse.json({ synced: results.length, results });
 }

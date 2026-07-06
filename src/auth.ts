@@ -215,7 +215,7 @@ export const authOptions: NextAuthOptions = {
           targetType: "user",
           targetId: user.name,
         });
-      } catch { /* silent */ }
+      } catch { console.warn("[auth] Failed to write audit log (signIn)"); }
     },
     async signOut({ session }) {
       const userId = session?.user?.name;
@@ -227,7 +227,7 @@ export const authOptions: NextAuthOptions = {
           targetType: "user",
           targetId: userId,
         });
-      } catch { /* silent */ }
+      } catch { console.warn("[auth] Failed to write audit log (signOut)"); }
     },
   },
 };
