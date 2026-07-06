@@ -156,10 +156,10 @@ export default function AdminDashboard() {
         })}
       </div>
 
-      <div className="grid grid-cols-1 w-full">
-        <div className={`col-start-1 row-start-1 w-full ${activeTab !== "access" ? "hidden" : ""}`} aria-hidden={activeTab !== "access"}><AccessRequestsSection onPendingCount={setPendingAccess} /></div>
-        <div className={`col-start-1 row-start-1 w-full ${activeTab !== "changes" ? "hidden" : ""}`} aria-hidden={activeTab !== "changes"}><ChangeRequestsSection highlightId={highlightId} onPendingCount={setPendingChanges} /></div>
-        <div className={`col-start-1 row-start-1 w-full ${activeTab !== "audit" ? "hidden" : ""}`} aria-hidden={activeTab !== "audit"}><AuditLogSection logs={data?.recentLogs ?? []} /></div>
+      <div>
+        <div className={activeTab !== "access" ? "hidden" : ""} aria-hidden={activeTab !== "access"}><AccessRequestsSection onPendingCount={setPendingAccess} /></div>
+        <div className={activeTab !== "changes" ? "hidden" : ""} aria-hidden={activeTab !== "changes"}><ChangeRequestsSection highlightId={highlightId} onPendingCount={setPendingChanges} /></div>
+        <div className={activeTab !== "audit" ? "hidden" : ""} aria-hidden={activeTab !== "audit"}><AuditLogSection logs={data?.recentLogs ?? []} /></div>
       </div>
     </div>
   );
@@ -388,7 +388,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
                         {r.source === "app" ? "App" : "GitLab"}
                       </span>
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="whitespace-nowrap px-3 py-2">
                       {r.gitlabMrUrl ? (
                         <a href={r.gitlabMrUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:underline">
                           <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14" aria-hidden="true"><path d="M3 2v12h10V7h-1v6H4V3h5V2H3zm7 0v1h2.3L7.15 8.15l.7.7L13 3.7V6h1V2h-4z"/></svg>
