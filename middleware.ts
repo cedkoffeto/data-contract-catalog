@@ -5,7 +5,7 @@ const PUBLIC_PATHS = new Set(["/login", "/api/healthz"]);
 
 const RATE_LIMIT_WINDOW = 60_000;
 const RATE_LIMIT_MAX_API = 100;
-const RATE_LIMIT_MAX_AUTH = 10;
+const RATE_LIMIT_MAX_AUTH = 50;
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 
 function rateLimit(request: NextRequest): boolean {
