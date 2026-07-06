@@ -220,7 +220,7 @@ export function NotificationBell() {
     const contractSlug = typeof metadata.contractSlug === "string" && metadata.contractSlug ? metadata.contractSlug : n.contractSlug;
     const commentId = typeof metadata.commentId === "number" ? metadata.commentId : null;
 
-    if (typeof metadata.path === "string" && metadata.path) {
+    if (typeof metadata.path === "string" && metadata.path.startsWith("/")) {
       window.location.href = metadata.path;
     } else if (n.type === "mention" && contractSlug && commentId) {
       window.location.href = `/${contractSlug}#comment-${commentId}`;
