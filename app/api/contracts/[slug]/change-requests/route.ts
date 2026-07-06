@@ -106,32 +106,34 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
       commitMessage,
     });
 
-    // Notify the editor about the created MR
-    if (cr.status === "pending" && cr.gitlabMrUrl) {
-      await createNotification({
-        userId: cr.editorId,
-        contractSlug: cr.contractSlug,
-        type: "change_request_created",
-        title: "Change request submitted",
-        message: `Your change request #${cr.id} for ${cr.contractSlug} has been submitted. Merge request: ${cr.gitlabMrUrl}`,
-        metadata: { changeRequestId: cr.id, gitlabMrUrl: cr.gitlabMrUrl },
-      });
+    // Notify the editor about the created CR
+    await createNotification({
+      userId: cr.editorId,
+      contractSlug: cr.contractSlug,
+      type: "change_request_created",
+      title: "Change request submitted",
+      message: cr.gitlabMrUrl
+        ? `Your change request #${cr.id} for ${cr.contractSlug} has been submitted. Merge request: ${cr.gitlabMrUrl}`
+        : `Your change request #${cr.id} for ${cr.contractSlug} has been submitted (GitLab not configured).`,
+      metadata: { changeRequestId: cr.id, ...(cr.gitlabMrUrl ? { gitlabMrUrl: cr.gitlabMrUrl } : {}) },
+    });
 
-      // Notify all admins
-      const adminIds = await getAdminUserIds();
-      await Promise.all(
-        adminIds.map((adminId) =>
-          createNotification({
-            userId: adminId,
-            contractSlug: cr.contractSlug,
-            type: "change_request_created",
-            title: "New change request",
-            message: `Change request #${cr.id} for ${cr.contractSlug} by ${cr.editorId} is pending review. MR: ${cr.gitlabMrUrl}`,
-            metadata: { changeRequestId: cr.id, gitlabMrUrl: cr.gitlabMrUrl, editorId: cr.editorId },
-          }),
-        ),
-      );
-    }
+    // Notify all admins
+    const adminIds = await getAdminUserIds();
+    await Promise.all(
+      adminIds.map((adminId) =>
+        createNotification({
+          userId: adminId,
+          contractSlug: cr.contractSlug,
+          type: "change_request_created",
+          title: "New change request",
+          message: cr.gitlabMrUrl
+            ? `Change request #${cr.id} for ${cr.contractSlug} by ${cr.editorId} is pending review. MR: ${cr.gitlabMrUrl}`
+            : `Change request #${cr.id} for ${cr.contractSlug} by ${cr.editorId} is pending review (GitLab not configured).`,
+          metadata: { changeRequestId: cr.id, editorId: cr.editorId, ...(cr.gitlabMrUrl ? { gitlabMrUrl: cr.gitlabMrUrl } : {}) },
+        }),
+      ),
+    );
 
     return NextResponse.json({ changeRequest: cr }, { status: 201 });
   } catch (error) {

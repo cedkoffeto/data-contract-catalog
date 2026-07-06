@@ -227,6 +227,13 @@ export function NotificationBell() {
     } else if (n.type === "change_request_created") {
       const changeRequestId = typeof metadata.changeRequestId === "number" ? metadata.changeRequestId : "";
       window.location.href = `/admin?tab=changes${changeRequestId ? `&highlight=${changeRequestId}` : ""}`;
+    } else if (n.type === "change_request_merged" || n.type === "change_request_approved" || n.type === "change_request_rejected") {
+      const changeRequestId = typeof metadata.changeRequestId === "number" ? metadata.changeRequestId : "";
+      window.location.href = `/admin?tab=changes${changeRequestId ? `&highlight=${changeRequestId}` : ""}`;
+    } else if (n.type === "comment_reply" && contractSlug && commentId) {
+      window.location.href = `/${contractSlug}#comment-${commentId}`;
+    } else if (n.type === "policy_updated") {
+      window.location.href = "/admin?tab=policies";
     } else if (contractSlug) {
       window.location.href = `/${contractSlug}`;
     }

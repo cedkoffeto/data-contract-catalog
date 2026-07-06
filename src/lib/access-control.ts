@@ -1,5 +1,6 @@
 import { query, execute } from "@/src/lib/db";
 import { writeAuditLog } from "@/src/lib/audit";
+import { createNotification } from "@/src/lib/notifications";
 
 export type PermissionName = "admin" | "editor" | "reader";
 
@@ -373,6 +374,20 @@ export async function getAccessPolicy(id: number): Promise<AccessPolicyRecord | 
   return rows[0] ?? null;
 }
 
+async function getPolicyAffectedUserIds(userId: string | null, groupId: number | null): Promise<string[]> {
+  if (userId) return [userId];
+  if (groupId) return listGroupMembers(groupId);
+  return [];
+}
+
+function policyChangeMessage(permissionName: string, domainScope: string | null, contextScope: string | null, dataContractScope: string | null): string {
+  const parts: string[] = [];
+  if (dataContractScope) parts.push(`contract: ${dataContractScope}`);
+  if (domainScope) parts.push(`domain: ${domainScope}`);
+  if (contextScope) parts.push(`context: ${contextScope}`);
+  return parts.length > 0 ? `${permissionName} on ${parts.join(", ")}` : permissionName;
+}
+
 /**
  * Creates a new fine-grained access policy.
  * Either `userId` or `groupId` must be provided (but not both).
@@ -448,7 +463,25 @@ export async function createAccessPolicy(params: {
   });
 
   clearPermissionsCache();
-  return (await getAccessPolicy(newId))!;
+
+  const newPolicy = await getAccessPolicy(newId);
+  if (newPolicy) {
+    const affectedUserIds = await getPolicyAffectedUserIds(userId, groupId);
+    await Promise.allSettled(
+      affectedUserIds.map((uid) =>
+        createNotification({
+          userId: uid,
+          contractSlug: newPolicy.data_contract_scope ?? "",
+          type: "policy_updated",
+          title: "Access policy created",
+          message: `You have been granted ${policyChangeMessage(newPolicy.permission_name, newPolicy.domain_scope, newPolicy.context_scope, newPolicy.data_contract_scope)}`,
+          metadata: { policyId: newPolicy.id, permissionName: newPolicy.permission_name },
+        }),
+      ),
+    );
+  }
+
+  return newPolicy!;
 }
 
 export async function updateAccessPolicy(params: {
@@ -461,6 +494,8 @@ export async function updateAccessPolicy(params: {
   sessionId?: string;
 }): Promise<AccessPolicyRecord> {
   const { id, permissionId, domainScope, contextScope, dataContractScope, actorId, sessionId } = params;
+
+  const oldPolicy = await getAccessPolicy(id);
 
   await execute(
     `UPDATE access_policies
@@ -479,7 +514,25 @@ export async function updateAccessPolicy(params: {
   });
 
   clearPermissionsCache();
-  return (await getAccessPolicy(id))!;
+
+  const updatedPolicy = await getAccessPolicy(id);
+  if (updatedPolicy && oldPolicy) {
+    const affectedUserIds = await getPolicyAffectedUserIds(oldPolicy.user_id, oldPolicy.group_id);
+    await Promise.allSettled(
+      affectedUserIds.map((uid) =>
+        createNotification({
+          userId: uid,
+          contractSlug: updatedPolicy.data_contract_scope ?? "",
+          type: "policy_updated",
+          title: "Access policy updated",
+          message: `Your access changed to ${policyChangeMessage(updatedPolicy.permission_name, updatedPolicy.domain_scope, updatedPolicy.context_scope, updatedPolicy.data_contract_scope)}`,
+          metadata: { policyId: updatedPolicy.id, permissionName: updatedPolicy.permission_name },
+        }),
+      ),
+    );
+  }
+
+  return updatedPolicy!;
 }
 
 export async function deleteAccessPolicy(params: {
@@ -487,6 +540,8 @@ export async function deleteAccessPolicy(params: {
   actorId: string;
   sessionId?: string;
 }): Promise<void> {
+  const oldPolicy = await getAccessPolicy(params.id);
+
   await execute("DELETE FROM access_policies WHERE id = ?", [params.id]);
 
   await writeAuditLog({
@@ -498,6 +553,22 @@ export async function deleteAccessPolicy(params: {
   });
 
   clearPermissionsCache();
+
+  if (oldPolicy) {
+    const affectedUserIds = await getPolicyAffectedUserIds(oldPolicy.user_id, oldPolicy.group_id);
+    await Promise.allSettled(
+      affectedUserIds.map((uid) =>
+        createNotification({
+          userId: uid,
+          contractSlug: oldPolicy.data_contract_scope ?? "",
+          type: "policy_updated",
+          title: "Access policy removed",
+          message: `Your access (${policyChangeMessage(oldPolicy.permission_name, oldPolicy.domain_scope, oldPolicy.context_scope, oldPolicy.data_contract_scope)}) has been revoked`,
+          metadata: { policyId: oldPolicy.id, permissionName: oldPolicy.permission_name },
+        }),
+      ),
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -559,6 +630,17 @@ export async function addUserToGroup(params: {
     details: { userId: params.userId },
     sessionId: params.sessionId,
   });
+
+  const group = await query<{ name: string }>("SELECT name FROM groups WHERE id = ?", [params.groupId]);
+  const groupName = group[0]?.name ?? `group #${params.groupId}`;
+  await createNotification({
+    userId: params.userId,
+    contractSlug: "",
+    type: "group_membership",
+    title: "Added to group",
+    message: `You have been added to the group "${groupName}" by ${params.actorId}`,
+    metadata: { groupId: params.groupId, groupName },
+  });
 }
 
 export async function removeUserFromGroup(params: {
@@ -579,6 +661,17 @@ export async function removeUserFromGroup(params: {
     targetId: String(params.groupId),
     details: { userId: params.userId },
     sessionId: params.sessionId,
+  });
+
+  const group = await query<{ name: string }>("SELECT name FROM groups WHERE id = ?", [params.groupId]);
+  const groupName = group[0]?.name ?? `group #${params.groupId}`;
+  await createNotification({
+    userId: params.userId,
+    contractSlug: "",
+    type: "group_membership",
+    title: "Removed from group",
+    message: `You have been removed from the group "${groupName}" by ${params.actorId}`,
+    metadata: { groupId: params.groupId, groupName },
   });
 }
 

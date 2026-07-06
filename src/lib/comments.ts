@@ -143,6 +143,24 @@ export async function createContractComment(params: {
     throw new Error("Unable to load created comment");
   }
 
+  // Notify parent comment author on reply
+  if (row.parent_id) {
+    const parent = await get<{ user_id: string }>(
+      "SELECT user_id FROM contract_comments WHERE id = ?",
+      [row.parent_id],
+    );
+    if (parent && parent.user_id !== params.userId) {
+      await createNotification({
+        userId: parent.user_id,
+        contractSlug: params.contractSlug,
+        type: "comment_reply",
+        title: `${params.userId} replied to your comment`,
+        message: params.body.slice(0, 200),
+        metadata: { contractSlug: params.contractSlug, commentId: row.id, parentCommentId: row.parent_id },
+      });
+    }
+  }
+
   return {
     id: row.id,
     contractSlug: row.contract_slug,
