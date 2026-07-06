@@ -8,7 +8,8 @@ export function getClientSessionId(): string {
       id = crypto.randomUUID();
       sessionStorage.setItem(SESSION_COOKIE, id);
     }
-    document.cookie = `${SESSION_COOKIE}=${id}; path=/; SameSite=Lax`;
+    const secure = location.protocol === "https:";
+    document.cookie = `${SESSION_COOKIE}=${id}; path=/; SameSite=Lax${secure ? "; Secure" : ""}`;
     return id;
   } catch {
     return "";
