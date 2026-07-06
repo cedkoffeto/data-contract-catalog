@@ -32,7 +32,7 @@ export async function GET() {
     target_id: string;
     details: string;
     created_at: string;
-  }>("SELECT id, action, actor_id, target_type, target_id, created_at FROM audit_log ORDER BY id DESC LIMIT 50");
+  }>("SELECT id, action, actor_id, target_type, target_id, details, created_at FROM audit_log ORDER BY id DESC LIMIT 50");
 
   return Response.json({
     contractsCount,
