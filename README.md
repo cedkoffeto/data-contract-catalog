@@ -641,6 +641,89 @@ CONTRACTS_PATH=./contracts                # Dossier des contrats locaux
 
 ## Librairies `src/lib/`
 
+### Diagramme relationnel de la base SQLite
+
+```mermaid
+erDiagram
+    permissions {
+        int id PK
+        string name UK
+    }
+    access_policies {
+        int id PK
+        string user_id FK "nullable"
+        int group_id FK "nullable"
+        int permission_id FK
+        string domain_scope "nullable"
+        string context_scope "nullable"
+        datetime created_at
+        datetime updated_at
+    }
+    groups {
+        int id PK
+        string name UK
+    }
+    user_group {
+        string user_id PK
+        int group_id PK FK
+    }
+    audit_log {
+        int id PK
+        string action
+        string actor_id
+        string target_type
+        string target_id
+        string details
+        datetime created_at
+    }
+    subscriptions {
+        string user_id PK
+        string contract_slug PK
+        string channel
+        datetime created_at
+    }
+    notifications {
+        int id PK
+        string user_id
+        string contract_slug
+        string type
+        string title
+        string message
+        string metadata
+        int is_read
+        datetime created_at
+    }
+    comment_mentions {
+        int comment_id PK FK
+        string user_id PK
+    }
+    contract_comments {
+        int id PK
+        string contract_slug
+        string user_id
+        string body
+        int parent_id FK "nullable"
+        string target_field "nullable"
+        datetime created_at
+        datetime edited_at "nullable"
+    }
+    user_preferences {
+        string user_id PK
+        string notification_channel
+    }
+    user_contract_preferences {
+        string user_id PK
+        string contract_slug PK
+        int is_favorite
+        int is_pinned
+    }
+    permissions ||--o{ access_policies : permission_id
+    groups ||--o{ access_policies : group_id
+    groups ||--o{ user_group : group_id
+    contract_comments ||--o{ comment_mentions : comment_id
+    contract_comments ||--o{ contract_comments : parent_id
+```
+
 | Fichier | Rôle |
 |---|---|
 | `contracts.ts` | Lecture/agrégation des contrats (local + GitLab) |
