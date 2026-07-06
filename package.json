@@ -56,6 +56,10 @@
     "typescript": "^5.5.4",
     "vitest": "^3.2.4"
   },
+  "overrides": {
+    "next-auth": "4.24.14",
+    "uuid": "11.1.1"
+  },
   "allowScripts": {
     "@prisma/engines@6.19.3": true,
     "esbuild@0.27.7": true,
