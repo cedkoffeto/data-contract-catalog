@@ -22,11 +22,13 @@ model UserContractPreference {
   userId        String    @map("user_id")
   contractSlug  String    @map("contract_slug")
   isFavorite    Boolean   @default(false) @map("is_favorite")
+  isPinned      Boolean   @default(false) @map("is_pinned")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
   @@id([userId, contractSlug])
   @@index([userId])
+  @@index([userId, isPinned], map: "idx_user_contract_preferences_pinned")
   @@map("user_contract_preferences")
 }
 
@@ -74,6 +76,7 @@ model Notification {
   type         String   @default("info")
   title        String
   message      String   @default("")
+  metadata     String   @default("{}")
   isRead       Boolean  @default(false) @map("is_read")
   createdAt    DateTime @default(now()) @map("created_at")
 
@@ -138,22 +141,62 @@ model ContractComment {
 
   parent        ContractComment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: SetNull)
   replies       ContractComment[] @relation("CommentReplies")
+  mentions      CommentMention[]
 
   @@index([contractSlug, createdAt, id])
   @@index([parentId])
+  @@index([parentId, id], map: "idx_contract_comments_parent_id_id")
+  @@index([contractSlug, targetField], map: "idx_contract_comments_target_field")
   @@map("contract_comments")
 }
 
+model CommentMention {
+  id        Int      @id @default(autoincrement())
+  commentId Int      @map("comment_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  comment ContractComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId])
+  @@index([userId])
+  @@index([commentId])
+  @@map("comment_mentions")
+}
+
+model ContractChangeRequest {
+  id              Int       @id @default(autoincrement())
+  contractSlug    String    @map("contract_slug")
+  editorId        String    @map("editor_id")
+  yamlContent     String    @map("yaml_content")
+  originalSha     String    @default("") @map("original_sha")
+  status          String    @default("pending")
+  gitlabMrId      Int?      @map("gitlab_mr_id")
+  gitlabMrUrl     String    @default("") @map("gitlab_mr_url")
+  rejectionReason String    @default("") @map("rejection_reason")
+  source          String    @default("app")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime? @map("updated_at")
+  resolvedAt      DateTime? @map("resolved_at")
+  resolvedBy      String?   @map("resolved_by")
+
+  @@index([status], map: "idx_change_requests_status")
+  @@index([contractSlug], map: "idx_change_requests_slug")
+  @@index([editorId], map: "idx_change_requests_editor")
+  @@map("contract_change_requests")
+}
+
 model AccessRequest {
-  id                  Int      @id @default(autoincrement())
-  userId              String   @map("user_id")
-  domain              String   @default("")
-  context             String   @default("")
-  dataContract        String   @default("") @map("data_contract")
-  requestedPermission String   @default("reader") @map("requested_permission")
-  message             String   @default("")
-  status              String   @default("pending")
-  createdAt           DateTime @default(now()) @map("created_at")
+  id                  Int       @id @default(autoincrement())
+  userId              String    @map("user_id")
+  domain              String    @default("")
+  context             String    @default("")
+  dataContract        String    @default("") @map("data_contract")
+  requestedPermission String    @default("reader") @map("requested_permission")
+  message             String    @default("")
+  status              String    @default("pending")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime? @map("updated_at")
 
   @@index([status])
   @@index([userId])
