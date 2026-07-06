@@ -1,7 +1,7 @@
 import { insertReturning, execute, query } from "@/src/lib/db";
 import { getGitLabClient, getGitLabContractFilePath } from "@/src/lib/gitlab";
 import type { ContractChangeRequest } from "@/src/lib/types";
-import type { SqlValue } from "sql.js";
+
 
 function toChangeRequest(row: Record<string, unknown>): ContractChangeRequest {
   return {
@@ -120,7 +120,7 @@ export async function listChangeRequests(
   status?: ContractChangeRequest["status"],
 ): Promise<ContractChangeRequest[]> {
   let sql = "SELECT * FROM contract_change_requests";
-  const params: SqlValue[] = [];
+  const params: unknown[] = [];
   if (status) {
     sql += " WHERE status = ?";
     params.push(status);
@@ -147,7 +147,7 @@ export async function updateChangeRequestStatus(params: {
   rejectionReason?: string;
 }): Promise<void> {
   const sets: string[] = [];
-  const vals: SqlValue[] = [];
+  const vals: unknown[] = [];
 
   sets.push("status = ?");
   vals.push(params.status);
