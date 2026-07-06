@@ -569,6 +569,10 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
     switch (action) {
       case "subscription.subscribe":
         return `Channel: ${d.channel ?? "?"}`;
+      case "subscription.unsubscribe":
+        return null;
+      case "contract.create":
+        return null;
       case "contract.update":
         return `${d.filePath ?? "?"} (mode: ${d.mode ?? "?"})`;
       case "policy.create":
@@ -577,10 +581,18 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
         return `Permission: ${d.permissionId ?? "?"}`;
       case "policy.delete":
         return d.replacedBy ? `Replaced by ${d.replacedBy}` : null;
+      case "group.create":
+        return null;
+      case "group.delete":
+        return null;
       case "group.add_member":
         return `User added: ${d.userId ?? "?"}`;
       case "group.remove_member":
         return `User removed: ${d.userId ?? "?"}`;
+      case "auth.login":
+        return null;
+      case "auth.logout":
+        return null;
       case "auth.login_failed":
         return `Error: ${d.error ?? "?"}`;
       case "auth.unauthorized":
