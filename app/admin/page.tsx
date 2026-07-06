@@ -561,12 +561,49 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
 
   const toggleExpand = (id: number) => setExpandedIds((prev) => ({ ...prev, [id]: !prev[id] }));
 
-  const formatDetails = (details: string) => {
-    if (!details || details === "{}") return null;
+  const shortDetails = (action: string, raw: string) => {
+    if (!raw || raw === "{}") return null;
+    let d: Record<string, unknown>;
+    try { d = JSON.parse(raw); } catch { return raw; }
+
+    switch (action) {
+      case "subscription.subscribe":
+        return `Channel: ${d.channel ?? "?"}`;
+      case "contract.update":
+        return `${d.filePath ?? "?"} (mode: ${d.mode ?? "?"})`;
+      case "policy.create":
+        return [d.userId ? `User: ${d.userId}` : "", d.groupId ? `Group: ${d.groupId}` : "", d.permissionId ? `Permission: ${d.permissionId}` : ""].filter(Boolean).join(", ");
+      case "policy.update":
+        return `Permission: ${d.permissionId ?? "?"}`;
+      case "policy.delete":
+        return d.replacedBy ? `Replaced by ${d.replacedBy}` : null;
+      case "group.add_member":
+        return `User added: ${d.userId ?? "?"}`;
+      case "group.remove_member":
+        return `User removed: ${d.userId ?? "?"}`;
+      case "auth.login_failed":
+        return `Error: ${d.error ?? "?"}`;
+      case "auth.unauthorized":
+        return `Reason: ${d.reason ?? "?"}`;
+      case "access_request.create":
+        return [d.domain ? `Domain: ${d.domain}` : "", d.context ? `Context: ${d.context}` : "", d.requestedPermission ? `Permission: ${d.requestedPermission}` : ""].filter(Boolean).join(", ");
+      case "access_request.approve":
+        return `Approved as ${(d as any).requestedPermission ?? "?"}`;
+      case "access_request.deny":
+        return `Denied (was ${(d as any).requestedPermission ?? "?"})`;
+      default:
+        return JSON.stringify(d, null, 2);
+    }
+  };
+
+  const fullDetails = (action: string, raw: string) => {
+    const s = shortDetails(action, raw);
+    if (!raw || raw === "{}") return s;
     try {
-      return JSON.stringify(JSON.parse(details), null, 2);
+      const pretty = JSON.stringify(JSON.parse(raw), null, 2);
+      return s ? s + "\n\n" + pretty : pretty;
     } catch {
-      return details;
+      return s ?? raw;
     }
   };
 
@@ -618,7 +655,7 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
           <table className="min-w-full table-fixed divide-y divide-gray-200 bg-white text-sm">
             <thead className="bg-gray-50">
               <tr>
-                {[{ key: "created_at", label: t("tblDate"), w: "w-[18%]" }, { key: "action", label: t("tblAction"), w: "w-[14%]" }, { key: "actor_id", label: t("tblActor"), w: "w-[14%]" }, { key: "target_id", label: t("tblTarget"), w: "w-[19%]" }, { key: "details", label: t("tblDetails"), w: "w-[35%]" }].map(({ key, label, w }) => (
+                {[{ key: "created_at", label: t("tblDate"), w: "w-[15%]" }, { key: "action", label: t("tblAction"), w: "w-[13%]" }, { key: "target_id", label: "Actor", w: "w-[37%]" }, { key: "details", label: t("tblDetails"), w: "w-[35%]" }].map(({ key, label, w }) => (
                   <th
                     key={key}
                     onClick={() => toggleSort(key)}
@@ -636,7 +673,7 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {sorted.length === 0 ? (
-                <tr><td colSpan={5} className="px-3 py-8 text-center text-sm text-gray-400">{t("noAudit")}</td></tr>
+                <tr><td colSpan={4} className="px-3 py-8 text-center text-sm text-gray-400">{t("noAudit")}</td></tr>
               ) : paginated.map((log) => (
                 <Fragment key={log.id}>
                   <tr>
@@ -646,18 +683,17 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
                     <td className="px-3 py-2">
                       <ActionBadge action={log.action} />
                     </td>
-                    <td className="px-3 py-2 text-gray-600">{log.actor_id}</td>
-                    <td className="px-3 py-2 text-gray-600">
-                      <span className="text-gray-400">{log.target_type}:</span> {log.target_id}
+                    <td className="px-3 py-2 text-gray-600 whitespace-nowrap">
+                      {log.actor_id} <span className="text-gray-400">→</span> {log.target_type}:{log.target_id}
                     </td>
                     <td className="truncate px-3 py-2 text-gray-600 cursor-pointer hover:text-blue-600 hover:underline" onClick={() => toggleExpand(log.id)}>
-                      {log.details && log.details !== "{}" ? log.details : "\u2014"}
+                      {shortDetails(log.action, log.details) ?? "\u2014"}
                     </td>
                   </tr>
                   {expandedIds[log.id] && (
                     <tr className="bg-gray-50">
-                      <td colSpan={5} className="px-4 py-3 font-mono text-gray-700 whitespace-pre-wrap break-words leading-relaxed">
-                        {formatDetails(log.details) ?? "\u2014"}
+                      <td colSpan={4} className="px-4 py-3 font-mono text-gray-700 whitespace-pre-wrap break-words leading-relaxed">
+                        {fullDetails(log.action, log.details) ?? "\u2014"}
                       </td>
                     </tr>
                   )}
