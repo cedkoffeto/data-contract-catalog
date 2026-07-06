@@ -3,6 +3,24 @@ import path from "node:path";
 
 import yaml from "js-yaml";
 
+export function safeYamlLoad<T = unknown>(raw: string): T | null {
+  const maxDepth = 50;
+  let depth = 0;
+  for (const line of raw.split("\n")) {
+    if (!line.trim() || line.trim().startsWith("#")) continue;
+    const indent = line.search(/\S/);
+    if (indent >= 0) {
+      const currentDepth = Math.floor(indent / 2);
+      depth = Math.max(depth, currentDepth);
+      if (depth > maxDepth) {
+        console.warn(`[yaml] Exceeded max depth ${maxDepth}, rejecting`);
+        return null;
+      }
+    }
+  }
+  return yaml.load(raw) as T | null;
+}
+
 import { Gitlab } from "@gitbeaker/rest";
 import { hasGitLabConfig, getGitLabClient, downloadGitLabArchive, retryOnTimeout } from "@/src/lib/git-sync";
 import type { CatalogCard, ContractFile, DataContract, EditorRepositoryFile } from "@/src/lib/types";
@@ -387,7 +405,7 @@ async function buildContractsFromRecords(
       const slug = isDuplicateStem ? `${maturity}-${stem}` : stem;
       let data: DataContract;
       try {
-        data = (yaml.load(record.yamlRaw) as DataContract) ?? {};
+        data = safeYamlLoad<DataContract>(record.yamlRaw) ?? {};
       } catch {
         console.warn(`[contracts] Skipping malformed contract: ${record.path}`);
         continue;

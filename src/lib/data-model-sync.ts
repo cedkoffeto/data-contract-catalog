@@ -6,6 +6,22 @@ import yaml from "js-yaml";
 import type { DataModelContract, LoadedModel, ContractField } from "@/src/lib/data-model";
 import { hasGitLabConfig, getGitLabClient, downloadGitLabArchive, getBranchSha } from "@/src/lib/git-sync";
 
+const YAML_MAX_DEPTH = 50;
+
+function safeYamlLoad<T = unknown>(raw: string): T | null {
+  let depth = 0;
+  for (const line of raw.split("\n")) {
+    if (!line.trim() || line.trim().startsWith("#")) continue;
+    const indent = line.search(/\S/);
+    if (indent >= 0) {
+      const currentDepth = Math.floor(indent / 2);
+      depth = Math.max(depth, currentDepth);
+      if (depth > YAML_MAX_DEPTH) return null;
+    }
+  }
+  return yaml.load(raw) as T | null;
+}
+
 const DATA_MODEL_CACHE_TTL_MS = 3_600_000;
 const dataModelCache: {
   expiresAt: number;
@@ -27,7 +43,7 @@ function parseContractFromRaw(
   defaultMaturity: string,
 ): DataModelContract | null {
   let doc: Record<string, unknown>;
-  try { doc = yaml.load(raw) as Record<string, unknown>; } catch { return null; }
+  try { const parsed = safeYamlLoad<Record<string, unknown>>(raw); if (!parsed) return null; doc = parsed; } catch { return null; }
   const asset = doc?.asset as Record<string, unknown> | undefined;
   if (!asset) return null;
 
@@ -60,7 +76,7 @@ function parseContractFromRaw(
 
 function parseModelFromRaw(raw: string, filePath: string): LoadedModel | null {
   let doc: Record<string, unknown>;
-  try { doc = yaml.load(raw) as Record<string, unknown>; } catch { return null; }
+  try { const parsed = safeYamlLoad<Record<string, unknown>>(raw); if (!parsed) return null; doc = parsed; } catch { return null; }
   const domain = (doc.domain as string) || "";
   const context = (doc.context as string) || "";
   const layer = layerFromPath(filePath);
