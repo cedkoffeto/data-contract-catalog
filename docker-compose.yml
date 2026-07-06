@@ -2,12 +2,14 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:25.0
     command:
+      # Dev only: use 'start --optimized' in production with proper KC_HOSTNAME_URL
       - start-dev
       - --import-realm
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
       KC_HOSTNAME: http://localhost:8080
+      # Dev only: set KC_HOSTNAME_STRICT: "true" and configure KC_HOSTNAME_URL in production
       KC_HOSTNAME_STRICT: "false"
       KC_HTTP_ENABLED: "true"
     ports:
