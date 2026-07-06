@@ -358,10 +358,10 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
                   <tr><td colSpan={10} className="px-3 py-8 text-center text-sm text-gray-400">{requests.length === 0 ? t("noChangeRequests") : "No change requests match your filter."}</td></tr>
                 ) : paginated.map((r) => (
                   <tr key={r.id} className={r.id === highlightedId ? "bg-orange-50 ring-2 ring-orange-400" : ""}>
-                    <td className="px-3 py-2 text-gray-600">#{r.id}</td>
-                    <td className="px-3 py-2 text-gray-600">{r.contractSlug}</td>
-                    <td className="px-3 py-2 text-gray-600">{r.editorId}</td>
-                    <td className="px-3 py-2">
+                    <td className="overflow-hidden px-3 py-2 text-gray-600">#{r.id}</td>
+                    <td className="overflow-hidden px-3 py-2 text-gray-600">{r.contractSlug}</td>
+                    <td className="overflow-hidden px-3 py-2 text-gray-600">{r.editorId}</td>
+                    <td className="overflow-hidden px-3 py-2">
                       <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium ${
                         r.status === "pending" ? "bg-yellow-50 text-yellow-700" :
                         r.status === "approved" ? "bg-green-50 text-green-700" :
@@ -372,12 +372,12 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
                         {r.status}
                       </span>
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="overflow-hidden px-3 py-2">
                       <span className="inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600">
                         {r.source === "app" ? "App" : "GitLab"}
                       </span>
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2">
+                    <td className="overflow-hidden whitespace-nowrap px-3 py-2">
                       {r.gitlabMrUrl ? (
                         <a href={r.gitlabMrUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:underline">
                           <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14" aria-hidden="true"><path d="M3 2v12h10V7h-1v6H4V3h5V2H3zm7 0v1h2.3L7.15 8.15l.7.7L13 3.7V6h1V2h-4z"/></svg>
@@ -387,16 +387,16 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
                         <span className="text-gray-400">{"\u2014"}</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-gray-600">
+                    <td className="overflow-hidden px-3 py-2 text-gray-600">
                       {r.rejectionReason || "\u2014"}
                     </td>
-                    <td className="px-3 py-2 text-gray-600">
+                    <td className="overflow-hidden px-3 py-2 text-gray-600">
                       {new Date(r.createdAt).toLocaleString()}
                     </td>
-                    <td className="px-3 py-2 text-gray-600">
+                    <td className="overflow-hidden px-3 py-2 text-gray-600">
                       {r.updatedAt ? new Date(r.updatedAt).toLocaleString() : "\u2014"}
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="overflow-hidden px-3 py-2">
                       {r.status === "pending" ? (
                         <div className="flex gap-1">
                           <button
@@ -690,13 +690,13 @@ function AuditLogSection() {
               ) : items.map((log) => (
                 <Fragment key={log.id}>
                   <tr>
-                    <td className="px-3 py-2 text-gray-600">
+                    <td className="overflow-hidden px-3 py-2 text-gray-600">
                       {new Date(log.created_at).toLocaleString()}
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="overflow-hidden px-3 py-2">
                       <ActionBadge action={log.action} />
                     </td>
-                    <td className="px-3 py-2 text-gray-600 whitespace-nowrap">
+                    <td className="overflow-hidden px-3 py-2 text-gray-600 whitespace-nowrap">
                       {log.actor_id} <span className="text-gray-400">→</span> {log.target_type}:{log.target_id}
                     </td>
                     <td className="truncate px-3 py-2 text-gray-600 cursor-pointer hover:text-blue-600 hover:underline" onClick={() => toggleExpand(log.id)}>
@@ -862,26 +862,26 @@ function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number)
                 </tr>
               ) : paginated.map((r) => (
                 <tr key={r.id}>
-                  <td className="px-3 py-2 text-gray-600">#{r.id}</td>
-                  <td className="px-3 py-2 text-gray-600">{r.user_id}</td>
-                  <td className="px-3 py-2 text-gray-600">{r.domain || "\u2014"}</td>
-                  <td className="px-3 py-2 text-gray-600">{r.context || "\u2014"}</td>
-                  <td className="px-3 py-2 text-gray-600">{r.data_contract || "\u2014"}</td>
-                  <td className="px-3 py-2 text-gray-600">{r.requested_permission || "reader"}</td>
-                  <td className="px-3 py-2 text-gray-600">{r.message || "\u2014"}</td>
-                  <td className="px-3 py-2 text-gray-600">
+                  <td className="overflow-hidden px-3 py-2 text-gray-600">#{r.id}</td>
+                  <td className="overflow-hidden px-3 py-2 text-gray-600">{r.user_id}</td>
+                  <td className="overflow-hidden px-3 py-2 text-gray-600">{r.domain || "\u2014"}</td>
+                  <td className="overflow-hidden px-3 py-2 text-gray-600">{r.context || "\u2014"}</td>
+                  <td className="overflow-hidden px-3 py-2 text-gray-600">{r.data_contract || "\u2014"}</td>
+                  <td className="overflow-hidden px-3 py-2 text-gray-600">{r.requested_permission || "reader"}</td>
+                  <td className="overflow-hidden px-3 py-2 text-gray-600">{r.message || "\u2014"}</td>
+                  <td className="overflow-hidden px-3 py-2 text-gray-600">
                     {new Date(r.created_at).toLocaleString()}
                   </td>
-                  <td className="px-3 py-2 text-gray-600">
+                  <td className="overflow-hidden px-3 py-2 text-gray-600">
                     {r.updated_at ? new Date(r.updated_at).toLocaleString() : "\u2014"}
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="overflow-hidden px-3 py-2">
                     <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium ${r.status === "pending" ? "bg-yellow-50 text-yellow-700" : r.status === "approved" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
                       <StatusIcon status={r.status} />
                       {r.status}
                     </span>
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="overflow-hidden px-3 py-2">
                     {r.status === "pending" ? (
                       <div className="flex gap-1">
                         <button onClick={() => handleStatus(r.id, "approved")} className="rounded-md px-2 py-1 text-xs font-bold text-green-700 hover:bg-green-200" style={{ backgroundColor: "#dcfce7" }}>{t("approve")}</button>
