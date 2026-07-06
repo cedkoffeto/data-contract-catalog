@@ -38,16 +38,6 @@ function ActionBadge({ action }: { action: string }) {
   );
 }
 
-type AuditLog = {
-  id: number;
-  action: string;
-  actor_id: string;
-  target_type: string;
-  target_id: string;
-  details: string;
-  created_at: string;
-};
-
 type DashboardData = {
   contractsCount: number;
   groupCount: number;
@@ -58,7 +48,6 @@ type DashboardData = {
   unreadNotificationsCount: number;
   subscriptionsCount: number;
   auditCount: number;
-  recentLogs: AuditLog[];
 };
 
 export default function AdminDashboard() {
@@ -159,7 +148,7 @@ export default function AdminDashboard() {
       <div>
         <div className={activeTab !== "access" ? "hidden" : ""} aria-hidden={activeTab !== "access"}><AccessRequestsSection onPendingCount={setPendingAccess} /></div>
         <div className={activeTab !== "changes" ? "hidden" : ""} aria-hidden={activeTab !== "changes"}><ChangeRequestsSection highlightId={highlightId} onPendingCount={setPendingChanges} /></div>
-        <div className={activeTab !== "audit" ? "hidden" : ""} aria-hidden={activeTab !== "audit"}><AuditLogSection logs={data?.recentLogs ?? []} /></div>
+        <div className={activeTab !== "audit" ? "hidden" : ""} aria-hidden={activeTab !== "audit"}><AuditLogSection /></div>
       </div>
     </div>
   );
@@ -549,17 +538,57 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
   );
 }
 
-function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
+function AuditLogSection() {
   const { t, tWith } = useT();
-  const [logs, setLogs] = useState(initialLogs);
+  const [items, setItems] = useState<Array<{
+    id: number;
+    action: string;
+    actor_id: string;
+    target_type: string;
+    target_id: string;
+    details: string;
+    created_at: string;
+  }>>([]);
+  const [total, setTotal] = useState(0);
   const [sortKey, setSortKey] = useState("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [expandedIds, setExpandedIds] = useState<Record<number, boolean>>({});
+  const [loading, setLoading] = useState(true);
 
   const toggleExpand = (id: number) => setExpandedIds((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  const toggleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+    setPage(0);
+  };
+
+  const fetchLogs = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize), sortKey, sortDir, search });
+      const res = await fetch(`/api/admin/audit?${params}`);
+      if (res.ok) {
+        const data = await res.json();
+        setItems(data.items ?? []);
+        setTotal(data.total ?? 0);
+      }
+    } catch { /* silent */ } finally {
+      setLoading(false);
+    }
+  }, [page, pageSize, sortKey, sortDir, search]);
+
+  useEffect(() => { fetchLogs(); }, [fetchLogs]);
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const safePage = Math.min(page, totalPages - 1);
 
   const shortDetails = (action: string, raw: string) => {
     if (!raw || raw === "{}") return null;
@@ -619,36 +648,6 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
     }
   };
 
-  useEffect(() => {
-    setLogs(initialLogs);
-  }, [initialLogs]);
-
-  const toggleSort = (key: string) => {
-    if (sortKey === key) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortKey(key);
-      setSortDir("asc");
-    }
-  };
-
-  const filtered = logs.filter((log) =>
-    [log.created_at, log.action, log.actor_id, log.target_type, log.target_id, log.details].some((v) =>
-      String(v ?? "").toLowerCase().includes(search.toLowerCase())
-    )
-  );
-
-  const sorted = [...filtered].sort((a, b) => {
-    const aVal = a[sortKey as keyof AuditLog] ?? "";
-    const bVal = b[sortKey as keyof AuditLog] ?? "";
-    const cmp = String(aVal).localeCompare(String(bVal));
-    return sortDir === "asc" ? cmp : -cmp;
-  });
-
-  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
-  const safePage = Math.min(page, totalPages - 1);
-  const paginated = sorted.slice(safePage * pageSize, (safePage + 1) * pageSize);
-
   return (
     <div>
       <h2 className="mb-3 text-base font-semibold text-gray-900">{t("auditLog")}</h2>
@@ -660,7 +659,7 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
           placeholder={t("filterAudit")}
         />
         <span className="whitespace-nowrap text-xs text-gray-400">
-          {tWith("entriesCount", { count: String(sorted.length) })}
+          {loading ? "\u2026" : tWith("entriesCount", { count: String(total) })}
         </span>
       </div>
       <div className="overflow-x-auto rounded-lg border shadow-lg">
@@ -670,7 +669,7 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
                 {[{ key: "created_at", label: t("tblDate"), w: "w-[15%]" }, { key: "action", label: t("tblAction"), w: "w-[13%]" }, { key: "target_id", label: "Actor", w: "w-[37%]" }, { key: "details", label: t("tblDetails"), w: "w-[35%]" }].map(({ key, label, w }) => (
                   <th
                     key={key}
-                    onClick={() => toggleSort(key)}
+                    onClick={() => { toggleSort(key); }}
                     className={`${w} cursor-pointer select-none px-3 py-2 text-left font-semibold text-gray-500 hover:text-gray-700`}
                   >
                     <span className="inline-flex items-center gap-1">
@@ -684,9 +683,11 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {sorted.length === 0 ? (
+              {loading ? (
+                <tr><td colSpan={4} className="px-3 py-8 text-center text-sm text-gray-400">{t("loading")}</td></tr>
+              ) : items.length === 0 ? (
                 <tr><td colSpan={4} className="px-3 py-8 text-center text-sm text-gray-400">{t("noAudit")}</td></tr>
-              ) : paginated.map((log) => (
+              ) : items.map((log) => (
                 <Fragment key={log.id}>
                   <tr>
                     <td className="px-3 py-2 text-gray-600">
@@ -714,7 +715,7 @@ function AuditLogSection({ logs: initialLogs }: { logs: AuditLog[] }) {
             </tbody>
           </table>
         </div>
-        {sorted.length > 0 && (<div className="mt-3 flex items-center justify-between">
+        {total > 0 && (<div className="mt-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-gray-400">{t("show")}</span>
             <select

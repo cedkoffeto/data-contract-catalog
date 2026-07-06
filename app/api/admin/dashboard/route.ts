@@ -24,16 +24,6 @@ export async function GET() {
   const contracts = await getContracts();
   const contractsCount = contracts.length;
 
-  const recentLogs = await query<{
-    id: number;
-    action: string;
-    actor_id: string;
-    target_type: string;
-    target_id: string;
-    details: string;
-    created_at: string;
-  }>("SELECT id, action, actor_id, target_type, target_id, details, created_at FROM audit_log ORDER BY id DESC LIMIT 50");
-
   return Response.json({
     contractsCount,
     groupCount: Number(groupCountResult?.c ?? 0),
@@ -44,6 +34,5 @@ export async function GET() {
     unreadNotificationsCount: Number(unreadResult?.c ?? 0),
     subscriptionsCount: Number(subCountResult?.c ?? 0),
     auditCount: Number(auditCountResult?.c ?? 0),
-    recentLogs: recentLogs ?? [],
   });
 }
