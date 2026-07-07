@@ -338,7 +338,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
           </div>
         ) : null}
         <div className="w-full overflow-x-auto rounded-lg border shadow-lg">
-          <table className="w-full min-w-full divide-y divide-gray-200 bg-white text-sm">
+          <table className="w-full min-w-full table-fixed divide-y divide-gray-200 bg-white text-sm">
               <thead className="bg-gray-50">
                 <tr>
                   {[{ label: t("tblId"), key: "id", w: "w-[5%]" }, { label: t("tblContract"), key: "contractSlug", w: "w-[11%]" }, { label: t("tblEditor"), key: "editorId", w: "w-[11%]" }, { label: t("tblStatus"), key: "status", w: "w-[8%]" }, { label: "Source", key: "source", w: "w-[7%]" }, { label: t("tblMrUrl"), key: "gitlabMrUrl", w: "w-[8%]" }, { label: t("tblRejection"), key: "rejectionReason", w: "w-[12%]" }, { label: t("tblCreated"), key: "createdAt", w: "w-[11%]" }, { label: "Updated", key: "updatedAt", w: "w-[11%]" }, { label: t("tblActions"), key: null, w: "w-[16%]" }].map(({ label, key, w }) => (
