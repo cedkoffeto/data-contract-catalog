@@ -271,8 +271,8 @@ export default function GroupsPage() {
             No groups match your filter.
           </div>
         ) : (
-          <div className="overflow-hidden rounded-lg border bg-white">
-            <table className="w-full text-sm">
+          <div className="w-full overflow-x-auto rounded-lg border bg-white">
+            <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
@@ -293,10 +293,10 @@ export default function GroupsPage() {
                   const remainingCount = members.length - 4;
                   return (
                     <tr key={group.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
+                      <td className="whitespace-nowrap px-6 py-4">
                         <span className="font-medium text-gray-900">{group.name}</span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="whitespace-nowrap px-6 py-4">
                         <div className="flex flex-wrap items-center gap-1.5">
                           {members.length === 0 ? (
                             <span className="text-sm text-gray-400">No members</span>
