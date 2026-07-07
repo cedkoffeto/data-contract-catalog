@@ -77,7 +77,7 @@ export default function PolicyTable({
           No policies match your filter.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border shadow-lg">
+        <div className="-mx-6 lg:-mx-8 w-screen overflow-x-auto rounded-lg border shadow-lg">
           <table className="min-w-full divide-y divide-gray-200 bg-white text-sm">
             <thead className="bg-gray-50">
               <tr>
