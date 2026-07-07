@@ -690,7 +690,7 @@ function AuditLogSection() {
               ) : items.map((log) => (
                 <Fragment key={log.id}>
                   <tr>
-                    <td className="px-3 py-2 text-gray-600">
+                    <td className="whitespace-nowrap px-3 py-2 text-gray-600">
                       {new Date(log.created_at).toLocaleString()}
                     </td>
                     <td className="px-3 py-2">
