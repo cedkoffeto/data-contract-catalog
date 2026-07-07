@@ -338,7 +338,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
           </div>
         ) : null}
         <div className="w-full overflow-x-auto rounded-lg border shadow-lg">
-          <table className="w-max min-w-full divide-y divide-gray-200 bg-white text-sm">
+          <table className="min-w-full divide-y divide-gray-200 bg-white text-sm">
               <thead className="bg-gray-50">
                 <tr>
                   {[{ label: t("tblId"), key: "id", w: "w-[5%]" }, { label: t("tblContract"), key: "contractSlug", w: "w-[11%]" }, { label: t("tblEditor"), key: "editorId", w: "w-[11%]" }, { label: t("tblStatus"), key: "status", w: "w-[8%]" }, { label: "Source", key: "source", w: "w-[7%]" }, { label: t("tblMrUrl"), key: "gitlabMrUrl", w: "w-[8%]" }, { label: t("tblRejection"), key: "rejectionReason", w: "w-[12%]" }, { label: t("tblCreated"), key: "createdAt", w: "w-[11%]" }, { label: "Updated", key: "updatedAt", w: "w-[11%]" }, { label: t("tblActions"), key: null, w: "w-[16%]" }].map(({ label, key, w }) => (
@@ -358,10 +358,10 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
                   <tr><td colSpan={10} className="px-3 py-8 text-center text-sm text-gray-400">{requests.length === 0 ? t("noChangeRequests") : "No change requests match your filter."}</td></tr>
                 ) : paginated.map((r) => (
                   <tr key={r.id} className={r.id === highlightedId ? "bg-orange-50 ring-2 ring-orange-400" : ""}>
-                    <td className="px-3 py-2 text-gray-600">#{r.id}</td>
-                    <td className="px-3 py-2 text-gray-600">{r.contractSlug}</td>
-                    <td className="px-3 py-2 text-gray-600">{r.editorId}</td>
-                    <td className="px-3 py-2">
+                    <td className="whitespace-nowrap px-3 py-2 text-gray-600">#{r.id}</td>
+                    <td className="whitespace-nowrap px-3 py-2 text-gray-600">{r.contractSlug}</td>
+                    <td className="whitespace-nowrap px-3 py-2 text-gray-600">{r.editorId}</td>
+                    <td className="whitespace-nowrap px-3 py-2">
                       <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium ${
                         r.status === "pending" ? "bg-yellow-50 text-yellow-700" :
                         r.status === "approved" ? "bg-green-50 text-green-700" :
@@ -372,7 +372,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
                         {r.status}
                       </span>
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="whitespace-nowrap px-3 py-2">
                       <span className="inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600">
                         {r.source === "app" ? "App" : "GitLab"}
                       </span>
@@ -387,16 +387,16 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
                         <span className="text-gray-400">{"\u2014"}</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-gray-600">
+                    <td className="whitespace-nowrap px-3 py-2 text-gray-600">
                       {r.rejectionReason || "\u2014"}
                     </td>
-                    <td className="px-3 py-2 text-gray-600">
+                    <td className="whitespace-nowrap px-3 py-2 text-gray-600">
                       {new Date(r.createdAt).toLocaleString()}
                     </td>
-                    <td className="px-3 py-2 text-gray-600">
+                    <td className="whitespace-nowrap px-3 py-2 text-gray-600">
                       {r.updatedAt ? new Date(r.updatedAt).toLocaleString() : "\u2014"}
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="whitespace-nowrap px-3 py-2">
                       {r.status === "pending" ? (
                         <div className="flex gap-1">
                           <button
@@ -663,7 +663,7 @@ function AuditLogSection() {
         </span>
       </div>
       <div className="w-full overflow-x-auto rounded-lg border shadow-lg">
-          <table className="w-max min-w-full divide-y divide-gray-200 bg-white text-sm">
+          <table className="min-w-full divide-y divide-gray-200 bg-white text-sm">
             <thead className="bg-gray-50">
               <tr>
                 {[{ key: "created_at", label: t("tblDate"), w: "w-[15%]" }, { key: "action", label: t("tblAction"), w: "w-[13%]" }, { key: "target_id", label: "Actor", w: "w-[37%]" }, { key: "details", label: t("tblDetails"), w: "w-[35%]" }].map(({ key, label, w }) => (
@@ -693,7 +693,7 @@ function AuditLogSection() {
                     <td className="whitespace-nowrap px-3 py-2 text-gray-600">
                       {new Date(log.created_at).toLocaleString()}
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="whitespace-nowrap px-3 py-2">
                       <ActionBadge action={log.action} />
                     </td>
                     <td className="px-3 py-2 text-gray-600 whitespace-nowrap">
@@ -840,7 +840,7 @@ function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number)
         </span>
       </div>
       <div className="w-full overflow-x-auto rounded-lg border shadow-lg">
-          <table className="w-max min-w-full divide-y divide-gray-200 bg-white text-sm">
+          <table className="min-w-full divide-y divide-gray-200 bg-white text-sm">
             <thead className="bg-gray-50">
               <tr>
                 {[{ label: t("tblId"), key: "id", w: "w-[5%]" }, { label: "User", key: "user_id", w: "w-[11%]" }, { label: "Domain", key: "domain", w: "w-[8%]" }, { label: "Context", key: "context", w: "w-[11%]" }, { label: "Contract", key: "data_contract", w: "w-[11%]" }, { label: "Permission", key: "requested_permission", w: "w-[8%]" }, { label: "Message", key: null, w: "w-[15%]" }, { label: "Created", key: "created_at", w: "w-[9%]" }, { label: "Updated", key: "updated_at", w: "w-[9%]" }, { label: t("tblStatus"), key: "status", w: "w-[7%]" }, { label: t("tblActions"), key: null, w: "w-[6%]" }].map(({ label, key, w }) => (
@@ -862,26 +862,26 @@ function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number)
                 </tr>
               ) : paginated.map((r) => (
                 <tr key={r.id}>
-                  <td className="px-3 py-2 text-gray-600">#{r.id}</td>
-                  <td className="px-3 py-2 text-gray-600">{r.user_id}</td>
-                  <td className="px-3 py-2 text-gray-600">{r.domain || "\u2014"}</td>
-                  <td className="px-3 py-2 text-gray-600">{r.context || "\u2014"}</td>
-                  <td className="px-3 py-2 text-gray-600">{r.data_contract || "\u2014"}</td>
-                  <td className="px-3 py-2 text-gray-600">{r.requested_permission || "reader"}</td>
-                  <td className="px-3 py-2 text-gray-600">{r.message || "\u2014"}</td>
-                  <td className="px-3 py-2 text-gray-600">
+                  <td className="whitespace-nowrap px-3 py-2 text-gray-600">#{r.id}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-gray-600">{r.user_id}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-gray-600">{r.domain || "\u2014"}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-gray-600">{r.context || "\u2014"}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-gray-600">{r.data_contract || "\u2014"}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-gray-600">{r.requested_permission || "reader"}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-gray-600">{r.message || "\u2014"}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-gray-600">
                     {new Date(r.created_at).toLocaleString()}
                   </td>
-                  <td className="px-3 py-2 text-gray-600">
+                  <td className="whitespace-nowrap px-3 py-2 text-gray-600">
                     {r.updated_at ? new Date(r.updated_at).toLocaleString() : "\u2014"}
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="whitespace-nowrap px-3 py-2">
                     <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium ${r.status === "pending" ? "bg-yellow-50 text-yellow-700" : r.status === "approved" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
                       <StatusIcon status={r.status} />
                       {r.status}
                     </span>
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="whitespace-nowrap px-3 py-2">
                     {r.status === "pending" ? (
                       <div className="flex gap-1">
                         <button onClick={() => handleStatus(r.id, "approved")} className="rounded-md px-2 py-1 text-xs font-bold text-green-700 hover:bg-green-200" style={{ backgroundColor: "#dcfce7" }}>{t("approve")}</button>
