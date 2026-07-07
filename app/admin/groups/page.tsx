@@ -272,16 +272,16 @@ export default function GroupsPage() {
           </div>
         ) : (
           <div className="w-full overflow-x-auto rounded-lg border bg-white">
-            <table className="w-full text-sm">
+            <table className="w-full table-fixed text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  <th className="w-[30%] px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                     Group Name
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  <th className="w-[50%] px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                     Members
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  <th className="w-[20%] px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">
                     Actions
                   </th>
                 </tr>
@@ -323,7 +323,7 @@ export default function GroupsPage() {
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="whitespace-nowrap px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => {
