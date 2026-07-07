@@ -50,16 +50,21 @@ export function DataModelEditor({
   const [containerWidth, setContainerWidth] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Throttle ResizeObserver to animation frame rate
+  const resizeRafRef = useRef(0);
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const ro = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        setContainerWidth(entry.contentRect.width);
+        cancelAnimationFrame(resizeRafRef.current);
+        resizeRafRef.current = requestAnimationFrame(() => {
+          setContainerWidth(entry.contentRect.width);
+        });
       }
     });
     ro.observe(el);
-    return () => ro.disconnect();
+    return () => { ro.disconnect(); cancelAnimationFrame(resizeRafRef.current); };
   }, []);
 
   const STORAGE_KEY = "dcc-data-model-prefs";
@@ -127,21 +132,30 @@ export function DataModelEditor({
     }));
   }, [edges, layoutMode]);
 
-  const [laidOutNodes, setLaidOutNodes] = useState<FlowNode[]>(() => layoutByMode(rawNodes, layoutEdges, layoutMode, connectedFields, viewMode, containerWidth).nodes);
+  const [laidOutNodes, setLaidOutNodes] = useState<FlowNode[]>(() => layoutByMode(rawNodes, layoutEdges, layoutMode, connectedFields, viewMode, 0).nodes);
+  const layoutWidthRef = useRef(0);
 
   function relayoutVisible(prev: FlowNode[]): FlowNode[] {
     const ids = new Set(visibleTablesState);
     const visibleNodes = rawNodes.filter((n) => ids.has(n.id));
     const visibleEdges = layoutEdges.filter((e) => ids.has(e.source) && ids.has(e.target));
-    const { nodes: laidOut } = layoutByMode(visibleNodes, visibleEdges, layoutMode, connectedFields, viewMode, containerWidth);
+    const { nodes: laidOut } = layoutByMode(visibleNodes, visibleEdges, layoutMode, connectedFields, viewMode, layoutWidthRef.current);
     const newPosMap = new Map(laidOut.map((n) => [n.id, n]));
     const prevMap = new Map(prev.map((n) => [n.id, n]));
     return rawNodes.map((n) => newPosMap.get(n.id) ?? prevMap.get(n.id) ?? n);
   }
 
+  // Only re-layout when layout-critical props change (NOT on every resize)
   useEffect(() => {
     setLaidOutNodes(relayoutVisible);
-  }, [rawNodes, layoutEdges, layoutMode, connectedFields, viewMode, containerWidth]);
+  }, [rawNodes, layoutEdges, layoutMode, connectedFields, viewMode]);
+
+  // In TB mode, also re-layout when containerWidth changes (affects isolated grid)
+  useEffect(() => {
+    if (layoutMode !== "TB" || containerWidth === layoutWidthRef.current) return;
+    layoutWidthRef.current = containerWidth;
+    setLaidOutNodes(relayoutVisible);
+  }, [layoutMode, containerWidth]);
 
   const [visibleTablesState, setVisibleTablesState] = useState<Set<string>>(() =>
     new Set(rawNodes.map((n) => n.id)),
