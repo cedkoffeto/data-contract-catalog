@@ -78,7 +78,7 @@ export default function PolicyTable({
         </div>
       ) : (
         <div className="w-full overflow-x-auto rounded-lg border shadow-lg">
-          <table className="min-w-full divide-y divide-gray-200 bg-white text-sm">
+          <table className="w-full divide-y divide-gray-200 bg-white text-sm">
             <thead className="bg-gray-50">
               <tr>
                 {(["id", "target", "permission_name", "scope"] as const).map((key) => {
