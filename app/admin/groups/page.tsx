@@ -271,7 +271,7 @@ export default function GroupsPage() {
             No groups match your filter.
           </div>
         ) : (
-          <div className="-mx-6 lg:-mx-8 w-screen overflow-x-auto rounded-lg border bg-white">
+          <div className="w-full overflow-x-auto rounded-lg border bg-white">
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
