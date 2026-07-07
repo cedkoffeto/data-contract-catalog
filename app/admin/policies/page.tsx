@@ -331,7 +331,7 @@ export default function PoliciesPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-6 lg:px-8">
       {error && (
         <div className="rounded-lg border border-red-500 bg-red-50 p-3 text-sm text-destructive">
           {error}

@@ -86,7 +86,7 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-6 lg:px-8">
       <div className="rounded-lg border bg-white p-6">
         <div className="kpi-grid">
           {cards.map((c) => {
