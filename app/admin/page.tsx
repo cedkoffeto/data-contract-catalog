@@ -663,7 +663,7 @@ function AuditLogSection() {
         </span>
       </div>
       <div className="w-full overflow-x-auto rounded-lg border shadow-lg">
-          <table className="w-full min-w-full divide-y divide-gray-200 bg-white text-sm">
+          <table className="w-full min-w-full table-fixed divide-y divide-gray-200 bg-white text-sm">
             <thead className="bg-gray-50">
               <tr>
                 {[{ key: "created_at", label: t("tblDate"), w: "w-[15%]" }, { key: "action", label: t("tblAction"), w: "w-[13%]" }, { key: "target_id", label: "Actor", w: "w-[37%]" }, { key: "details", label: t("tblDetails"), w: "w-[35%]" }].map(({ key, label, w }) => (
