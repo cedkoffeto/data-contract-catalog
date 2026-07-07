@@ -337,7 +337,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
             <button onClick={() => setMergeError(null)} className="text-red-400 hover:text-red-600" type="button">&times;</button>
           </div>
         ) : null}
-        <div className="-mx-6 lg:-mx-8 w-screen overflow-x-auto rounded-lg border shadow-lg">
+        <div className="w-full overflow-x-auto rounded-lg border shadow-lg">
           <table className="min-w-full divide-y divide-gray-200 bg-white text-sm">
               <thead className="bg-gray-50">
                 <tr>
@@ -662,7 +662,7 @@ function AuditLogSection() {
           {loading ? "\u2026" : tWith("entriesCount", { count: String(total) })}
         </span>
       </div>
-      <div className="-mx-6 lg:-mx-8 w-screen overflow-x-auto rounded-lg border shadow-lg">
+      <div className="w-full overflow-x-auto rounded-lg border shadow-lg">
           <table className="min-w-full divide-y divide-gray-200 bg-white text-sm">
             <thead className="bg-gray-50">
               <tr>
@@ -839,7 +839,7 @@ function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number)
           {filtered.length} / {requests.length}
         </span>
       </div>
-      <div className="-mx-6 lg:-mx-8 w-screen overflow-x-auto rounded-lg border shadow-lg">
+      <div className="w-full overflow-x-auto rounded-lg border shadow-lg">
           <table className="min-w-full divide-y divide-gray-200 bg-white text-sm">
             <thead className="bg-gray-50">
               <tr>
