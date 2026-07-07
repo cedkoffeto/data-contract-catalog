@@ -840,7 +840,7 @@ function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number)
         </span>
       </div>
       <div className="w-full overflow-x-auto rounded-lg border shadow-lg">
-          <table className="w-full min-w-full divide-y divide-gray-200 bg-white text-sm">
+          <table className="w-max min-w-full divide-y divide-gray-200 bg-white text-sm">
             <thead className="bg-gray-50">
               <tr>
                 {[{ label: t("tblId"), key: "id", w: "w-[5%]" }, { label: "User", key: "user_id", w: "w-[11%]" }, { label: "Domain", key: "domain", w: "w-[8%]" }, { label: "Context", key: "context", w: "w-[11%]" }, { label: "Contract", key: "data_contract", w: "w-[11%]" }, { label: "Permission", key: "requested_permission", w: "w-[8%]" }, { label: "Message", key: null, w: "w-[15%]" }, { label: "Created", key: "created_at", w: "w-[9%]" }, { label: "Updated", key: "updated_at", w: "w-[9%]" }, { label: t("tblStatus"), key: "status", w: "w-[7%]" }, { label: t("tblActions"), key: null, w: "w-[6%]" }].map(({ label, key, w }) => (
