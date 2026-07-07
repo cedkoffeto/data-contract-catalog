@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useMemo, useCallback, useState, useEffect, useLayoutEffect, useRef } from "react";
+import { createContext, useMemo, useCallback, useState, useEffect, useLayoutEffect, useRef } from "react";
 import {
   ReactFlow,
   Background,
@@ -28,8 +28,6 @@ type ViewModeValue = {
   connectedFields: Map<string, Set<string>>;
   onHeaderClick: (slug: string) => void;
   onFieldClick: (slug: string) => void;
-  highlightedNode: string | null;
-  highlightedNeighbors: Set<string> | null;
   searchMatchIds: Set<string> | null;
 };
 
@@ -38,9 +36,17 @@ export const ViewModeCtx = createContext<ViewModeValue>({
   connectedFields: new Map(),
   onHeaderClick: () => {},
   onFieldClick: () => {},
+  searchMatchIds: null,
+});
+
+type HighlightValue = {
+  highlightedNode: string | null;
+  highlightedNeighbors: Set<string> | null;
+};
+
+export const HighlightCtx = createContext<HighlightValue>({
   highlightedNode: null,
   highlightedNeighbors: null,
-  searchMatchIds: null,
 });
 
 export function ModelGraph({
@@ -201,17 +207,21 @@ export function ModelGraph({
     connectedFields,
     onHeaderClick,
     onFieldClick: onNodeClick,
-    highlightedNode,
-    highlightedNeighbors,
     searchMatchIds,
-  }), [viewMode, connectedFields, onHeaderClick, onNodeClick, highlightedNode, highlightedNeighbors, searchMatchIds]);
+  }), [viewMode, connectedFields, onHeaderClick, onNodeClick, searchMatchIds]);
 
   const filteredEdges = useMemo(
     () => edges.filter((e) => visibleTables.has(e.source) && visibleTables.has(e.target)),
     [edges, visibleTables],
   );
 
+  const highlightCtxValue = useMemo<HighlightValue>(() => ({
+    highlightedNode,
+    highlightedNeighbors,
+  }), [highlightedNode, highlightedNeighbors]);
+
   return (
+    <HighlightCtx.Provider value={highlightCtxValue}>
     <ViewModeCtx.Provider value={ctxValue}>
       <div className="relative h-full w-full">
         <ReactFlow
@@ -272,5 +282,6 @@ export function ModelGraph({
         </ReactFlow>
       </div>
     </ViewModeCtx.Provider>
+    </HighlightCtx.Provider>
   );
 }

@@ -7,7 +7,7 @@ import {
   Position,
   type EdgeProps,
 } from "@xyflow/react";
-import { ViewModeCtx } from "./ModelGraph";
+import { HighlightCtx } from "./ModelGraph";
 
 const animStyleId = "dcc-edge-flow";
 
@@ -61,7 +61,7 @@ function CardinalitySymbol({ x, y, position, side, type }: { x: number; y: numbe
 
 export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
   const [hovered, setHovered] = useState(false);
-  const { highlightedNode, highlightedNeighbors } = useContext(ViewModeCtx);
+  const { highlightedNode, highlightedNeighbors } = useContext(HighlightCtx);
 
   const { source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style, label, data, animated } = props;
 

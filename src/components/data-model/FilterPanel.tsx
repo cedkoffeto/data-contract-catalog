@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect, memo } from "react";
 import { Search, Eye, EyeOff, PanelLeftClose } from "lucide-react";
 import type { Node } from "@xyflow/react";
 import type { ContractTableNodeData } from "@/src/lib/data-model";
@@ -11,14 +11,6 @@ const LAYERS = [
   { id: "gold",   label: "Gold",   activeClass: "bg-yellow-500 text-white shadow-sm", inactiveClass: "bg-white text-yellow-700 hover:bg-yellow-50" },
 ] as const;
 
-function layerBadge(layer: string): string {
-  switch (layer) {
-    case "gold":   return "rounded px-1 py-0.5 text-[9px] font-semibold uppercase bg-yellow-100 text-yellow-700";
-    case "silver": return "rounded px-1 py-0.5 text-[9px] font-semibold uppercase bg-slate-100 text-slate-600";
-    default:       return "rounded px-1 py-0.5 text-[9px] font-semibold uppercase bg-amber-100 text-amber-700";
-  }
-}
-
 const MIN_WIDTH = 160;
 const MAX_WIDTH = 600;
 const DEFAULT_WIDTH = 288;
@@ -26,6 +18,44 @@ const DEFAULT_WIDTH = 288;
 function nodeData(n: Node): ContractTableNodeData {
   return n.data as ContractTableNodeData;
 }
+
+const TableListItem = memo(function TableListItem({
+  node,
+  isVisible,
+  onCenterTable,
+  onToggleTable,
+}: {
+  node: Node;
+  isVisible: boolean;
+  onCenterTable: (slug: string) => void;
+  onToggleTable: (id: string) => void;
+}) {
+  const d = nodeData(node);
+  const handleCenter = useCallback(() => onCenterTable(node.id), [onCenterTable, node.id]);
+  const handleToggle = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onToggleTable(node.id);
+  }, [onToggleTable, node.id]);
+  return (
+    <div
+      className={`flex items-center gap-2 border-b border-gray-100 px-3 py-1.5 text-xs ${isVisible ? "cursor-pointer hover:bg-gray-50" : "opacity-40"}`}
+      onClick={isVisible ? handleCenter : undefined}
+    >
+      <div
+        className="h-2 w-2 shrink-0 rounded-full"
+        style={{ backgroundColor: d.color }}
+      />
+      <span className="flex-1 min-w-0 truncate font-medium text-gray-700" title={d.label ?? ""}>{d.slug}</span>
+      <button
+        onClick={handleToggle}
+        className="shrink-0 text-gray-400 hover:text-gray-600"
+        title={isVisible ? "Hide" : "Show"}
+      >
+        {isVisible ? <Eye size={13} /> : <EyeOff size={13} />}
+      </button>
+    </div>
+  );
+});
 
 export function FilterPanel({
   nodes,
@@ -108,6 +138,49 @@ export function FilterPanel({
 
   const totalFiltered = groupedByDomain.reduce((sum, [, ns]) => sum + ns.length, 0);
 
+  const tableListMemoized = useMemo(() => {
+    const groups = groupedByDomain.map(([domain, ns]) => {
+      const allDomainVisible = ns.every((n) => visibleTables.has(n.id));
+      return (
+        <div key={domain}>
+          <div className="sticky top-0 flex items-center gap-1.5 border-b border-gray-100 bg-gray-50 px-3 py-1">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+              {domain}
+            </span>
+            <span className="rounded-full bg-gray-200 px-1.5 py-[1px] text-[10px] font-medium text-gray-500">
+              {ns.length}/{totalFiltered}
+            </span>
+            <div className="flex-1 min-w-0" />
+            <button
+              onClick={() => onToggleDomain(domain, ns.map((n) => n.id))}
+              className="shrink-0 text-gray-400 hover:text-gray-600"
+              title={allDomainVisible ? "Hide domain" : "Show domain"}
+            >
+              {allDomainVisible ? <Eye size={13} /> : <EyeOff size={13} />}
+            </button>
+          </div>
+          {ns.map((n) => (
+            <TableListItem
+              key={n.id}
+              node={n}
+              isVisible={visibleTables.has(n.id)}
+              onCenterTable={onCenterTable}
+              onToggleTable={onToggleTable}
+            />
+          ))}
+        </div>
+      );
+    });
+    if (totalFiltered === 0) {
+      groups.push(
+        <div key="empty" className="px-3 py-4 text-center text-xs text-gray-400">
+          No tables match the filter
+        </div>
+      );
+    }
+    return groups;
+  }, [groupedByDomain, visibleTables, totalFiltered, onToggleDomain, onCenterTable, onToggleTable]);
+
   return (
     <div
       className={`data-model-filter-panel relative flex h-full min-h-0 flex-col border-r border-gray-200 bg-white shrink-0 ${
@@ -186,58 +259,7 @@ export function FilterPanel({
 
           {/* Table list grouped by domain */}
           <div className="flex-1 overflow-y-auto">
-            {groupedByDomain.map(([domain, ns]) => {
-              const allDomainVisible = ns.every((n) => visibleTables.has(n.id));
-              return (
-              <div key={domain}>
-                <div className="sticky top-0 flex items-center gap-1.5 border-b border-gray-100 bg-gray-50 px-3 py-1">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
-                    {domain}
-                  </span>
-                  <span className="rounded-full bg-gray-200 px-1.5 py-[1px] text-[10px] font-medium text-gray-500">
-                    {ns.length}/{totalFiltered}
-                  </span>
-                  <div className="flex-1 min-w-0" />
-                  <button
-                    onClick={() => onToggleDomain(domain, ns.map((n) => n.id))}
-                    className="shrink-0 text-gray-400 hover:text-gray-600"
-                    title={allDomainVisible ? "Hide domain" : "Show domain"}
-                  >
-                    {allDomainVisible ? <Eye size={13} /> : <EyeOff size={13} />}
-                  </button>
-                </div>
-                {ns.map((n) => {
-                  const d = nodeData(n);
-                  const isVisible = visibleTables.has(n.id);
-                  return (
-                    <div
-                      key={n.id}
-                      className={`flex items-center gap-2 border-b border-gray-100 px-3 py-1.5 text-xs ${isVisible ? "cursor-pointer hover:bg-gray-50" : "opacity-40"}`}
-                      onClick={isVisible ? () => onCenterTable(n.id) : undefined}
-                    >
-                      <div
-                        className="h-2 w-2 shrink-0 rounded-full"
-                        style={{ backgroundColor: d.color }}
-                      />
-                      <span className="flex-1 min-w-0 truncate font-medium text-gray-700" title={d.label ?? ""}>{d.slug}</span>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onToggleTable(n.id); }}
-                        className="shrink-0 text-gray-400 hover:text-gray-600"
-                        title={isVisible ? "Hide" : "Show"}
-                      >
-                        {isVisible ? <Eye size={13} /> : <EyeOff size={13} />}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-              );
-            })}
-            {totalFiltered === 0 && (
-              <div className="px-3 py-4 text-center text-xs text-gray-400">
-                No tables match the filter
-              </div>
-            )}
+            {tableListMemoized}
           </div>
         </>
       )}
