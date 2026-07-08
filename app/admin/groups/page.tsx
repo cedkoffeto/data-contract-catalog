@@ -6,6 +6,7 @@ import { t } from "@/src/lib/i18n";
 import { Button } from "@/src/components/ui/Button";
 import { ConfirmDialog } from "@/src/components/ui/ConfirmDialog";
 import { Toast } from "@/src/components/ui/Toast";
+import { Spinner } from "@/src/components/ui/Spinner";
 
 type Group = {
   id: number;
@@ -244,7 +245,7 @@ export default function GroupsPage() {
             }}
             className="border-0 font-bold"
           >
-            Create
+            {creating ? <span className="inline-flex items-center gap-1.5"><Spinner /> Creating...</span> : "Create"}
           </Button>
         </div>
       </div>
@@ -657,7 +658,7 @@ function MemberManagerModal({
             <button
               onClick={onSave}
               disabled={added.length === 0 && removed.length === 0}
-              className="rounded px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
               style={{ backgroundColor: "var(--ui-primary)" }}
             >
               {added.length > 0 || removed.length > 0

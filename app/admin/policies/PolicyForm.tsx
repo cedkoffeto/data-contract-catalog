@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/src/components/ui/Button";
+import { Spinner } from "@/src/components/ui/Spinner";
 import type { Group, Permission, Policy, Scope } from "./types";
 
 function UserAutocomplete({
@@ -596,7 +597,7 @@ export default function PolicyForm({
           />
         </div>
 
-        {editTarget ? (
+          {editTarget ? (
           <div className="flex gap-2">
             <Button
               onClick={onSave}
@@ -606,9 +607,9 @@ export default function PolicyForm({
                 color: isSaveDisabled ? "#6b7280" : "#fff",
                 cursor: isSaveDisabled ? "not-allowed" : "pointer",
               }}
-              className="border-0 font-bold"
+              className="inline-flex items-center gap-1.5 border-0 font-bold"
             >
-              Save
+              {saving ? <><Spinner /> Saving...</> : "Save"}
             </Button>
             <button
               onClick={onCancel}
@@ -627,9 +628,9 @@ export default function PolicyForm({
                 color: isCreateDisabled ? "#6b7280" : "#fff",
                 cursor: isCreateDisabled ? "not-allowed" : "pointer",
               }}
-              className="border-0 font-bold"
+              className="inline-flex items-center gap-1.5 border-0 font-bold"
             >
-              Create
+              {saving ? <><Spinner /> Creating...</> : "Create"}
             </Button>
           </div>
         )}
