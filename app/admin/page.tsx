@@ -476,7 +476,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
 
       {rejectingId !== null ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
           onClick={() => setRejectingId(null)}
         >

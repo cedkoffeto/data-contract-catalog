@@ -354,6 +354,7 @@ export const dictionaries = {
     failedToApplyPolicy: "Failed to apply policy",
     policyApplied: "Policy applied",
     savingEllipsis: "Saving...",
+    failedToLoadData: "Failed to load data",
 
     // Admin — Dashboard / Change Requests
     users: "Users",
@@ -746,6 +747,7 @@ export const dictionaries = {
     failedToApplyPolicy: "Échec de l'application de la politique",
     policyApplied: "Politique appliquée",
     savingEllipsis: "Enregistrement...",
+    failedToLoadData: "Échec du chargement des données",
 
     // Admin — Dashboard / Change Requests
     users: "Utilisateurs",

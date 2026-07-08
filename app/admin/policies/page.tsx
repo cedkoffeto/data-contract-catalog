@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { t, tWith } from "@/src/lib/i18n";
 
 import { Button } from "@/src/components/ui/Button";
@@ -21,7 +21,9 @@ export default function PoliciesPage() {
   const [toast, setToast] = useState<{ message: string; type?: "success" | "error" } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
   const [editTarget, setEditTarget] = useState<Policy | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
+  const formRef = useRef<HTMLDivElement>(null);
   const [conflictDialog, setConflictDialog] = useState<ConflictDialogType | null>(null);
 
   const [newUserId, setNewUserId] = useState("");
@@ -83,7 +85,7 @@ export default function PoliciesPage() {
       setScopes((await sRes.json()).items ?? []);
       setAllUsers((await uRes.json()).items ?? []);
     } catch {
-      setError("Failed to load data");
+      setError(t("failedToLoadData"));
     } finally {
       setLoading(false);
     }
@@ -219,6 +221,7 @@ export default function PoliciesPage() {
     }
 
     setEditTarget(null);
+    setEditingId(null);
     setToast({ message: "Policy updated" });
     await fetchData();
     setSaving(false);
@@ -313,6 +316,7 @@ export default function PoliciesPage() {
 
   function openEdit(p: Policy) {
     setEditTarget(p);
+    setEditingId(p.id);
     setAssignMode(p.user_id ? "user" : "group");
     setNewUserId(p.user_id ?? "");
     setNewGroupId(String(p.group_id ?? ""));
@@ -320,6 +324,10 @@ export default function PoliciesPage() {
     setNewDomainScope(p.domain_scope ?? "");
     setNewContextScope(p.context_scope ?? "");
     setNewDataContractScope(p.data_contract_scope ?? "");
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
+    setTimeout(() => setEditingId(null), 2500);
   }
 
   const groupMap = new Map(groups.map((g) => [g.id, g.name]));
@@ -338,32 +346,37 @@ export default function PoliciesPage() {
         </div>
       )}
 
-      <PolicyForm
-        assignMode={assignMode}
-        setAssignMode={setAssignMode}
-        newUserId={newUserId}
-        setNewUserId={setNewUserId}
-        newGroupId={newGroupId}
-        setNewGroupId={setNewGroupId}
-        newPermissionId={newPermissionId}
-        setNewPermissionId={setNewPermissionId}
-        newDomainScope={newDomainScope}
-        setNewDomainScope={setNewDomainScope}
-        newContextScope={newContextScope}
-        setNewContextScope={setNewContextScope}
-        newDataContractScope={newDataContractScope}
-        setNewDataContractScope={setNewDataContractScope}
-        allUsers={allUsers}
-        groups={groups}
-        permissions={permissions}
-        scopes={scopes}
-        isAdmin={isAdmin}
-        editTarget={editTarget}
-        saving={saving}
-        onCreate={handleCreate}
-        onSave={handleEdit}
-        onCancel={() => { setEditTarget(null); resetForm(); }}
-      />
+      <div
+        ref={formRef}
+        className={`rounded-lg transition-shadow duration-300 ${editingId !== null ? "shadow-[0_0_0_2px_#3b82f6,0_0_0_6px_rgba(59,130,246,0.15)]" : ""}`}
+      >
+        <PolicyForm
+          assignMode={assignMode}
+          setAssignMode={setAssignMode}
+          newUserId={newUserId}
+          setNewUserId={setNewUserId}
+          newGroupId={newGroupId}
+          setNewGroupId={setNewGroupId}
+          newPermissionId={newPermissionId}
+          setNewPermissionId={setNewPermissionId}
+          newDomainScope={newDomainScope}
+          setNewDomainScope={setNewDomainScope}
+          newContextScope={newContextScope}
+          setNewContextScope={setNewContextScope}
+          newDataContractScope={newDataContractScope}
+          setNewDataContractScope={setNewDataContractScope}
+          allUsers={allUsers}
+          groups={groups}
+          permissions={permissions}
+          scopes={scopes}
+          isAdmin={isAdmin}
+          editTarget={editTarget}
+          saving={saving}
+          onCreate={handleCreate}
+          onSave={handleEdit}
+          onCancel={() => { setEditTarget(null); setEditingId(null); resetForm(); }}
+        />
+      </div>
 
       {loading ? (
         <div className="h-64 w-full rounded-lg border bg-gray-50" />
@@ -407,8 +420,8 @@ export default function PoliciesPage() {
           onClick={() => setViewUserPolicies(null)}
         >
           <div
-            className="flex max-h-[60vh] flex-col rounded-lg bg-white shadow-xl"
-            style={{ width: "min(50vw, 600px)" }}
+            className="flex max-h-[80vh] flex-col rounded-lg bg-white shadow-xl"
+            style={{ width: "min(70vw, 900px)" }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">

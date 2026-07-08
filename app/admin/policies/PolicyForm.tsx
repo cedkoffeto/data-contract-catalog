@@ -495,11 +495,12 @@ export default function PolicyForm({
   const isSaveDisabled = assignMode === "user"
     ? !allUserIds.includes(newUserId) || !newPermissionId || saving
     : !newGroupId || !newPermissionId || saving;
+  const { t, tWith } = useT();
 
   return (
     <div className="rounded-lg border bg-white p-6 mb-6">
       <h2 className="mb-4 text-base font-semibold text-gray-900">
-        {editTarget ? `Edit policy #${editTarget.id}` : "Create access policy"}
+        {editTarget ? tWith("editPolicy", { id: String(editTarget.id) }) : t("createAccessPolicy")}
       </h2>
 
       <div className="mb-4 flex gap-2">
@@ -511,7 +512,7 @@ export default function PolicyForm({
             color: assignMode === "user" ? "#fff" : "#374151",
           }}
         >
-          For a user
+          {t("forAUser")}
         </button>
         <button
           onClick={() => setAssignMode("group")}
@@ -521,19 +522,19 @@ export default function PolicyForm({
             color: assignMode === "group" ? "#fff" : "#374151",
           }}
         >
-          For a group
+          {t("forAGroup")}
         </button>
       </div>
 
       <div className="flex flex-wrap items-end gap-3">
         {assignMode === "user" ? (
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 grow shrink basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5">
             <UserAutocomplete value={newUserId} onChange={setNewUserId} validUsers={allUsers} />
           </div>
         ) : (
-          <div className="min-w-0 flex-1">
-            <label className="mb-1 block text-xs font-medium text-gray-500" title="Required field">
-              Group <span className="text-red-500">*</span>
+          <div className="min-w-0 grow shrink basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5">
+            <label className="mb-1 block text-xs font-medium text-gray-500" title={t("requiredField")}>
+              {t("groupLabel")} <span className="text-red-500">*</span>
             </label>
             <GroupSelect
               value={newGroupId}
@@ -543,9 +544,9 @@ export default function PolicyForm({
           </div>
         )}
 
-        <div className="min-w-0 flex-1">
-          <label className="mb-1 block text-xs font-medium text-gray-500" title="Required field">
-            Permission <span className="text-red-500">*</span>
+        <div className="min-w-0 grow shrink basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5">
+          <label className="mb-1 block text-xs font-medium text-gray-500" title={t("requiredField")}>
+            {t("permissionLabel")} <span className="text-red-500">*</span>
           </label>
           <PermissionSelect
             value={newPermissionId}
@@ -554,12 +555,12 @@ export default function PolicyForm({
           />
         </div>
 
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 grow shrink basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5">
           <label className="mb-1 block text-xs font-medium text-gray-500">
-            Domain <span className="text-gray-400">(empty = all)</span>
+            {t("domain")} <span className="text-gray-400">{t("emptyAll")}</span>
           </label>
           <ScopeDropdown
-            placeholder={isAdmin ? "Admin = global access" : "e.g. CREDIT"}
+            placeholder={isAdmin ? t("globalAccess") : `${t("eG")} CREDIT`}
             value={newDomainScope}
             onChange={(v) => {
               setNewDomainScope(v);
@@ -576,12 +577,12 @@ export default function PolicyForm({
           />
         </div>
 
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 grow shrink basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5">
           <label className="mb-1 block text-xs font-medium text-gray-500">
-            Context <span className="text-gray-400">(empty = all)</span>
+            {t("context")} <span className="text-gray-400">{t("emptyAll")}</span>
           </label>
           <ScopeDropdown
-            placeholder={isAdmin ? "Admin = global access" : "e.g. ENGAGEMENT"}
+            placeholder={isAdmin ? t("globalAccess") : `${t("eG")} ENGAGEMENT`}
             value={newContextScope}
             onChange={(v) => {
               setNewContextScope(v);
@@ -592,7 +593,10 @@ export default function PolicyForm({
           />
         </div>
 
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 grow shrink basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5">
+          <label className="mb-1 block text-xs font-medium text-gray-500">
+            {t("dataContractLabel")}
+          </label>
           <DataContractSelect
             value={newDataContractScope}
             onChange={setNewDataContractScope}
@@ -602,29 +606,29 @@ export default function PolicyForm({
           />
         </div>
 
+        <div className="basis-full sm:basis-auto flex-none self-center">
           {editTarget ? (
-          <div className="flex gap-2">
-            <Button
-              onClick={onSave}
-              disabled={isSaveDisabled}
-              style={{
-                backgroundColor: isSaveDisabled ? "#d1d5db" : "var(--ui-primary)",
-                color: isSaveDisabled ? "#6b7280" : "#fff",
-                cursor: isSaveDisabled ? "not-allowed" : "pointer",
-              }}
-              className="inline-flex items-center gap-1.5 border-0 font-bold"
-            >
-              {saving ? <><Spinner /> Saving...</> : "Save"}
-            </Button>
-            <button
-              onClick={onCancel}
-              className="rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
-            >
-              Cancel
-            </button>
-          </div>
-        ) : (
-          <div>
+            <div className="flex gap-2">
+              <Button
+                onClick={onSave}
+                disabled={isSaveDisabled}
+                style={{
+                  backgroundColor: isSaveDisabled ? "#d1d5db" : "var(--ui-primary)",
+                  color: isSaveDisabled ? "#6b7280" : "#fff",
+                  cursor: isSaveDisabled ? "not-allowed" : "pointer",
+                }}
+                className="inline-flex items-center gap-1.5 border-0 font-bold"
+              >
+                {saving ? <><Spinner /> {t("savingEllipsis")}</> : t("save")}
+              </Button>
+              <button
+                onClick={onCancel}
+                className="rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
+              >
+                {t("cancel")}
+              </button>
+            </div>
+          ) : (
             <Button
               onClick={onCreate}
               disabled={isCreateDisabled}
@@ -635,13 +639,13 @@ export default function PolicyForm({
               }}
               className="inline-flex items-center gap-1.5 border-0 font-bold"
             >
-              {saving ? <><Spinner /> Creating...</> : "Create"}
+              {saving ? <><Spinner /> {t("savingEllipsis")}</> : t("create")}
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
       <p className="mt-3 text-xs text-gray-400">
-        Scope inheritance: empty/empty/empty = global access, domain only = domain-wide, domain+context = context-wide, domain+context+data contract = contract-specific.
+        {t("scopeInheritance")}
       </p>
     </div>
   );
