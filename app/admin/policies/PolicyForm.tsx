@@ -155,7 +155,7 @@ function ScopeDropdown({
         onClick={() => !disabled && setOpen(!open)}
         disabled={disabled}
       >
-        <span className={value ? "text-gray-900" : "text-gray-400"}>{value || placeholder}</span>
+        <span className={`min-w-0 overflow-hidden text-ellipsis whitespace-nowrap ${value ? "text-gray-900" : "text-gray-400"}`} title={value || undefined}>{value || placeholder}</span>
         <svg className={`h-4 w-4 shrink-0 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </svg>
@@ -183,7 +183,7 @@ function ScopeDropdown({
                   className="flex w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
                   style={{ fontWeight: o === (value || "All") ? "600" : "400" }}
                 >
-                  {o}
+                  <span className="whitespace-nowrap">{o}</span>
                 </button>
               ))
             )}
@@ -344,7 +344,7 @@ function GroupSelect({
         style={{ borderColor: value ? "#22c55e" : "#ef4444" }}
         onClick={() => setOpen(!open)}
       >
-        <span className={value ? "text-gray-900" : "text-gray-400"}>{selected ? selected.name : "Select a group\u2026"}</span>
+        <span className={`min-w-0 overflow-hidden text-ellipsis whitespace-nowrap ${value ? "text-gray-900" : "text-gray-400"}`} title={selected?.name}>{selected ? selected.name : "Select a group\u2026"}</span>
         <svg className={`h-4 w-4 shrink-0 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </svg>

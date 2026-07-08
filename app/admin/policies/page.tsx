@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { t } from "@/src/lib/i18n";
+import { t, tWith } from "@/src/lib/i18n";
 
 import { Button } from "@/src/components/ui/Button";
 import { ConfirmDialog } from "@/src/components/ui/ConfirmDialog";
@@ -401,34 +401,55 @@ export default function PoliciesPage() {
       )}
 
       {viewUserPolicies && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setViewUserPolicies(null)} />
-          <div className="relative z-10 rounded-lg bg-white p-6 shadow-xl" style={{ width: "min(70vw, 480px)" }}>
-            <h3 className="text-base font-semibold text-gray-900">
-              {t("policiesForUser")} <span className="font-mono text-sm">{viewUserPolicies.userId}</span>
-            </h3>
-
-            <p className="mt-1 text-xs text-gray-400">
-              {viewUserPolicies.policies.length} polic{viewUserPolicies.policies.length !== 1 ? "ies" : "y"}
-            </p>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
+          onClick={() => setViewUserPolicies(null)}
+        >
+          <div
+            className="flex max-h-[60vh] flex-col rounded-lg bg-white shadow-xl"
+            style={{ width: "min(50vw, 600px)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">
+                  {t("policiesForUser")} <span className="font-mono">{viewUserPolicies.userId}</span>
+                </h3>
+                <p className="text-[11px] text-gray-400">
+                  {viewUserPolicies.policies.length} polic{viewUserPolicies.policies.length !== 1 ? "ies" : "y"}
+                </p>
+              </div>
+              <button
+                onClick={() => setViewUserPolicies(null)}
+                className="editor-close-button"
+                aria-label={t("close")}
+                title={t("close")}
+                type="button"
+              >
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path d="M5.5 5.5l9 9m0-9l-9 9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            </div>
 
             {viewUserPolicies.loading ? (
-              <p className="mt-4 text-sm text-gray-500">{t("loading")}</p>
+              <div className="flex-1 px-4 py-8 text-center text-sm text-gray-400">{t("loading")}</div>
             ) : viewUserPolicies.policies.length === 0 ? (
-              <p className="mt-4 text-sm text-gray-500">{t("noPolicies")}</p>
+              <div className="flex-1 px-4 py-8 text-center text-sm text-gray-400">{t("noPolicies")}</div>
             ) : (
-              <div className="mt-3 max-h-72 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto px-4 py-2">
                 <div className="space-y-1">
                   {viewUserPolicies.policies.map((p) => (
                     <div
                       key={p.id}
                       className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
                     >
-                      <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
+                      <span className="shrink-0 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
                         {p.user_id ? t("direct") : t("group")}
                       </span>
                       <span
-                        className="rounded-md px-1.5 py-0.5 text-[10px] font-medium"
+                        className="shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-medium"
                         style={{
                           background: p.permission_name === "admin" ? "#fef2f2" : p.permission_name === "editor" ? "#fff7ed" : "#f0f9ff",
                           color: p.permission_name === "admin" ? "#dc2626" : p.permission_name === "editor" ? "#f97316" : "#2563eb",
@@ -436,7 +457,7 @@ export default function PoliciesPage() {
                       >
                         {p.permission_name}
                       </span>
-                      <span className="font-mono text-xs text-gray-500">
+                      <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-mono text-xs text-gray-500">
                         {p.domain_scope ?? t("allDomainsScope")}{p.context_scope ? ` / ${p.context_scope}` : ""}{p.data_contract_scope ? ` / ${p.data_contract_scope}` : ""}
                       </span>
                     </div>
@@ -444,15 +465,6 @@ export default function PoliciesPage() {
                 </div>
               </div>
             )}
-
-            <div className="mt-5 flex justify-end">
-              <button
-                onClick={() => setViewUserPolicies(null)}
-                className="rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
-              >
-                {t("close")}
-              </button>
-            </div>
           </div>
         </div>
       )}
@@ -471,17 +483,17 @@ export default function PoliciesPage() {
             <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
               <div>
                 <h3 className="text-sm font-semibold text-gray-900">
-                  Members of &ldquo;{viewGroupMembers.groupName}&rdquo;
+                  {tWith("membersOf", { name: viewGroupMembers.groupName })}
                 </h3>
                 <p className="text-[11px] text-gray-400">
-                  {viewGroupMembers.members.length} member{viewGroupMembers.members.length !== 1 ? "s" : ""}
+                  {tWith("memberCount", { count: String(viewGroupMembers.members.length), s: viewGroupMembers.members.length !== 1 ? "s" : "" })}
                 </p>
               </div>
               <button
                 onClick={() => setViewGroupMembers(null)}
                 className="editor-close-button"
-                aria-label="Close"
-                title="Close"
+                aria-label={t("close")}
+                title={t("close")}
                 type="button"
               >
                 <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -491,9 +503,9 @@ export default function PoliciesPage() {
             </div>
 
             {viewGroupMembers.loading ? (
-              <div className="flex-1 px-4 py-8 text-center text-sm text-gray-400">Loading...</div>
+              <div className="flex-1 px-4 py-8 text-center text-sm text-gray-400">{t("loading")}</div>
             ) : viewGroupMembers.members.length === 0 ? (
-              <div className="flex-1 px-4 py-8 text-center text-sm text-gray-400">No members</div>
+              <div className="flex-1 px-4 py-8 text-center text-sm text-gray-400">{t("noMembers")}</div>
             ) : (
               <div className="flex-1 overflow-y-auto px-4 py-2">
                 <div className="space-y-0.5">
