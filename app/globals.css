@@ -27,6 +27,10 @@ html {
   --width-nav-height: 56px;
 }
 
+.text-destructive {
+  color: var(--color-ui-danger);
+}
+
 :root {
   --font-sans: "Manrope", sans-serif;
   --font-mono: "IBM Plex Mono", monospace;
