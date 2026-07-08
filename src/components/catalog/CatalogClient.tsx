@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CatalogCard } from "@/src/components/catalog/CatalogCard";
 import { Button } from "@/src/components/ui/Button";
 import { Input } from "@/src/components/ui/Input";
+import { useToast } from "@/src/components/ui/ToastProvider";
 import { useT } from "@/src/lib/use-i18n";
 import type { CatalogCard as CatalogCardType } from "@/src/lib/types";
 
@@ -25,6 +26,7 @@ function humanize(value: string): string {
 
 export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError, initialSubscriptionSlugs }: { cards: CatalogCardType[]; canRequestUpgrade?: boolean; gitError?: boolean; initialSubscriptionSlugs?: Set<string> }) {
   const { t, tWith } = useT();
+  const { showToast } = useToast();
   const [showGitError, setShowGitError] = useState(gitError ?? false);
   const [cards, setCards] = useState(initialCards);
   const cardsRef = useRef(cards);
@@ -173,9 +175,10 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isPinned: next }),
     });
-    if (!res.ok) return;
+    if (!res.ok) { showToast("Erreur lors de l'épinglage", "error"); return; }
     setCards((prev) => prev.map((c) => (c.slug === slug ? { ...c, isPinned: next } : c)));
-  }, []);
+    showToast(next ? "Contrat épinglé" : "Contrat désépinglé");
+  }, [showToast]);
 
   const handleToggleFavorite = useCallback(async (slug: string) => {
     const card = cardsRef.current.find((c) => c.slug === slug);
@@ -186,10 +189,11 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isFavorite: next }),
     });
-    if (!res.ok) return;
+    if (!res.ok) { showToast("Erreur lors de la mise en favori", "error"); return; }
     setCards((prev) => prev.map((c) => (c.slug === slug ? { ...c, isFavorite: next } : c)));
     window.dispatchEvent(new CustomEvent("favorite-changed", { detail: { slug, isFavorite: next } }));
-  }, []);
+    showToast(next ? "Ajouté aux favoris" : "Retiré des favoris");
+  }, [showToast]);
 
   const handleToggleSubscription = useCallback(async (slug: string) => {
     const currentlySubscribed = subscribedSlugsRef.current.has(slug);
@@ -198,14 +202,15 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(currentlySubscribed ? { channel: null } : {}),
     });
-    if (!res.ok) return;
+    if (!res.ok) { showToast("Erreur lors de la gestion de l'abonnement", "error"); return; }
     setSubscribedSlugs((prev) => {
       const next = new Set(prev);
       if (currentlySubscribed) next.delete(slug); else next.add(slug);
       return next;
     });
     window.dispatchEvent(new CustomEvent("subscription-changed", { detail: { slug, subscribed: !currentlySubscribed } }));
-  }, []);
+    showToast(currentlySubscribed ? "Abonnement supprimé" : "Abonnement activé");
+  }, [showToast]);
 
   const accessibleCount = useMemo(() => cards.filter((c) => c.accessible).length, [cards]);
   const favoriteCount = useMemo(() => cards.filter((c) => c.isFavorite).length, [cards]);
