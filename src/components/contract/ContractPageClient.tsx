@@ -7,6 +7,7 @@ import dynamic from "next/dynamic";
 import yaml from "js-yaml";
 
 import { useT } from "@/src/lib/use-i18n";
+import { useToast } from "@/src/components/ui/ToastProvider";
 import { ContractBody } from "@/src/components/contract/ContractBody";
 import { DiscussionThread } from "@/src/components/contract/DiscussionThread";
 import { ContractHeader } from "@/src/components/contract/ContractHeader";
@@ -152,6 +153,7 @@ export function ContractPageClient({
   initialIsFavorite?: boolean;
 }) {
   const { t, tWith } = useT();
+  const { showToast } = useToast();
   const [activeVersion, setActiveVersion] = useState<{
     entry: ContractHistoryEntry;
     data: DataContract;
@@ -296,10 +298,11 @@ export function ContractPageClient({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isFavorite: next }),
     });
-    if (!res.ok) return;
+    if (!res.ok) { showToast("Erreur lors de la mise en favori", "error"); return; }
     const result = (await res.json()) as { preferences?: { isFavorite?: boolean } };
     setIsFavorite(Boolean(result?.preferences?.isFavorite));
     window.dispatchEvent(new CustomEvent("favorite-changed", { detail: { slug, isFavorite: Boolean(result?.preferences?.isFavorite) } }));
+    showToast("Favori mis à jour");
   }
 
   function TabIcon({ name }: { name: "details" | "discussion" }) {

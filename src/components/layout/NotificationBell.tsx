@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 import { useT } from "@/src/lib/use-i18n";
+import { useToast } from "@/src/components/ui/ToastProvider";
 
 type NotificationItem = {
   id: number;
@@ -32,6 +33,7 @@ type ContractItem = {
 
 export function NotificationBell() {
   const { t, tWith } = useT();
+  const { showToast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -188,9 +190,12 @@ export function NotificationBell() {
           ]);
         }
         window.dispatchEvent(new CustomEvent("subscription-changed", { detail: { slug, subscribed: !currentlySubscribed } }));
+        showToast(currentlySubscribed ? "Abonnement supprimé" : "Abonnement activé");
+      } else {
+        showToast("Erreur lors de la gestion de l'abonnement", "error");
       }
     } catch {
-      // silent
+      showToast("Erreur réseau", "error");
     } finally {
       setSavingSlug(null);
     }
