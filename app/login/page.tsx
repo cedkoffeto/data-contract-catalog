@@ -8,13 +8,17 @@ export default async function LoginPage({
   searchParams?: Promise<{ callbackUrl?: string }>;
 }) {
   const resolved = await searchParams;
+  const raw = resolved?.callbackUrl;
   const callbackUrl =
-    typeof resolved?.callbackUrl === "string" &&
-    resolved.callbackUrl.startsWith("/") &&
-    !resolved.callbackUrl.startsWith("//") &&
-    !resolved.callbackUrl.startsWith("/api/auth") &&
-    !resolved.callbackUrl.startsWith("/realms/")
-      ? resolved.callbackUrl
+    typeof raw === "string" &&
+    raw.startsWith("/") &&
+    !raw.startsWith("//") &&
+    !raw.startsWith("/api/auth") &&
+    !raw.startsWith("/realms/") &&
+    !raw.includes("@") &&
+    !/[?&]/.test(raw.slice(1)) &&
+    /^\/[\w/%-]+$/.test(raw)
+      ? raw
       : "/";
 
   return (
