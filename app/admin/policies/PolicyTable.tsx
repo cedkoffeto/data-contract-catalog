@@ -1,6 +1,7 @@
 "use client";
 
 import type { Policy } from "./types";
+import { t, tWith } from "@/src/lib/i18n";
 
 function EyeIcon() {
   return (
@@ -19,10 +20,10 @@ function PencilIcon() {
 }
 
 function formatScope(domain: string | null, context: string | null, dataContract?: string | null) {
-  if (domain === null && context === null && !dataContract) return "All domains & contexts";
-  if (context === null && !dataContract) return `Domain: ${domain}`;
-  if (dataContract) return `${domain} / ${context} / ${dataContract}`;
-  return `${domain} / ${context}`;
+  if (domain === null && context === null && !dataContract) return t("allDomainsAndContexts");
+  if (context === null && !dataContract) return tWith("scopeDomain", { domain: domain ?? "" });
+  if (dataContract) return tWith("scopeFull", { domain: domain ?? "", context: context ?? "", contract: dataContract });
+  return tWith("scopeDomainContext", { domain: domain ?? "", context: context ?? "" });
 }
 
 export default function PolicyTable({
@@ -61,20 +62,20 @@ export default function PolicyTable({
           className="flex-1 rounded-md border bg-white px-3 py-2 text-sm text-gray-900"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Filter policies…"
+          placeholder={t("filterPolicies")}
         />
         <span className="whitespace-nowrap text-sm text-gray-400">
-          {filteredPolicies.length} of {policies.length} policies
+          {tWith("xOfYPolicies", { count: String(filteredPolicies.length), total: String(policies.length) })}
         </span>
       </div>
 
       {policies.length === 0 ? (
         <div className="rounded-lg border bg-white py-12 text-center text-sm text-gray-400">
-          No policies yet. Create one above.
+          {t("noPoliciesYet")}
         </div>
       ) : filteredPolicies.length === 0 ? (
         <div className="rounded-lg border bg-white py-12 text-center text-sm text-gray-400">
-          No policies match your filter.
+          {t("noPoliciesMatch")}
         </div>
       ) : (
         <div className="w-full overflow-x-auto rounded-lg border shadow-lg">
@@ -82,7 +83,7 @@ export default function PolicyTable({
             <thead className="bg-gray-50">
               <tr>
                 {(["id", "target", "permission_name", "scope"] as const).map((key) => {
-                  const labels: Record<string, string> = { id: "ID", target: "Target", permission_name: "Permission", scope: "Scope" };
+                  const labels: Record<string, string> = { id: t("id"), target: t("target"), permission_name: t("permissionLabel"), scope: t("scope") };
                   const widths: Record<string, string> = { id: "w-[8%]", target: "w-[32%]", permission_name: "w-[12%]", scope: "w-[30%]" };
                   return (
                     <th key={key} className={`${widths[key]} px-6 py-3 text-left font-medium text-gray-500`}>
@@ -90,7 +91,7 @@ export default function PolicyTable({
                     </th>
                   );
                 })}
-                <th className="w-[18%] px-6 py-3 text-right font-medium text-gray-500">Actions</th>
+                <th className="w-[18%] px-6 py-3 text-right font-medium text-gray-500">{t("tblActions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -102,12 +103,12 @@ export default function PolicyTable({
                     <td className="whitespace-nowrap px-6 py-4">
                       {p.user_id ? (
                         <span>
-                          <span className="text-xs text-gray-400">user:</span>{" "}
+                          <span className="text-xs text-gray-400">{t("userLabel")}</span>{" "}
                           <span className="font-medium text-gray-900">{p.user_id}</span>
                         </span>
                       ) : (
                         <span>
-                          <span className="text-xs text-gray-400">group:</span>{" "}
+                          <span className="text-xs text-gray-400">{t("groupLabel")}</span>{" "}
                           <span className="font-medium text-gray-900">{groupName || `#${p.group_id}`}</span>
                         </span>
                       )}
@@ -134,7 +135,7 @@ export default function PolicyTable({
                             className="editor-soft-button"
                           >
                             <EyeIcon />
-                            <span className="ml-1.5">View</span>
+                            <span className="ml-1.5">{t("view")}</span>
                           </button>
                         ) : (
                           <button
@@ -144,27 +145,27 @@ export default function PolicyTable({
                             <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                               <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
                             </svg>
-                            <span className="ml-1.5">Members</span>
+                            <span className="ml-1.5">{t("members")}</span>
                           </button>
                         )}
                         <button
                           onClick={() => onEdit(p)}
                           className="editor-soft-button"
                           disabled={isProtected(p)}
-                          title={isProtected(p) ? "Cannot modify primary admin's policies" : undefined}
+                          title={isProtected(p) ? t("cannotModifyPrimaryAdmin") : undefined}
                           style={{ opacity: isProtected(p) ? 0.4 : 1, cursor: isProtected(p) ? "not-allowed" : "pointer" }}
                         >
                           <PencilIcon />
-                          <span className="ml-1.5">Edit</span>
+                          <span className="ml-1.5">{t("edit")}</span>
                         </button>
                         <button
                           onClick={() => onDelete(p.id)}
                           className="rounded-md px-3 py-1.5 text-sm font-bold text-white"
                           style={{ backgroundColor: isProtected(p) ? "#9ca3af" : "#dc2626", cursor: isProtected(p) ? "not-allowed" : "pointer" }}
                           disabled={isProtected(p)}
-                          title={isProtected(p) ? "Cannot modify primary admin's policies" : undefined}
+                          title={isProtected(p) ? t("cannotModifyPrimaryAdmin") : undefined}
                         >
-                          Delete
+                          {t("deleteGroup")}
                         </button>
                       </div>
                     </td>

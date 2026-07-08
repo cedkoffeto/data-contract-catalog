@@ -1,6 +1,7 @@
 "use client";
 
 import type { ConflictDialog as ConflictDialogType } from "./types";
+import { t, tWith } from "@/src/lib/i18n";
 
 export default function ConflictDialog({
   dialog,
@@ -15,12 +16,12 @@ export default function ConflictDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/50" onClick={onCancel} />
       <div className="relative z-10 rounded-lg bg-white p-6 shadow-xl" style={{ width: "min(70vw, 850px)" }}>
-        <h3 className="text-base font-semibold text-gray-900">Conflicting policy</h3>
+        <h3 className="text-base font-semibold text-gray-900">{t("conflictTitle")}</h3>
         <p className="mt-2 text-sm text-gray-600">{dialog.message}</p>
 
         {dialog.newPolicy && (
           <div className="mt-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">New policy</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">{t("newPolicyHeading")}</p>
             <table className="mt-1 w-full text-sm" style={{ tableLayout: "fixed" }}>
               <colgroup>
                 <col className="w-[35%]" />
@@ -29,9 +30,9 @@ export default function ConflictDialog({
               </colgroup>
               <thead>
                 <tr className="border-b border-gray-100 text-left text-xs text-gray-400">
-                  <th className="py-1 pr-4">Target</th>
-                  <th className="py-1 pr-4">Permission</th>
-                  <th className="py-1">Scope</th>
+                  <th className="py-1 pr-4">{t("target")}</th>
+                  <th className="py-1 pr-4">{t("permissionLabel")}</th>
+                  <th className="py-1">{t("scope")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -48,7 +49,7 @@ export default function ConflictDialog({
                     </span>
                   </td>
                   <td className="py-1 text-xs">
-                    {dialog.newPolicy.domainScope ?? "all domains"}
+                    {dialog.newPolicy.domainScope ?? t("allDomainsScope")}
                     {dialog.newPolicy.contextScope ? ` / ${dialog.newPolicy.contextScope}` : ""}
                     {dialog.newPolicy.dataContractScope ? ` / ${dialog.newPolicy.dataContractScope}` : ""}
                   </td>
@@ -61,7 +62,7 @@ export default function ConflictDialog({
         {dialog.affectedPolicies && dialog.affectedPolicies.length > 0 && (
           <div className="mt-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-              Existing policies affected ({dialog.affectedPolicies.length})
+              {tWith("policiesAffected", { count: String(dialog.affectedPolicies.length) })}
             </p>
             <table className="mt-1 w-full text-sm" style={{ tableLayout: "fixed" }}>
               <colgroup>
@@ -71,9 +72,9 @@ export default function ConflictDialog({
               </colgroup>
               <thead>
                 <tr className="border-b border-gray-100 text-left text-xs text-gray-400">
-                  <th className="py-1 pr-4">Target</th>
-                  <th className="py-1 pr-4">Permission</th>
-                  <th className="py-1">Scope</th>
+                  <th className="py-1 pr-4">{t("target")}</th>
+                  <th className="py-1 pr-4">{t("permissionLabel")}</th>
+                  <th className="py-1">{t("scope")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -91,7 +92,7 @@ export default function ConflictDialog({
                       </span>
                     </td>
                     <td className="py-1 text-xs">
-                      {p.domain_scope ?? "all domains"}
+                      {p.domain_scope ?? t("allDomainsScope")}
                       {p.context_scope ? ` / ${p.context_scope}` : ""}
                       {p.data_contract_scope ? ` / ${p.data_contract_scope}` : ""}
                     </td>
@@ -107,14 +108,14 @@ export default function ConflictDialog({
             onClick={onCancel}
             className="rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
           >
-            Cancel
+            {t("cancel")}
           </button>
           <button
             onClick={onConfirm}
             className="rounded-md px-4 py-2 text-sm font-bold text-white"
             style={{ backgroundColor: "#dc2626" }}
           >
-            {dialog.type === "broader" ? "Extend policy" : "Apply anyway"}
+            {dialog.type === "broader" ? t("extendPolicy") : t("applyAnyway")}
           </button>
         </div>
       </div>
