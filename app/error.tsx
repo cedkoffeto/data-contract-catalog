@@ -18,7 +18,7 @@ export default function GlobalError({
               </svg>
             </div>
             <p className="text-base font-semibold text-gray-900">Erreur inattendue</p>
-            <h1 className="text-7xl font-bold text-gray-400">500</h1>
+            <h1 className="text-7xl font-bold" style={{ color: "var(--ui-primary, #f97316)" }}>500</h1>
           </div>
           <p className="mt-1 text-sm text-gray-500">
             Une erreur inattendue s&apos;est produite. Veuillez réessayer ou contacter l&apos;équipe technique.

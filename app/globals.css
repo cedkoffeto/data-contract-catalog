@@ -701,12 +701,6 @@ a {
 }
 
 /* ── Admin KPI Grid ── */
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
-}
-
 a:has(> .kpi-card) {
   text-decoration: none;
   color: inherit;

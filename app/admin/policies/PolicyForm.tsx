@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/src/components/ui/Button";
 import { Spinner } from "@/src/components/ui/Spinner";
+import { useT } from "@/src/lib/use-i18n";
 import type { Group, Permission, Policy, Scope } from "./types";
 
 function UserAutocomplete({
@@ -15,6 +16,7 @@ function UserAutocomplete({
   onChange: (v: string) => void;
   validUsers: Array<{ userId: string; email?: string | null }>;
 }) {
+  const { t } = useT();
   const [query, setQuery] = useState("");
   const [users, setUsers] = useState<Array<{ userId: string; email?: string | null }>>([]);
   const [open, setOpen] = useState(false);
@@ -65,25 +67,25 @@ function UserAutocomplete({
         }}
         onClick={() => setOpen(!open)}
       >
-        <span>{selected ? (selected.email ? `${selected.userId} (${selected.email})` : selected.userId) : "Search users\u2026"}</span>
+        <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{selected ? (selected.email ? `${selected.userId} (${selected.email})` : selected.userId) : t("searchUsers")}</span>
         <svg className={`h-4 w-4 shrink-0 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </svg>
       </button>
       {open && (
-        <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border bg-white shadow-lg">
+        <div className="absolute z-10 mt-1 min-w-full rounded-md border bg-white shadow-lg">
           <div className="border-b border-gray-100 p-1">
             <input
               ref={searchRef}
               className="w-full rounded border px-2 py-1.5 text-sm outline-none focus:border-gray-300"
-              placeholder="Search users..."
+              placeholder={t("searchUsersPlaceholder")}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
           <div className="max-h-40 overflow-auto">
             {users.length === 0 ? (
-              <p className="px-3 py-2 text-sm text-gray-400">No matches</p>
+              <p className="px-3 py-2 text-sm text-gray-400">{t("noMatches")}</p>
             ) : (
               users.map((u) => (
                 <button
@@ -93,7 +95,7 @@ function UserAutocomplete({
                   className="flex w-full px-3 py-2 text-left text-sm hover:bg-gray-50"
                   style={{ fontWeight: u.userId === value ? "600" : "400" }}
                 >
-                  {u.email ? `${u.userId} (${u.email})` : u.userId}
+                  <span className="whitespace-nowrap">{u.email ? `${u.userId} (${u.email})` : u.userId}</span>
                 </button>
               ))
             )}
@@ -117,6 +119,7 @@ function ScopeDropdown({
   options: string[];
   disabled?: boolean;
 }) {
+  const { t } = useT();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
@@ -158,19 +161,19 @@ function ScopeDropdown({
         </svg>
       </button>
       {open && !disabled && (
-        <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border bg-white shadow-lg">
+        <div className="absolute z-10 mt-1 min-w-full rounded-md border bg-white shadow-lg">
           <div className="border-b border-gray-100 p-1">
             <input
               ref={searchRef}
               className="w-full rounded border px-2 py-1.5 text-sm outline-none focus:border-gray-300"
-              placeholder="Filter..."
+              placeholder={t("filter_")}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
           <div className="max-h-40 overflow-auto">
             {filtered.length === 0 ? (
-              <p className="px-3 py-2 text-sm text-gray-400">No matches</p>
+              <p className="px-3 py-2 text-sm text-gray-400">{t("noMatches")}</p>
             ) : (
               filtered.map((o) => (
                 <button
@@ -204,6 +207,7 @@ function DataContractSelect({
   context: string;
   disabled?: boolean;
 }) {
+  const { t } = useT();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<{ slug: string; title: string }[]>([]);
@@ -255,25 +259,25 @@ function DataContractSelect({
         onClick={() => !disabled && setOpen(!open)}
         disabled={disabled}
       >
-        <span className={value ? "text-gray-900" : "text-gray-400"}>{selected ? (selected.title ? `${selected.slug} — ${selected.title}` : selected.slug) : (disabled ? "Admin = global access" : "e.g. credit_engagement")}</span>
+        <span className={`min-w-0 overflow-hidden text-ellipsis whitespace-nowrap ${value ? "text-gray-900" : "text-gray-400"}`} title={selected?.slug}>{selected ? selected.slug : (disabled ? "Admin = global access" : "e.g. credit_engagement")}</span>
         <svg className={`h-4 w-4 shrink-0 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </svg>
       </button>
       {open && !disabled && (
-        <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border bg-white shadow-lg">
+        <div className="absolute z-10 mt-1 min-w-full rounded-md border bg-white shadow-lg">
           <div className="border-b border-gray-100 p-1">
             <input
               ref={searchRef}
               className="w-full rounded border px-2 py-1.5 text-sm outline-none focus:border-gray-300"
-              placeholder="Filter..."
+              placeholder={t("filter_")}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
           <div className="max-h-40 overflow-auto">
             {filtered.length === 0 ? (
-              <p className="px-3 py-2 text-sm text-gray-400">No matches</p>
+              <p className="px-3 py-2 text-sm text-gray-400">{t("noMatches")}</p>
             ) : (
               filtered.map((s) => (
                 <button
@@ -283,7 +287,7 @@ function DataContractSelect({
                   className="flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-gray-50"
                   style={{ fontWeight: s.slug === value ? "600" : "400" }}
                 >
-                  <span>{s.slug}</span>
+                  <span className="whitespace-nowrap">{s.slug}</span>
                   {s.title && <span className="text-xs text-gray-400">{s.title}</span>}
                 </button>
               ))
@@ -304,6 +308,7 @@ function GroupSelect({
   onChange: (v: string) => void;
   groups: Group[];
 }) {
+  const { t } = useT();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
@@ -345,7 +350,7 @@ function GroupSelect({
         </svg>
       </button>
       {open && (
-        <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-md border bg-white shadow-lg">
+        <div className="absolute z-10 mt-1 min-w-full rounded-md border bg-white shadow-lg">
           <div className="border-b border-gray-100 p-1">
             <input
               ref={searchRef}
@@ -357,7 +362,7 @@ function GroupSelect({
           </div>
           <div className="max-h-40 overflow-auto">
             {filtered.length === 0 ? (
-              <p className="px-3 py-2 text-sm text-gray-400">No matches</p>
+              <p className="px-3 py-2 text-sm text-gray-400">{t("noMatches")}</p>
             ) : (
               filtered.map((g) => (
                 <button

@@ -366,7 +366,7 @@ export default function PoliciesPage() {
       />
 
       {loading ? (
-        <div className="h-64 rounded-lg border bg-gray-50" />
+        <div className="h-64 w-full rounded-lg border bg-gray-50" />
       ) : (
         <PolicyTable
           policies={policies}

@@ -79,19 +79,18 @@ export default function PolicyTable({
         </div>
       ) : (
         <div className="w-full overflow-x-auto rounded-lg border shadow-lg">
-          <table className="w-full table-fixed divide-y divide-gray-200 bg-white text-sm">
+          <table className="w-full divide-y divide-gray-200 bg-white text-sm">
             <thead className="bg-gray-50">
               <tr>
                 {(["id", "target", "permission_name", "scope"] as const).map((key) => {
                   const labels: Record<string, string> = { id: t("id"), target: t("target"), permission_name: t("permissionLabel"), scope: t("scope") };
-                  const widths: Record<string, string> = { id: "w-[8%]", target: "w-[32%]", permission_name: "w-[12%]", scope: "w-[30%]" };
                   return (
-                    <th key={key} className={`${widths[key]} px-6 py-3 text-left font-medium text-gray-500`}>
+                    <th key={key} className="px-6 py-3 text-left font-medium text-gray-500">
                       {labels[key]}
                     </th>
                   );
                 })}
-                <th className="w-[18%] px-6 py-3 text-right font-medium text-gray-500">{t("tblActions")}</th>
+                <th className="px-6 py-3 text-right font-medium text-gray-500">{t("tblActions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">

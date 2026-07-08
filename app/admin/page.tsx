@@ -88,7 +88,7 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6 px-6 lg:px-8">
       <div className="rounded-lg border bg-white p-6">
-        <div className="kpi-grid">
+        <div className="grid grid-cols-4 max-lg:grid-cols-3 max-md:grid-cols-2 max-sm:grid-cols-1 gap-4">
           {cards.map((c) => {
             const inner = (
               <div className="kpi-card" style={{ borderLeft: "4px solid #f97316", backgroundColor: "rgba(249,115,22,0.08)" }}>
@@ -338,11 +338,11 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
           </div>
         ) : null}
         <div className="w-full overflow-x-auto rounded-lg border shadow-lg">
-          <table className="w-full table-fixed divide-y divide-gray-200 bg-white text-sm">
+          <table className="w-full divide-y divide-gray-200 bg-white text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  {[{ label: t("tblId"), key: "id", w: "w-[5%]" }, { label: t("tblContract"), key: "contractSlug", w: "w-[11%]" }, { label: t("tblEditor"), key: "editorId", w: "w-[11%]" }, { label: t("tblStatus"), key: "status", w: "w-[8%]" }, { label: "Source", key: "source", w: "w-[7%]" }, { label: t("tblMrUrl"), key: "gitlabMrUrl", w: "w-[8%]" }, { label: t("tblRejection"), key: "rejectionReason", w: "w-[12%]" }, { label: t("tblCreated"), key: "createdAt", w: "w-[11%]" }, { label: "Updated", key: "updatedAt", w: "w-[11%]" }, { label: t("tblActions"), key: null, w: "w-[16%]" }].map(({ label, key, w }) => (
-                    <th key={label} className={`${w} px-3 py-2 text-left font-semibold text-gray-500 ${key ? "cursor-pointer select-none hover:bg-gray-100" : ""}`} onClick={() => key && toggleSort(key)}>
+                  {[{ label: t("tblId"), key: "id" }, { label: t("tblContract"), key: "contractSlug" }, { label: t("tblEditor"), key: "editorId" }, { label: t("tblStatus"), key: "status" }, { label: "Source", key: "source" }, { label: t("tblMrUrl"), key: "gitlabMrUrl" }, { label: t("tblRejection"), key: "rejectionReason" }, { label: t("tblCreated"), key: "createdAt" }, { label: "Updated", key: "updatedAt" }, { label: t("tblActions"), key: null }].map(({ label, key }) => (
+                    <th key={label} className={`px-3 py-2 text-left font-semibold text-gray-500 ${key ? "cursor-pointer select-none hover:bg-gray-100" : ""}`} onClick={() => key && toggleSort(key)}>
                       <span className="inline-flex items-center gap-1">
                         {label}
                         {key && sortKey === key && (
@@ -663,14 +663,14 @@ function AuditLogSection() {
         </span>
       </div>
       <div className="w-full overflow-x-auto rounded-lg border shadow-lg">
-          <table className="w-full table-fixed divide-y divide-gray-200 bg-white text-sm">
+          <table className="w-full divide-y divide-gray-200 bg-white text-sm">
             <thead className="bg-gray-50">
               <tr>
-                {[{ key: "created_at", label: t("tblDate"), w: "w-[15%]" }, { key: "action", label: t("tblAction"), w: "w-[13%]" }, { key: "target_id", label: "Actor", w: "w-[37%]" }, { key: "details", label: t("tblDetails"), w: "w-[35%]" }].map(({ key, label, w }) => (
+                {[{ key: "created_at", label: t("tblDate") }, { key: "action", label: t("tblAction") }, { key: "target_id", label: "Actor" }, { key: "details", label: t("tblDetails") }].map(({ key, label }) => (
                   <th
                     key={key}
                     onClick={() => { toggleSort(key); }}
-                    className={`${w} cursor-pointer select-none px-3 py-2 text-left font-semibold text-gray-500 hover:text-gray-700`}
+                    className="cursor-pointer select-none px-3 py-2 text-left font-semibold text-gray-500 hover:text-gray-700"
                   >
                     <span className="inline-flex items-center gap-1">
                       {label}
@@ -699,7 +699,7 @@ function AuditLogSection() {
                     <td className="px-3 py-2 text-gray-600 whitespace-nowrap">
                       {log.actor_id} <span className="text-gray-400">→</span> {log.target_type}:{log.target_id}
                     </td>
-                    <td className="truncate px-3 py-2 text-gray-600 cursor-pointer hover:text-blue-600 hover:underline" onClick={() => toggleExpand(log.id)}>
+                    <td className="whitespace-nowrap px-3 py-2 text-gray-600 cursor-pointer hover:text-blue-600 hover:underline" onClick={() => toggleExpand(log.id)}>
                       {shortDetails(log.action, log.details) ?? "\u2014"}
                     </td>
                   </tr>
@@ -840,11 +840,11 @@ function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number)
         </span>
       </div>
       <div className="w-full overflow-x-auto rounded-lg border shadow-lg">
-          <table className="w-full table-fixed divide-y divide-gray-200 bg-white text-sm">
+          <table className="w-full divide-y divide-gray-200 bg-white text-sm">
             <thead className="bg-gray-50">
               <tr>
-                {[{ label: t("tblId"), key: "id", w: "w-[5%]" }, { label: "User", key: "user_id", w: "w-[11%]" }, { label: "Domain", key: "domain", w: "w-[8%]" }, { label: "Context", key: "context", w: "w-[11%]" }, { label: "Contract", key: "data_contract", w: "w-[11%]" }, { label: "Permission", key: "requested_permission", w: "w-[8%]" }, { label: "Message", key: null, w: "w-[15%]" }, { label: "Created", key: "created_at", w: "w-[9%]" }, { label: "Updated", key: "updated_at", w: "w-[9%]" }, { label: t("tblStatus"), key: "status", w: "w-[7%]" }, { label: t("tblActions"), key: null, w: "w-[6%]" }].map(({ label, key, w }) => (
-                  <th key={label} className={`${w} px-3 py-2 text-left font-semibold text-gray-500 ${key ? "cursor-pointer select-none hover:bg-gray-100" : ""}`} onClick={() => key && toggleSort(key)}>
+                {[{ label: t("tblId"), key: "id" }, { label: "User", key: "user_id" }, { label: "Domain", key: "domain" }, { label: "Context", key: "context" }, { label: "Contract", key: "data_contract" }, { label: "Permission", key: "requested_permission" }, { label: "Message", key: null }, { label: "Created", key: "created_at" }, { label: "Updated", key: "updated_at" }, { label: t("tblStatus"), key: "status" }, { label: t("tblActions"), key: null }].map(({ label, key }) => (
+                  <th key={label} className={`px-3 py-2 text-left font-semibold text-gray-500 ${key ? "cursor-pointer select-none hover:bg-gray-100" : ""}`} onClick={() => key && toggleSort(key)}>
                     <span className="inline-flex items-center gap-1">
                       {label}
                       {key && sortKey === key && (

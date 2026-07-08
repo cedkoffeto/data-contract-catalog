@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { t } from "@/src/lib/i18n";
+import { t, tWith } from "@/src/lib/i18n";
 
 import { Button } from "@/src/components/ui/Button";
 import { ConfirmDialog } from "@/src/components/ui/ConfirmDialog";
@@ -217,10 +217,10 @@ export default function GroupsPage() {
       )}
 
       <div className="rounded-lg border bg-white p-6">
-        <h2 className="mb-4 text-base font-semibold text-gray-900">Create new group</h2>
+        <h2 className="mb-4 text-base font-semibold text-gray-900">{t("createNewGroup")}</h2>
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex-1" style={{ minWidth: "400px" }}>
-            <label className="mb-1 block text-xs font-medium text-gray-500">Group name</label>
+            <label className="mb-1 block text-xs font-medium text-gray-500">{t("groupName")}</label>
             <input
               className="w-full rounded-md border bg-white px-3 py-2 text-sm text-gray-900"
               style={{ borderColor: "#d1d5db" }}
@@ -231,7 +231,7 @@ export default function GroupsPage() {
                   handleCreate();
                 }
               }}
-              placeholder="e.g. data_engineering"
+              placeholder={t("groupNamePlaceholder")}
             />
           </div>
           <Button
@@ -245,7 +245,7 @@ export default function GroupsPage() {
             }}
             className="border-0 font-bold"
           >
-            {creating ? <span className="inline-flex items-center gap-1.5"><Spinner /> Creating...</span> : "Create"}
+            {creating ? <span className="inline-flex items-center gap-1.5"><Spinner /> {t("creating")}</span> : t("create")}
           </Button>
         </div>
       </div>
@@ -256,34 +256,34 @@ export default function GroupsPage() {
             className="flex-1 rounded-md border bg-white px-3 py-2 text-sm text-gray-900"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Filter by group name or member…"
+            placeholder={t("filterByGroupOrMember")}
           />
           <span className="whitespace-nowrap text-sm text-gray-400">
-            {filteredGroups.length} of {groups.length} groups
+            {tWith("xOfYGroups", { count: String(filteredGroups.length), total: String(groups.length) })}
           </span>
         </div>
 
         {groups.length === 0 ? (
           <div className="rounded-lg border bg-white py-12 text-center text-sm text-gray-400">
-            No groups yet. Create one above.
+            {t("noGroupsYet")}
           </div>
         ) : filteredGroups.length === 0 ? (
           <div className="rounded-lg border bg-white py-12 text-center text-sm text-gray-400">
-            No groups match your filter.
+            {t("noGroupsMatch")}
           </div>
         ) : (
           <div className="w-full overflow-x-auto rounded-lg border bg-white">
-            <table className="w-full table-fixed text-sm">
+            <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="w-[30%] px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                    Group Name
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    {t("groupNameColumn")}
                   </th>
-                  <th className="w-[50%] px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                    Members
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    {t("members")}
                   </th>
-                  <th className="w-[20%] px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">
-                    Actions
+                  <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    {t("tblActions")}
                   </th>
                 </tr>
               </thead>
@@ -300,7 +300,7 @@ export default function GroupsPage() {
                       <td className="whitespace-nowrap px-6 py-4">
                         <div className="flex flex-wrap items-center gap-1.5">
                           {members.length === 0 ? (
-                            <span className="text-sm text-gray-400">No members</span>
+                            <span className="text-sm text-gray-400">{t("noMembers")}</span>
                           ) : (
                             <>
                               {visibleMembers.map((m) => (
@@ -317,7 +317,7 @@ export default function GroupsPage() {
                                   onClick={() => setMembersPopoverGroup(group)}
                                   className="text-xs font-medium text-indigo-600 hover:text-indigo-800"
                                 >
-                                  +{remainingCount} more
+                                  {tWith("plusNMore", { count: String(remainingCount) })}
                                 </button>
                               )}
                             </>
@@ -337,14 +337,14 @@ export default function GroupsPage() {
                             }}
                             className="editor-soft-button"
                           >
-                            Manage
+                            {t("manage")}
                           </button>
                           <button
                             onClick={() => setDeleteTarget(group)}
                             className="rounded-md px-3 py-1.5 text-sm font-bold text-white"
                             style={{ backgroundColor: "#dc2626" }}
                           >
-                            Delete
+                            {t("deleteGroup")}
                           </button>
                         </div>
                       </td>
@@ -359,9 +359,9 @@ export default function GroupsPage() {
 
       <ConfirmDialog
         open={deleteTarget !== null}
-        title="Delete group?"
-        message={`Are you sure you want to delete the group "${deleteTarget?.name}"? This action cannot be undone.`}
-        confirmLabel="Yes, Delete"
+        title={t("deleteGroupTitle")}
+        message={deleteTarget ? tWith("deleteGroupConfirm", { name: deleteTarget.name }) : ""}
+        confirmLabel={t("yesDelete")}
         onConfirm={() => deleteTarget && handleDelete(deleteTarget)}
         onCancel={() => setDeleteTarget(null)}
       />
@@ -390,10 +390,10 @@ export default function GroupsPage() {
             <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
               <div>
                 <h3 className="text-sm font-semibold text-gray-900">
-                  Members of &ldquo;{membersPopoverGroup.name}&rdquo;
+                  {tWith("membersOf", { name: membersPopoverGroup.name })}
                 </h3>
                 <p className="text-[11px] text-gray-400">
-                  {getMembers(membersPopoverGroup.id).length} member{getMembers(membersPopoverGroup.id).length !== 1 ? "s" : ""}
+                  {tWith("memberCount", { count: String(getMembers(membersPopoverGroup.id).length), s: getMembers(membersPopoverGroup.id).length !== 1 ? "s" : "" })}
                 </p>
               </div>
               <button
@@ -415,7 +415,7 @@ export default function GroupsPage() {
                 style={{ borderColor: "#d1d5db" }}
                 value={membersFilter}
                 onChange={(e) => setMembersFilter(e.target.value)}
-                placeholder="Filter members…"
+                placeholder={t("filterMembers")}
                 autoFocus
               />
             </div>
@@ -429,7 +429,7 @@ export default function GroupsPage() {
                   : getMembers(membersPopoverGroup.id);
                 return filtered.length === 0 ? (
                   <div className="py-8 text-center text-sm text-gray-400">
-                    {membersFilter ? "No members match your filter" : "No members"}
+                    {membersFilter ? t("noMembersMatchFilter") : t("noMembers")}
                   </div>
                 ) : (
                   <div className="space-y-0.5">
@@ -442,7 +442,7 @@ export default function GroupsPage() {
                         <button
                           onClick={() => setRemoveMemberTarget({ group: membersPopoverGroup, userId: m.user_id })}
                           className="rounded p-0.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
-                          title={`Remove ${m.user_id} from ${membersPopoverGroup.name}`}
+                          title={tWith("removeMemberConfirm", { user: m.user_id, group: membersPopoverGroup.name })}
                         >
                           <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -461,9 +461,9 @@ export default function GroupsPage() {
 
       <ConfirmDialog
         open={removeMemberTarget !== null}
-        title="Remove member?"
-        message={`Remove "${removeMemberTarget?.userId}" from "${removeMemberTarget?.group.name}"?`}
-        confirmLabel="Remove"
+        title={t("removeMemberTitle")}
+        message={removeMemberTarget ? tWith("removeMemberConfirm", { user: removeMemberTarget.userId, group: removeMemberTarget.group.name }) : ""}
+        confirmLabel={t("removeMember")}
         onConfirm={() => removeMemberTarget && handleRemoveMember(removeMemberTarget.group, removeMemberTarget.userId)}
         onCancel={() => setRemoveMemberTarget(null)}
       />
@@ -535,12 +535,12 @@ function MemberManagerModal({
         <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
           <div>
             <h3 className="text-sm font-semibold text-gray-900">
-              Manage members of &ldquo;{groupName}&rdquo;
+              {tWith("manageMembersOf", { name: groupName })}
             </h3>
             <p className="text-[11px] text-gray-400">
-              {currentMembers.length} current member{currentMembers.length !== 1 ? "s" : ""}
-              {added.length > 0 && ` · ${added.length} to add`}
-              {removed.length > 0 && ` · ${removed.length} to remove`}
+              {tWith("currentMembers", { count: String(currentMembers.length), s: currentMembers.length !== 1 ? "s" : "" })}
+              {added.length > 0 && ` · ${tWith("toAdd", { count: String(added.length) })}`}
+              {removed.length > 0 && ` · ${tWith("toRemove", { count: String(removed.length) })}`}
             </p>
           </div>
           <button
@@ -563,11 +563,11 @@ function MemberManagerModal({
               style={{ borderColor: "#d1d5db" }}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Filter users…"
+              placeholder={t("filterUsers")}
               autoFocus
             />
             <span className="text-[11px] text-gray-400">
-              {selected.length} selected
+              {tWith("xSelected", { count: String(selected.length) })}
             </span>
           </div>
         </div>
@@ -575,7 +575,7 @@ function MemberManagerModal({
         <div className="flex-1 overflow-y-auto px-4 py-2">
           {filtered.length === 0 ? (
             <div className="py-6 text-center text-sm text-gray-400">
-              {search ? "No users match your filter" : "No users available"}
+              {search ? t("noUsersMatchFilter") : t("noUsersAvailable")}
             </div>
           ) : (
             <div className="space-y-0.5">
@@ -610,7 +610,7 @@ function MemberManagerModal({
                       </span>
                     {isCurrent && isSelected && (
                       <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
-                        member
+                        {t("memberBadge")}
                         <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
                           <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                         </svg>
@@ -618,7 +618,7 @@ function MemberManagerModal({
                     )}
                     {isCurrent && !isSelected && (
                       <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-600">
-                        to remove
+                        {t("toRemoveBadge")}
                         <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
                           <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                         </svg>
@@ -626,7 +626,7 @@ function MemberManagerModal({
                     )}
                     {!isCurrent && isSelected && (
                       <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-600">
-                        new
+                        {t("newBadge")}
                         <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
                           <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
                         </svg>
@@ -645,13 +645,13 @@ function MemberManagerModal({
               onClick={selectAll}
               className="rounded px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100"
             >
-              Select all
+              {t("selectAll")}
             </button>
             <button
               onClick={deselectAll}
               className="rounded px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100"
             >
-              Deselect all
+              {t("deselectAll")}
             </button>
           </div>
           <div className="flex gap-1.5">
@@ -662,8 +662,8 @@ function MemberManagerModal({
               style={{ backgroundColor: "var(--ui-primary)" }}
             >
               {added.length > 0 || removed.length > 0
-                ? `Save (${added.length + removed.length} change${added.length + removed.length !== 1 ? "s" : ""})`
-                : "Save"}
+                ? tWith("saveChanges", { count: String(added.length + removed.length), s: added.length + removed.length !== 1 ? "s" : "" })
+                : t("save")}
             </button>
           </div>
         </div>
