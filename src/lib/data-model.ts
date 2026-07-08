@@ -186,6 +186,16 @@ export function parseContractsToGraph(
       const tgtContract = contractMap.get(tgtKey);
       if (!srcContract || !tgtContract) continue;
 
+      // Skip edges referencing fields that don't exist in the contract
+      const srcFieldOk = srcContract.fields.some((f) => f.name === src.field);
+      const tgtFieldOk = tgtContract.fields.some((f) => f.name === tgt.field);
+      if (!srcFieldOk || !tgtFieldOk) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn(`[data-model] Skipping edge "${rel.ref}": field "${!srcFieldOk ? src.field : tgt.field}" not found in ${!srcFieldOk ? srcContract.slug : tgtContract.slug}`);
+        }
+        continue;
+      }
+
       const srcId = slugToId(srcContract.slug, srcContract.maturity);
       const tgtId = slugToId(tgtContract.slug, tgtContract.maturity);
 
