@@ -4081,6 +4081,7 @@ body[data-ra-modal] [data-ra-overlay] {
 .yaml-sheet--diff .yaml-sheet__panel,
 .yaml-sheet__panel--diff-centered {
   width: min(80rem, calc(100vw - 2rem));
+  min-height: 70vh;
   height: auto;
   max-height: 90vh;
   border-radius: var(--ui-radius-lg, 0.5rem);
