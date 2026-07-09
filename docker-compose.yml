@@ -1,4 +1,15 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: data_contract_catalog
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
   keycloak:
     image: quay.io/keycloak/keycloak:25.0
     command:
@@ -19,4 +30,5 @@ services:
       - keycloak-data:/opt/keycloak/data
 
 volumes:
+  postgres-data:
   keycloak-data:
