@@ -4087,7 +4087,6 @@ body[data-ra-modal] [data-ra-overlay] {
   border-radius: var(--ui-radius-lg, 0.5rem);
   box-shadow: 0 20px 60px rgba(15, 23, 42, 0.2);
   resize: both;
-  overflow: auto;
 }
 
 .yaml-sheet--diff-centered[open] {
@@ -4100,6 +4099,7 @@ body[data-ra-modal] [data-ra-overlay] {
   flex-direction: column;
   gap: 0.75rem;
   padding: 1rem;
+  overflow: hidden;
 }
 
 /* --- Diff picker form --- */
