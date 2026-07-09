@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Manrope } from "next/font/google";
 
-import { ensureStartup, awaitStartup } from "@/src/lib/startup";
+import { ensureStartup } from "@/src/lib/startup";
 import { Providers } from "@/src/components/Providers";
 import "./globals.css";
 

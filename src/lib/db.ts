@@ -56,11 +56,3 @@ export async function transaction(fn: TransactionFn): Promise<void> {
     await txStorage.run(tx, () => fn());
   });
 }
-
-export async function migrate(
-  sql: string,
-  params?: unknown[],
-): Promise<{ changes: number }> {
-  const changes = await prisma.$executeRawUnsafe(sql, ...(params ?? []));
-  return { changes };
-}
