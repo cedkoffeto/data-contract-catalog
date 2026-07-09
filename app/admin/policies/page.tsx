@@ -387,7 +387,7 @@ export default function PoliciesPage() {
       </div>
 
       {loading ? (
-        <div className="h-64 w-full rounded-lg border bg-gray-50" />
+        <div className="skeleton-pulse h-64 w-full rounded-lg" />
       ) : (
         <PolicyTable
           policies={policies}
