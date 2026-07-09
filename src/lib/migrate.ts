@@ -21,8 +21,8 @@ async function migrateRolesToAccessPolicies() {
   if ((existing[0]?.c ?? 0) > 0) return;
 
   const hasOldTables = await query<{ c: number }>(
-    `SELECT COUNT(*) AS c FROM sqlite_master
-     WHERE type='table' AND name IN ('user_roles', 'roles')`,
+    `SELECT COUNT(*) AS c FROM information_schema.tables
+     WHERE table_name IN ('user_roles', 'roles') AND table_schema = 'public'`,
   );
   if ((hasOldTables[0]?.c ?? 0) < 2) return;
 
