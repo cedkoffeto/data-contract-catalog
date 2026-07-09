@@ -79,11 +79,11 @@ export default function PoliciesPage() {
         fetch("/api/admin/scopes"),
         fetch("/api/admin/users/search?q="),
       ]);
-      setPolicies((await pRes.json()).items ?? []);
-      setPermissions((await permRes.json()).items ?? []);
-      setGroups((await gRes.json()).items ?? []);
-      setScopes((await sRes.json()).items ?? []);
-      setAllUsers((await uRes.json()).items ?? []);
+      setPolicies(pRes.ok ? (await pRes.json()).items ?? [] : []);
+      setPermissions(permRes.ok ? (await permRes.json()).items ?? [] : []);
+      setGroups(gRes.ok ? (await gRes.json()).items ?? [] : []);
+      setScopes(sRes.ok ? (await sRes.json()).items ?? [] : []);
+      setAllUsers(uRes.ok ? (await uRes.json()).items ?? [] : []);
     } catch {
       setError(t("failedToLoadData"));
     } finally {
@@ -117,7 +117,7 @@ export default function PoliciesPage() {
     let conflictId: number | null = null;
     const permissionId = parseInt(newPermissionId, 10);
     if (isNaN(permissionId)) {
-      setError("Permission is required");
+      setError(t("permissionRequired"));
       setSaving(false);
       return;
     }
@@ -131,7 +131,7 @@ export default function PoliciesPage() {
 
     if (assignMode === "user") {
       if (!newUserId.trim() || !allUsers.some((u) => u.userId === newUserId.trim())) {
-        setError("User ID is required");
+        setError(t("userIdRequired"));
         setSaving(false);
         return;
       }
@@ -139,7 +139,7 @@ export default function PoliciesPage() {
     } else {
       const gid = parseInt(newGroupId, 10);
       if (isNaN(gid)) {
-        setError("Group is required");
+        setError(t("groupIdRequired"));
         setSaving(false);
         return;
       }
@@ -158,7 +158,7 @@ export default function PoliciesPage() {
         conflictId = data.id ?? null;
         setConflictDialog({ body, message: data.conflict.message, mode: "create", type: data.conflict.type, affectedPolicies: data.affectedPolicies ?? [], newPolicy: data.newPolicy ?? null });
       } else {
-        setError(data.conflict?.message ?? "A conflicting policy already exists.");
+        setError(data.conflict?.message ?? t("conflictingPolicy"));
       }
       setSaving(false);
       return;
@@ -166,13 +166,13 @@ export default function PoliciesPage() {
 
     if (!res.ok) {
       const data = await res.json();
-      setError(data.error ?? "Failed to create policy");
+      setError(data.error ?? t("failedToCreatePolicy"));
       setSaving(false);
       return;
     }
 
     resetForm();
-    setToast({ message: "Policy created" });
+    setToast({ message: t("policyCreated") });
     await fetchData();
     setSaving(false);
   }
@@ -184,7 +184,7 @@ export default function PoliciesPage() {
 
     const permissionId = parseInt(newPermissionId, 10);
     if (isNaN(permissionId)) {
-      setError("Permission is required");
+      setError(t("permissionRequired"));
       setSaving(false);
       return;
     }
@@ -207,7 +207,7 @@ export default function PoliciesPage() {
       if (data.conflict?.type === "overlap" || data.conflict?.type === "broader") {
         setConflictDialog({ body, message: data.conflict.message, mode: "edit", type: data.conflict.type, affectedPolicies: data.affectedPolicies ?? [], newPolicy: data.newPolicy ?? null });
       } else {
-        setError(data.conflict?.message ?? "A conflicting policy already exists.");
+        setError(data.conflict?.message ?? t("conflictingPolicy"));
       }
       setSaving(false);
       return;
@@ -215,14 +215,14 @@ export default function PoliciesPage() {
 
     if (!res.ok) {
       const data = await res.json();
-      setError(data.error ?? "Failed to update policy");
+      setError(data.error ?? t("failedToUpdatePolicy"));
       setSaving(false);
       return;
     }
 
     setEditTarget(null);
     setEditingId(null);
-    setToast({ message: "Policy updated" });
+    setToast({ message: t("policyUpdated") });
     await fetchData();
     setSaving(false);
   }
@@ -235,11 +235,11 @@ export default function PoliciesPage() {
 
     if (!res.ok) {
       const data = await res.json();
-      setError(data.error ?? "Failed to delete policy");
+      setError(data.error ?? t("failedToDeletePolicy"));
       return;
     }
 
-    setToast({ message: `Policy #${id} deleted` });
+    setToast({ message: tWith("policyDeleted", { id: String(id) }) });
     await fetchData();
   }
 
@@ -252,7 +252,7 @@ export default function PoliciesPage() {
       setViewGroupMembers({ groupId, groupName, members: data.members, loading: false });
     } catch {
       setViewGroupMembers(null);
-      setError("Failed to load group members");
+      setError(t("failedToLoadGroupMembers"));
     }
   }
 
@@ -265,7 +265,7 @@ export default function PoliciesPage() {
       setViewUserPolicies({ userId, policies: data.items, loading: false });
     } catch {
       setViewUserPolicies(null);
-      setError("Failed to load user policies");
+      setError(t("failedToLoadUserPolicies"));
     }
   }
 
@@ -290,7 +290,7 @@ export default function PoliciesPage() {
 
     if (!res.ok) {
       const data = await res.json();
-      setError(data.error ?? "Failed to apply policy");
+      setError(data.error ?? t("failedToApplyPolicy"));
       return;
     }
 
@@ -300,7 +300,7 @@ export default function PoliciesPage() {
       setEditTarget(null);
     }
 
-    setToast({ message: "Policy applied" });
+    setToast({ message: t("policyApplied") });
     await fetchData();
   }
 
@@ -398,9 +398,9 @@ export default function PoliciesPage() {
 
       <ConfirmDialog
         open={deleteTarget !== null}
-        title="Delete policy"
-        message={`Are you sure you want to delete policy #${deleteTarget}?`}
-        confirmLabel="Delete"
+        title={t("deletePolicy")}
+        message={tWith("deletePolicyConfirm", { id: String(deleteTarget) })}
+        confirmLabel={t("yesDelete")}
         onConfirm={() => deleteTarget && handleDelete(deleteTarget)}
         onCancel={() => setDeleteTarget(null)}
       />
@@ -430,7 +430,7 @@ export default function PoliciesPage() {
                   {t("policiesForUser")} <span className="font-mono">{viewUserPolicies.userId}</span>
                 </h3>
                 <p className="text-[11px] text-gray-400">
-                  {viewUserPolicies.policies.length} polic{viewUserPolicies.policies.length !== 1 ? "ies" : "y"}
+                  {tWith("policyCount", { count: String(viewUserPolicies.policies.length), y: viewUserPolicies.policies.length !== 1 ? "ies" : "y" })}
                 </p>
               </div>
               <button

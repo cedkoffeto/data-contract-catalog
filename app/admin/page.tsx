@@ -317,7 +317,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
             style={{ backgroundColor: "rgba(249,115,22,0.08)", color: "var(--ui-text-soft)" }}
           >
             <svg viewBox="0 0 16 16" fill="currentColor" width="13" height="13" aria-hidden="true" style={{ color: "#f97316" }}><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 1.5a5.5 5.5 0 110 11 5.5 5.5 0 010-11zM7.25 4v4.5l3.75 1.75.5-.87L8.25 8V4h-1z"/></svg>
-            {syncing ? "Syncing" : "Sync MRs with Git"}
+            {syncing ? t("syncing") : t("syncMrsWithGit")}
           </button>
         </div>
         <div className="mb-3 flex items-center gap-3">
@@ -325,7 +325,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
             className="flex-1 rounded-md border bg-white px-2 py-1.5 text-xs text-gray-900"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-            placeholder="Filter by contract, editor, status"
+            placeholder={t("filterByContractEditorStatus")}
           />
           <span className="whitespace-nowrap text-xs text-gray-400">
             {filtered.length} / {requests.length}
@@ -341,7 +341,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
           <table className="w-full divide-y divide-gray-200 bg-white text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  {[{ label: t("tblId"), key: "id" }, { label: t("tblContract"), key: "contractSlug" }, { label: t("tblEditor"), key: "editorId" }, { label: t("tblStatus"), key: "status" }, { label: "Source", key: "source" }, { label: t("tblMrUrl"), key: "gitlabMrUrl" }, { label: t("tblRejection"), key: "rejectionReason" }, { label: t("tblCreated"), key: "createdAt" }, { label: "Updated", key: "updatedAt" }, { label: t("tblActions"), key: null }].map(({ label, key }) => (
+                  {[{ label: t("tblId"), key: "id" }, { label: t("tblContract"), key: "contractSlug" }, { label: t("tblEditor"), key: "editorId" }, { label: t("tblStatus"), key: "status" }, { label: t("sourceColumn"), key: "source" }, { label: t("tblMrUrl"), key: "gitlabMrUrl" }, { label: t("tblRejection"), key: "rejectionReason" }, { label: t("tblCreated"), key: "createdAt" }, { label: t("tblUpdated"), key: "updatedAt" }, { label: t("tblActions"), key: null }].map(({ label, key }) => (
                     <th key={label} className={`px-3 py-2 text-left font-semibold text-gray-500 ${key ? "cursor-pointer select-none hover:bg-gray-100" : ""}`} onClick={() => key && toggleSort(key)}>
                       <span className="inline-flex items-center gap-1">
                         {label}
@@ -355,7 +355,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={10} className="px-3 py-8 text-center text-sm text-gray-400">{requests.length === 0 ? t("noChangeRequests") : "No change requests match your filter."}</td></tr>
+                  <tr><td colSpan={10} className="px-3 py-8 text-center text-sm text-gray-400">{requests.length === 0 ? t("noChangeRequests") : t("noChangeRequestsMatch")}</td></tr>
                 ) : paginated.map((r) => (
                   <tr key={r.id} className={r.id === highlightedId ? "bg-orange-50 ring-2 ring-orange-400" : ""}>
                     <td className="whitespace-nowrap px-3 py-2 text-gray-600">#{r.id}</td>
@@ -374,7 +374,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
                     </td>
                     <td className="whitespace-nowrap px-3 py-2">
                       <span className="inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600">
-                        {r.source === "app" ? "App" : "GitLab"}
+                        {r.source === "app" ? t("sourceApp") : t("sourceGitLab")}
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-3 py-2">
@@ -487,8 +487,8 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
           >
             <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
               <div>
-                <h3 className="text-sm font-semibold text-gray-900">Reject Change Request</h3>
-                <p className="text-[11px] text-gray-400">Provide a reason for rejecting request #{rejectingId}.</p>
+                <h3 className="text-sm font-semibold text-gray-900">{t("rejectChangeRequest")}</h3>
+                <p className="text-[11px] text-gray-400">{tWith("provideReason", { id: String(rejectingId) })}</p>
               </div>
               <button
                 onClick={() => setRejectingId(null)}
@@ -666,7 +666,7 @@ function AuditLogSection() {
           <table className="w-full divide-y divide-gray-200 bg-white text-sm">
             <thead className="bg-gray-50">
               <tr>
-                {[{ key: "created_at", label: t("tblDate") }, { key: "action", label: t("tblAction") }, { key: "target_id", label: "Actor" }, { key: "details", label: t("tblDetails") }].map(({ key, label }) => (
+                {[{ key: "created_at", label: t("tblDate") }, { key: "action", label: t("tblAction") }, { key: "target_id", label: t("tblActor") }, { key: "details", label: t("tblDetails") }].map(({ key, label }) => (
                   <th
                     key={key}
                     onClick={() => { toggleSort(key); }}
@@ -833,7 +833,7 @@ function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number)
           className="flex-1 rounded-md border bg-white px-2 py-1.5 text-xs text-gray-900"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-          placeholder="Filter by user, domain, contract, status"
+          placeholder={t("filterByUserDomainContract")}
         />
         <span className="whitespace-nowrap text-xs text-gray-400">
           {filtered.length} / {requests.length}
@@ -843,7 +843,7 @@ function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number)
           <table className="w-full divide-y divide-gray-200 bg-white text-sm">
             <thead className="bg-gray-50">
               <tr>
-                {[{ label: t("tblId"), key: "id" }, { label: "User", key: "user_id" }, { label: "Domain", key: "domain" }, { label: "Context", key: "context" }, { label: "Contract", key: "data_contract" }, { label: "Permission", key: "requested_permission" }, { label: "Message", key: null }, { label: "Created", key: "created_at" }, { label: "Updated", key: "updated_at" }, { label: t("tblStatus"), key: "status" }, { label: t("tblActions"), key: null }].map(({ label, key }) => (
+                {[{ label: t("tblId"), key: "id" }, { label: t("userColumn"), key: "user_id" }, { label: t("domain"), key: "domain" }, { label: t("context"), key: "context" }, { label: t("tblContract"), key: "data_contract" }, { label: t("permissionLabel"), key: "requested_permission" }, { label: t("message"), key: null }, { label: t("tblCreated"), key: "created_at" }, { label: t("tblUpdated"), key: "updated_at" }, { label: t("tblStatus"), key: "status" }, { label: t("tblActions"), key: null }].map(({ label, key }) => (
                   <th key={label} className={`px-3 py-2 text-left font-semibold text-gray-500 ${key ? "cursor-pointer select-none hover:bg-gray-100" : ""}`} onClick={() => key && toggleSort(key)}>
                     <span className="inline-flex items-center gap-1">
                       {label}
@@ -858,7 +858,7 @@ function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number)
             <tbody className="divide-y divide-gray-200">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="px-3 py-8 text-center text-sm text-gray-400">{requests.length === 0 ? t("noAccessRequests") : "No access requests match your filter."}</td>
+                  <td colSpan={11} className="px-3 py-8 text-center text-sm text-gray-400">{requests.length === 0 ? t("noAccessRequests") : t("noAccessRequestsMatch")}</td>
                 </tr>
               ) : paginated.map((r) => (
                 <tr key={r.id}>
