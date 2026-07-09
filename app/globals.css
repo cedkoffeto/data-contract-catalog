@@ -4130,6 +4130,15 @@ body[data-ra-modal] [data-ra-overlay] {
   width: auto;
 }
 
+.diff-picker__field .ss-select__trigger {
+  min-height: 2.6rem;
+  padding: 0.6rem 0.75rem;
+}
+
+.diff-picker__field .ss-select__dropdown {
+  max-height: 22rem;
+}
+
 .diff-picker__label {
   font-size: 0.68rem;
   font-weight: 700;
