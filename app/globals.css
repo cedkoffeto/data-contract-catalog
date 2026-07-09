@@ -4271,7 +4271,6 @@ body[data-ra-modal] [data-ra-overlay] {
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.04em;
-  text-transform: uppercase;
   color: var(--ui-text-soft);
   padding: 0 0.5rem;
 }
