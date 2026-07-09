@@ -4182,7 +4182,6 @@ body[data-ra-modal] [data-ra-overlay] {
 .diff-picker__result {
   flex: 1 1 auto;
   min-height: 0;
-  overflow: auto;
 }
 
 /* --- Diff view --- */
@@ -4192,9 +4191,14 @@ body[data-ra-modal] [data-ra-overlay] {
   flex-direction: column;
   gap: 0;
   height: 100%;
+  overflow: auto;
 }
 
 .diff-view__toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #fff;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -4624,7 +4628,6 @@ body[data-ra-modal] [data-ra-overlay] {
 /* --- Diff scroll area --- */
 
 .diff-view__scroll {
-  overflow: auto;
   flex: 1 1 auto;
 }
 
