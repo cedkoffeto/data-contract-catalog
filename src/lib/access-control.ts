@@ -1,4 +1,4 @@
-import { query, execute } from "@/src/lib/db";
+import { query, execute, insertReturning } from "@/src/lib/db";
 import { writeAuditLog } from "@/src/lib/audit";
 import { createNotification } from "@/src/lib/notifications";
 
@@ -442,14 +442,10 @@ export async function createAccessPolicy(params: {
     }
   }
 
-  const result = await execute(
+  const rows = await insertReturning<{ id: number }>(
     `INSERT INTO access_policies (user_id, group_id, permission_id, domain_scope, context_scope, data_contract_scope)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
     [userId ?? null, groupId ?? null, permissionId, domainScope ?? null, contextScope ?? null, dataContractScope ?? null],
-  );
-
-  const rows = await query<{ id: number }>(
-    "SELECT MAX(id) AS id FROM access_policies",
   );
   const newId = rows[0]?.id ?? 0;
 
