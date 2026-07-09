@@ -4095,6 +4095,10 @@ body[data-ra-modal] [data-ra-overlay] {
   align-items: center;
 }
 
+.yaml-sheet__header-row .yaml-sheet__eyebrow {
+  text-transform: none;
+}
+
 .yaml-sheet__body--diff {
   display: flex;
   flex-direction: column;
