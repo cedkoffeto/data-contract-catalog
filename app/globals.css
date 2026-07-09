@@ -4136,7 +4136,7 @@ body[data-ra-modal] [data-ra-overlay] {
 }
 
 .diff-picker__field .ss-select__dropdown {
-  max-height: 22rem;
+  max-height: 25rem;
 }
 
 .diff-picker__label {
