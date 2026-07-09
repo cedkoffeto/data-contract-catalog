@@ -4119,9 +4119,16 @@ body[data-ra-modal] [data-ra-overlay] {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.5rem;
   flex: 1 1 auto;
   min-width: 0;
+  overflow: hidden;
+}
+
+.diff-picker__field .ss-select {
+  flex: 1;
+  min-width: 0;
+  width: auto;
 }
 
 .diff-picker__label {
