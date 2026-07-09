@@ -145,10 +145,10 @@ export function ModelFieldsTable({ fields, slug, userId, fieldAnnotations, onFie
                 {!row.hasChildren ? <span className="contract-models-field__leaf" aria-hidden="true" /> : null}
                 <span className="contract-models-field__name">{row.name}</span>
                 {userId && slug ? (
-                  <>
+                  <div className="ml-auto flex items-center gap-1">
                     <button
                       type="button"
-                      className="ml-auto rounded-full bg-orange-50 px-2 py-1 text-[11px] font-bold text-orange-700 hover:bg-orange-100"
+                      className="rounded-full bg-orange-50 px-2 py-1 text-[11px] font-bold text-orange-700 hover:bg-orange-100 cursor-pointer"
                       onClick={() => openAnnotate(row)}
                     >
                       Annotate
@@ -156,13 +156,13 @@ export function ModelFieldsTable({ fields, slug, userId, fieldAnnotations, onFie
                     {fieldAnnotations?.[row.name] ? (
                       <button
                         type="button"
-                        className="ml-1 rounded-full bg-orange-500 px-2 py-1 text-[11px] font-bold text-white hover:bg-orange-600"
+                        className="rounded-full bg-orange-500 px-2 py-1 text-[11px] font-bold text-white hover:bg-orange-600 cursor-pointer"
                         onClick={() => onFieldClick?.(row.name)}
                       >
                         {fieldAnnotations[row.name]}
                       </button>
                     ) : null}
-                  </>
+                  </div>
                 ) : null}
               </div>
             </td>

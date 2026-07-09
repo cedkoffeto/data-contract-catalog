@@ -253,7 +253,10 @@ export function ContractPageClient({
 
   function handleFieldClick(fieldName: string) {
     setActiveTab("discussion");
+    setRefreshKey(k => k + 1);
   }
+
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const displayedData = activeVersion?.data ?? data;
   const displayedYamlRaw = activeVersion?.yamlRaw ?? yamlRaw;
