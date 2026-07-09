@@ -23,7 +23,6 @@ html {
   --color-ui-warning: #f59e0b;
   --radius-ui: 8px;
   --radius-ui-lg: 10px;
-  --width-nav-height: 56px;
 }
 
 .text-destructive {
@@ -1096,7 +1095,6 @@ a:has(> .kpi-card) {
 }
 
 .catalog-shell {
-  min-height: 100%;
   min-height: calc(100vh - var(--nav-height));
   padding: 1rem;
   overflow: visible;
