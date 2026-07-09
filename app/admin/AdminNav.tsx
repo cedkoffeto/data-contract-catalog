@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { getLocale, dictionaries, type Locale } from "@/src/lib/i18n";
+import { dictionaries } from "@/src/lib/i18n";
+import { useLocale } from "@/src/lib/use-i18n";
 
 interface NavLink {
   href: string;
@@ -19,12 +20,8 @@ const links: NavLink[] = [
 
 export function AdminNav() {
   const pathname = usePathname();
-  const [locale, setLocale] = useState<Locale>("en");
+  const locale = useLocale();
   const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    setLocale(getLocale());
-  }, []);
 
   useEffect(() => {
     setOpen(false);
