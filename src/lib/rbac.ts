@@ -157,7 +157,7 @@ export async function searchAllUsers(queryStr: string): Promise<Array<{ userId: 
       UNION
       SELECT user_id FROM access_policies WHERE user_id IS NOT NULL
     )
-     WHERE user_id LIKE ?
+     WHERE user_id ILIKE ?
      ORDER BY user_id`,
     [`%${queryStr}%`],
   );

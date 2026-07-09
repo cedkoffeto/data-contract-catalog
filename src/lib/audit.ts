@@ -53,7 +53,7 @@ export async function cleanupAuditLogs(retentionDays = 90) {
 
 export async function countAuditLogs(search?: string) {
   const where = search
-    ? "WHERE action LIKE ? OR actor_id LIKE ? OR target_type LIKE ? OR target_id LIKE ? OR details LIKE ?"
+    ? "WHERE action ILIKE ? OR actor_id ILIKE ? OR target_type ILIKE ? OR target_id ILIKE ? OR details ILIKE ?"
     : "";
   const params = search ? Array(5).fill(`%${search}%`) : [];
   const [row] = await query<{ c: number }>(`SELECT COUNT(*) as c FROM audit_log ${where}`, params);
@@ -75,7 +75,7 @@ export async function listAuditLogs(params: {
   let where = "";
   let queryParams: unknown[] = [];
   if (search) {
-    where = "WHERE action LIKE ? OR actor_id LIKE ? OR target_type LIKE ? OR target_id LIKE ? OR details LIKE ?";
+    where = "WHERE action ILIKE ? OR actor_id ILIKE ? OR target_type ILIKE ? OR target_id ILIKE ? OR details ILIKE ?";
     queryParams = Array(5).fill(`%${search}%`);
   }
 
