@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { type Locale, getLocale, dictionaries } from "./i18n";
 
 export function useLocale() {
-  const [locale, setLocale] = useState<Locale>(getLocale);
+  const [locale, setLocale] = useState<Locale>("en");
   useEffect(() => { setLocale(getLocale()); }, []);
   return locale;
 }
