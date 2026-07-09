@@ -11,7 +11,10 @@
     "test:watch": "vitest",
     "seed:kc": "node scripts/seed-keycloak.mjs",
     "dc:up": "docker compose up -d && node scripts/seed-keycloak.mjs",
-    "dc:reset": "docker compose down -v && docker compose up -d && sleep 5 && node scripts/seed-keycloak.mjs"
+    "dc:reset": "docker compose down -v && docker compose up -d && sleep 5 && node scripts/seed-keycloak.mjs",
+    "db:generate": "prisma generate",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^8.1.0",
