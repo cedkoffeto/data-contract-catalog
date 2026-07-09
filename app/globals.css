@@ -4201,8 +4201,9 @@ body[data-ra-modal] [data-ra-overlay] {
 .diff-view__toolbar {
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: 10;
   background: #fff;
+  isolation: isolate;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -4641,8 +4642,6 @@ body[data-ra-modal] [data-ra-overlay] {
   outline: 2px solid var(--ui-primary);
   outline-offset: -1px;
   border-radius: 2px;
-  position: relative;
-  z-index: 1;
 }
 
 /* --- SearchableSelect --- */
