@@ -617,7 +617,7 @@ export async function addUserToGroup(params: {
   actorId: string;
   sessionId?: string;
 }): Promise<void> {
-  await execute("INSERT OR IGNORE INTO user_group (user_id, group_id) VALUES (?, ?)", [
+  await execute("INSERT INTO user_group (user_id, group_id) VALUES (?, ?) ON CONFLICT DO NOTHING", [
     params.userId,
     params.groupId,
   ]);

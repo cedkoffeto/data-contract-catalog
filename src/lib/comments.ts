@@ -40,8 +40,8 @@ export function extractMentionedUserIds(body: string): string[] {
 export async function recordCommentMentions(commentId: number, mentionedUserIds: string[]): Promise<void> {
   await Promise.allSettled(mentionedUserIds.map((userId) =>
     execute(
-      `INSERT OR IGNORE INTO comment_mentions (comment_id, user_id)
-       VALUES (?, ?)`,
+      `INSERT INTO comment_mentions (comment_id, user_id)
+       VALUES (?, ?) ON CONFLICT DO NOTHING`,
       [commentId, userId],
     ),
   ));

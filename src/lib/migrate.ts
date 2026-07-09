@@ -8,9 +8,9 @@ async function seedDefaultPermissions() {
   );
   if ((existing[0]?.c ?? 0) > 0) return;
 
-  await migrate("INSERT OR IGNORE INTO permissions (name) VALUES ('admin')");
-  await migrate("INSERT OR IGNORE INTO permissions (name) VALUES ('editor')");
-  await migrate("INSERT OR IGNORE INTO permissions (name) VALUES ('reader')");
+  await migrate("INSERT INTO permissions (name) VALUES ('admin') ON CONFLICT DO NOTHING");
+  await migrate("INSERT INTO permissions (name) VALUES ('editor') ON CONFLICT DO NOTHING");
+  await migrate("INSERT INTO permissions (name) VALUES ('reader') ON CONFLICT DO NOTHING");
   console.info("[migrate] Seeded default permissions (admin, editor, reader)");
 }
 
@@ -53,8 +53,8 @@ async function migrateRolesToAccessPolicies() {
     if (permRow.length === 0) continue;
 
     await migrate(
-      `INSERT OR IGNORE INTO access_policies (user_id, group_id, permission_id, domain_scope, context_scope)
-       VALUES (?, NULL, ?, NULL, NULL)`,
+      `INSERT INTO access_policies (user_id, group_id, permission_id, domain_scope, context_scope)
+       VALUES (?, NULL, ?, NULL, NULL) ON CONFLICT DO NOTHING`,
       [row.user_id, permRow[0].id],
     );
   }
@@ -88,8 +88,8 @@ async function seedDefaultPolicies() {
     if (permRow.length === 0) continue;
 
     await migrate(
-      `INSERT OR IGNORE INTO access_policies (user_id, group_id, permission_id, domain_scope, context_scope)
-       VALUES (?, NULL, ?, NULL, NULL)`,
+      `INSERT INTO access_policies (user_id, group_id, permission_id, domain_scope, context_scope)
+       VALUES (?, NULL, ?, NULL, NULL) ON CONFLICT DO NOTHING`,
       [userId, permRow[0].id],
     );
     count++;
