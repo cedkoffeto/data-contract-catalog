@@ -45,8 +45,8 @@ export async function writeAuditLog(params: {
 
 export async function cleanupAuditLogs(retentionDays = 90) {
   const result = await execute(
-    "DELETE FROM audit_log WHERE created_at < datetime('now', ?)",
-    [`-${retentionDays} days`]
+    "DELETE FROM audit_log WHERE created_at < NOW() - (?::INTEGER * INTERVAL '1 day')",
+    [retentionDays]
   );
   return result.changes;
 }
