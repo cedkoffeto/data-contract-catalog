@@ -228,10 +228,3 @@ model AccessPolicy {
   @@map("access_policies")
 }
 
-model MigrationRecord {
-  id        String   @id
-  appliedAt DateTime @default(now()) @map("applied_at")
-
-  @@ignore
-  @@map("_migrations")
-}
