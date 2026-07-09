@@ -4122,7 +4122,6 @@ body[data-ra-modal] [data-ra-overlay] {
   gap: 0.5rem;
   flex: 1 1 auto;
   min-width: 0;
-  overflow: hidden;
 }
 
 .diff-picker__field .ss-select {
@@ -4138,6 +4137,7 @@ body[data-ra-modal] [data-ra-overlay] {
   text-transform: uppercase;
   color: var(--ui-text-soft);
   flex-shrink: 0;
+  margin-right: 0.25rem;
 }
 
 .diff-picker__select {
