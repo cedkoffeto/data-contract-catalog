@@ -153,16 +153,18 @@ export function ContractDiffDialog({
 
         <div className="yaml-sheet__panel yaml-sheet__panel--diff-centered">
           <div className="yaml-sheet__header">
-            <div>
-              <p className="yaml-sheet__eyebrow">{t("versionComparison")}</p>
-              <h3 id={`diff-sheet-title-${id}`}>{t("compareTitle")}</h3>
-            </div>
-            <div className="yaml-sheet__header-actions">
-              <button className="editor-close-button" disabled={loading} onClick={handleClose} aria-label={t("close")} title={t("close")} type="button">
-                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                  <path d="M5.5 5.5l9 9m0-9l-9 9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
+            <div className="yaml-sheet__header-row">
+              <div>
+                <p className="yaml-sheet__eyebrow">{t("versionComparison")}</p>
+                <h3 id={`diff-sheet-title-${id}`}>{t("compareTitle")}</h3>
+              </div>
+              <div className="yaml-sheet__header-actions">
+                <button className="editor-close-button" disabled={loading} onClick={handleClose} aria-label={t("close")} title={t("close")} type="button">
+                  <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                    <path d="M5.5 5.5l9 9m0-9l-9 9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
 
