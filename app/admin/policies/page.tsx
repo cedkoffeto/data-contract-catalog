@@ -63,13 +63,6 @@ export default function PoliciesPage() {
   const [viewGroupMembers, setViewGroupMembers] = useState<ViewGroupMembers | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetch("/api/auth/session")
-      .then((r) => r.json())
-      .then((s) => setCurrentUserId(s?.user?.name ?? null))
-      .catch(() => {});
-  }, []);
-
   const minAdminUserId = useMemo(() => {
     const adminUserIds = policies
       .filter((p) => p.permission_name === "admin" && p.user_id)
@@ -80,13 +73,18 @@ export default function PoliciesPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [pRes, permRes, gRes, sRes, uRes] = await Promise.all([
+      const [sessionRes, pRes, permRes, gRes, sRes, uRes] = await Promise.all([
+        fetch("/api/auth/session"),
         fetch("/api/admin/policies"),
         fetch("/api/admin/permissions"),
         fetch("/api/admin/groups"),
         fetch("/api/admin/scopes"),
         fetch("/api/admin/users/search?q="),
       ]);
+      if (sessionRes.ok) {
+        const session = await sessionRes.json();
+        setCurrentUserId(session?.user?.name ?? null);
+      }
       setPolicies(pRes.ok ? (await pRes.json()).items ?? [] : []);
       setPermissions(permRes.ok ? (await permRes.json()).items ?? [] : []);
       setGroups(gRes.ok ? (await gRes.json()).items ?? [] : []);
