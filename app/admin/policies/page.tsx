@@ -11,6 +11,14 @@ import PolicyTable from "./PolicyTable";
 import ConflictDialog from "./ConflictDialog";
 import type { ConflictDialog as ConflictDialogType, Policy, ViewGroupMembers, ViewUserPolicies } from "./types";
 
+async function safeJson(res: Response): Promise<any> {
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
 export default function PoliciesPage() {
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [permissions, setPermissions] = useState<{ id: number; name: string }[]>([]);
@@ -153,20 +161,20 @@ export default function PoliciesPage() {
     });
 
     if (res.status === 409) {
-      const data = await res.json();
-      if (data.conflict?.type === "overlap" || data.conflict?.type === "broader") {
+      const data = await safeJson(res);
+      if (data?.conflict?.type === "overlap" || data?.conflict?.type === "broader") {
         conflictId = data.id ?? null;
         setConflictDialog({ body, message: data.conflict.message, mode: "create", type: data.conflict.type, affectedPolicies: data.affectedPolicies ?? [], newPolicy: data.newPolicy ?? null });
       } else {
-        setError(data.conflict?.message ?? t("conflictingPolicy"));
+        setError(data?.conflict?.message ?? t("conflictingPolicy"));
       }
       setSaving(false);
       return;
     }
 
     if (!res.ok) {
-      const data = await res.json();
-      setError(data.error ?? t("failedToCreatePolicy"));
+      const data = await safeJson(res);
+      setError(data?.error ?? t("failedToCreatePolicy"));
       setSaving(false);
       return;
     }
@@ -203,19 +211,19 @@ export default function PoliciesPage() {
     });
 
     if (res.status === 409) {
-      const data = await res.json();
-      if (data.conflict?.type === "overlap" || data.conflict?.type === "broader") {
+      const data = await safeJson(res);
+      if (data?.conflict?.type === "overlap" || data?.conflict?.type === "broader") {
         setConflictDialog({ body, message: data.conflict.message, mode: "edit", type: data.conflict.type, affectedPolicies: data.affectedPolicies ?? [], newPolicy: data.newPolicy ?? null });
       } else {
-        setError(data.conflict?.message ?? t("conflictingPolicy"));
+        setError(data?.conflict?.message ?? t("conflictingPolicy"));
       }
       setSaving(false);
       return;
     }
 
     if (!res.ok) {
-      const data = await res.json();
-      setError(data.error ?? t("failedToUpdatePolicy"));
+      const data = await safeJson(res);
+      setError(data?.error ?? t("failedToUpdatePolicy"));
       setSaving(false);
       return;
     }
@@ -234,8 +242,8 @@ export default function PoliciesPage() {
     const res = await fetch(`/api/admin/policies/${id}`, { method: "DELETE" });
 
     if (!res.ok) {
-      const data = await res.json();
-      setError(data.error ?? t("failedToDeletePolicy"));
+      const data = await safeJson(res);
+      setError(data?.error ?? t("failedToDeletePolicy"));
       return;
     }
 
