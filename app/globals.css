@@ -4130,6 +4130,7 @@ body[data-ra-modal] [data-ra-overlay] {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ui-text-soft);
+  flex-shrink: 0;
 }
 
 .diff-picker__select {
