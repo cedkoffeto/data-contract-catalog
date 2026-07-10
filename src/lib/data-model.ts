@@ -89,6 +89,7 @@ function keyOf(r: ResolvedContract): ContractKey {
 export type GraphData = {
   nodes: Node[];
   edges: Edge[];
+  orphanRefs: string[];
 };
 
 export type ContractTableNodeData = Record<string, unknown> & {
@@ -162,6 +163,7 @@ export function parseContractsToGraph(
   const nodeMap = new Map<string, Node>();
   const edgeSet = new Set<string>();
   const edges: Edge[] = [];
+  const orphanRefs: string[] = [];
 
   // 1. Create nodes for every contract
   for (const c of contracts) {
@@ -184,7 +186,10 @@ export function parseContractsToGraph(
 
       const srcContract = contractMap.get(srcKey);
       const tgtContract = contractMap.get(tgtKey);
-      if (!srcContract || !tgtContract) continue;
+      if (!srcContract || !tgtContract) {
+        orphanRefs.push(rel.ref);
+        continue;
+      }
 
       // Skip edges referencing fields that don't exist in the contract
       const srcFieldOk = srcContract.fields.some((f) => f.name === src.field);
@@ -259,6 +264,7 @@ export function parseContractsToGraph(
   return {
     nodes: Array.from(nodeMap.values()),
     edges,
+    orphanRefs,
   };
 }
 

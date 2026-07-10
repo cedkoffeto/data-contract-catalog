@@ -64,9 +64,10 @@ export function ModelGraph({
   fitKey,
   centerSlug,
   centerKey,
-  searchQuery,
+  searchMatchIds,
   visibleCount,
   totalCount,
+  orphanRefs,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
@@ -82,9 +83,10 @@ export function ModelGraph({
   fitKey: number;
   centerSlug: string | null;
   centerKey: number;
-  searchQuery?: string;
+  searchMatchIds: string[] | null;
   visibleCount: number;
   totalCount: number;
+  orphanRefs?: string[];
 }) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -129,29 +131,17 @@ export function ModelGraph({
     return nbors;
   }, [highlightedNode, edges]);
 
-  // Compute search-matching node IDs
-  const searchMatchIds = useMemo(() => {
-    if (!searchQuery) return null;
-    const q = searchQuery.toLowerCase();
-    return new Set(
-      initialNodes
-        .filter((n) => {
-          const d = n.data as ContractTableNodeData;
-          const label = d.label?.toLowerCase() || "";
-          const slug = d.slug?.toLowerCase() || "";
-          const domain = d.domain?.toLowerCase() || "";
-          const context = d.context?.toLowerCase() || "";
-          return label.includes(q) || slug.includes(q) || domain.includes(q) || context.includes(q);
-        })
-        .map((n) => n.id),
-    );
-  }, [searchQuery, initialNodes]);
+  // Compute search-matching node IDs from prop
+  const searchMatchSet = useMemo(
+    () => (searchMatchIds ? new Set(searchMatchIds) : null),
+    [searchMatchIds],
+  );
 
   // Update opacity when highlight or search changes
   useEffect(() => {
-    if (searchMatchIds && searchMatchIds.size > 0) {
+    if (searchMatchSet && searchMatchSet.size > 0) {
       setNodes((nds) => nds.map((n) => {
-        const isMatch = searchMatchIds.has(n.id);
+        const isMatch = searchMatchSet.has(n.id);
         const hasSearchRing = n.className?.includes("search-match");
         const newClassName = isMatch ? "search-match" : undefined;
         if (!isMatch) {
@@ -180,7 +170,7 @@ export function ModelGraph({
         style: { ...n.style, opacity: highlightedNode === n.id || highlightedNeighbors.has(n.id) ? 1 : 0.25 },
       })));
     }
-  }, [highlightedNeighbors, highlightedNode, searchMatchIds, setNodes]);
+  }, [highlightedNeighbors, highlightedNode, searchMatchSet, setNodes]);
 
   // Center on table from panel
   useEffect(() => {
@@ -207,8 +197,8 @@ export function ModelGraph({
     connectedFields,
     onHeaderClick,
     onFieldClick: onNodeClick,
-    searchMatchIds,
-  }), [viewMode, connectedFields, onHeaderClick, onNodeClick, searchMatchIds]);
+    searchMatchIds: searchMatchSet,
+  }), [viewMode, connectedFields, onHeaderClick, onNodeClick, searchMatchSet]);
 
   const filteredEdges = useMemo(
     () => edges.filter((e) => visibleTables.has(e.source) && visibleTables.has(e.target)),
@@ -261,6 +251,13 @@ export function ModelGraph({
               totalCount={totalCount}
             />
           </Panel>
+          {orphanRefs && orphanRefs.length > 0 ? (
+            <Panel position="top-right" className="!m-0" style={{ top: 12, right: 12 }}>
+              <div className="rounded-md bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs text-amber-700 shadow-sm" title={orphanRefs.join("\n")}>
+                {orphanRefs.length} broken reference{orphanRefs.length !== 1 ? "s" : ""}
+              </div>
+            </Panel>
+          ) : null}
           <MiniMap
             pannable
             zoomable

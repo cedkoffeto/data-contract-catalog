@@ -76,8 +76,13 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
 
         {/* Header */}
         <div className="flex min-w-0 cursor-grab active:cursor-grabbing items-center gap-2 px-3 py-2">
-          <span className="flex h-5 cursor-pointer items-center" onClick={(e) => { e.stopPropagation(); onHeaderClick(d.slug); }} title="Open contract detail"><Table size={14} style={{ color: d.color }} /></span>
-          <span className="flex h-5 min-w-0 items-center text-sm font-semibold tracking-tight text-gray-900" title={`${d.label}\ndomain: ${d.domain}\ncontext: ${d.context ?? ""}\nslug: ${d.slug}`}><span className="truncate">{d.slug}</span></span>
+          <span className="flex h-5 cursor-pointer items-center" onClick={(e) => { e.stopPropagation(); window.open(`/${d.slug}`, "_blank", "noopener,noreferrer"); }} title="Open contract detail"><Table size={14} style={{ color: d.color }} /></span>
+          <span className="flex h-5 min-w-0 items-center text-sm font-semibold tracking-tight text-gray-900" title={`${d.label}\ndomain: ${d.domain}\ncontext: ${d.context ?? ""}\nslug: ${d.slug}`}
+            onClick={(e) => {
+              if (e.ctrlKey || e.metaKey) { e.stopPropagation(); window.open(`/${d.slug}`, "_blank", "noopener,noreferrer"); }
+              else onHeaderClick(d.slug);
+            }}
+          ><span className="truncate">{d.slug}</span></span>
           <span className={`ml-auto flex shrink-0 h-5 items-center rounded px-1.5 text-[9px] font-bold uppercase leading-none ${maturityBadge[d.maturity as string] || maturityBadge.bronze}`}>
             {d.maturity as string}
           </span>
@@ -99,7 +104,10 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
           {fields.map((f) => {
             const isConnected = connectedSet.has(f.name);
             return (
-              <div key={f.name} className="relative flex min-w-0 cursor-pointer items-center gap-2 border-t border-gray-50 px-3 py-[7px] text-xs text-gray-700 hover:bg-gray-50" onClick={() => onFieldClick?.(d.slug)}>
+              <div key={f.name} className="relative flex min-w-0 cursor-pointer items-center gap-2 border-t border-gray-50 px-3 py-[7px] text-xs text-gray-700 hover:bg-gray-50" onClick={(e) => {
+                if (e.ctrlKey || e.metaKey) { e.stopPropagation(); window.open(`/${d.slug}`, "_blank", "noopener,noreferrer"); }
+                else onFieldClick?.(d.slug);
+              }}>
                 {isConnected && <Handle type="target" position={Position.Left} id={f.name} className="!opacity-0 !pointer-events-none" />}
                 {isConnected ? (
                   <Key size={10} className="shrink-0 text-amber-500" />

@@ -90,7 +90,7 @@ export function DataModelEditor({
     } catch {}
   }
 
-  const { nodes: rawNodes, edges } = useMemo(
+  const { nodes: rawNodes, edges, orphanRefs } = useMemo(
     () => parseContractsToGraph(contracts, models),
     [contracts, models],
   );
@@ -219,7 +219,11 @@ export function DataModelEditor({
   }, []);
 
   const selectedContract = useMemo(
-    () => (selectedSlug ? contracts.find((c) => c.slug === selectedSlug) ?? null : null),
+    () => {
+      if (!selectedSlug) return null;
+      const map = new Map(contracts.map((c) => [c.slug, c]));
+      return map.get(selectedSlug) ?? null;
+    },
     [selectedSlug, contracts],
   );
 
@@ -266,9 +270,10 @@ export function DataModelEditor({
               fitKey={fitKey}
               centerSlug={centerSlug}
               centerKey={centerKey}
-              searchQuery={searchQuery}
+              searchMatchIds={searchMatchIds}
               visibleCount={visibleTablesState.size}
               totalCount={rawNodes.length}
+              orphanRefs={orphanRefs}
             />
           </div>
         </div>
