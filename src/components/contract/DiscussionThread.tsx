@@ -165,14 +165,16 @@ function CommentItem({
         </div>
         <div className="comment-item__text">{renderBody(comment.body, userMap)}</div>
         {comment.targetField ? (
-          <div className="mt-1">
-            <span className="inline-flex items-center gap-1 rounded-md bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-orange-700">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M11 4H4v7l9 9 7-7-9-9z" />
-                <line x1="18.5" y1="9.5" x2="11" y2="2" />
-              </svg>
-              {comment.targetField}
-            </span>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {comment.targetField.split(",").map((f) => f.trim()).filter(Boolean).map((field) => (
+              <span key={field} className="inline-flex items-center gap-1 rounded-md bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-orange-700">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M11 4H4v7l9 9 7-7-9-9z" />
+                  <line x1="18.5" y1="9.5" x2="11" y2="2" />
+                </svg>
+                {field}
+              </span>
+            ))}
           </div>
         ) : null}
         {comment.editedAt ? <span className="meta">Edited</span> : null}
@@ -322,7 +324,9 @@ function InlineReplyForm({
     setSaving(true);
     try {
       const refs = body.match(/#([\p{L}\p{N}_.-]+)/gu);
-      const targetField = refs?.find((r) => fields.some((f) => f.name === r.slice(1)))?.slice(1);
+      const targetField = refs?.length
+        ? [...new Set(refs.map((r) => r.slice(1)).filter((n) => fields.some((f) => f.name === n)))].join(",")
+        : undefined;
       const res = await fetch(`/api/contracts/${encodeURIComponent(slug)}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -904,7 +908,9 @@ export function DiscussionThread({
     setError(null);
     try {
       const refs = commentBody.match(/#([\p{L}\p{N}_.-]+)/gu);
-      const targetField = refs?.find((r) => fields.some((f) => f.name === r.slice(1)))?.slice(1);
+      const targetField = refs?.length
+        ? [...new Set(refs.map((r) => r.slice(1)).filter((n) => fields.some((f) => f.name === n)))].join(",")
+        : undefined;
       const res = await fetch(`/api/contracts/${encodeURIComponent(slug)}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -239,7 +239,10 @@ export function ContractPageClient({
       const counts: Record<string, number> = {};
       for (const c of data.comments) {
         if (c.targetField) {
-          counts[c.targetField] = (counts[c.targetField] ?? 0) + 1;
+          for (const field of c.targetField.split(",")) {
+            const trimmed = field.trim();
+            if (trimmed) counts[trimmed] = (counts[trimmed] ?? 0) + 1;
+          }
         }
       }
       setFieldAnnotations(counts);
