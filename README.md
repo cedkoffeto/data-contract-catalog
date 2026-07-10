@@ -14,7 +14,7 @@ Le projet remplace une ancienne version plus statique par une application React/
 - une API interne documentee via OpenAPI
 - un editeur de contrat capable de travailler a partir des schemas du repository
 
-Note: les data contracts vivent dans le repository (localement ou via GitLab API). Une base SQLite legere (prisma/data/rbac.db) est utilisee pour la gestion des droits d'acces (RBAC) et les notifications, via sql.js.
+Note: les data contracts vivent dans le repository (localement ou via GitLab API). Une base PostgreSQL légère (`docker compose up postgres`) est utilisée pour la gestion des droits d'accès (RBAC), les notifications et les commentaires, via Prisma ORM.
 
 ## Lecture rapide pour un nouveau dev
 
@@ -126,7 +126,7 @@ L'application est repository-based:
 - les schemas sont des fichiers du repository
 - l'historique d'un contrat vient du Git history GitLab
 - le contenu d'une version historique est relu via GitLab API a partir d'un `ref`
-- une base SQLite (prisma/data/rbac.db) gere les droits d'acces et notifications
+- une base PostgreSQL (Prisma ORM) gere les droits d'acces, notifications, commentaires et audit
 
 ### Pourquoi cette approche
 
@@ -181,7 +181,7 @@ contracts/                           # Data contracts YAML
 data-model/                          # Relations inter-contrats (bronze/silver/gold)
 schema/                              # Schemas et templates
 keycloak/                            # Export de realm pour dev local
-prisma/                              # Schema Prisma + base SQLite
+prisma/                              # Schema Prisma + migrations PostgreSQL
 public/                              # Assets statiques
 tests/                               # Tests unitaires et API (vitest)
 ```
@@ -336,13 +336,15 @@ npm install
 
 Creer un fichier `.env.local` avec les variables d'auth minimum.
 
-### 3. Lancer Keycloak local
+### 3. Demarrer les services (PostgreSQL + Keycloak)
 
 ```bash
 docker compose up
 ```
 
-Si Keycloak a deja tourne avec une ancienne config:
+La base PostgreSQL est accessible sur `localhost:5433` (utilisateur `user`, mot de passe `password`, base `data_contract_catalog`). pgAdmin est disponible sur [http://localhost:5050](http://localhost:5050) (`admin@admin.com` / `admin`).
+
+Si les services ont deja tourne avec une ancienne config:
 
 ```bash
 docker compose down -v
@@ -363,7 +365,14 @@ http://localhost:8080
 admin / admin
 ```
 
-### 4. Lancer l'application
+### 4. Initialiser la base de donnees
+
+```bash
+npm run db:migrate:deploy
+npm run db:seed
+```
+
+### 5. Lancer l'application
 
 ```bash
 npm run dev
@@ -377,10 +386,13 @@ Puis ouvrir:
 ## Scripts utiles
 
 ```bash
-npm run dev
-npm run build
-npm run start
-npm run typecheck
+npm run dev          # Developpement
+npm run build        # Production build
+npm run start        # Demarrer en production
+npm run typecheck    # Verification TypeScript
+npm run db:migrate:dev  # Creer une migration Prisma
+npm run db:migrate:deploy  # Appliquer les migrations
+npm run db:seed      # Inserer les donnees de base
 ```
 
 ## Pages
@@ -497,7 +509,7 @@ npm run typecheck
 
 ## Système de notifications
 
-Les notifications sont stockées dans la table SQLite `notifications` et servies via l'API REST. Chaque notification cible un `user_id` spécifique et peut contenir un `contract_slug`, un `type`, un `title`, un `message` et des `metadata` JSON.
+Les notifications sont stockées dans la base PostgreSQL et servies via l'API REST. Chaque notification cible un `user_id` spécifique et peut contenir un `contract_slug`, un `type`, un `title`, un `message` et des `metadata` JSON.
 
 ### Types de notifications et déclencheurs
 
@@ -536,7 +548,7 @@ Les abonnements (`subscriptions`) lient un utilisateur à un contrat avec un can
 
 ## RBAC — Contrôle d'accès
 
-Le RBAC utilise 4 tables SQLite : `permissions`, `access_policies`, `groups`, `user_group`.
+Le RBAC utilise 4 tables PostgreSQL : `permissions`, `access_policies`, `groups`, `user_group`.
 
 ### Niveaux de scope (hiérarchiques)
 
@@ -634,14 +646,13 @@ KC_ADMIN=admin
 KC_ADMIN_PASSWORD=admin
 
 # === Application ===
-DATABASE_URL=file:./prisma/data/rbac.db   # Chemin de la base SQLite (Prisma)
-DB_PATH=prisma/data/rbac.db               # Chemin direct (sql.js)
+DATABASE_URL=postgresql://user:password@localhost:5433/data_contract_catalog?schema=public   # URL de connexion PostgreSQL (Prisma)
 CONTRACTS_PATH=./contracts                # Dossier des contrats locaux
 ```
 
 ## Librairies `src/lib/`
 
-### Diagramme relationnel de la base SQLite
+### Diagramme relationnel de la base
 
 ```mermaid
 erDiagram
@@ -752,7 +763,7 @@ erDiagram
 | `types.ts` | Types métier |
 | `catalog-filter.ts` | Filtrage RBAC du catalogue |
 | `format.ts` | Utilitaires (clsx, cn, statusColor) |
-| `db.ts` | Wrapper SQLite (sql.js) |
+| `db.ts` | Wrapper PostgreSQL (Prisma) |
 | `migrate.ts` | Migrations DB (17 migrations, auto au démarrage) |
 | `startup.ts` | Initialisation app (migrations) |
 | `i18n.ts` | Dictionnaire i18n en/fr |
@@ -877,7 +888,7 @@ Si tu dois retenir l'essentiel:
 - c'est une app `Next.js + React + TypeScript`
 - l'auth passe par `NextAuth + Keycloak`
 - les data contracts sont des fichiers YAML versionnes
-- une base SQLite legere (RBAC + notifications) via sql.js
+- une base PostgreSQL (RBAC + notifications + commentaires) via Prisma ORM
 - GitLab sert de backend de repository pour l'historique et la lecture a une revision
 - l'editeur est base sur `RJSF + CodeMirror`
 - l'API est documentee par `Zod -> OpenAPI -> Scalar`

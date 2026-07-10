@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import getCaretCoordinates from "textarea-caret";
 
-import type { ContractComment, ContractIssue, UserProfile } from "@/src/lib/types";
+import type { ContractComment, ContractField, ContractIssue, UserProfile } from "@/src/lib/types";
 import { useT } from "@/src/lib/use-i18n";
 import { useClickOutside } from "@/src/hooks/useClickOutside";
 
@@ -181,7 +181,7 @@ function CommentItem({
             <button
               type="button"
               onClick={onReply}
-              className="flex items-center gap-1 text-xs font-semibold text-orange-600 hover:text-orange-800"
+              className="cursor-pointer flex items-center gap-1 text-xs font-semibold text-orange-600 hover:text-orange-800"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 10h10a8 8 0 0 1 8 8v2M3 10l6 6m-6-6 6-6" />
@@ -192,7 +192,7 @@ function CommentItem({
               <button
                 type="button"
                 onClick={() => setConfirming(true)}
-                className="text-slate-400 hover:text-red-500 transition-opacity"
+                className="cursor-pointer text-slate-400 hover:text-red-500 transition-opacity"
                 title="Delete"
               >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -207,7 +207,7 @@ function CommentItem({
                   type="button"
                   onClick={handleDelete}
                   disabled={deleting}
-                  className="font-bold text-red-600 hover:text-red-800 disabled:opacity-30"
+                  className="cursor-pointer font-bold text-red-600 hover:text-red-800 disabled:opacity-30"
                 >
                   &#10003;
                 </button>
@@ -215,7 +215,7 @@ function CommentItem({
                   type="button"
                   onClick={() => setConfirming(false)}
                   disabled={deleting}
-                  className="font-bold text-gray-600 hover:text-gray-700 disabled:opacity-30"
+                  className="cursor-pointer font-bold text-gray-600 hover:text-gray-700 disabled:opacity-30"
                 >
                   &#10005;
                 </button>
@@ -233,6 +233,7 @@ function InlineReplyForm({
   slug,
   userId,
   users,
+  fields = [],
   onClose,
   onPosted,
 }: {
@@ -240,6 +241,7 @@ function InlineReplyForm({
   slug: string;
   userId?: string;
   users: UserProfile[];
+  fields?: ContractField[];
   onClose: () => void;
   onPosted: () => void;
 }) {
@@ -250,6 +252,10 @@ function InlineReplyForm({
   const [mentionStart, setMentionStart] = useState<number | null>(null);
   const [mentionEnd, setMentionEnd] = useState<number | null>(null);
   const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
+  const [fieldSearch, setFieldSearch] = useState("");
+  const [fieldStart, setFieldStart] = useState<number | null>(null);
+  const [fieldEnd, setFieldEnd] = useState<number | null>(null);
+  const [selectedFieldIndex, setSelectedFieldIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const mentionRef = useRef<HTMLDivElement>(null);
   const caretPosRef = useRef({ top: 0, left: 0, height: 0 });
@@ -269,10 +275,20 @@ function InlineReplyForm({
     [users, mentionSearch],
   );
 
+  const filteredFields = useMemo(
+    () =>
+      fields.filter((f) => {
+        if (!fieldSearch) return true;
+        return (f.name ?? "").toLowerCase().includes(fieldSearch.toLowerCase());
+      }),
+    [fields, fieldSearch],
+  );
+
   const replyShowMention = mentionStart !== null && mentionEnd !== null && filteredUsers.length > 0;
+  const replyShowField = fieldStart !== null && fieldEnd !== null && filteredFields.length > 0;
 
   useEffect(() => {
-    if (!replyShowMention || !mentionRef.current || !textareaRef.current) return;
+    if ((!replyShowMention && !replyShowField) || !mentionRef.current || !textareaRef.current) return;
 
     const textarea = textareaRef.current;
 
@@ -305,10 +321,12 @@ function InlineReplyForm({
     if (!body.trim() || !userId) return;
     setSaving(true);
     try {
+      const refs = body.match(/#([\p{L}\p{N}_.-]+)/gu);
+      const targetField = refs?.find((r) => fields.some((f) => f.name === r.slice(1)))?.slice(1);
       const res = await fetch(`/api/contracts/${encodeURIComponent(slug)}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: body.trim(), parentId: comment.id }),
+        body: JSON.stringify({ body: body.trim(), parentId: comment.id, targetField }),
       });
       if (!res.ok) throw new Error("Failed to post reply");
       setBody("");
@@ -333,6 +351,19 @@ function InlineReplyForm({
     window.setTimeout(() => textareaRef.current?.focus(), 0);
   }
 
+  function selectField(field: ContractField | undefined) {
+    if (!field?.name || fieldStart === null || fieldEnd === null) return;
+    const suffix = body.slice(fieldEnd);
+    const trailing = suffix.startsWith(" ") ? "" : " ";
+    const nextBody = `${body.slice(0, fieldStart)}#${field.name}${trailing}${suffix}`;
+    setBody(nextBody);
+    setFieldStart(null);
+    setFieldEnd(null);
+    setFieldSearch("");
+    setSelectedFieldIndex(0);
+    window.setTimeout(() => textareaRef.current?.focus(), 0);
+  }
+
   function handleTextChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
     const value = event.target.value;
     const cursor = event.target.selectionStart;
@@ -343,21 +374,42 @@ function InlineReplyForm({
     el.style.height = `${el.scrollHeight}px`;
 
     const beforeCursor = value.slice(0, cursor);
-    const match = beforeCursor.match(/@([\p{L}\p{N}_.-]*)$/u);
-    if (match) {
-      const start = cursor - match[0].length;
+    const mentionMatch = beforeCursor.match(/@([\p{L}\p{N}_.-]*)$/u);
+    if (mentionMatch) {
+      const start = cursor - mentionMatch[0].length;
       setMentionStart(start);
       setMentionEnd(cursor);
-      setMentionSearch(match[1]);
+      setMentionSearch(mentionMatch[1]);
       setSelectedMentionIndex(0);
       const caret = getCaretCoordinates(el, cursor);
       caretPosRef.current = { top: caret.top, left: caret.left, height: caret.height };
+      setFieldStart(null);
+      setFieldEnd(null);
+      setFieldSearch("");
+      return;
+    }
+
+    const fieldMatch = beforeCursor.match(/#([\p{L}\p{N}_.-]*)$/u);
+    if (fieldMatch) {
+      const start = cursor - fieldMatch[0].length;
+      setFieldStart(start);
+      setFieldEnd(cursor);
+      setFieldSearch(fieldMatch[1]);
+      setSelectedFieldIndex(0);
+      const caret = getCaretCoordinates(el, cursor);
+      caretPosRef.current = { top: caret.top, left: caret.left, height: caret.height };
+      setMentionStart(null);
+      setMentionEnd(null);
+      setMentionSearch("");
       return;
     }
 
     setMentionStart(null);
     setMentionEnd(null);
     setMentionSearch("");
+    setFieldStart(null);
+    setFieldEnd(null);
+    setFieldSearch("");
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -373,6 +425,11 @@ function InlineReplyForm({
         selectMention(filteredUsers[selectedMentionIndex]);
         return;
       }
+      if (fieldStart !== null) {
+        event.preventDefault();
+        selectField(filteredFields[selectedFieldIndex]);
+        return;
+      }
       event.preventDefault();
       void handlePost();
       return;
@@ -386,8 +443,28 @@ function InlineReplyForm({
         setSelectedMentionIndex(0);
         return;
       }
+      if (fieldStart !== null) {
+        setFieldStart(null);
+        setFieldEnd(null);
+        setFieldSearch("");
+        setSelectedFieldIndex(0);
+        return;
+      }
       onClose();
       return;
+    }
+
+    if (fieldStart !== null && fieldEnd !== null && filteredFields.length > 0) {
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setSelectedFieldIndex((current) => Math.min(current + 1, filteredFields.length - 1));
+        return;
+      }
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setSelectedFieldIndex((current) => Math.max(current - 1, 0));
+        return;
+      }
     }
 
     if (mentionStart === null || mentionEnd === null || filteredUsers.length === 0) return;
@@ -587,12 +664,14 @@ export function DiscussionThread({
   canAdmin,
   onCommentCountChange,
   onIssueCountChange,
+  fields = [],
 }: {
   slug: string;
   userId?: string;
   canAdmin: boolean;
   onCommentCountChange?: (count: number) => void;
   onIssueCountChange?: (count: number) => void;
+  fields?: ContractField[];
 }) {
   const { t } = useT();
   const [comments, setComments] = useState<ContractComment[]>([]);
@@ -604,6 +683,10 @@ export function DiscussionThread({
   const [mentionStart, setMentionStart] = useState<number | null>(null);
   const [mentionEnd, setMentionEnd] = useState<number | null>(null);
   const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
+  const [fieldSearch, setFieldSearch] = useState("");
+  const [fieldStart, setFieldStart] = useState<number | null>(null);
+  const [fieldEnd, setFieldEnd] = useState<number | null>(null);
+  const [selectedFieldIndex, setSelectedFieldIndex] = useState(0);
   const [replyingTo, setReplyingTo] = useState<ContractComment | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -678,24 +761,47 @@ export function DiscussionThread({
       setMentionStart(null);
       setMentionEnd(null);
       setMentionSearch("");
+      setFieldStart(null);
+      setFieldEnd(null);
+      setFieldSearch("");
       return;
     }
 
     const beforeCursor = value.slice(0, cursor);
-    const match = beforeCursor.match(/@([\p{L}\p{N}_.-]*)$/u);
-    if (match) {
-      const start = cursor - match[0].length;
+    const mentionMatch = beforeCursor.match(/@([\p{L}\p{N}_.-]*)$/u);
+    if (mentionMatch) {
+      const start = cursor - mentionMatch[0].length;
       setMentionStart(start);
       setMentionEnd(cursor);
-      setMentionSearch(match[1]);
+      setMentionSearch(mentionMatch[1]);
       const caret = getCaretCoordinates(el, cursor);
       caretPosRef.current = { top: caret.top, left: caret.left, height: caret.height };
+      setFieldStart(null);
+      setFieldEnd(null);
+      setFieldSearch("");
+      return;
+    }
+
+    const fieldMatch = beforeCursor.match(/#([\p{L}\p{N}_.-]*)$/u);
+    if (fieldMatch) {
+      const start = cursor - fieldMatch[0].length;
+      setFieldStart(start);
+      setFieldEnd(cursor);
+      setFieldSearch(fieldMatch[1]);
+      const caret = getCaretCoordinates(el, cursor);
+      caretPosRef.current = { top: caret.top, left: caret.left, height: caret.height };
+      setMentionStart(null);
+      setMentionEnd(null);
+      setMentionSearch("");
       return;
     }
 
     setMentionStart(null);
     setMentionEnd(null);
     setMentionSearch("");
+    setFieldStart(null);
+    setFieldEnd(null);
+    setFieldSearch("");
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -709,6 +815,11 @@ export function DiscussionThread({
       if (composerMode === "comment" && mentionStart !== null) {
         event.preventDefault();
         selectMention(filteredUsers[selectedMentionIndex]);
+        return;
+      }
+      if (composerMode === "comment" && fieldStart !== null) {
+        event.preventDefault();
+        selectField(filteredFields[selectedFieldIndex]);
         return;
       }
       event.preventDefault();
@@ -725,7 +836,28 @@ export function DiscussionThread({
         setSelectedMentionIndex(0);
         return;
       }
+      if (fieldStart !== null) {
+        event.preventDefault();
+        setFieldStart(null);
+        setFieldEnd(null);
+        setFieldSearch("");
+        setSelectedFieldIndex(0);
+        return;
+      }
       return;
+    }
+
+    if (fieldStart !== null && fieldEnd !== null && filteredFields.length > 0) {
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setSelectedFieldIndex((current) => Math.min(current + 1, filteredFields.length - 1));
+        return;
+      }
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setSelectedFieldIndex((current) => Math.max(current - 1, 0));
+        return;
+      }
     }
 
     if (mentionStart === null || mentionEnd === null || filteredUsers.length === 0) return;
@@ -753,16 +885,30 @@ export function DiscussionThread({
     focusComposer();
   }
 
+  function selectField(field: ContractField | undefined) {
+    if (!field?.name || fieldStart === null || fieldEnd === null) return;
+    const suffix = body.slice(fieldEnd);
+    const trailing = suffix.startsWith(" ") ? "" : " ";
+    const nextBody = `${body.slice(0, fieldStart)}#${field.name}${trailing}${suffix}`;
+    setBody(nextBody);
+    setFieldStart(null);
+    setFieldEnd(null);
+    setFieldSearch("");
+    focusComposer();
+  }
+
   async function submitComment() {
     const commentBody = body.trim();
     if (!commentBody || !userId) return;
     setSaving(true);
     setError(null);
     try {
+      const refs = commentBody.match(/#([\p{L}\p{N}_.-]+)/gu);
+      const targetField = refs?.find((r) => fields.some((f) => f.name === r.slice(1)))?.slice(1);
       const res = await fetch(`/api/contracts/${encodeURIComponent(slug)}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: commentBody, parentId: replyingTo?.id ?? null }),
+        body: JSON.stringify({ body: commentBody, parentId: replyingTo?.id ?? null, targetField }),
       });
       if (!res.ok) {
         const payload = (await res.json()) as { error?: string };
@@ -892,10 +1038,20 @@ export function DiscussionThread({
     [users, mentionSearch],
   );
 
+  const filteredFields = useMemo(
+    () =>
+      fields.filter((f) => {
+        if (!fieldSearch) return true;
+        return (f.name ?? "").toLowerCase().includes(fieldSearch.toLowerCase());
+      }),
+    [fields, fieldSearch],
+  );
+
   const showMention = composerMode === "comment" && mentionStart !== null && mentionEnd !== null && filteredUsers.length > 0;
+  const showFieldMention = composerMode === "comment" && fieldStart !== null && fieldEnd !== null && filteredFields.length > 0;
 
   useEffect(() => {
-    if (!showMention || !mentionRef.current || !textareaRef.current) return;
+    if ((!showMention && !showFieldMention) || !mentionRef.current || !textareaRef.current) return;
 
     const textarea = textareaRef.current;
 
@@ -922,7 +1078,7 @@ export function DiscussionThread({
     position();
     window.addEventListener("scroll", position, { passive: true });
     return () => window.removeEventListener("scroll", position);
-  }, [showMention]);
+  }, [showMention, showFieldMention]);
 
   useClickOutside(composerRef, () => {
     if (mentionStart !== null && mentionEnd !== null) {
@@ -930,7 +1086,12 @@ export function DiscussionThread({
       setMentionEnd(null);
       setMentionSearch("");
     }
-  }, showMention);
+    if (fieldStart !== null && fieldEnd !== null) {
+      setFieldStart(null);
+      setFieldEnd(null);
+      setFieldSearch("");
+    }
+  }, showMention || showFieldMention);
 
   function renderCommentTree(node: CommentNode, parentUserId?: string): React.ReactNode {
     const isReplyingToThis = replyingTo?.id === node.id;
@@ -977,7 +1138,7 @@ export function DiscussionThread({
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-base font-semibold text-gray-900">Discussion</h2>
             <div className="flex items-center gap-2">
-              <div className="inline-flex rounded-full border p-0.5" style={{ backgroundColor: "rgba(0,0,0,0.04)" }}>
+              <div className="inline-flex rounded-lg p-0.5" style={{ backgroundColor: "rgba(0,0,0,0.06)" }}>
                 {(["all", "comments", "issues"] as const).map((mode) => (
                   <button
                     key={mode}
@@ -1029,7 +1190,7 @@ export function DiscussionThread({
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-base font-semibold text-gray-900">Discussion</h2>
             <div className="flex items-center gap-2">
-              <div className="inline-flex rounded-full border p-0.5" style={{ backgroundColor: "rgba(0,0,0,0.04)" }}>
+              <div className="inline-flex rounded-lg p-0.5" style={{ backgroundColor: "rgba(0,0,0,0.06)" }}>
                 {(["all", "comments", "issues"] as const).map((mode) => (
                   <button
                     key={mode}
@@ -1103,7 +1264,7 @@ export function DiscussionThread({
         {userId ? (
           <form className="relative" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
             <div className="mb-3 flex items-center justify-between">
-              <div className="inline-flex rounded-full border p-0.5" style={{ backgroundColor: "rgba(249, 115, 22, 0.08)", borderColor: "rgba(249, 115, 22, 0.22)" }}>
+              <div className="inline-flex rounded-lg p-0.5" style={{ backgroundColor: "rgba(249, 115, 22, 0.1)" }}>
                 <button
                   type="button"
                   onClick={() => setComposerMode("comment")}
@@ -1158,6 +1319,54 @@ export function DiscussionThread({
                 onKeyDown={handleKeyDown}
               />
             </div>
+
+            {showFieldMention ? (
+              <div
+                ref={mentionRef}
+                className="z-50 w-72 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl"
+                style={{ position: "fixed", maxHeight: "min(240px, 40vh)" }}
+              >
+                <div className="overflow-y-auto bg-white py-1 mention-scroll" style={{ maxHeight: "inherit" }}>
+                  <div className="px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                    Champs
+                  </div>
+                  {filteredFields.map((field, index) => {
+                    const isActive = index === selectedFieldIndex;
+                    return (
+                      <button
+                        key={field.name}
+                        type="button"
+                        className={`flex w-full items-center gap-3 px-4 py-2 text-left text-sm transition-colors ${
+                          isActive ? "bg-orange-50" : "hover:bg-orange-50"
+                        }`}
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                          selectField(field);
+                        }}
+                      >
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700">
+                          #
+                        </div>
+                        <div className="min-w-0 flex-1 overflow-hidden">
+                          <span
+                            className={`block truncate ${
+                              isActive ? "font-semibold text-orange-700" : "font-medium text-slate-900"
+                            }`}
+                          >
+                            #{field.name}
+                          </span>
+                          {field.description ? (
+                            <span className="block truncate text-xs text-slate-500">{field.description}</span>
+                          ) : field.type ? (
+                            <span className="block truncate text-xs text-slate-400">{field.type}</span>
+                          ) : null}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
 
             {showMention ? (
               <div

@@ -145,14 +145,7 @@ export function ModelFieldsTable({ fields, slug, userId, fieldAnnotations, onFie
                 {!row.hasChildren ? <span className="contract-models-field__leaf" aria-hidden="true" /> : null}
                 <span className="contract-models-field__name">{row.name}</span>
                 {userId && slug ? (
-                  <div className="ml-auto flex items-center gap-1">
-                    <button
-                      type="button"
-                      className="rounded-full bg-orange-50 px-2 py-1 text-[11px] font-bold text-orange-700 hover:bg-orange-100 cursor-pointer"
-                      onClick={() => openAnnotate(row)}
-                    >
-                      Annotate
-                    </button>
+                  <div className="ml-auto flex items-center justify-end gap-1">
                     {fieldAnnotations?.[row.name] ? (
                       <button
                         type="button"
@@ -162,13 +155,22 @@ export function ModelFieldsTable({ fields, slug, userId, fieldAnnotations, onFie
                         {fieldAnnotations[row.name]}
                       </button>
                     ) : null}
+                    <button
+                      type="button"
+                      className="rounded-full bg-orange-50 px-2 py-1 text-[11px] font-bold text-orange-700 hover:bg-orange-100 cursor-pointer"
+                      onClick={() => openAnnotate(row)}
+                    >
+                      Annotate
+                    </button>
                   </div>
                 ) : null}
               </div>
             </td>
 
             <td className="contract-models-cell contract-models-cell--type">
-              <span className="contract-models-type">{row.type}</span>
+              <div className="flex items-center" style={{ minHeight: "1.9rem" }}>
+                <span className="contract-models-type">{row.type}</span>
+              </div>
             </td>
 
             <td className="contract-models-cell contract-models-cell--details">

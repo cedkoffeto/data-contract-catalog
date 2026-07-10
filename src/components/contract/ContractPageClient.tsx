@@ -253,10 +253,7 @@ export function ContractPageClient({
 
   function handleFieldClick(fieldName: string) {
     setActiveTab("discussion");
-    setRefreshKey(k => k + 1);
   }
-
-  const [refreshKey, setRefreshKey] = useState(0);
 
   const displayedData = activeVersion?.data ?? data;
   const displayedYamlRaw = activeVersion?.yamlRaw ?? yamlRaw;
@@ -415,7 +412,7 @@ export function ContractPageClient({
                   <ContractBody data={displayedData} slug={slug} userId={userId} fieldAnnotations={fieldAnnotations} onFieldClick={handleFieldClick} onAnnotationPosted={loadFieldAnnotations} />
                 </div>
                 <div className={activeTab === "discussion" ? "" : "hidden"}>
-                  <DiscussionThread slug={slug} userId={userId} canAdmin={canAdmin} onCommentCountChange={setCommentCount} onIssueCountChange={setIssueCount} />
+                  <DiscussionThread slug={slug} userId={userId} canAdmin={canAdmin} onCommentCountChange={setCommentCount} onIssueCountChange={setIssueCount} fields={displayedData.contract?.schema?.fields} />
                 </div>
               </div>
             </div>
