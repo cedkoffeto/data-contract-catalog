@@ -19,3 +19,4 @@ pnpm-debug.log*
 
 # Prisma / SQLite
 prisma/data/
+.idea/
