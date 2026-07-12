@@ -621,13 +621,8 @@ export async function getContracts(): Promise<ContractFile[]> {
         client.api.Branches.show(client.projectId, client.ref),
       )) as { commit: { id: string } };
       latestSha = branch.commit.id;
-    } catch (error) {
-      console.error("[gitlab.commit] Failed to get branch SHA", {
-        message: error instanceof Error ? error.message : String(error),
-      });
-      if (contractsCache.value.length > 0 && contractsCache.expiresAt > now) {
-        return contractsCache.value;
-      }
+    } catch {
+      // GitLab unreachable — will fall back to local contracts below
     }
 
     if (
@@ -651,10 +646,13 @@ export async function getContracts(): Promise<ContractFile[]> {
       populateSlugToPathCache(contracts.map((c) => ({ fullPath: c.fullPath })));
     }
     return contracts;
-    } catch (error) {
-      pendingContractsPromise = null;
+    } catch {
       gitLabContractsError = true;
-      throw new Error(`Failed to fetch contracts from GitLab: ${error instanceof Error ? error.message : String(error)}`);
+      console.warn("[gitlab.contracts] Failed, falling back to local contracts");
+      pendingContractsPromise = readLocalContracts();
+      const contracts = await pendingContractsPromise;
+      pendingContractsPromise = null;
+      return contracts;
     }
   }
 
