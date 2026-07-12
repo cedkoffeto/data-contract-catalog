@@ -1,4 +1,4 @@
-import { execute, query } from "@/src/lib/db";
+import { prisma } from "@/src/lib/prisma";
 
 export type AuditAction =
   | "subscription.subscribe"
@@ -22,6 +22,15 @@ export type AuditAction =
 
 export type AuditTargetType = "user" | "contract" | "policy" | "group" | "system";
 
+const SORT_MAP: Record<string, string> = {
+  created_at: "createdAt",
+  action: "action",
+  actor_id: "actorId",
+  target_type: "targetType",
+  target_id: "targetId",
+  details: "details",
+};
+
 export async function writeAuditLog(params: {
   action: AuditAction;
   actorId: string;
@@ -30,34 +39,44 @@ export async function writeAuditLog(params: {
   details?: Record<string, unknown>;
   sessionId?: string;
 }) {
-  await execute(
-    `INSERT INTO audit_log (action, actor_id, target_type, target_id, details, session_id) VALUES (?, ?, ?, ?, ?, ?)`,
-    [
-      params.action,
-      params.actorId,
-      params.targetType,
-      params.targetId,
-      JSON.stringify(params.details ?? {}),
-      params.sessionId ?? "",
-    ]
-  );
+  await prisma.auditLog.create({
+    data: {
+      action: params.action,
+      actorId: params.actorId,
+      targetType: params.targetType,
+      targetId: params.targetId,
+      details: JSON.stringify(params.details ?? {}),
+      sessionId: params.sessionId ?? "",
+    },
+  });
 }
 
 export async function cleanupAuditLogs(retentionDays = 90) {
-  const result = await execute(
-    "DELETE FROM audit_log WHERE created_at < NOW() - (?::INTEGER * INTERVAL '1 day')",
-    [retentionDays]
-  );
-  return result.changes;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - retentionDays);
+  const result = await prisma.auditLog.deleteMany({
+    where: { createdAt: { lt: cutoff } },
+  });
+  return result.count;
+}
+
+async function getAuditSearchFilter(search?: string) {
+  if (!search) return {};
+  return {
+    OR: [
+      { action: { contains: search, mode: "insensitive" as const } },
+      { actorId: { contains: search, mode: "insensitive" as const } },
+      { targetType: { contains: search, mode: "insensitive" as const } },
+      { targetId: { contains: search, mode: "insensitive" as const } },
+      { details: { contains: search, mode: "insensitive" as const } },
+    ],
+  };
 }
 
 export async function countAuditLogs(search?: string) {
-  const where = search
-    ? "WHERE action ILIKE ? OR actor_id ILIKE ? OR target_type ILIKE ? OR target_id ILIKE ? OR details ILIKE ?"
-    : "";
-  const params = search ? Array(5).fill(`%${search}%`) : [];
-  const [row] = await query<{ c: number }>(`SELECT COUNT(*) as c FROM audit_log ${where}`, params);
-  return Number(row?.c ?? 0);
+  return prisma.auditLog.count({
+    where: await getAuditSearchFilter(search),
+  });
 }
 
 export async function listAuditLogs(params: {
@@ -68,34 +87,23 @@ export async function listAuditLogs(params: {
   search?: string;
 }) {
   const { page, pageSize, sortKey = "created_at", sortDir = "desc", search } = params;
-  const allowedSorts = new Set(["created_at", "action", "actor_id", "target_type", "target_id", "details"]);
-  const key = allowedSorts.has(sortKey) ? sortKey : "created_at";
-  const dir = sortDir === "asc" ? "ASC" : "DESC";
+  const prismaKey = SORT_MAP[sortKey] ?? "createdAt";
+  const dir = sortDir === "asc" ? "asc" : "desc";
 
-  let where = "";
-  let queryParams: unknown[] = [];
-  if (search) {
-    where = "WHERE action ILIKE ? OR actor_id ILIKE ? OR target_type ILIKE ? OR target_id ILIKE ? OR details ILIKE ?";
-    queryParams = Array(5).fill(`%${search}%`);
-  }
+  const rows = await prisma.auditLog.findMany({
+    where: await getAuditSearchFilter(search),
+    orderBy: { [prismaKey]: dir },
+    skip: page * pageSize,
+    take: pageSize,
+  });
 
-  const offset = page * pageSize;
-  const rows = await query<AuditLogRow>(
-    `SELECT id, action, actor_id, target_type, target_id, details, created_at FROM audit_log ${where} ORDER BY ${key} ${dir} LIMIT ? OFFSET ?`,
-    [...queryParams, pageSize, offset]
-  );
   return rows.map((r) => ({
-    ...r,
-    id: Number(r.id),
+    id: r.id,
+    action: r.action,
+    actor_id: r.actorId,
+    target_type: r.targetType,
+    target_id: r.targetId,
+    details: r.details,
+    created_at: r.createdAt.toISOString(),
   }));
 }
-
-type AuditLogRow = {
-  id: number;
-  action: string;
-  actor_id: string;
-  target_type: string;
-  target_id: string;
-  details: string;
-  created_at: string;
-};

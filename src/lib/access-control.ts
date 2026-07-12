@@ -1,4 +1,4 @@
-import { query, execute, insertReturning } from "@/src/lib/db";
+import { prisma } from "@/src/lib/prisma";
 import { writeAuditLog } from "@/src/lib/audit";
 import { createNotification } from "@/src/lib/notifications";
 
@@ -77,30 +77,31 @@ export async function getEffectivePermissions(
   const lcContext = context.toLowerCase().trim();
   const lcDataContract = dataContract?.toLowerCase().trim();
 
-  const promise = query<AccessPolicyRow>(
-    `SELECT DISTINCT p.name AS permission_name
-     FROM access_policies ap
-     JOIN permissions p ON p.id = ap.permission_id
-     WHERE (
-       ap.user_id = ?
-       OR ap.group_id IN (
-         SELECT ug.group_id FROM user_group ug WHERE ug.user_id = ?
-       )
-     )
-     AND (
-       (ap.domain_scope IS NULL AND ap.context_scope IS NULL AND ap.data_contract_scope IS NULL)                          -- Level 1: Global
-       OR (LOWER(ap.domain_scope) = ? AND ap.context_scope IS NULL AND ap.data_contract_scope IS NULL)                    -- Level 2: Domain-wide
-       OR (LOWER(ap.domain_scope) = ? AND LOWER(ap.context_scope) = ? AND ap.data_contract_scope IS NULL)                 -- Level 3: Context-specific
-        ${lcDataContract ? "OR (LOWER(ap.domain_scope) = ? AND LOWER(ap.context_scope) = ? AND LOWER(ap.data_contract_scope) = ?)" : ""}  -- Level 4: Contract-specific (full scope)
-        ${lcDataContract ? "OR (ap.domain_scope IS NULL AND ap.context_scope IS NULL AND LOWER(ap.data_contract_scope) = ?)" : ""}  -- Level 5: Contract-specific (slug only)
-        ${lcDataContract ? "OR (LOWER(ap.domain_scope) = ? AND ap.context_scope IS NULL AND LOWER(ap.data_contract_scope) = ?)" : ""}  -- Level 6: Domain + Contract
-     )`,
-    lcDataContract
-      ? [userId, userId, lcDomain, lcDomain, lcContext, lcDomain, lcContext, lcDataContract, lcDataContract, lcDomain, lcDataContract]
-      : [userId, userId, lcDomain, lcDomain, lcContext],
-  ).then((rows: AccessPolicyRow[]) => {
-    const names: PermissionName[] = rows.map((r) => r.permission_name as PermissionName);
-    return names.includes("admin") ? (["admin"] as PermissionName[]) : names;
+  const scopeOr: Record<string, unknown>[] = [
+    { domainScope: null, contextScope: null, dataContractScope: null },
+    { domainScope: { equals: lcDomain, mode: "insensitive" }, contextScope: null, dataContractScope: null },
+    { domainScope: { equals: lcDomain, mode: "insensitive" }, contextScope: { equals: lcContext, mode: "insensitive" }, dataContractScope: null },
+  ];
+  if (lcDataContract) {
+    scopeOr.push(
+      { domainScope: { equals: lcDomain, mode: "insensitive" }, contextScope: { equals: lcContext, mode: "insensitive" }, dataContractScope: { equals: lcDataContract, mode: "insensitive" } },
+      { domainScope: null, contextScope: null, dataContractScope: { equals: lcDataContract, mode: "insensitive" } },
+      { domainScope: { equals: lcDomain, mode: "insensitive" }, contextScope: null, dataContractScope: { equals: lcDataContract, mode: "insensitive" } },
+    );
+  }
+
+  const promise = prisma.accessPolicy.findMany({
+    where: {
+      AND: [
+        { OR: [{ userId }, { group: { members: { some: { userId } } } }] },
+        { OR: scopeOr },
+      ],
+    },
+    include: { permission: { select: { name: true } } },
+    distinct: ["permissionId"],
+  }).then((rows) => {
+    const names = rows.map((r) => r.permission.name) as PermissionName[];
+    return names.includes("admin") ? ["admin"] as PermissionName[] : names;
   });
 
   setCachedPermissions(key, promise);
@@ -190,8 +191,8 @@ const PERMISSION_NAMES: Record<number, PermissionName> = {};
 
 async function getPermissionRank(id: number): Promise<number> {
   if (!PERMISSION_NAMES[id]) {
-    const rows = await query<{ name: string }>("SELECT name FROM permissions WHERE id = ?", [id]);
-    PERMISSION_NAMES[id] = rows[0]?.name as PermissionName;
+    const row = await prisma.permission.findUnique({ where: { id }, select: { name: true } });
+    PERMISSION_NAMES[id] = row?.name as PermissionName;
   }
   return PERMISSION_RANK[PERMISSION_NAMES[id]] ?? 0;
 }
@@ -217,18 +218,26 @@ export async function checkPolicyConflicts(params: {
 }): Promise<ConflictInfo | null> {
   const { userId, groupId, permissionId, domainScope, contextScope, dataContractScope, excludeId } = params;
 
-  const existing = await query<AccessPolicyRecord>(
-    `SELECT ap.id, ap.user_id, ap.group_id, NULL AS group_name,
-            ap.permission_id, p.name AS permission_name,
-            ap.domain_scope, ap.context_scope, ap.data_contract_scope
-     FROM access_policies ap
-     JOIN permissions p ON p.id = ap.permission_id
-     WHERE (ap.user_id = ? OR ap.group_id = ?)
-       ${excludeId ? "AND ap.id != ?" : ""}`,
-    excludeId
-      ? [userId, groupId, excludeId]
-      : [userId, groupId],
-  );
+  const existing = (await prisma.accessPolicy.findMany({
+    where: {
+      AND: [
+        { OR: [{ userId }, { groupId }] },
+        ...(excludeId ? [{ id: { not: excludeId } }] : []),
+      ],
+    },
+    include: { permission: { select: { name: true, id: true } } },
+    orderBy: { id: "asc" },
+  })).map((r) => ({
+    id: r.id,
+    user_id: r.userId,
+    group_id: r.groupId ?? null,
+    group_name: null,
+    permission_id: r.permissionId,
+    permission_name: r.permission.name,
+    domain_scope: r.domainScope ?? null,
+    context_scope: r.contextScope ?? null,
+    data_contract_scope: r.dataContractScope ?? null,
+  }));
 
   if (existing.length === 0) return null;
 
@@ -302,13 +311,15 @@ export async function findNarrowerPolicies(
   dataContractScope: string | null,
   excludeId: number,
 ): Promise<number[]> {
-  const rows = await query<{ id: number; domain_scope: string | null; context_scope: string | null; data_contract_scope: string | null }>(
-    `SELECT id, domain_scope, context_scope, data_contract_scope
-     FROM access_policies
-     WHERE (user_id = ? OR group_id = ?)
-       AND id != ?`,
-    [userId, groupId, excludeId],
-  );
+  const rows = await prisma.accessPolicy.findMany({
+    where: {
+      AND: [
+        { OR: [{ userId }, { groupId }] },
+        { id: { not: excludeId } },
+      ],
+    },
+    select: { id: true, domainScope: true, contextScope: true, dataContractScope: true },
+  });
 
   const newDomain = domainScope ?? null;
   const newContext = contextScope ?? null;
@@ -318,9 +329,9 @@ export async function findNarrowerPolicies(
   for (const row of rows) {
     const rel = computeScopeRelation(
       newDomain, newContext, newDataContract,
-      row.domain_scope ?? null,
-      row.context_scope ?? null,
-      row.data_contract_scope ?? null,
+      row.domainScope ?? null,
+      row.contextScope ?? null,
+      row.dataContractScope ?? null,
     );
     if (rel === "broader") {
       narrower.push(row.id);
@@ -335,7 +346,8 @@ export async function findNarrowerPolicies(
 // ---------------------------------------------------------------------------
 
 export async function listPermissions(): Promise<PermissionRow[]> {
-  return query<PermissionRow>("SELECT id, name FROM permissions ORDER BY id");
+  const rows = await prisma.permission.findMany({ orderBy: { id: "asc" } });
+  return rows.map((r) => ({ id: r.id, name: r.name }));
 }
 
 export type AccessPolicyRecord = {
@@ -351,27 +363,43 @@ export type AccessPolicyRecord = {
 };
 
 export async function listAccessPolicies(): Promise<AccessPolicyRecord[]> {
-  return query<AccessPolicyRecord>(
-    `SELECT ap.id, ap.user_id, ap.group_id, g.name AS group_name,
-            ap.permission_id, p.name AS permission_name,
-            ap.domain_scope, ap.context_scope, ap.data_contract_scope
-     FROM access_policies ap
-     JOIN permissions p ON p.id = ap.permission_id
-     LEFT JOIN groups g ON g.id = ap.group_id
-     ORDER BY ap.id`,
-  );
+  const rows = await prisma.accessPolicy.findMany({
+    include: {
+      permission: { select: { name: true } },
+      group: { select: { name: true } },
+    },
+    orderBy: { id: "asc" },
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    user_id: r.userId,
+    group_id: r.groupId,
+    group_name: r.group?.name ?? null,
+    permission_id: r.permissionId,
+    permission_name: r.permission.name,
+    domain_scope: r.domainScope,
+    context_scope: r.contextScope,
+    data_contract_scope: r.dataContractScope,
+  }));
 }
 
 export async function getAccessPolicy(id: number): Promise<AccessPolicyRecord | null> {
-  const rows = await query<AccessPolicyRecord>(
-    `SELECT ap.id, ap.user_id, ap.group_id, ap.permission_id, p.name AS permission_name,
-            ap.domain_scope, ap.context_scope, ap.data_contract_scope
-     FROM access_policies ap
-     JOIN permissions p ON p.id = ap.permission_id
-     WHERE ap.id = ?`,
-    [id],
-  );
-  return rows[0] ?? null;
+  const r = await prisma.accessPolicy.findUnique({
+    where: { id },
+    include: { permission: { select: { name: true } } },
+  });
+  if (!r) return null;
+  return {
+    id: r.id,
+    user_id: r.userId,
+    group_id: r.groupId,
+    group_name: null,
+    permission_id: r.permissionId,
+    permission_name: r.permission.name,
+    domain_scope: r.domainScope,
+    context_scope: r.contextScope,
+    data_contract_scope: r.dataContractScope,
+  };
 }
 
 async function getPolicyAffectedUserIds(userId: string | null, groupId: number | null): Promise<string[]> {
@@ -419,7 +447,7 @@ export async function createAccessPolicy(params: {
           userId, groupId, domainScope ?? null, contextScope ?? null, dataContractScope ?? null, conflict.existing.id,
         );
         await Promise.allSettled(narrowerIds.map(async (id) => {
-          await execute("DELETE FROM access_policies WHERE id = ?", [id]);
+          await prisma.accessPolicy.delete({ where: { id } });
           await writeAuditLog({
             action: "policy.delete",
             actorId,
@@ -442,12 +470,17 @@ export async function createAccessPolicy(params: {
     }
   }
 
-  const rows = await insertReturning<{ id: number }>(
-    `INSERT INTO access_policies (user_id, group_id, permission_id, domain_scope, context_scope, data_contract_scope)
-     VALUES (?, ?, ?, ?, ?, ?) RETURNING id`,
-    [userId ?? null, groupId ?? null, permissionId, domainScope ?? null, contextScope ?? null, dataContractScope ?? null],
-  );
-  const newId = rows[0]?.id ?? 0;
+  const created = await prisma.accessPolicy.create({
+    data: {
+      userId: userId ?? null,
+      groupId: groupId ?? null,
+      permissionId,
+      domainScope: domainScope ?? null,
+      contextScope: contextScope ?? null,
+      dataContractScope: dataContractScope ?? null,
+    },
+  });
+  const newId = created.id;
 
   await writeAuditLog({
     action: "policy.create",
@@ -493,12 +526,10 @@ export async function updateAccessPolicy(params: {
 
   const oldPolicy = await getAccessPolicy(id);
 
-  await execute(
-    `UPDATE access_policies
-     SET permission_id = ?, domain_scope = ?, context_scope = ?, data_contract_scope = ?, updated_at = CURRENT_TIMESTAMP
-     WHERE id = ?`,
-    [permissionId, domainScope, contextScope, dataContractScope ?? null, id],
-  );
+  await prisma.accessPolicy.update({
+    where: { id },
+    data: { permissionId, domainScope, contextScope, dataContractScope: dataContractScope ?? null },
+  });
 
   await writeAuditLog({
     action: "policy.update",
@@ -538,7 +569,7 @@ export async function deleteAccessPolicy(params: {
 }): Promise<void> {
   const oldPolicy = await getAccessPolicy(params.id);
 
-  await execute("DELETE FROM access_policies WHERE id = ?", [params.id]);
+  await prisma.accessPolicy.delete({ where: { id: params.id } });
 
   await writeAuditLog({
     action: "policy.delete",
@@ -572,16 +603,11 @@ export async function deleteAccessPolicy(params: {
 // ---------------------------------------------------------------------------
 
 export async function listGroups(): Promise<{ id: number; name: string }[]> {
-  return query<{ id: number; name: string }>("SELECT id, name FROM groups ORDER BY name");
+  return prisma.group.findMany({ orderBy: { name: "asc" } });
 }
 
 export async function createGroup(params: { name: string; actorId: string; sessionId?: string }): Promise<{ id: number; name: string }> {
-  await execute("INSERT INTO groups (name) VALUES (?)", [params.name]);
-
-  const rows = await query<{ id: number; name: string }>(
-    "SELECT id, name FROM groups WHERE name = ?",
-    [params.name],
-  );
+  const group = await prisma.group.create({ data: { name: params.name } });
 
   await writeAuditLog({
     action: "group.create",
@@ -591,18 +617,18 @@ export async function createGroup(params: { name: string; actorId: string; sessi
     sessionId: params.sessionId,
   });
 
-  return rows[0]!;
+  return { id: group.id, name: group.name };
 }
 
 export async function deleteGroup(params: { id: number; actorId: string; sessionId?: string }): Promise<void> {
-  const group = await query<{ name: string }>("SELECT name FROM groups WHERE id = ?", [params.id]);
-  await execute("DELETE FROM groups WHERE id = ?", [params.id]);
+  const group = await prisma.group.findUnique({ where: { id: params.id }, select: { name: true } });
+  await prisma.group.delete({ where: { id: params.id } });
 
   await writeAuditLog({
     action: "group.delete",
     actorId: params.actorId,
     targetType: "group",
-    targetId: group[0]?.name ?? String(params.id),
+    targetId: group?.name ?? String(params.id),
     sessionId: params.sessionId,
   });
 }
@@ -613,10 +639,9 @@ export async function addUserToGroup(params: {
   actorId: string;
   sessionId?: string;
 }): Promise<void> {
-  await execute("INSERT INTO user_group (user_id, group_id) VALUES (?, ?) ON CONFLICT DO NOTHING", [
-    params.userId,
-    params.groupId,
-  ]);
+  await prisma.userGroup.create({
+    data: { userId: params.userId, groupId: params.groupId },
+  }).catch(() => {});
 
   await writeAuditLog({
     action: "group.add_member",
@@ -627,8 +652,8 @@ export async function addUserToGroup(params: {
     sessionId: params.sessionId,
   });
 
-  const group = await query<{ name: string }>("SELECT name FROM groups WHERE id = ?", [params.groupId]);
-  const groupName = group[0]?.name ?? `group #${params.groupId}`;
+  const group = await prisma.group.findUnique({ where: { id: params.groupId }, select: { name: true } });
+  const groupName = group?.name ?? `group #${params.groupId}`;
   await createNotification({
     userId: params.userId,
     contractSlug: "",
@@ -645,10 +670,9 @@ export async function removeUserFromGroup(params: {
   actorId: string;
   sessionId?: string;
 }): Promise<void> {
-  await execute("DELETE FROM user_group WHERE user_id = ? AND group_id = ?", [
-    params.userId,
-    params.groupId,
-  ]);
+  await prisma.userGroup.delete({
+    where: { userId_groupId: { userId: params.userId, groupId: params.groupId } },
+  }).catch(() => {});
 
   await writeAuditLog({
     action: "group.remove_member",
@@ -659,8 +683,8 @@ export async function removeUserFromGroup(params: {
     sessionId: params.sessionId,
   });
 
-  const group = await query<{ name: string }>("SELECT name FROM groups WHERE id = ?", [params.groupId]);
-  const groupName = group[0]?.name ?? `group #${params.groupId}`;
+  const group = await prisma.group.findUnique({ where: { id: params.groupId }, select: { name: true } });
+  const groupName = group?.name ?? `group #${params.groupId}`;
   await createNotification({
     userId: params.userId,
     contractSlug: "",
@@ -672,37 +696,51 @@ export async function removeUserFromGroup(params: {
 }
 
 export async function listGroupMembers(groupId: number): Promise<string[]> {
-  const rows = await query<{ user_id: string }>(
-    "SELECT user_id FROM user_group WHERE group_id = ? ORDER BY user_id",
-    [groupId],
-  );
-  return rows.map((r) => r.user_id);
+  const rows = await prisma.userGroup.findMany({
+    where: { groupId },
+    orderBy: { userId: "asc" },
+    select: { userId: true },
+  });
+  return rows.map((r) => r.userId);
 }
 
 export async function listAllGroupMemberships(): Promise<
   Array<{ group_id: number; group_name: string; user_id: string }>
 > {
-  return query<{ group_id: number; group_name: string; user_id: string }>(
-    `SELECT ug.group_id, g.name AS group_name, ug.user_id
-     FROM user_group ug
-     JOIN groups g ON g.id = ug.group_id
-     ORDER BY g.name, ug.user_id`,
-  );
+  const rows = await prisma.userGroup.findMany({
+    include: { group: { select: { name: true } } },
+    orderBy: [{ group: { name: "asc" } }, { userId: "asc" }],
+  });
+  return rows.map((r) => ({
+    group_id: r.groupId,
+    group_name: r.group.name,
+    user_id: r.userId,
+  }));
 }
 
 export async function getEffectivePoliciesForUser(userId: string): Promise<AccessPolicyRecord[]> {
-  return query<AccessPolicyRecord>(
-    `SELECT ap.id, ap.user_id, ap.group_id, g.name AS group_name,
-            ap.permission_id, p.name AS permission_name,
-            ap.domain_scope, ap.context_scope, ap.data_contract_scope
-     FROM access_policies ap
-     JOIN permissions p ON p.id = ap.permission_id
-     LEFT JOIN groups g ON g.id = ap.group_id
-     WHERE ap.user_id = ?
-        OR ap.group_id IN (
-          SELECT ug.group_id FROM user_group ug WHERE ug.user_id = ?
-        )
-     ORDER BY ap.id`,
-    [userId, userId],
-  );
+  const rows = await prisma.accessPolicy.findMany({
+    where: {
+      OR: [
+        { userId },
+        { group: { members: { some: { userId } } } },
+      ],
+    },
+    include: {
+      permission: { select: { name: true } },
+      group: { select: { name: true } },
+    },
+    orderBy: { id: "asc" },
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    user_id: r.userId,
+    group_id: r.groupId,
+    group_name: r.group?.name ?? null,
+    permission_id: r.permissionId,
+    permission_name: r.permission.name,
+    domain_scope: r.domainScope,
+    context_scope: r.contextScope,
+    data_contract_scope: r.dataContractScope,
+  }));
 }

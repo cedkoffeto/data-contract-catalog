@@ -1,24 +1,30 @@
-import { insertReturning, execute, query } from "@/src/lib/db";
+import { prisma } from "@/src/lib/prisma";
 import { getGitLabClient, getGitLabContractFilePath } from "@/src/lib/gitlab";
 import type { ContractChangeRequest } from "@/src/lib/types";
 
 
-function toChangeRequest(row: Record<string, unknown>): ContractChangeRequest {
+function toChangeRequest(row: {
+  id: number; contractSlug: string; editorId: string; yamlContent: string;
+  originalSha: string; status: string; gitlabMrId: number | null;
+  gitlabMrUrl: string; rejectionReason: string; createdAt: Date;
+  resolvedAt: Date | null; resolvedBy: string | null; source: string;
+  updatedAt: Date | null;
+}): ContractChangeRequest {
   return {
-    id: row.id as number,
-    contractSlug: row.contract_slug as string,
-    editorId: row.editor_id as string,
-    yamlContent: row.yaml_content as string,
-    originalSha: row.original_sha as string,
+    id: row.id,
+    contractSlug: row.contractSlug,
+    editorId: row.editorId,
+    yamlContent: row.yamlContent,
+    originalSha: row.originalSha,
     status: row.status as ContractChangeRequest["status"],
-    gitlabMrId: row.gitlab_mr_id as number | null,
-    gitlabMrUrl: row.gitlab_mr_url as string,
-    rejectionReason: row.rejection_reason as string,
-    createdAt: row.created_at as string,
-    resolvedAt: row.resolved_at as string | null,
-    resolvedBy: row.resolved_by as string | null,
-    source: (row.source as string) as "app" | "external",
-    updatedAt: row.updated_at as string,
+    gitlabMrId: row.gitlabMrId,
+    gitlabMrUrl: row.gitlabMrUrl,
+    rejectionReason: row.rejectionReason,
+    createdAt: row.createdAt.toISOString(),
+    resolvedAt: row.resolvedAt?.toISOString() ?? null,
+    resolvedBy: row.resolvedBy,
+    source: row.source as "app" | "external",
+    updatedAt: row.updatedAt?.toISOString() ?? "",
   };
 }
 
@@ -29,13 +35,16 @@ export async function createChangeRequest(params: {
   originalSha: string;
   commitMessage?: string;
 }): Promise<ContractChangeRequest> {
-  const rows = await insertReturning<Record<string, unknown>>(
-    `INSERT INTO contract_change_requests (contract_slug, editor_id, yaml_content, original_sha)
-     VALUES (?, ?, ?, ?) RETURNING *`,
-    [params.contractSlug, params.editorId, params.yamlContent, params.originalSha],
+  const cr = toChangeRequest(
+    await prisma.contractChangeRequest.create({
+      data: {
+        contractSlug: params.contractSlug,
+        editorId: params.editorId,
+        yamlContent: params.yamlContent,
+        originalSha: params.originalSha,
+      },
+    }),
   );
-  if (!rows[0]) throw new Error("Failed to create change request row");
-  const cr = toChangeRequest(rows[0]);
 
   // Create GitLab branch, commit, and MR
   try {
@@ -99,43 +108,36 @@ export async function insertExternalChangeRequest(params: {
   gitlabMrUrl: string;
   status: "approved" | "pending";
 }): Promise<ContractChangeRequest> {
-  const rows = await insertReturning<Record<string, unknown>>(
-    `INSERT INTO contract_change_requests (contract_slug, editor_id, yaml_content, original_sha, status, gitlab_mr_id, gitlab_mr_url, resolved_by, resolved_at, source)
-     VALUES (?, ?, '', '', ?, ?, ?, ?, ?, 'external') RETURNING *`,
-    [
-      params.contractSlug,
-      params.editorId,
-      params.status,
-      params.gitlabMrId,
-      params.gitlabMrUrl,
-      params.editorId,
-      new Date().toISOString(),
-    ],
-  );
-  if (!rows[0]) throw new Error("Failed to insert external change request");
-  return toChangeRequest(rows[0]);
+  const row = await prisma.contractChangeRequest.create({
+    data: {
+      contractSlug: params.contractSlug,
+      editorId: params.editorId,
+      yamlContent: "",
+      status: params.status,
+      gitlabMrId: params.gitlabMrId,
+      gitlabMrUrl: params.gitlabMrUrl,
+      resolvedBy: params.editorId,
+      resolvedAt: new Date(),
+      source: "external",
+    },
+  });
+  return toChangeRequest(row);
 }
 
 export async function listChangeRequests(
   status?: ContractChangeRequest["status"],
 ): Promise<ContractChangeRequest[]> {
-  let sql = "SELECT * FROM contract_change_requests";
-  const params: unknown[] = [];
-  if (status) {
-    sql += " WHERE status = ?";
-    params.push(status);
-  }
-  sql += " ORDER BY created_at DESC";
-  const rows = await query<Record<string, unknown>>(sql, params);
+  const where = status ? { status } : {};
+  const rows = await prisma.contractChangeRequest.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+  });
   return rows.map(toChangeRequest);
 }
 
 export async function getChangeRequest(id: number): Promise<ContractChangeRequest | null> {
-  const rows = await query<Record<string, unknown>>(
-    "SELECT * FROM contract_change_requests WHERE id = ?",
-    [id],
-  );
-  return rows.length > 0 ? toChangeRequest(rows[0]) : null;
+  const row = await prisma.contractChangeRequest.findUnique({ where: { id } });
+  return row ? toChangeRequest(row) : null;
 }
 
 export async function updateChangeRequestStatus(params: {
@@ -146,41 +148,18 @@ export async function updateChangeRequestStatus(params: {
   gitlabMrUrl?: string;
   rejectionReason?: string;
 }): Promise<void> {
-  const sets: string[] = [];
-  const vals: unknown[] = [];
-
-  sets.push("status = ?");
-  vals.push(params.status);
-
-  sets.push("resolved_by = ?");
-  vals.push(params.resolvedBy);
-
-  sets.push("resolved_at = ?");
-  vals.push(new Date().toISOString());
-
-  sets.push("updated_at = ?");
-  vals.push(new Date().toISOString());
-
-  if (params.gitlabMrId !== undefined) {
-    sets.push("gitlab_mr_id = ?");
-    vals.push(params.gitlabMrId);
-  }
-
-  if (params.gitlabMrUrl !== undefined) {
-    sets.push("gitlab_mr_url = ?");
-    vals.push(params.gitlabMrUrl);
-  }
-
-  if (params.rejectionReason !== undefined) {
-    sets.push("rejection_reason = ?");
-    vals.push(params.rejectionReason);
-  }
-
-  vals.push(params.id);
-  await execute(
-    `UPDATE contract_change_requests SET ${sets.join(", ")} WHERE id = ?`,
-    vals,
-  );
+  await prisma.contractChangeRequest.update({
+    where: { id: params.id },
+    data: {
+      status: params.status,
+      resolvedBy: params.resolvedBy,
+      resolvedAt: new Date(),
+      updatedAt: new Date(),
+      ...(params.gitlabMrId !== undefined ? { gitlabMrId: params.gitlabMrId } : {}),
+      ...(params.gitlabMrUrl !== undefined ? { gitlabMrUrl: params.gitlabMrUrl } : {}),
+      ...(params.rejectionReason !== undefined ? { rejectionReason: params.rejectionReason } : {}),
+    },
+  });
 }
 
 export async function mergeChangeRequest(

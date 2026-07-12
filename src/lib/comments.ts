@@ -1,39 +1,25 @@
-import { execute, get, insertReturning, query } from "@/src/lib/db";
+import { prisma } from "@/src/lib/prisma";
 import { createNotification } from "@/src/lib/notifications";
 import type { ContractComment } from "@/src/lib/types";
 
 export async function listContractComments(contractSlug: string, limit?: number, offset?: number): Promise<ContractComment[]> {
-  const rows = await query<{
-    id: number;
-    contract_slug: string;
-    user_id: string;
-    body: string;
-    parent_id: number | null;
-    created_at: string;
-    edited_at: string | null;
-    target_fields: unknown;
-  }>(
-    `SELECT c.id, c.contract_slug, c.user_id, c.body, c.parent_id, c.created_at, c.edited_at,
-            COALESCE(json_agg(f.field_name) FILTER (WHERE f.field_name IS NOT NULL), '[]') as target_fields
-     FROM contract_comments c
-     LEFT JOIN comment_field_references f ON f.comment_id = c.id
-     WHERE c.contract_slug = ?
-     GROUP BY c.id
-      ORDER BY c.created_at ASC, c.id ASC
-      ${limit ? `LIMIT ${limit}` : ""}
-      ${offset ? `OFFSET ${offset}` : ""}`,
-    [contractSlug],
-  );
+  const rows = await prisma.contractComment.findMany({
+    where: { contractSlug },
+    include: { fieldRefs: { select: { fieldName: true } } },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    take: limit,
+    skip: offset,
+  });
 
   return rows.map((row) => ({
     id: row.id,
-    contractSlug: row.contract_slug,
-    userId: row.user_id,
+    contractSlug: row.contractSlug,
+    userId: row.userId,
     body: row.body,
-    parentId: row.parent_id,
-    targetFields: row.target_fields as string[] ?? [],
-    createdAt: row.created_at,
-    editedAt: row.edited_at,
+    parentId: row.parentId,
+    targetFields: row.fieldRefs.map((f) => f.fieldName),
+    createdAt: row.createdAt.toISOString(),
+    editedAt: row.editedAt?.toISOString() ?? null,
   }));
 }
 
@@ -44,11 +30,9 @@ export function extractMentionedUserIds(body: string): string[] {
 
 export async function recordCommentMentions(commentId: number, mentionedUserIds: string[]): Promise<void> {
   await Promise.allSettled(mentionedUserIds.map((userId) =>
-    execute(
-      `INSERT INTO comment_mentions (comment_id, user_id)
-       VALUES (?, ?) ON CONFLICT DO NOTHING`,
-      [commentId, userId],
-    ),
+    prisma.commentMention.create({
+      data: { commentId, userId },
+    }).catch(() => {}),
   ));
 }
 
@@ -79,53 +63,42 @@ export async function notifyMentionedUsers(params: {
 }
 
 export async function getDiscussionSummary(contractSlug: string): Promise<{ commentCount: number; issueCount: number }> {
-  const [[commentRow], [issueRow]] = await Promise.all([
-    query<{ cnt: number }>(
-      `SELECT COUNT(*) as cnt FROM contract_comments WHERE contract_slug = ?`,
-      [contractSlug],
-    ),
-    query<{ cnt: number }>(
-      `SELECT COUNT(*) as cnt FROM contract_issues WHERE contract_slug = ?`,
-      [contractSlug],
-    ),
+  const [commentCount, issueCount] = await Promise.all([
+    prisma.contractComment.count({ where: { contractSlug } }),
+    prisma.contractIssue.count({ where: { contractSlug } }),
   ]);
-  return { commentCount: commentRow?.cnt ?? 0, issueCount: issueRow?.cnt ?? 0 };
+  return { commentCount, issueCount };
 }
 
 export async function deleteContractComment(commentId: number, userId: string): Promise<void> {
-  const row = await get<{ user_id: string }>(
-    `SELECT user_id FROM contract_comments WHERE id = ?`,
-    [commentId],
-  );
+  const comment = await prisma.contractComment.findUnique({
+    where: { id: commentId },
+    select: { userId: true },
+  });
 
-  if (!row) {
+  if (!comment) {
     throw new Error("Comment not found");
   }
 
-  if (row.user_id !== userId) {
+  if (comment.userId !== userId) {
     throw new Error("Not authorized to delete this comment");
   }
 
-  const childIds = (await query<{ id: number }>(
-    `SELECT id FROM contract_comments WHERE parent_id = ?`,
-    [commentId],
-  )).map((r) => r.id);
-
-  if (childIds.length > 0) {
-    const placeholders = childIds.map(() => "?").join(",");
-    await execute(`DELETE FROM contract_comments WHERE id IN (${placeholders})`, childIds);
-  }
-  await execute(`DELETE FROM contract_comments WHERE id = ?`, [commentId]);
+  await prisma.$transaction(async (tx) => {
+    await tx.contractComment.deleteMany({ where: { parentId: commentId } });
+    await tx.contractComment.delete({ where: { id: commentId } });
+  });
 }
 
 export async function recordCommentFieldReferences(commentId: number, fieldNames: string[]): Promise<void> {
   const deduped = [...new Set(fieldNames)];
   if (deduped.length === 0) return;
-  const placeholders = deduped.map(() => "(?, ?)").join(",");
-  const params = deduped.flatMap((name) => [commentId, name]);
-  await execute(
-    `INSERT INTO comment_field_references (comment_id, field_name) VALUES ${placeholders} ON CONFLICT DO NOTHING`,
-    params,
+  await Promise.allSettled(
+    deduped.map((name) =>
+      prisma.commentFieldReference.create({
+        data: { commentId, fieldName: name },
+      }).catch(() => {}),
+    ),
   );
 }
 
@@ -136,56 +109,45 @@ export async function createContractComment(params: {
   parentId?: number | null;
   fieldNames?: string[];
 }): Promise<ContractComment> {
-  const rows = await insertReturning<{
-    id: number;
-    contract_slug: string;
-    user_id: string;
-    body: string;
-    parent_id: number | null;
-    created_at: string;
-    edited_at: string | null;
-  }>(
-    `INSERT INTO contract_comments (contract_slug, user_id, body, parent_id)
-     VALUES (?, ?, ?, ?)
-     RETURNING id, contract_slug, user_id, body, parent_id, created_at, edited_at`,
-    [params.contractSlug, params.userId, params.body, params.parentId ?? null],
-  );
-
-  const row = rows[0];
-  if (!row) {
-    throw new Error("Unable to load created comment");
-  }
+  const row = await prisma.contractComment.create({
+    data: {
+      contractSlug: params.contractSlug,
+      userId: params.userId,
+      body: params.body,
+      parentId: params.parentId ?? null,
+    },
+  });
 
   if (params.fieldNames?.length) {
     await recordCommentFieldReferences(row.id, params.fieldNames);
   }
 
   // Notify parent comment author on reply
-  if (row.parent_id) {
-    const parent = await get<{ user_id: string }>(
-      "SELECT user_id FROM contract_comments WHERE id = ?",
-      [row.parent_id],
-    );
-    if (parent && parent.user_id !== params.userId) {
+  if (row.parentId) {
+    const parent = await prisma.contractComment.findUnique({
+      where: { id: row.parentId },
+      select: { userId: true },
+    });
+    if (parent && parent.userId !== params.userId) {
       await createNotification({
-        userId: parent.user_id,
+        userId: parent.userId,
         contractSlug: params.contractSlug,
         type: "comment_reply",
         title: `${params.userId} replied to your comment`,
         message: params.body.slice(0, 200),
-        metadata: { contractSlug: params.contractSlug, commentId: row.id, parentCommentId: row.parent_id },
+        metadata: { contractSlug: params.contractSlug, commentId: row.id, parentCommentId: row.parentId },
       });
     }
   }
 
   return {
     id: row.id,
-    contractSlug: row.contract_slug,
-    userId: row.user_id,
+    contractSlug: row.contractSlug,
+    userId: row.userId,
     body: row.body,
-    parentId: row.parent_id,
+    parentId: row.parentId,
     targetFields: params.fieldNames ?? [],
-    createdAt: row.created_at,
-    editedAt: row.edited_at,
+    createdAt: row.createdAt.toISOString(),
+    editedAt: row.editedAt?.toISOString() ?? null,
   };
 }

@@ -1,7 +1,7 @@
+import { prisma } from "@/src/lib/prisma";
 import { auth } from "@/src/auth";
 import { authorize } from "@/src/lib/access-control";
 import { getUserPermissions, type Permission } from "@/src/lib/rbac";
-import { query } from "@/src/lib/db";
 import type { CatalogCard } from "@/src/lib/types";
 
 export async function getSessionPermissions(): Promise<{
@@ -113,28 +113,35 @@ async function fetchUserPolicies(
   if (cached && Date.now() - cached.ts < POLICIES_CACHE_TTL) return cached.promise;
   policiesCache.delete(key);
 
-  const promise = query<PolicyRow>(
-    `SELECT DISTINCT ap.domain_scope, ap.context_scope, ap.data_contract_scope
-     FROM access_policies ap
-     JOIN permissions p ON p.id = ap.permission_id
-     WHERE (
-       ap.user_id = ?
-       OR ap.group_id IN (SELECT ug.group_id FROM user_group ug WHERE ug.user_id = ?)
-     )
-     ${permissionFilter ? `AND p.name IN (${permissionFilter.map(() => "?").join(",")})` : ""}`,
-    permissionFilter
-      ? [userId, userId, ...permissionFilter]
-      : [userId, userId],
+  const where: Record<string, unknown> = {
+    OR: [
+      { userId },
+      { group: { members: { some: { userId } } } },
+    ],
+  };
+  if (permissionFilter) {
+    where.permission = { name: { in: permissionFilter } };
+  }
+
+  const promise = prisma.accessPolicy.findMany({
+    where,
+    select: { domainScope: true, contextScope: true, dataContractScope: true },
+    distinct: ["domainScope", "contextScope", "dataContractScope"],
+  }).then((rows) =>
+    rows.map((r) => ({
+      domain_scope: r.domainScope,
+      context_scope: r.contextScope,
+      data_contract_scope: r.dataContractScope,
+    }))
   );
 
   policiesCache.set(key, { promise, ts: Date.now() });
   return promise;
 }
 
-async function userHasGlobalAccess(userId: string): Promise<boolean> {
-  const count = await query<{ c: number }>("SELECT COUNT(*) AS c FROM access_policies");
-  if ((count[0]?.c ?? 0) === 0) return true;
-  return false;
+async function userHasGlobalAccess(): Promise<boolean> {
+  const count = await prisma.accessPolicy.count();
+  return count === 0;
 }
 
 /**
@@ -150,7 +157,7 @@ export async function filterCatalogCards(
   if (permissions.includes("admin")) return cards;
 
   const policies = await fetchUserPolicies(userId);
-  if (policies.length === 0 && await userHasGlobalAccess(userId)) return cards;
+  if (policies.length === 0 && await userHasGlobalAccess()) return cards;
 
   const lookup = normalizePolicies(policies);
   if (lookup.hasWildcard) return cards;
@@ -203,7 +210,7 @@ async function getMatchingSlugs(
   if (permissions.includes("admin")) return new Set(cards.map((c) => c.slug));
 
   const policies = await fetchUserPolicies(userId, permissionFilter);
-  if (policies.length === 0 && await userHasGlobalAccess(userId)) return new Set(cards.map((c) => c.slug));
+  if (policies.length === 0 && await userHasGlobalAccess()) return new Set(cards.map((c) => c.slug));
 
   const lookup = normalizePolicies(policies);
   if (lookup.hasWildcard) return new Set(cards.map((c) => c.slug));
