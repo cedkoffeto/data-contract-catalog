@@ -120,16 +120,22 @@ export function ModelGraph({
     setHighlightedNode(null);
   }, []);
 
-  // Precompute neighbor set when highlightedNode changes — O(E) once instead of O(E) per node
+  // Adjacency map built once when edges change — O(E) once, O(1) per lookup
+  const adjacencyMap = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const e of edges) {
+      if (!map.has(e.source)) map.set(e.source, new Set());
+      map.get(e.source)!.add(e.target);
+      if (!map.has(e.target)) map.set(e.target, new Set());
+      map.get(e.target)!.add(e.source);
+    }
+    return map;
+  }, [edges]);
+
   const highlightedNeighbors = useMemo(() => {
     if (!highlightedNode) return null;
-    const nbors = new Set<string>();
-    for (const e of edges) {
-      if (e.source === highlightedNode) nbors.add(e.target);
-      if (e.target === highlightedNode) nbors.add(e.source);
-    }
-    return nbors;
-  }, [highlightedNode, edges]);
+    return adjacencyMap.get(highlightedNode) ?? null;
+  }, [highlightedNode, adjacencyMap]);
 
   // Compute search-matching node IDs from prop
   const searchMatchSet = useMemo(
@@ -140,29 +146,16 @@ export function ModelGraph({
   // Update opacity when highlight or search changes
   useEffect(() => {
     if (searchMatchSet && searchMatchSet.size > 0) {
-      setNodes((nds) => nds.map((n) => {
-        const isMatch = searchMatchSet.has(n.id);
-        const hasSearchRing = n.className?.includes("search-match");
-        const newClassName = isMatch ? "search-match" : undefined;
-        if (!isMatch) {
-          return {
-            ...n,
-            style: { ...n.style, opacity: 0.3 },
-            className: n.className?.replace("search-match", "").trim() || undefined,
-          };
-        }
-        return {
-          ...n,
-          style: { ...n.style, opacity: 1 },
-          className: newClassName,
-        };
-      }));
+      setNodes((nds) => nds.map((n) => ({
+        ...n,
+        style: { ...n.style, opacity: searchMatchSet.has(n.id) ? 1 : 0.3 },
+        className: searchMatchSet.has(n.id) ? "search-match" : undefined,
+      })));
     } else if (!highlightedNeighbors) {
       setNodes((nds) => nds.map((n) => {
         if (!n.style?.opacity || n.style.opacity === 1) return n;
         const { opacity: _, ...rest } = n.style;
-        const cls = n.className?.replace("search-match", "").trim() || undefined;
-        return { ...n, style: Object.keys(rest).length ? rest : undefined, className: cls };
+        return { ...n, style: Object.keys(rest).length ? rest : undefined, className: undefined };
       }));
     } else {
       setNodes((nds) => nds.map((n) => ({
