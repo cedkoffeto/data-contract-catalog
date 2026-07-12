@@ -5,13 +5,20 @@ import type { Prisma } from "@prisma/client";
 
 const txStorage = new AsyncLocalStorage<Prisma.TransactionClient>();
 
+function toPg(sql: string, params?: unknown[]): [string, unknown[]] {
+  if (!params || params.length === 0) return [sql, []];
+  let i = 0;
+  return [sql.replace(/\?/g, () => `$${++i}`), params];
+}
+
 export async function query<T = Record<string, unknown>>(
   sql: string,
   params?: unknown[],
 ): Promise<T[]> {
   const tx = txStorage.getStore();
   const client = tx ?? prisma;
-  return client.$queryRawUnsafe<T[]>(sql, ...(params ?? []));
+  const [sqlPg, paramsPg] = toPg(sql, params);
+  return client.$queryRawUnsafe<T[]>(sqlPg, ...paramsPg);
 }
 
 export async function execute(
@@ -20,7 +27,8 @@ export async function execute(
 ): Promise<{ changes: number }> {
   const tx = txStorage.getStore();
   const client = tx ?? prisma;
-  const changes = await client.$executeRawUnsafe(sql, ...(params ?? []));
+  const [sqlPg, paramsPg] = toPg(sql, params);
+  const changes = await client.$executeRawUnsafe(sqlPg, ...paramsPg);
   return { changes };
 }
 
@@ -46,7 +54,8 @@ export async function insertReturning<T = Record<string, unknown>>(
 ): Promise<T[]> {
   const tx = txStorage.getStore();
   const client = tx ?? prisma;
-  return client.$queryRawUnsafe<T[]>(sql, ...(params ?? []));
+  const [sqlPg, paramsPg] = toPg(sql, params);
+  return client.$queryRawUnsafe<T[]>(sqlPg, ...paramsPg);
 }
 
 export type TransactionFn = () => Promise<void>;
