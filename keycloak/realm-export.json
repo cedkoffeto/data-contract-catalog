@@ -14,7 +14,7 @@
       "name": "Data Contract Hub",
       "enabled": true,
       "clientAuthenticatorType": "client-secret",
-      "secret": "CHANGE_ME_IN_PRODUCTION",
+      "secret": "local-dev-secret",
       "redirectUris": [
         "http://localhost:3000/api/auth/callback/keycloak",
         "http://localhost:3002/api/auth/callback/keycloak"
