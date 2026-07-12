@@ -1,4 +1,4 @@
-import { execute, query } from "@/src/lib/db";
+import { prisma } from "@/src/lib/prisma";
 import type { UserProfile } from "@/src/lib/types";
 
 export async function upsertUserProfile(params: {
@@ -6,43 +6,52 @@ export async function upsertUserProfile(params: {
   firstName?: string | null;
   lastName?: string | null;
 }): Promise<void> {
-  await execute(
-    `INSERT INTO user_profiles (user_id, first_name, last_name, updated_at)
-     VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-     ON CONFLICT(user_id) DO UPDATE SET
-       first_name = excluded.first_name,
-       last_name = excluded.last_name,
-       updated_at = CURRENT_TIMESTAMP`,
-    [params.userId, params.firstName ?? "", params.lastName ?? ""],
-  );
+  await prisma.userProfile.upsert({
+    where: { userId: params.userId },
+    create: {
+      userId: params.userId,
+      firstName: params.firstName ?? "",
+      lastName: params.lastName ?? "",
+    },
+    update: {
+      firstName: params.firstName ?? "",
+      lastName: params.lastName ?? "",
+    },
+  });
 }
 
 export async function listUserProfiles(search: string): Promise<UserProfile[]> {
   const q = search.trim().toLowerCase();
-  const rows = await query<{ user_id: string }>(
-    `SELECT DISTINCT user_id FROM user_group WHERE user_id IS NOT NULL
-     UNION SELECT DISTINCT user_id FROM access_policies WHERE user_id IS NOT NULL
-     UNION SELECT DISTINCT user_id FROM notifications WHERE user_id IS NOT NULL
-     UNION SELECT DISTINCT user_id FROM contract_comments WHERE user_id IS NOT NULL
-     UNION SELECT DISTINCT user_id FROM subscriptions WHERE user_id IS NOT NULL`,
-  );
 
-  const userIds = [...new Set(rows.map((row) => row.user_id).filter(Boolean))];
-  if (userIds.length === 0) {
-    return [];
-  }
+  const [userGroupIds, policyIds, notifIds, commentIds, subIds] = await Promise.all([
+    prisma.userGroup.findMany({ select: { userId: true }, distinct: ["userId"] }),
+    prisma.accessPolicy.findMany({ where: { userId: { not: null } }, select: { userId: true }, distinct: ["userId"] }),
+    prisma.notification.findMany({ select: { userId: true }, distinct: ["userId"] }),
+    prisma.contractComment.findMany({ select: { userId: true }, distinct: ["userId"] }),
+    prisma.subscription.findMany({ select: { userId: true }, distinct: ["userId"] }),
+  ]);
 
-  const profileRows = await query<{ user_id: string; first_name: string; last_name: string }>(
-    `SELECT user_id, first_name, last_name FROM user_profiles WHERE user_id IN (${userIds.map(() => "?").join(",")})`,
-    userIds,
-  );
+  const userIds = [...new Set([
+    ...userGroupIds.map((u) => u.userId),
+    ...policyIds.map((u) => u.userId!),
+    ...notifIds.map((u) => u.userId),
+    ...commentIds.map((u) => u.userId),
+    ...subIds.map((u) => u.userId),
+  ])];
+
+  if (userIds.length === 0) return [];
+
+  const profileRows = await prisma.userProfile.findMany({
+    where: { userId: { in: userIds } },
+    select: { userId: true, firstName: true, lastName: true },
+  });
 
   const profiles = new Map<string, { userId: string; firstName: string; lastName: string }>();
   for (const row of profileRows) {
-    profiles.set(row.user_id, {
-      userId: row.user_id,
-      firstName: row.first_name,
-      lastName: row.last_name,
+    profiles.set(row.userId, {
+      userId: row.userId,
+      firstName: row.firstName,
+      lastName: row.lastName,
     });
   }
 
