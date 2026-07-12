@@ -218,7 +218,7 @@ export function FilterPanel({
 
           {/* Layer filter — pill toggle like Discussion */}
           <div className="flex border-b border-gray-200 px-3 py-2.5">
-            <div className="inline-flex rounded-full border p-0.5" style={{ backgroundColor: "rgba(0,0,0,0.04)" }}>
+            <div className="inline-flex rounded-lg p-0.5" style={{ backgroundColor: "rgba(0,0,0,0.06)" }}>
                 {(["all", ...LAYERS] as const).map((item) => {
                   const isActive = item === "all" ? !layerFilter : layerFilter === item.id;
                   return (

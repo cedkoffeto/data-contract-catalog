@@ -15,6 +15,15 @@ import { FilterPanel } from "./FilterPanel";
 import { SidePanel } from "./SidePanel";
 import { Position, type Edge, type Node as FlowNode } from "@xyflow/react";
 
+function useSearchParam(key: string): string | null {
+  const [value, setValue] = useState<string | null>(null);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setValue(params.get(key));
+  }, [key]);
+  return value;
+}
+
 function computeConnectedFields(edges: Edge[]): Map<string, Set<string>> {
   const map = new Map<string, Set<string>>();
   for (const edge of edges) {
@@ -164,6 +173,20 @@ export function DataModelEditor({
   useEffect(() => { savePrefs({ layoutMode }); }, [layoutMode]);
   useEffect(() => { savePrefs({ viewMode }); }, [viewMode]);
   useEffect(() => { savePrefs({ layerFilter }); }, [layerFilter]);
+
+  const focusSlug = useSearchParam("slug");
+
+  useEffect(() => {
+    if (!focusSlug || rawNodes.length === 0) return;
+    const node = rawNodes.find((n) => {
+      const d = n.data as ContractTableNodeData;
+      return d.slug === focusSlug;
+    });
+    if (node) {
+      setCenterSlug(node.id);
+      setCenterKey((k) => k + 1);
+    }
+  }, [focusSlug, rawNodes]);
 
   const handleCenterView = useCallback((slug: string) => {
     setCenterSlug(slug);
