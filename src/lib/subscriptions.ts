@@ -1,4 +1,4 @@
-import { query, execute } from "@/src/lib/db";
+import { prisma } from "@/src/lib/prisma";
 import { writeAuditLog } from "@/src/lib/audit";
 
 export type NotificationChannel = "in_app" | "email" | "both";
@@ -17,36 +17,50 @@ export type UserPreference = {
   updated_at: string;
 };
 
+function toSubscription(s: { userId: string; contractSlug: string; channel: string; createdAt: Date }): Subscription {
+  return {
+    user_id: s.userId,
+    contract_slug: s.contractSlug,
+    channel: s.channel as NotificationChannel,
+    created_at: s.createdAt.toISOString(),
+  };
+}
+
+function toUserPreference(p: { userId: string; notificationChannel: string; createdAt: Date; updatedAt: Date }): UserPreference {
+  return {
+    user_id: p.userId,
+    notification_channel: p.notificationChannel as NotificationChannel,
+    created_at: p.createdAt.toISOString(),
+    updated_at: p.updatedAt.toISOString(),
+  };
+}
+
 export async function getSubscription(
   userId: string,
   contractSlug: string,
 ): Promise<Subscription | null> {
-  const rows = await query<Subscription>(
-    "SELECT user_id, contract_slug, channel, created_at FROM subscriptions WHERE user_id = ? AND contract_slug = ?",
-    [userId, contractSlug],
-  );
-  return rows[0] ?? null;
+  const row = await prisma.subscription.findUnique({
+    where: { userId_contractSlug: { userId, contractSlug } },
+  });
+  return row ? toSubscription(row) : null;
 }
 
 export async function getUserPreference(userId: string): Promise<UserPreference | null> {
-  const rows = await query<UserPreference>(
-    "SELECT user_id, notification_channel, created_at, updated_at FROM user_preferences WHERE user_id = ?",
-    [userId],
-  );
-  return rows[0] ?? null;
+  const row = await prisma.userPreference.findUnique({ where: { userId } });
+  return row ? toUserPreference(row) : null;
 }
 
 export async function setUserPreference(userId: string, channel: NotificationChannel): Promise<void> {
-  await execute(
-    `INSERT INTO user_preferences (user_id, notification_channel) VALUES (?, ?)
-     ON CONFLICT(user_id) DO UPDATE SET notification_channel = excluded.notification_channel, updated_at = CURRENT_TIMESTAMP`,
-    [userId, channel],
-  );
+  await prisma.userPreference.upsert({
+    where: { userId },
+    create: { userId, notificationChannel: channel },
+    update: { notificationChannel: channel },
+  });
 
-  await execute(
-    "UPDATE subscriptions SET channel = ? WHERE user_id = ?",
-    [channel, userId],
-  );
+  await prisma.subscription.updateMany({
+    where: { userId },
+    data: { channel },
+  });
 }
 
 async function resolveChannel(userId: string): Promise<NotificationChannel> {
@@ -62,11 +76,11 @@ export async function subscribe(params: {
 }): Promise<Subscription> {
   const channel = await resolveChannel(params.userId);
 
-  await execute(
-    `INSERT INTO subscriptions (user_id, contract_slug, channel) VALUES (?, ?, ?)
-     ON CONFLICT(user_id, contract_slug) DO UPDATE SET channel = excluded.channel`,
-    [params.userId, params.contractSlug, channel],
-  );
+  await prisma.subscription.upsert({
+    where: { userId_contractSlug: { userId: params.userId, contractSlug: params.contractSlug } },
+    create: { userId: params.userId, contractSlug: params.contractSlug, channel },
+    update: { channel },
+  });
 
   await writeAuditLog({
     action: "subscription.subscribe",
@@ -86,10 +100,9 @@ export async function unsubscribe(params: {
   actorId: string;
   sessionId?: string;
 }): Promise<void> {
-  await execute(
-    "DELETE FROM subscriptions WHERE user_id = ? AND contract_slug = ?",
-    [params.userId, params.contractSlug],
-  );
+  await prisma.subscription.delete({
+    where: { userId_contractSlug: { userId: params.userId, contractSlug: params.contractSlug } },
+  }).catch(() => {});
 
   await writeAuditLog({
     action: "subscription.unsubscribe",
@@ -101,15 +114,14 @@ export async function unsubscribe(params: {
 }
 
 export async function getUserSubscriptions(userId: string): Promise<Subscription[]> {
-  return query<Subscription>(
-    "SELECT user_id, contract_slug, channel, created_at FROM subscriptions WHERE user_id = ? ORDER BY created_at DESC",
-    [userId],
-  );
+  const rows = await prisma.subscription.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+  });
+  return rows.map(toSubscription);
 }
 
 export async function getSubscribers(contractSlug: string): Promise<Subscription[]> {
-  return query<Subscription>(
-    "SELECT user_id, contract_slug, channel, created_at FROM subscriptions WHERE contract_slug = ?",
-    [contractSlug],
-  );
+  const rows = await prisma.subscription.findMany({ where: { contractSlug } });
+  return rows.map(toSubscription);
 }
