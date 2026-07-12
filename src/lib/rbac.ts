@@ -1,4 +1,4 @@
-import { query } from "@/src/lib/db";
+import { prisma } from "@/src/lib/prisma";
 
 export type Permission = "read" | "write" | "admin";
 
@@ -16,78 +16,93 @@ export function canAdmin(userPermissions: Permission[]): boolean {
 }
 
 export async function getAdminUserIds(): Promise<string[]> {
-  const rows = await query<{ user_id: string }>(
-    `SELECT DISTINCT user_id FROM access_policies
-     WHERE permission_id = (SELECT id FROM permissions WHERE name = 'admin')
-       AND user_id IS NOT NULL
+  const [directUsers, groupUsers] = await Promise.all([
+    prisma.accessPolicy.findMany({
+      where: { permission: { name: "admin" }, userId: { not: null } },
+      select: { userId: true },
+      distinct: ["userId"],
+    }),
+    prisma.userGroup.findMany({
+      where: { group: { policies: { some: { permission: { name: "admin" } } } } },
+      select: { userId: true },
+      distinct: ["userId"],
+    }),
+  ]);
 
-     UNION
-
-     SELECT DISTINCT ug.user_id
-     FROM access_policies ap
-     JOIN user_group ug ON ug.group_id = ap.group_id
-     WHERE ap.permission_id = (SELECT id FROM permissions WHERE name = 'admin')`,
-  );
-  return rows.map((r) => r.user_id);
+  const ids = new Set<string>();
+  for (const u of directUsers) if (u.userId) ids.add(u.userId);
+  for (const u of groupUsers) ids.add(u.userId);
+  return Array.from(ids);
 }
 
 export async function isAdmin(userId: string): Promise<boolean> {
-  const rows = await query<{ c: number }>(
-    `SELECT 1 as c FROM access_policies ap
-     WHERE ap.permission_id = (SELECT id FROM permissions WHERE name = 'admin')
-       AND (
-         ap.user_id = ?
-         OR ap.group_id IN (SELECT ug.group_id FROM user_group ug WHERE ug.user_id = ?)
-       )
-     LIMIT 1`,
-    [userId, userId],
-  );
-  return rows.length > 0;
+  const policy = await prisma.accessPolicy.findFirst({
+    where: {
+      permission: { name: "admin" },
+      OR: [
+        { userId },
+        { group: { members: { some: { userId } } } },
+      ],
+    },
+  });
+  return policy !== null;
 }
 
 export async function getUserIdsWithScopeAccess(domain: string, context: string): Promise<string[]> {
-  const rows = await query<{ user_id: string }>(
-    `SELECT DISTINCT user_id FROM access_policies
-     WHERE permission_id != (SELECT id FROM permissions WHERE name = 'admin')
-       AND user_id IS NOT NULL
-       AND (
-         (domain_scope IS NULL AND context_scope IS NULL)
-         OR (domain_scope = ? AND context_scope IS NULL)
-         OR (domain_scope = ? AND context_scope = ?)
-       )
+  const [directUsers, groupUsers] = await Promise.all([
+    prisma.accessPolicy.findMany({
+      where: {
+        permission: { name: { not: "admin" } },
+        userId: { not: null },
+        OR: [
+          { domainScope: null, contextScope: null },
+          { domainScope: domain, contextScope: null },
+          { domainScope: domain, contextScope: context },
+        ],
+      },
+      select: { userId: true },
+      distinct: ["userId"],
+    }),
+    prisma.userGroup.findMany({
+      where: {
+        group: {
+          policies: {
+            some: {
+              permission: { name: { not: "admin" } },
+              OR: [
+                { domainScope: null, contextScope: null },
+                { domainScope: domain, contextScope: null },
+                { domainScope: domain, contextScope: context },
+              ],
+            },
+          },
+        },
+      },
+      select: { userId: true },
+      distinct: ["userId"],
+    }),
+  ]);
 
-     UNION
-
-     SELECT DISTINCT ug.user_id
-     FROM access_policies ap
-     JOIN user_group ug ON ug.group_id = ap.group_id
-     WHERE ap.permission_id != (SELECT id FROM permissions WHERE name = 'admin')
-       AND (
-         (ap.domain_scope IS NULL AND ap.context_scope IS NULL)
-         OR (ap.domain_scope = ? AND ap.context_scope IS NULL)
-         OR (ap.domain_scope = ? AND ap.context_scope = ?)
-       )`,
-    [domain, domain, context, domain, domain, context],
-  );
-  return rows.map((r) => r.user_id);
+  const ids = new Set<string>();
+  for (const u of directUsers) if (u.userId) ids.add(u.userId);
+  for (const u of groupUsers) ids.add(u.userId);
+  return Array.from(ids);
 }
 
 export async function getUserPermissions(userId: string): Promise<Permission[]> {
-  const rows = await query<{ permission_name: string }>(
-    `SELECT DISTINCT p.name AS permission_name
-     FROM access_policies ap
-     JOIN permissions p ON p.id = ap.permission_id
-     WHERE (
-       ap.user_id = ?
-       OR ap.group_id IN (
-         SELECT ug.group_id FROM user_group ug WHERE ug.user_id = ?
-       )
-     )
-      AND ap.domain_scope IS NULL
-      AND ap.context_scope IS NULL
-      AND ap.data_contract_scope IS NULL`,
-    [userId, userId],
-  );
+  const policies = await prisma.accessPolicy.findMany({
+    where: {
+      OR: [
+        { userId },
+        { group: { members: { some: { userId } } } },
+      ],
+      domainScope: null,
+      contextScope: null,
+      dataContractScope: null,
+    },
+    select: { permission: { select: { name: true } } },
+    distinct: ["permissionId"],
+  });
 
   const permissionMap: Record<string, Permission> = {
     admin: "admin",
@@ -96,9 +111,9 @@ export async function getUserPermissions(userId: string): Promise<Permission[]> 
   };
 
   const merged = new Set<Permission>();
-  for (const row of rows) {
-    const p = permissionMap[row.permission_name];
-    if (p) merged.add(p);
+  for (const p of policies) {
+    const mapped = permissionMap[p.permission.name];
+    if (mapped) merged.add(mapped);
   }
 
   return Array.from(merged);
@@ -151,21 +166,37 @@ async function searchKeycloakUsers(queryStr: string): Promise<string[]> {
 }
 
 export async function searchAllUsers(queryStr: string): Promise<Array<{ userId: string; email?: string | null }>> {
-  const local = await query<{ user_id: string }>(
-    `SELECT DISTINCT user_id FROM (
-      SELECT user_id FROM user_group
-      UNION
-      SELECT user_id FROM access_policies WHERE user_id IS NOT NULL
-    )
-     WHERE user_id ILIKE ?
-     ORDER BY user_id`,
-    [`%${queryStr}%`],
-  );
-  const localUsers = local.map((r) => ({ userId: r.user_id, email: null }));
+  const [userGroupIds, policyIds] = await Promise.all([
+    prisma.userGroup.findMany({
+      where: { userId: { contains: queryStr, mode: "insensitive" } },
+      select: { userId: true },
+      distinct: ["userId"],
+    }),
+    prisma.accessPolicy.findMany({
+      where: { userId: { not: null, contains: queryStr, mode: "insensitive" } },
+      select: { userId: true },
+      distinct: ["userId"],
+    }),
+  ]);
+
+  const seen = new Set<string>();
+  const localUsers: Array<{ userId: string; email?: string | null }> = [];
+
+  for (const u of userGroupIds) {
+    if (!seen.has(u.userId)) {
+      seen.add(u.userId);
+      localUsers.push({ userId: u.userId, email: null });
+    }
+  }
+  for (const u of policyIds) {
+    if (u.userId && !seen.has(u.userId)) {
+      seen.add(u.userId);
+      localUsers.push({ userId: u.userId, email: null });
+    }
+  }
 
   const keycloakUsers = await searchKeycloakUsers(queryStr);
 
-  const seen = new Set(localUsers.map((u) => u.userId));
   for (const u of keycloakUsers) {
     if (!seen.has(u)) {
       localUsers.push({ userId: u, email: null });
