@@ -9,16 +9,29 @@ export async function listContractComments(contractSlug: string): Promise<Contra
     user_id: string;
     body: string;
     parent_id: number | null;
-    target_field: string | null;
     created_at: string;
     edited_at: string | null;
   }>(
-    `SELECT id, contract_slug, user_id, body, parent_id, target_field, created_at, edited_at
+    `SELECT id, contract_slug, user_id, body, parent_id, created_at, edited_at
      FROM contract_comments
      WHERE contract_slug = ?
      ORDER BY created_at ASC, id ASC`,
     [contractSlug],
   );
+
+  const commentIds = rows.map((r) => r.id);
+  const fieldRefs = commentIds.length > 0
+    ? await query<{ comment_id: number; field_name: string }>(
+        `SELECT comment_id, field_name FROM comment_field_references WHERE comment_id IN (${commentIds.map(() => "?").join(",")})`,
+        commentIds,
+      )
+    : [];
+
+  const fieldMap: Record<number, string[]> = {};
+  for (const ref of fieldRefs) {
+    if (!fieldMap[ref.comment_id]) fieldMap[ref.comment_id] = [];
+    fieldMap[ref.comment_id].push(ref.field_name);
+  }
 
   return rows.map((row) => ({
     id: row.id,
@@ -26,7 +39,7 @@ export async function listContractComments(contractSlug: string): Promise<Contra
     userId: row.user_id,
     body: row.body,
     parentId: row.parent_id,
-    targetField: row.target_field,
+    targetFields: fieldMap[row.id] ?? [],
     createdAt: row.created_at,
     editedAt: row.edited_at,
   }));
@@ -106,13 +119,22 @@ export async function deleteContractComment(commentId: number, userId: string): 
     [commentId],
   )).map((r) => r.id);
 
-  await execute(`DELETE FROM comment_mentions WHERE comment_id = ?`, [commentId]);
   if (childIds.length > 0) {
     const placeholders = childIds.map(() => "?").join(",");
-    await execute(`DELETE FROM comment_mentions WHERE comment_id IN (${placeholders})`, childIds);
     await execute(`DELETE FROM contract_comments WHERE id IN (${placeholders})`, childIds);
   }
   await execute(`DELETE FROM contract_comments WHERE id = ?`, [commentId]);
+}
+
+export async function recordCommentFieldReferences(commentId: number, fieldNames: string[]): Promise<void> {
+  const deduped = [...new Set(fieldNames)];
+  if (deduped.length === 0) return;
+  const placeholders = deduped.map(() => "(?, ?)").join(",");
+  const params = deduped.flatMap((name) => [commentId, name]);
+  await execute(
+    `INSERT INTO comment_field_references (comment_id, field_name) VALUES ${placeholders} ON CONFLICT DO NOTHING`,
+    params,
+  );
 }
 
 export async function createContractComment(params: {
@@ -120,7 +142,7 @@ export async function createContractComment(params: {
   userId: string;
   body: string;
   parentId?: number | null;
-  targetField?: string | null;
+  fieldNames?: string[];
 }): Promise<ContractComment> {
   const rows = await insertReturning<{
     id: number;
@@ -128,19 +150,22 @@ export async function createContractComment(params: {
     user_id: string;
     body: string;
     parent_id: number | null;
-    target_field: string | null;
     created_at: string;
     edited_at: string | null;
   }>(
-    `INSERT INTO contract_comments (contract_slug, user_id, body, parent_id, target_field)
-     VALUES (?, ?, ?, ?, ?)
-     RETURNING id, contract_slug, user_id, body, parent_id, target_field, created_at, edited_at`,
-    [params.contractSlug, params.userId, params.body, params.parentId ?? null, params.targetField ?? null],
+    `INSERT INTO contract_comments (contract_slug, user_id, body, parent_id)
+     VALUES (?, ?, ?, ?)
+     RETURNING id, contract_slug, user_id, body, parent_id, created_at, edited_at`,
+    [params.contractSlug, params.userId, params.body, params.parentId ?? null],
   );
 
   const row = rows[0];
   if (!row) {
     throw new Error("Unable to load created comment");
+  }
+
+  if (params.fieldNames?.length) {
+    await recordCommentFieldReferences(row.id, params.fieldNames);
   }
 
   // Notify parent comment author on reply
@@ -167,7 +192,7 @@ export async function createContractComment(params: {
     userId: row.user_id,
     body: row.body,
     parentId: row.parent_id,
-    targetField: row.target_field,
+    targetFields: params.fieldNames ?? [],
     createdAt: row.created_at,
     editedAt: row.edited_at,
   };

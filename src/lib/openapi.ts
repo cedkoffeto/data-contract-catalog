@@ -218,7 +218,7 @@ const ContractCommentSchema = registry.register(
     userId: z.string(),
     body: z.string(),
     parentId: z.number().nullable(),
-    targetField: z.string().nullable(),
+    targetFields: z.array(z.string()),
     createdAt: z.string(),
     editedAt: z.string().nullable(),
   })
@@ -455,7 +455,7 @@ registry.registerPath({
     body: { content: { "application/json": { schema: z.object({
       body: z.string().openapi({ description: "Comment text (max 4000 chars)." }),
       parentId: z.number().optional().nullable(),
-      targetField: z.string().optional().nullable(),
+      targetFields: z.array(z.string()).optional(),
     }) } } },
   },
   responses: {

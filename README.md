@@ -342,7 +342,10 @@ Creer un fichier `.env.local` avec les variables d'auth minimum.
 docker compose up
 ```
 
-La base PostgreSQL est accessible sur `localhost:5433` (utilisateur `user`, mot de passe `password`, base `data_contract_catalog`). pgAdmin est disponible sur [http://localhost:5050](http://localhost:5050) (`admin@admin.com` / `admin`).
+La base PostgreSQL est accessible sur `localhost:5433` (utilisateur `user`, mot de passe `password`, base `data_contract_catalog`).
+
+- **pgAdmin** : [http://localhost:5050](http://localhost:5050) — `admin@admin.com` / `admin`
+- **pgAdmin — Connexion PostgreSQL** : automatiquement pré-configurée via `pgadmin-servers.json.template` (variables substituées par `pgadmin-entrypoint.sh` au démarrage). Les credentials sont définis dans `docker-compose.yml` via les variables `PGADMIN_SERVER_*`.
 
 Si les services ont deja tourne avec une ancienne config:
 

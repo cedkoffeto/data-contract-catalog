@@ -164,9 +164,9 @@ function CommentItem({
           </div>
         </div>
         <div className="comment-item__text">{renderBody(comment.body, userMap)}</div>
-        {comment.targetField ? (
+        {comment.targetFields?.length ? (
           <div className="mt-1 flex flex-wrap gap-1">
-            {comment.targetField.split(",").map((f) => f.trim()).filter(Boolean).map((field) => (
+            {comment.targetFields.map((field) => (
               <span key={field} className="inline-flex items-center gap-1 rounded-md bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-orange-700">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M11 4H4v7l9 9 7-7-9-9z" />
@@ -324,13 +324,13 @@ function InlineReplyForm({
     setSaving(true);
     try {
       const refs = body.match(/#([\p{L}\p{N}_.-]+)/gu);
-      const targetField = refs?.length
-        ? [...new Set(refs.map((r) => r.slice(1)).filter((n) => fields.some((f) => f.name === n)))].join(",")
+      const targetFields = refs?.length
+        ? [...new Set(refs.map((r) => r.slice(1)).filter((n) => fields.some((f) => f.name === n)))]
         : undefined;
       const res = await fetch(`/api/contracts/${encodeURIComponent(slug)}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: body.trim(), parentId: comment.id, targetField }),
+        body: JSON.stringify({ body: body.trim(), parentId: comment.id, targetFields }),
       });
       if (!res.ok) throw new Error("Failed to post reply");
       setBody("");
@@ -908,13 +908,13 @@ export function DiscussionThread({
     setError(null);
     try {
       const refs = commentBody.match(/#([\p{L}\p{N}_.-]+)/gu);
-      const targetField = refs?.length
-        ? [...new Set(refs.map((r) => r.slice(1)).filter((n) => fields.some((f) => f.name === n)))].join(",")
+      const targetFields = refs?.length
+        ? [...new Set(refs.map((r) => r.slice(1)).filter((n) => fields.some((f) => f.name === n)))]
         : undefined;
       const res = await fetch(`/api/contracts/${encodeURIComponent(slug)}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: commentBody, parentId: replyingTo?.id ?? null, targetField }),
+        body: JSON.stringify({ body: commentBody, parentId: replyingTo?.id ?? null, targetFields }),
       });
       if (!res.ok) {
         const payload = (await res.json()) as { error?: string };

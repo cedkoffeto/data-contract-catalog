@@ -195,7 +195,7 @@ export type ContractComment = {
   userId: string;
   body: string;
   parentId: number | null;
-  targetField: string | null;
+  targetFields: string[];
   createdAt: string;
   editedAt: string | null;
 };

@@ -88,7 +88,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
   const forbidden = await ensureCanReadContract(slug, session);
   if (forbidden) return forbidden;
 
-  const body = (await request.json()) as { body?: string; parentId?: number | null; targetField?: string | null };
+  const body = (await request.json()) as { body?: string; parentId?: number | null; targetFields?: string[] };
   const commentBody = body.body?.trim();
 
   if (!commentBody) {
@@ -104,7 +104,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
     userId,
     body: commentBody,
     parentId: body.parentId ?? null,
-    targetField: body.targetField ?? null,
+    fieldNames: body.targetFields ?? [],
   });
 
   const mentionedUserIds = extractMentionedUserIds(commentBody);

@@ -678,7 +678,13 @@ export async function getContractBySlug(slug: string): Promise<ContractFile | un
   const contract = contracts.find((candidate) => candidate.slug === normalizedSlug);
   if (contract) return contract;
 
-  return (await readLocalContracts()).find((candidate) => getLocalContractCandidates(candidate).includes(normalizedSlug));
+  // Fallback to local files only when GitLab is configured
+  // (without GitLab, getContracts() already returns local contracts)
+  if (hasGitLabContractsConfig()) {
+    return (await readLocalContracts()).find((candidate) => getLocalContractCandidates(candidate).includes(normalizedSlug));
+  }
+
+  return undefined;
 }
 
 function getOwnerName(data: DataContract): string {

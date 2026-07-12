@@ -62,9 +62,6 @@
     "vitest": "^3.2.4"
   },
   "overrides": {},
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
-  },
   "allowScripts": {
     "@prisma/engines@6.19.3": true,
     "esbuild@0.27.7": true,

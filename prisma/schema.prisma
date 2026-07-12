@@ -135,18 +135,17 @@ model ContractComment {
   userId        String       @map("user_id")
   body          String
   parentId      Int?         @map("parent_id")
-  targetField   String?      @map("target_field")
   createdAt     DateTime     @default(now()) @map("created_at")
   editedAt      DateTime?    @map("edited_at")
 
   parent        ContractComment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: SetNull)
   replies       ContractComment[] @relation("CommentReplies")
   mentions      CommentMention[]
+  fieldRefs     CommentFieldReference[]
 
   @@index([contractSlug, createdAt, id])
   @@index([parentId])
   @@index([parentId, id], map: "idx_contract_comments_parent_id_id")
-  @@index([contractSlug, targetField], map: "idx_contract_comments_target_field")
   @@map("contract_comments")
 }
 
@@ -162,6 +161,19 @@ model CommentMention {
   @@index([userId])
   @@index([commentId])
   @@map("comment_mentions")
+}
+
+model CommentFieldReference {
+  id        Int      @id @default(autoincrement())
+  commentId Int      @map("comment_id")
+  fieldName String   @map("field_name")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  comment ContractComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, fieldName])
+  @@index([fieldName])
+  @@map("comment_field_references")
 }
 
 model ContractChangeRequest {
