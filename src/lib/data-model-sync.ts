@@ -90,37 +90,43 @@ function parseModelFromRaw(raw: string, filePath: string): LoadedModel | null {
   return { domain, context, layer, sourceFile: path.basename(filePath), relations };
 }
 
-function readLocalDataModel(): { contracts: DataModelContract[]; models: LoadedModel[] } {
+async function readLocalDataModel(): Promise<{ contracts: DataModelContract[]; models: LoadedModel[] }> {
   const DATA_MODEL_DIR = path.join(process.cwd(), "data-model");
   const CONTRACTS_DIR = path.join(process.cwd(), "contracts");
 
-  function walk(dir: string): string[] {
+  async function walk(dir: string): Promise<string[]> {
     const files: string[] = [];
     try {
-      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      for (const e of await fs.promises.readdir(dir, { withFileTypes: true })) {
         const f = path.join(dir, e.name);
-        if (e.isDirectory()) files.push(...walk(f));
+        if (e.isDirectory()) files.push(...(await walk(f)));
         else if (e.name.endsWith(".yaml")) files.push(f);
       }
     } catch { /* ignore missing dir */ }
     return files;
   }
 
-  const contracts: DataModelContract[] = [];
-  for (const fp of walk(CONTRACTS_DIR)) {
-    const raw = fs.readFileSync(fp, "utf-8");
-    const slug = path.basename(fp, ".yaml");
-    const maturity = path.basename(path.dirname(fp));
-    const parsed = parseContractFromRaw(raw, slug, maturity);
-    if (parsed) contracts.push(parsed);
-  }
+  const [contractPaths, modelPaths] = await Promise.all([
+    walk(CONTRACTS_DIR),
+    walk(DATA_MODEL_DIR).then((paths) => paths.filter((f) => path.basename(f) !== "model-global.yaml")),
+  ]);
 
-  const models: LoadedModel[] = [];
-  for (const fp of walk(DATA_MODEL_DIR).filter((f) => path.basename(f) !== "model-global.yaml")) {
-    const raw = fs.readFileSync(fp, "utf-8");
-    const parsed = parseModelFromRaw(raw, fp);
-    if (parsed) models.push(parsed);
-  }
+  const [contracts, models] = await Promise.all([
+    Promise.all(
+      contractPaths.map(async (fp) => {
+        const raw = await fs.promises.readFile(fp, "utf-8");
+        const slug = path.basename(fp, ".yaml");
+        const maturity = path.basename(path.dirname(fp));
+        return parseContractFromRaw(raw, slug, maturity);
+      })
+    ).then((results) => results.filter(Boolean) as DataModelContract[]),
+    Promise.all(
+      modelPaths.map(async (fp) => {
+        const raw = await fs.promises.readFile(fp, "utf-8");
+        return parseModelFromRaw(raw, fp);
+      })
+    ).then((results) => results.filter(Boolean) as LoadedModel[]),
+  ]);
 
   return { contracts, models };
 }
@@ -164,7 +170,7 @@ export async function loadDataModel(): Promise<{ contracts: DataModelContract[];
   }
 
   if (!hasGitLabConfig()) {
-    const local = readLocalDataModel();
+    const local = await readLocalDataModel();
     dataModelCache.contracts = local.contracts;
     dataModelCache.models = local.models;
     dataModelCache.commitSha = "";
@@ -174,7 +180,7 @@ export async function loadDataModel(): Promise<{ contracts: DataModelContract[];
 
   const client = getGitLabClient();
   if (!client) {
-    const local = readLocalDataModel();
+    const local = await readLocalDataModel();
     dataModelCache.contracts = local.contracts;
     dataModelCache.models = local.models;
     dataModelCache.expiresAt = now + DATA_MODEL_CACHE_TTL_MS;
