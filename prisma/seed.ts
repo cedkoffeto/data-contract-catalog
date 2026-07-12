@@ -35,8 +35,8 @@ async function seed() {
     );
     if (permRows.length === 0) continue;
     await prisma.$executeRawUnsafe(
-      `INSERT INTO access_policies (user_id, group_id, permission_id, domain_scope, context_scope)
-       VALUES ($1, NULL, $2, NULL, NULL) ON CONFLICT DO NOTHING`,
+      `INSERT INTO access_policies (user_id, group_id, permission_id, domain_scope, context_scope, data_contract_scope, updated_at)
+       VALUES ($1, NULL, $2, NULL, NULL, NULL, CURRENT_TIMESTAMP) ON CONFLICT DO NOTHING`,
       userId,
       permRows[0].id,
     );

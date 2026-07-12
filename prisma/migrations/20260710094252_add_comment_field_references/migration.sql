@@ -7,15 +7,6 @@
 -- DropIndex
 DROP INDEX IF EXISTS "idx_contract_comments_target_field";
 
--- Migrate existing CSV data before dropping the column
-INSERT INTO "comment_field_references" ("comment_id", "field_name")
-SELECT c.id, trim(unnest(string_to_array(c.target_field, ',')))
-FROM "contract_comments" c
-WHERE c.target_field IS NOT NULL AND c.target_field != '';
-
--- AlterTable
-ALTER TABLE "contract_comments" DROP COLUMN "target_field";
-
 -- CreateTable
 CREATE TABLE "comment_field_references" (
     "id" SERIAL NOT NULL,
@@ -34,3 +25,12 @@ CREATE UNIQUE INDEX "comment_field_references_comment_id_field_name_key" ON "com
 
 -- AddForeignKey
 ALTER TABLE "comment_field_references" ADD CONSTRAINT "comment_field_references_comment_id_fkey" FOREIGN KEY ("comment_id") REFERENCES "contract_comments"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- Migrate existing CSV data before dropping the column
+INSERT INTO "comment_field_references" ("comment_id", "field_name")
+SELECT c.id, trim(unnest(string_to_array(c.target_field, ',')))
+FROM "contract_comments" c
+WHERE c.target_field IS NOT NULL AND c.target_field != '';
+
+-- AlterTable
+ALTER TABLE "contract_comments" DROP COLUMN "target_field";

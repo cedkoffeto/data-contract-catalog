@@ -6,14 +6,14 @@ export type UserContractPreferences = {
 };
 
 export async function getUserContractPreferences(userId: string, contractSlug: string): Promise<UserContractPreferences> {
-  const rows = await query<{ is_favorite: number; is_pinned: number }>(
+  const rows = await query<{ is_favorite: boolean; is_pinned: boolean }>(
     `SELECT is_favorite, is_pinned FROM user_contract_preferences WHERE user_id = ? AND contract_slug = ?`,
     [userId, contractSlug],
   );
 
   return {
-    isFavorite: rows[0]?.is_favorite === 1,
-    isPinned: rows[0]?.is_pinned === 1,
+    isFavorite: rows[0]?.is_favorite === true,
+    isPinned: rows[0]?.is_pinned === true,
   };
 }
 
@@ -32,7 +32,7 @@ export async function updateUserContractPreferences(
        is_favorite = excluded.is_favorite,
        is_pinned = excluded.is_pinned,
        updated_at = CURRENT_TIMESTAMP`,
-    [userId, contractSlug, merged.isFavorite ? 1 : 0, merged.isPinned ? 1 : 0],
+    [userId, contractSlug, merged.isFavorite, merged.isPinned],
   );
 
   return merged;
@@ -40,7 +40,7 @@ export async function updateUserContractPreferences(
 
 export async function getPinnedSlugs(userId: string): Promise<string[]> {
   const rows = await query<{ contract_slug: string }>(
-    "SELECT contract_slug FROM user_contract_preferences WHERE user_id = ? AND is_pinned = 1",
+    "SELECT contract_slug FROM user_contract_preferences WHERE user_id = ? AND is_pinned = true",
     [userId],
   );
   return rows.map((r) => r.contract_slug);
@@ -48,7 +48,7 @@ export async function getPinnedSlugs(userId: string): Promise<string[]> {
 
 export async function getUserFavoriteSlugs(userId: string): Promise<string[]> {
   const rows = await query<{ contract_slug: string }>(
-    "SELECT contract_slug FROM user_contract_preferences WHERE user_id = ? AND is_favorite = 1",
+    "SELECT contract_slug FROM user_contract_preferences WHERE user_id = ? AND is_favorite = true",
     [userId],
   );
   return rows.map((r) => r.contract_slug);
