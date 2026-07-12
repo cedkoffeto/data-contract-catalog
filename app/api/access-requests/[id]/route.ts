@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
+import { prisma } from "@/src/lib/prisma";
 import { auth } from "@/src/auth";
-import { execute, query } from "@/src/lib/db";
 import { getAdminUserIds } from "@/src/lib/rbac";
 import { createAccessPolicy } from "@/src/lib/access-control";
 import { createNotification } from "@/src/lib/notifications";
@@ -36,34 +36,35 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   }
 
-  const rows = await query<{ user_id: string; domain: string; context: string; data_contract: string; requested_permission: AccessRequestPermission }>(
-    "SELECT user_id, domain, context, data_contract, requested_permission FROM access_requests WHERE id = ?",
-    [parseInt(id, 10)],
-  );
-  const requestedAccessRequest = rows[0] ?? null;
+  const requestedAccessRequest = await prisma.accessRequest.findUnique({
+    where: { id: parseInt(id, 10) },
+    select: { userId: true, domain: true, context: true, dataContract: true, requestedPermission: true },
+  });
 
   // Update status immediately (fast path)
-  await execute(
-    "UPDATE access_requests SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-    [status, parseInt(id, 10)],
-  );
+  await prisma.accessRequest.update({
+    where: { id: parseInt(id, 10) },
+    data: { status, updatedAt: new Date() },
+  });
 
   // Defer slow work: policy creation, audit, notification
   if (requestedAccessRequest) {
     (async () => {
       try {
         if (status === "approved") {
-          const requestedPermission = requestedAccessRequest.requested_permission === "editor" ? "editor" : "reader";
-          const permRows = await query<{ id: number }>("SELECT id FROM permissions WHERE name = ?", [permissionNameToPermissionIdName(requestedPermission)]);
-          const permissionId = permRows[0]?.id;
-          if (permissionId) {
+          const requestedPermission = requestedAccessRequest.requestedPermission === "editor" ? "editor" : "reader";
+          const permission = await prisma.permission.findFirst({
+            where: { name: permissionNameToPermissionIdName(requestedPermission) },
+            select: { id: true },
+          });
+          if (permission) {
             await createAccessPolicy({
-              userId: requestedAccessRequest.user_id,
+              userId: requestedAccessRequest.userId,
               groupId: null,
-              permissionId,
+              permissionId: permission.id,
               domainScope: requestedAccessRequest.domain || null,
               contextScope: requestedAccessRequest.context || null,
-              dataContractScope: requestedAccessRequest.data_contract || null,
+              dataContractScope: requestedAccessRequest.dataContract || null,
               actorId: userId,
               force: true,
               sessionId,
@@ -76,21 +77,21 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           actorId: userId,
           targetType: "contract",
           targetId: id,
-          details: { newStatus: status, requestedPermission: requestedAccessRequest.requested_permission ?? "reader" },
+          details: { newStatus: status, requestedPermission: requestedAccessRequest.requestedPermission ?? "reader" },
           sessionId,
         });
 
-        const targetParts = [requestedAccessRequest.domain, requestedAccessRequest.context, requestedAccessRequest.data_contract].filter(Boolean).join(" / ");
+        const targetParts = [requestedAccessRequest.domain, requestedAccessRequest.context, requestedAccessRequest.dataContract].filter(Boolean).join(" / ");
         await createNotification({
-          userId: requestedAccessRequest.user_id,
-          contractSlug: requestedAccessRequest.data_contract || "",
+          userId: requestedAccessRequest.userId,
+          contractSlug: requestedAccessRequest.dataContract || "",
           type: "access_request",
           title: status === "approved" ? "Access request approved" : "Access request rejected",
           message: status === "approved"
-            ? `Your request for ${requestedAccessRequest.requested_permission} access to ${targetParts} has been approved.`
-            : `Your request for ${requestedAccessRequest.requested_permission} access to ${targetParts} has been rejected.`,
+            ? `Your request for ${requestedAccessRequest.requestedPermission} access to ${targetParts} has been approved.`
+            : `Your request for ${requestedAccessRequest.requestedPermission} access to ${targetParts} has been rejected.`,
           metadata: {
-            contractSlug: requestedAccessRequest.data_contract || undefined,
+            contractSlug: requestedAccessRequest.dataContract || undefined,
             requestStatus: status,
           },
         });

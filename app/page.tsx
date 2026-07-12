@@ -1,10 +1,10 @@
+import { prisma } from "@/src/lib/prisma";
 import { CatalogPage } from "@/src/components/catalog/CatalogPage";
 import { getCatalogCards, hasGitLabTreeError, resetGitLabTreeError } from "@/src/lib/contracts";
 import { getAccessibleSlugs, getEditableSlugs } from "@/src/lib/catalog-filter";
 import { canWrite, type Permission } from "@/src/lib/rbac";
 import type { CatalogCard } from "@/src/lib/types";
 import { auth } from "@/src/auth";
-import { query } from "@/src/lib/db";
 import { getUserSubscriptions } from "@/src/lib/subscriptions";
 import { getPinnedSlugs, getUserFavoriteSlugs } from "@/src/lib/preferences";
 
@@ -31,13 +31,14 @@ export default async function HomePage() {
     return <CatalogPage cards={[]} gitError={gitError} />;
   }
 
-  const [accessible, editable, pendingRows, subscriptions, pinnedSlugsArr, favoriteSlugsArr] = await Promise.all([
+  const [accessible, editable, pendingRequests, subscriptions, pinnedSlugsArr, favoriteSlugsArr] = await Promise.all([
     getAccessibleSlugs(userId, permissions, cards),
     getEditableSlugs(userId, permissions, cards),
-    query<{ data_contract: string }>(
-      "SELECT DISTINCT data_contract FROM access_requests WHERE user_id = ? AND status = 'pending'",
-      [userId],
-    ),
+    prisma.accessRequest.findMany({
+      where: { userId, status: "pending" },
+      select: { dataContract: true },
+      distinct: ["dataContract"],
+    }),
     getUserSubscriptions(userId),
     getPinnedSlugs(userId),
     getUserFavoriteSlugs(userId),
@@ -46,7 +47,7 @@ export default async function HomePage() {
   const pinnedSlugs = new Set(pinnedSlugsArr);
   const favoriteSlugs = new Set(favoriteSlugsArr);
 
-  const pendingSlugs = new Set(pendingRows.map((r) => r.data_contract));
+  const pendingSlugs = new Set(pendingRequests.map((r) => r.dataContract));
   const subscriptionSlugs = new Set(subscriptions.map((s) => s.contract_slug));
 
   const canRequestUpgrade = !canWrite(permissions);

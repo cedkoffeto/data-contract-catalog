@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
+import { prisma } from "@/src/lib/prisma";
 import { auth } from "@/src/auth";
-import { execute, query } from "@/src/lib/db";
 import { createNotification } from "@/src/lib/notifications";
 import { getAdminUserIds, isAdmin } from "@/src/lib/rbac";
 import { writeAuditLog } from "@/src/lib/audit";
@@ -36,11 +36,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid requested permission" }, { status: 400 });
     }
 
-    const result = await execute(
-      `INSERT INTO access_requests (user_id, domain, context, data_contract, requested_permission, message)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [userId, domain ?? "", context ?? "", dataContract ?? "", requestedPermission, message ?? ""],
-    );
+    const created = await prisma.accessRequest.create({
+      data: {
+        userId,
+        domain: domain ?? "",
+        context: context ?? "",
+        dataContract: dataContract ?? "",
+        requestedPermission,
+        message: message ?? "",
+      },
+    });
 
     const sessionId = extractSessionId(request);
 
@@ -71,7 +76,7 @@ export async function POST(request: Request) {
       }),
     ));
 
-    return NextResponse.json({ id: result.changes }, { status: 201 });
+    return NextResponse.json({ id: created.id }, { status: 201 });
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Failed to create access request";
     return NextResponse.json({ error: msg }, { status: 400 });
@@ -89,22 +94,34 @@ export async function GET() {
     return NextResponse.json({ error: "Admin access required" }, { status: 403 });
   }
 
-    const items = await query<{
-      id: number;
-      user_id: string;
-      domain: string;
-      context: string;
-      data_contract: string;
-      requested_permission: AccessRequestPermission;
-      message: string;
-      status: string;
-      created_at: string;
-      updated_at: string;
-    }>(
-      `SELECT id, user_id, domain, context, data_contract, requested_permission, message, status, created_at, updated_at
-       FROM access_requests
-       ORDER BY created_at DESC`,
-    );
+  const rows = await prisma.accessRequest.findMany({
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      userId: true,
+      domain: true,
+      context: true,
+      dataContract: true,
+      requestedPermission: true,
+      message: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  const items = rows.map((r) => ({
+    id: r.id,
+    user_id: r.userId,
+    domain: r.domain,
+    context: r.context,
+    data_contract: r.dataContract,
+    requested_permission: r.requestedPermission,
+    message: r.message,
+    status: r.status,
+    created_at: r.createdAt.toISOString(),
+    updated_at: r.updatedAt?.toISOString() ?? null,
+  }));
 
   return NextResponse.json({ items });
 }
