@@ -38,25 +38,67 @@ type PolicyRow = {
   data_contract_scope: string | null;
 };
 
-function scopeMatchesPolicy(
-  domain: string,
-  context: string,
-  slug: string,
-  p: PolicyRow,
-): boolean {
-  const pd = (p.domain_scope ?? "").toLowerCase().trim();
-  const pc = (p.context_scope ?? "").toLowerCase().trim();
-  const pdc = (p.data_contract_scope ?? "").toLowerCase().trim();
-  const lcSlug = slug.toLowerCase();
+type NormalizedPolicy = {
+  domain: string;
+  context: string;
+  slug: string;
+};
 
-  return (
-    (pd === "" && pc === "" && pdc === "") ||
-    (pd === "" && pc === "" && pdc === lcSlug) ||
-    (pd === domain && pc === "" && pdc === "") ||
-    (pd === domain && pc === context && pdc === "") ||
-    (pd === domain && pc === context && pdc === lcSlug) ||
-    (pd === domain && pc === "" && pdc === lcSlug)
-  );
+function normalizePolicies(policies: PolicyRow[]): {
+  hasWildcard: boolean;
+  bySlug: Map<string, NormalizedPolicy[]>;   // slug → policies referencing it
+  byDomain: Map<string, NormalizedPolicy[]>;  // domain → policies
+  byDomainContext: Map<string, NormalizedPolicy[]>; // "domain||context" → policies
+} {
+  let hasWildcard = false;
+  const bySlug = new Map<string, NormalizedPolicy[]>();
+  const byDomain = new Map<string, NormalizedPolicy[]>();
+  const byDomainContext = new Map<string, NormalizedPolicy[]>();
+
+  for (const p of policies) {
+    const domain = (p.domain_scope ?? "").toLowerCase().trim();
+    const context = (p.context_scope ?? "").toLowerCase().trim();
+    const slug = (p.data_contract_scope ?? "").toLowerCase().trim();
+
+    if (!domain && !context && !slug) { hasWildcard = true; continue; }
+
+    const np: NormalizedPolicy = { domain, context, slug };
+
+    if (slug && !domain && !context) {
+      // Pattern 2: slug only — lookup by slug
+      addToMap(bySlug, slug, np);
+    } else if (slug && domain && !context) {
+      // Pattern 6: domain + slug
+      addToMap(bySlug, slug, np);
+      addToMap(byDomain, domain, np);
+    } else if (domain && !context && !slug) {
+      // Pattern 3: domain only
+      addToMap(byDomain, domain, np);
+    } else if (domain && context && !slug) {
+      // Pattern 4: domain + context
+      addToMap(byDomainContext, `${domain}||${context}`, np);
+      addToMap(byDomain, domain, np);
+    } else if (domain && context && slug) {
+      // Pattern 5: domain + context + slug
+      addToMap(bySlug, slug, np);
+      addToMap(byDomainContext, `${domain}||${context}`, np);
+      addToMap(byDomain, domain, np);
+    }
+  }
+
+  return { hasWildcard, bySlug, byDomain, byDomainContext };
+}
+
+function addToMap<K, V>(map: Map<K, V[]>, key: K, value: V): void {
+  if (!map.has(key)) map.set(key, []);
+  map.get(key)!.push(value);
+}
+
+function policyMatches(np: NormalizedPolicy, domain: string, context: string, slug: string): boolean {
+  if (np.slug && np.slug !== slug) return false;
+  if (np.domain && np.domain !== domain) return false;
+  if (np.context && np.context !== context) return false;
+  return true;
 }
 
 const policiesCache = new Map<string, { promise: Promise<PolicyRow[]>; ts: number }>();
@@ -109,16 +151,27 @@ export async function filterCatalogCards(
 
   const policies = await fetchUserPolicies(userId);
   if (policies.length === 0 && await userHasGlobalAccess(userId)) return cards;
-  if (policies.some((p) => (p.domain_scope ?? "") === "" && (p.context_scope ?? "") === "" && (p.data_contract_scope ?? "") === "")) return cards;
 
-  return cards.filter((card) =>
-    policies.some((p) => scopeMatchesPolicy(
-      card.domain?.toLowerCase().trim() ?? "",
-      card.context?.toLowerCase().trim() ?? "",
-      card.slug,
-      p,
-    ))
-  );
+  const lookup = normalizePolicies(policies);
+  if (lookup.hasWildcard) return cards;
+
+  return cards.filter((card) => {
+    const domain = card.domain?.toLowerCase().trim() ?? "";
+    const context = card.context?.toLowerCase().trim() ?? "";
+    const slug = card.slug.toLowerCase();
+
+    const bySlug = lookup.bySlug.get(slug);
+    if (bySlug?.some((np) => policyMatches(np, domain, context, slug))) return true;
+
+    const dcKey = `${domain}||${context}`;
+    const byDomainContext = lookup.byDomainContext.get(dcKey);
+    if (byDomainContext?.some((np) => policyMatches(np, domain, context, slug))) return true;
+
+    const byDomain = lookup.byDomain.get(domain);
+    if (byDomain?.some((np) => policyMatches(np, domain, context, slug))) return true;
+
+    return false;
+  });
 }
 
 /**
@@ -151,18 +204,25 @@ async function getMatchingSlugs(
 
   const policies = await fetchUserPolicies(userId, permissionFilter);
   if (policies.length === 0 && await userHasGlobalAccess(userId)) return new Set(cards.map((c) => c.slug));
-  if (policies.some((p) => (p.domain_scope ?? "") === "" && (p.context_scope ?? "") === "" && (p.data_contract_scope ?? "") === "")) return new Set(cards.map((c) => c.slug));
+
+  const lookup = normalizePolicies(policies);
+  if (lookup.hasWildcard) return new Set(cards.map((c) => c.slug));
 
   const matching = new Set<string>();
   for (const card of cards) {
-    if (policies.some((p) => scopeMatchesPolicy(
-      card.domain?.toLowerCase().trim() ?? "",
-      card.context?.toLowerCase().trim() ?? "",
-      card.slug,
-      p,
-    ))) {
-      matching.add(card.slug);
-    }
+    const domain = card.domain?.toLowerCase().trim() ?? "";
+    const context = card.context?.toLowerCase().trim() ?? "";
+    const slug = card.slug.toLowerCase();
+
+    const bySlug = lookup.bySlug.get(slug);
+    if (bySlug?.some((np) => policyMatches(np, domain, context, slug))) { matching.add(card.slug); continue; }
+
+    const dcKey = `${domain}||${context}`;
+    const byDomainContext = lookup.byDomainContext.get(dcKey);
+    if (byDomainContext?.some((np) => policyMatches(np, domain, context, slug))) { matching.add(card.slug); continue; }
+
+    const byDomain = lookup.byDomain.get(domain);
+    if (byDomain?.some((np) => policyMatches(np, domain, context, slug))) { matching.add(card.slug); continue; }
   }
   return matching;
 }

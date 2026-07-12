@@ -11,27 +11,17 @@ export async function listContractComments(contractSlug: string): Promise<Contra
     parent_id: number | null;
     created_at: string;
     edited_at: string | null;
+    target_fields: unknown;
   }>(
-    `SELECT id, contract_slug, user_id, body, parent_id, created_at, edited_at
-     FROM contract_comments
-     WHERE contract_slug = ?
-     ORDER BY created_at ASC, id ASC`,
+    `SELECT c.id, c.contract_slug, c.user_id, c.body, c.parent_id, c.created_at, c.edited_at,
+            COALESCE(json_agg(f.field_name) FILTER (WHERE f.field_name IS NOT NULL), '[]') as target_fields
+     FROM contract_comments c
+     LEFT JOIN comment_field_references f ON f.comment_id = c.id
+     WHERE c.contract_slug = ?
+     GROUP BY c.id
+     ORDER BY c.created_at ASC, c.id ASC`,
     [contractSlug],
   );
-
-  const commentIds = rows.map((r) => r.id);
-  const fieldRefs = commentIds.length > 0
-    ? await query<{ comment_id: number; field_name: string }>(
-        `SELECT comment_id, field_name FROM comment_field_references WHERE comment_id IN (${commentIds.map(() => "?").join(",")})`,
-        commentIds,
-      )
-    : [];
-
-  const fieldMap: Record<number, string[]> = {};
-  for (const ref of fieldRefs) {
-    if (!fieldMap[ref.comment_id]) fieldMap[ref.comment_id] = [];
-    fieldMap[ref.comment_id].push(ref.field_name);
-  }
 
   return rows.map((row) => ({
     id: row.id,
@@ -39,7 +29,7 @@ export async function listContractComments(contractSlug: string): Promise<Contra
     userId: row.user_id,
     body: row.body,
     parentId: row.parent_id,
-    targetFields: fieldMap[row.id] ?? [],
+    targetFields: row.target_fields as string[] ?? [],
     createdAt: row.created_at,
     editedAt: row.edited_at,
   }));
