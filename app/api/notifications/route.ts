@@ -5,7 +5,7 @@ import { apiError } from "@/src/lib/api-error";
 import { getUserNotifications } from "@/src/lib/notifications";
 import { requireApiAuth } from "@/src/lib/require-auth";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await requireApiAuth();
     if (session instanceof Response) return session;
@@ -14,7 +14,9 @@ export async function GET() {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     }
 
-    const notifications = await getUserNotifications(userId);
+    const url = new URL(request.url);
+    const limit = Math.min(Math.max(1, Number(url.searchParams.get("limit")) || 20), 100);
+    const notifications = await getUserNotifications(userId, limit);
 
     return NextResponse.json({
       notifications: notifications.map((n) => ({

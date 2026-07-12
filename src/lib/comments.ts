@@ -2,7 +2,7 @@ import { execute, get, insertReturning, query } from "@/src/lib/db";
 import { createNotification } from "@/src/lib/notifications";
 import type { ContractComment } from "@/src/lib/types";
 
-export async function listContractComments(contractSlug: string): Promise<ContractComment[]> {
+export async function listContractComments(contractSlug: string, limit?: number, offset?: number): Promise<ContractComment[]> {
   const rows = await query<{
     id: number;
     contract_slug: string;
@@ -19,7 +19,9 @@ export async function listContractComments(contractSlug: string): Promise<Contra
      LEFT JOIN comment_field_references f ON f.comment_id = c.id
      WHERE c.contract_slug = ?
      GROUP BY c.id
-     ORDER BY c.created_at ASC, c.id ASC`,
+      ORDER BY c.created_at ASC, c.id ASC
+      ${limit ? `LIMIT ${limit}` : ""}
+      ${offset ? `OFFSET ${offset}` : ""}`,
     [contractSlug],
   );
 

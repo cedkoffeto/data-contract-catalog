@@ -36,7 +36,7 @@ async function ensureCanReadContract(slug: string, session: Session) {
   return null;
 }
 
-export async function GET(_: Request, { params }: { params: Promise<{ slug: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const session = await requireApiAuth();
   if (session instanceof Response) return session;
   const userId = session?.user?.name;
@@ -48,7 +48,10 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
   const forbidden = await ensureCanReadContract(slug, session);
   if (forbidden) return forbidden;
 
-  const comments = await listContractComments(slug);
+  const url = new URL(request.url);
+  const limit = Math.min(Math.max(1, Number(url.searchParams.get("limit")) || 50), 200);
+  const offset = Math.max(0, Number(url.searchParams.get("offset")) || 0);
+  const comments = await listContractComments(slug, limit, offset);
   return NextResponse.json({ comments });
 }
 
