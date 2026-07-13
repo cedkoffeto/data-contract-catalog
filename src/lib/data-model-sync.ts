@@ -174,11 +174,10 @@ function parseModelsFromArchive(archiveFiles: Map<string, Buffer>): LoadedModel[
 export async function loadDataModel(): Promise<{ contracts: DataModelContract[]; models: LoadedModel[] }> {
   const now = Date.now();
 
-  if (dataModelCache.expiresAt > now && dataModelCache.contracts.length > 0) {
-    return { contracts: dataModelCache.contracts, models: dataModelCache.models };
-  }
-
   if (!hasGitLabConfig()) {
+    if (dataModelCache.expiresAt > now && dataModelCache.contracts.length > 0) {
+      return { contracts: dataModelCache.contracts, models: dataModelCache.models };
+    }
     const local = await readLocalDataModel();
     dataModelCache.contracts = local.contracts;
     dataModelCache.models = local.models;
@@ -189,6 +188,9 @@ export async function loadDataModel(): Promise<{ contracts: DataModelContract[];
 
   const client = getGitLabClient();
   if (!client) {
+    if (dataModelCache.expiresAt > now && dataModelCache.contracts.length > 0) {
+      return { contracts: dataModelCache.contracts, models: dataModelCache.models };
+    }
     const local = await readLocalDataModel();
     dataModelCache.contracts = local.contracts;
     dataModelCache.models = local.models;
@@ -203,6 +205,11 @@ export async function loadDataModel(): Promise<{ contracts: DataModelContract[];
     if (dataModelCache.contracts.length > 0 && dataModelCache.expiresAt > now) {
       return { contracts: dataModelCache.contracts, models: dataModelCache.models };
     }
+    const local = await readLocalDataModel();
+    dataModelCache.contracts = local.contracts;
+    dataModelCache.models = local.models;
+    dataModelCache.expiresAt = now + DATA_MODEL_CACHE_TTL_MS;
+    return local;
   }
 
   if (
@@ -213,6 +220,9 @@ export async function loadDataModel(): Promise<{ contracts: DataModelContract[];
   ) {
     return { contracts: dataModelCache.contracts, models: dataModelCache.models };
   }
+
+  dataModelCache.commitSha = "";
+  dataModelCache.expiresAt = 0;
 
   const archiveFiles = await downloadGitLabArchive(client);
   const contracts = parseContractsFromArchive(archiveFiles);

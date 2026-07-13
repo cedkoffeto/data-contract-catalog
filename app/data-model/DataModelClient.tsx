@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { DataModelEditor } from "@/src/components/data-model/DataModelEditor";
-import type { DataModelContract, LoadedModel } from "@/src/lib/data-model";
+import type { DataModelContract } from "@/src/lib/data-model";
 
 function LoadingSkeleton() {
   return (
@@ -22,7 +22,6 @@ function LoadingSkeleton() {
 
 export function DataModelClient({ focusSlug }: { focusSlug: string | null }) {
   const [contracts, setContracts] = useState<DataModelContract[] | null>(null);
-  const [models, setModels] = useState<LoadedModel[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -36,7 +35,6 @@ export function DataModelClient({ focusSlug }: { focusSlug: string | null }) {
       })
       .then((data) => {
         setContracts(data.contracts);
-        setModels(data.models);
         setLoading(false);
       })
       .catch((e) => {
@@ -61,9 +59,9 @@ export function DataModelClient({ focusSlug }: { focusSlug: string | null }) {
     );
   }
 
-  if (loading || !contracts || !models) {
+  if (loading || !contracts) {
     return <LoadingSkeleton />;
   }
 
-  return <DataModelEditor contracts={contracts} models={models} focusSlug={focusSlug} />;
+  return <DataModelEditor contracts={contracts} focusSlug={focusSlug} />;
 }

@@ -3,6 +3,7 @@ import { InputsSection } from "@/src/components/contract/InputsSection";
 import { LineageGraph } from "@/src/components/contract/LineageGraph";
 import { ModelsSection } from "@/src/components/contract/ModelsSection";
 import { QualitySection } from "@/src/components/contract/QualitySection";
+import { RelationsSection } from "@/src/components/contract/RelationsSection";
 import { SecuritySection } from "@/src/components/contract/SecuritySection";
 import { ServiceLevelsSection } from "@/src/components/contract/ServiceLevelsSection";
 import { ServingSection } from "@/src/components/contract/ServingSection";
@@ -30,6 +31,8 @@ export function ContractBody({ data, slug, userId, fieldAnnotations, onFieldClic
         sources={inputs.sources ?? []}
         transformations={inputs.transformations ?? []}
       />
+
+      <RelationsSection relations={schema.relations} />
 
       <LineageGraph data={data} />
 

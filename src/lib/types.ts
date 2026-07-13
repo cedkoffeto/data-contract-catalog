@@ -62,6 +62,7 @@ export type DataContract = {
   contract?: {
     schema?: {
       fields?: ContractField[];
+      relations?: Array<{ ref_name: string; ref: string }>;
     };
     primary_key?: string[] | string;
     grain?: string;

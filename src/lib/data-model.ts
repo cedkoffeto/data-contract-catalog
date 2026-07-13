@@ -154,7 +154,6 @@ function createNode(c: DataModelContract): Node {
 
 export function parseContractsToGraph(
   contracts: DataModelContract[],
-  models: LoadedModel[],
 ): GraphData {
   // Build lookup: key → contract
   const contractMap = new Map<ContractKey, DataModelContract>();
@@ -175,81 +174,7 @@ export function parseContractsToGraph(
     nodeMap.set(id, createNode(c));
   }
 
-  // 2. Resolve relations → edges
-  for (const model of models) {
-    const defaults = { layer: model.layer, domain: model.domain, context: model.context };
-    for (const rel of model.relations) {
-      const parsed = parseRef(rel.ref, defaults);
-      if (!parsed) continue;
-
-      const src = parsed.left;
-      const tgt = parsed.right;
-      const srcKey = keyOf(src);
-      const tgtKey = keyOf(tgt);
-
-      const srcContract = contractMap.get(srcKey);
-      const tgtContract = contractMap.get(tgtKey);
-      if (!srcContract || !tgtContract) {
-        orphanRefs.push(rel.ref);
-        continue;
-      }
-
-      // Skip edges referencing fields that don't exist in the contract
-      const srcFieldOk = srcContract.fields.some((f) => f.name === src.field);
-      const tgtFieldOk = tgtContract.fields.some((f) => f.name === tgt.field);
-      if (!srcFieldOk || !tgtFieldOk) {
-        if (process.env.NODE_ENV === "development") {
-          console.warn(`[data-model] Skipping edge "${rel.ref}": field "${!srcFieldOk ? src.field : tgt.field}" not found in ${!srcFieldOk ? srcContract.slug : tgtContract.slug}`);
-        }
-        continue;
-      }
-
-      const srcId = slugToId(srcContract.slug, srcContract.maturity);
-      const tgtId = slugToId(tgtContract.slug, tgtContract.maturity);
-
-      if (!nodeMap.has(srcId)) nodeMap.set(srcId, createNode(srcContract));
-      if (!nodeMap.has(tgtId)) nodeMap.set(tgtId, createNode(tgtContract));
-
-      const edgeKey = `${srcId}.${src.field}->${tgtId}.${tgt.field}`;
-      if (edgeSet.has(edgeKey)) continue;
-      edgeSet.add(edgeKey);
-
-      const srcLayer = srcContract.maturity || "bronze";
-      const isAnimated = parsed.sign !== "-";
-      const cardSource = parsed.sign === ">" ? "many" : parsed.sign === "<" ? "one" : "many";
-      const cardTarget = parsed.sign === ">" ? "one" : parsed.sign === "<" ? "many" : "many";
-      edges.push({
-        id: edgeKey,
-        source: srcId,
-        target: tgtId,
-        sourceHandle: src.field,
-        targetHandle: tgt.field,
-        label: rel.ref_name,
-        type: "relationEdge",
-        animated: isAnimated,
-        data: { cardSource, cardTarget },
-        style: {
-          stroke: isAnimated ? layerStroke[srcLayer] : layerStrokeLight[srcLayer],
-          strokeWidth: isAnimated ? 2 : 1.5,
-          strokeDasharray: isAnimated ? undefined : "4 3",
-        },
-        labelStyle: {
-          fontSize: 10,
-          fontWeight: 600,
-          fontFamily: "monospace",
-          fill: "#334155",
-        },
-        labelBgStyle: {
-          fill: "#ffffff",
-          fillOpacity: 0.9,
-          rx: 3,
-        },
-        labelBgPadding: [6, 3] as [number, number],
-      });
-    }
-  }
-
-  // 3. Resolve contract-level relations → edges
+  // 2. Resolve contract-level relations → edges
   for (const contract of contracts) {
     if (!contract.relations || contract.relations.length === 0) continue;
     const defaults = { layer: contract.maturity, domain: contract.domain, context: contract.context };

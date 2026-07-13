@@ -6,7 +6,6 @@ import {
   parseContractsToGraph,
   layoutByMode,
   type DataModelContract,
-  type LoadedModel,
   type LayoutMode,
   type ContractTableNodeData,
 } from "@/src/lib/data-model";
@@ -34,11 +33,9 @@ function computeConnectedFields(edges: Edge[]): Map<string, Set<string>> {
 
 export function DataModelEditor({
   contracts,
-  models,
   focusSlug,
 }: {
   contracts: DataModelContract[];
-  models: LoadedModel[];
   focusSlug?: string | null;
 }) {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
@@ -94,8 +91,8 @@ export function DataModelEditor({
   }
 
   const { nodes: rawNodes, edges, orphanRefs } = useMemo(
-    () => parseContractsToGraph(contracts, models),
-    [contracts, models],
+    () => parseContractsToGraph(contracts),
+    [contracts],
   );
 
   const searchMatchIds = useMemo(() => {
