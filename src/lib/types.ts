@@ -110,8 +110,8 @@ export type DataContract = {
       name?: string;
       type?: string;
       notes?: string;
+      query_url?: string;
     };
-    query_url?: string;
   };
   output?: {
     location?: string;

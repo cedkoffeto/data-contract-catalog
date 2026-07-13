@@ -58,7 +58,7 @@ export function ContractBody({ data, slug, userId, fieldAnnotations, onFieldClic
           retention={output.retention}
           storageFormat={output.storage_format}
           tableName={output.table_name}
-          queryUrl={serving.query_url}
+          queryUrl={serving.technology?.query_url}
         />
       ) : null}
     </div>
