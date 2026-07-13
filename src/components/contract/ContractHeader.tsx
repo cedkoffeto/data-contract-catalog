@@ -85,8 +85,8 @@ export function ContractHeader({
   ];
 
   return (
-    <section className="contract-hero">
-      <div className="w-full overflow-hidden rounded-lg bg-white shadow sm:rounded-lg">
+    <section className="contract-hero" style={{ paddingLeft: 0, paddingRight: 0 }}>
+      <div className="w-full overflow-hidden rounded-lg border border-gray-200 bg-white sm:rounded-lg">
         <div className="px-4 py-4 sm:px-6">
           <h1 className="text-lg font-semibold text-gray-900">{asset.name ?? "Unknown contract"}</h1>
 
