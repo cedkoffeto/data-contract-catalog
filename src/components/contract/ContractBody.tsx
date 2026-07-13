@@ -9,7 +9,7 @@ import { ServiceLevelsSection } from "@/src/components/contract/ServiceLevelsSec
 import { ServingSection } from "@/src/components/contract/ServingSection";
 import type { DataContract } from "@/src/lib/types";
 
-export function ContractBody({ data, slug, userId, fieldAnnotations, onFieldClick, onAnnotationPosted }: { data: DataContract; slug?: string; userId?: string; fieldAnnotations?: Record<string, number>; onFieldClick?: (fieldName: string) => void; onAnnotationPosted?: () => void }) {
+export function ContractBody({ data, slug, userId, fieldAnnotations, onFieldClick, onAnnotationPosted, incomingRelations }: { data: DataContract; slug?: string; userId?: string; fieldAnnotations?: Record<string, number>; onFieldClick?: (fieldName: string) => void; onAnnotationPosted?: () => void; incomingRelations?: Array<{ ref_name: string; ref: string; declared_by_slug: string }> }) {
   const asset = data.asset ?? {};
   const contract = data.contract ?? {};
   const schema = contract.schema ?? {};
@@ -32,7 +32,7 @@ export function ContractBody({ data, slug, userId, fieldAnnotations, onFieldClic
         transformations={inputs.transformations ?? []}
       />
 
-      <RelationsSection relations={schema.relations} />
+      <RelationsSection relations={schema.relations} incomingRelations={incomingRelations} />
 
       <LineageGraph data={data} />
 

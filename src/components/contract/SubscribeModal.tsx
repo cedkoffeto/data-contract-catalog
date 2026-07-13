@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useToast } from "@/src/components/ui/ToastProvider";
 
 export function SubscribeButton({
   slug,
@@ -14,6 +15,7 @@ export function SubscribeButton({
   onUnsubscribed: () => void;
 }) {
   const [saving, setSaving] = useState(false);
+  const { showToast } = useToast();
 
   async function handleToggle() {
     setSaving(true);
@@ -23,9 +25,13 @@ export function SubscribeButton({
         headers: { "Content-Type": "application/json" },
         body: isSubscribed ? JSON.stringify({ channel: null }) : JSON.stringify({}),
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        showToast("Erreur lors de la gestion de l'abonnement", "error");
+        return;
+      }
       if (isSubscribed) onUnsubscribed(); else onSubscribed();
       window.dispatchEvent(new CustomEvent("subscription-changed", { detail: { slug, subscribed: !isSubscribed } }));
+      showToast(isSubscribed ? "Abonnement supprimé" : "Abonnement activé");
     } finally {
       setSaving(false);
     }

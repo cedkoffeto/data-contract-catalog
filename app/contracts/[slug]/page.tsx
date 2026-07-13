@@ -71,5 +71,5 @@ export default async function ContractRoutePage({ params }: { params: Promise<{ 
     getUserContractPreferences(userId, slug),
   ]);
 
-  return <ContractPage data={page.data} slug={page.slug} yamlRaw={page.yamlRaw} historyEntries={historyEntries} userId={userId} canRead={canRead} canEdit={canEdit} canAdmin={canAdmin} initialCommentCount={discussion.commentCount} initialIssueCount={discussion.issueCount} initialSubscribed={subscription !== null} initialIsFavorite={prefs.isFavorite} />;
+  return <ContractPage data={page.data} slug={page.slug} yamlRaw={page.yamlRaw} historyEntries={historyEntries} userId={userId} canRead={canRead} canEdit={canEdit} canAdmin={canAdmin} initialCommentCount={discussion.commentCount} initialIssueCount={discussion.issueCount} initialSubscribed={subscription !== null} initialIsFavorite={prefs.isFavorite} incomingRelations={page.incomingRelations} />;
 }

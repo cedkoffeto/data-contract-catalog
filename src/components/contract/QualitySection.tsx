@@ -1,5 +1,13 @@
 import type { QualityCheck } from "@/src/lib/types";
 
+function CheckIcon() {
+  return (
+    <svg className="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
+    </svg>
+  );
+}
+
 export function QualitySection({
   checks,
   onFailure
@@ -11,6 +19,10 @@ export function QualitySection({
     return null;
   }
 
+  const total = checks.length;
+  const criticalCount = checks.filter((c) => c.critical).length;
+  const nonCriticalCount = total - criticalCount;
+
   return (
     <section id="quality" className="mt-6">
       <div className="px-4 sm:px-0">
@@ -18,90 +30,110 @@ export function QualitySection({
         <p className="text-sm text-gray-500">Contrôles de qualité et règles de validation</p>
       </div>
 
-      {checks.length > 0 ? (
-        <div className="mt-3 flow-root">
-          <div className="-mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
-            <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-              <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-                <table className="min-w-full divide-y divide-gray-300">
-                  <thead className="bg-gray-50">
+      <div className="mt-2 overflow-hidden rounded-lg bg-white shadow sm:rounded-lg">
+        <div className="px-4 py-5 sm:px-6">
+
+          {total > 0 && (
+            <div className="mb-4 flex items-center gap-4 text-sm">
+              <span className="flex items-center gap-1.5 font-medium text-gray-700">
+                <CheckIcon />
+                {total} contrôle{total !== 1 ? "s" : ""}
+              </span>
+              {criticalCount > 0 && (
+                <span className="flex items-center gap-1.5 text-red-600">
+                  <span className="h-2 w-2 rounded-full bg-red-500" />
+                  {criticalCount} critique{criticalCount !== 1 ? "s" : ""}
+                </span>
+              )}
+              {nonCriticalCount > 0 && (
+                <span className="flex items-center gap-1.5 text-amber-600">
+                  <span className="h-2 w-2 rounded-full bg-amber-400" />
+                  {nonCriticalCount} non critique{nonCriticalCount !== 1 ? "s" : ""}
+                </span>
+              )}
+            </div>
+          )}
+
+          {checks.length > 0 && (
+            <div className="-mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
+              <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead>
                     <tr>
-                      <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
-                        Nom
+                      <th scope="col" className="py-3 pl-4 pr-2 text-left text-sm font-semibold text-gray-900 sm:pl-0">
+                        <span className="sr-only">Criticité</span>
                       </th>
-                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                        Type
-                      </th>
-                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                        Champ
-                      </th>
-                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                        Seuil
-                      </th>
-                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                        Expression
-                      </th>
-                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                        Critique
-                      </th>
+                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900">Nom</th>
+                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900">Type</th>
+                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900">Champ</th>
+                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900">Seuil</th>
+                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900">Expression</th>
                     </tr>
                   </thead>
-
-                  <tbody className="divide-y divide-gray-200 bg-white">
-                    {checks.map((check, index) => (
-                      <tr key={`${check.name ?? "check"}-${index}`}>
-                        <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">{check.name}</td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{check.type}</td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{check.field || "-"}</td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{check.threshold ?? "-"}</td>
-                        <td className="px-3 py-4 text-sm text-gray-500">{check.expression || "-"}</td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          {check.critical ? (
-                            <span className="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">
-                              Critique
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
-                              Non critique
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                  <tbody className="divide-y divide-gray-100">
+                    {checks.map((check, index) => {
+                      const isCritical = check.critical;
+                      return (
+                        <tr
+                          key={`${check.name ?? "check"}-${index}`}
+                          className={`transition-colors hover:bg-gray-50 ${isCritical ? "border-l-4 border-l-red-500" : "border-l-4 border-l-amber-400"}`}
+                        >
+                          <td className="whitespace-nowrap py-3 pl-4 pr-2 sm:pl-0">
+                            {isCritical ? (
+                              <span className="inline-flex items-center gap-1 rounded-md bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20">
+                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
+                                </svg>
+                                Critique
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                                <CheckIcon />
+                                OK
+                              </span>
+                            )}
+                          </td>
+                          <td className="whitespace-nowrap px-2 py-3 text-sm font-medium text-gray-900">{check.name}</td>
+                          <td className="whitespace-nowrap px-2 py-3 text-sm text-gray-500">{check.type}</td>
+                          <td className="whitespace-nowrap px-2 py-3 text-sm text-gray-500">{check.field || "-"}</td>
+                          <td className="whitespace-nowrap px-2 py-3 text-sm text-gray-500">{check.threshold ?? "-"}</td>
+                          <td className="px-2 py-3 text-sm text-gray-500 max-w-[200px] truncate" title={check.expression}>{check.expression || "-"}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
             </div>
-          </div>
-        </div>
-      ) : null}
+          )}
 
-      {onFailure ? (
-        <div className="mt-4 overflow-hidden rounded-lg bg-white shadow sm:rounded-lg">
-          <div className="px-4 py-5 sm:px-6">
-            <h3 className="text-base font-semibold leading-6 text-gray-900">En cas d'échec</h3>
-            <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+          {onFailure ? (
+            <div className="mt-6 flex flex-wrap items-center gap-x-8 gap-y-3 rounded-lg border border-red-100 bg-red-50/50 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <svg className="h-4 w-4 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
+                </svg>
+                <span className="text-xs font-semibold text-red-700">En cas d&apos;échec</span>
+              </div>
               {onFailure.action ? (
-                <div className="sm:col-span-1">
-                  <dt className="text-sm font-medium text-gray-500">Action</dt>
-                  <dd className="mt-1 text-sm text-gray-900">
-                    <span className="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-700/10">
-                      {onFailure.action}
-                    </span>
-                  </dd>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">Action</span>
+                  <span className="rounded bg-white px-2 py-0.5 text-xs font-medium text-gray-900 ring-1 ring-inset ring-gray-200">
+                    {onFailure.action}
+                  </span>
                 </div>
               ) : null}
-
               {onFailure.notify && onFailure.notify.length > 0 ? (
-                <div className="sm:col-span-1">
-                  <dt className="text-sm font-medium text-gray-500">Notifier</dt>
-                  <dd className="mt-1 text-sm text-gray-900">{onFailure.notify.join(", ")}</dd>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">Notifier</span>
+                  <span className="text-xs text-gray-700">{onFailure.notify.join(", ")}</span>
                 </div>
               ) : null}
-            </dl>
-          </div>
+            </div>
+          ) : null}
+
         </div>
-      ) : null}
+      </div>
     </section>
   );
 }

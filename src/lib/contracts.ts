@@ -28,7 +28,7 @@ import type { CatalogCard, ContractFile, DataContract, EditorRepositoryFile } fr
 const contractsRoot = process.env.CONTRACTS_PATH ?? path.join(process.cwd(), "contracts");
 const contractsCache: { expiresAt: number; value: ContractFile[]; commitSha: string } = { expiresAt: 0, value: [], commitSha: "" };
 let pendingContractsPromise: Promise<ContractFile[]> | null = null;
-const cardsCache: { expiresAt: number; value: CatalogCard[] } = { expiresAt: 0, value: [] };
+const cardsCache: { expiresAt: number; value: CatalogCard[]; commitSha: string } = { expiresAt: 0, value: [], commitSha: "" };
 const slugToPathCache: { expiresAt: number; map: Map<string, string> } = { expiresAt: 0, map: new Map() };
 const CONTRACTS_CACHE_TTL_MS = 3_600_000;
 const CARDS_CACHE_TTL_MS = 3_600_000;
@@ -703,7 +703,7 @@ function getOwnerName(data: DataContract): string {
 
 export async function getCatalogCards(): Promise<CatalogCard[]> {
   const now = Date.now();
-  if (cardsCache.value.length > 0 && cardsCache.expiresAt > now) {
+  if (cardsCache.value.length > 0 && cardsCache.expiresAt > now && cardsCache.commitSha === contractsCache.commitSha) {
     return cardsCache.value;
   }
 
@@ -735,6 +735,7 @@ export async function getCatalogCards(): Promise<CatalogCard[]> {
     .sort((a, b) => a.title.localeCompare(b.title));
 
   cardsCache.value = cards;
+  cardsCache.commitSha = contractsCache.commitSha;
   cardsCache.expiresAt = now + CARDS_CACHE_TTL_MS;
   return cards;
 }
@@ -785,10 +786,28 @@ export async function getContractPageData(slug: string): Promise<{
   yamlRaw: string;
   data: DataContract;
   fullPath: string;
+  incomingRelations: Array<{ ref_name: string; ref: string; declared_by_slug: string }>;
 } | null> {
   const contract = await getContractBySlug(slug);
   if (!contract) {
     return null;
+  }
+
+  // Scan all other contracts for relations referencing this slug
+  const allContracts = await getContracts();
+  const incomingRelations: Array<{ ref_name: string; ref: string; declared_by_slug: string }> = [];
+  for (const other of allContracts) {
+    if (other.slug === slug) continue;
+    const rels = other.data.contract?.schema?.relations ?? [];
+    for (const rel of rels) {
+      if (rel.ref.includes(`@${slug}.`)) {
+        incomingRelations.push({
+          ref_name: rel.ref_name,
+          ref: rel.ref,
+          declared_by_slug: other.slug,
+        });
+      }
+    }
   }
 
   return {
@@ -796,6 +815,7 @@ export async function getContractPageData(slug: string): Promise<{
     yamlRaw: contract.yamlRaw,
     data: contract.data,
     fullPath: contract.fullPath,
+    incomingRelations,
   };
 }
 

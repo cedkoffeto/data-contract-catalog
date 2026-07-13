@@ -138,6 +138,7 @@ export function ContractPageClient({
   initialIssueCount = 0,
   initialSubscribed,
   initialIsFavorite,
+  incomingRelations,
 }: {
   data: DataContract;
   slug: string;
@@ -151,6 +152,7 @@ export function ContractPageClient({
   initialIssueCount?: number;
   initialSubscribed?: boolean;
   initialIsFavorite?: boolean;
+  incomingRelations?: Array<{ ref_name: string; ref: string; declared_by_slug: string }>;
 }) {
   const { t, tWith } = useT();
   const { showToast } = useToast();
@@ -409,7 +411,7 @@ export function ContractPageClient({
                   </div>
                 </div>
                 <div className={activeTab === "details" ? "" : "hidden"}>
-                  <ContractBody data={displayedData} slug={slug} userId={userId} fieldAnnotations={fieldAnnotations} onFieldClick={handleFieldClick} onAnnotationPosted={loadFieldAnnotations} />
+                  <ContractBody data={displayedData} slug={slug} userId={userId} fieldAnnotations={fieldAnnotations} onFieldClick={handleFieldClick} onAnnotationPosted={loadFieldAnnotations} incomingRelations={incomingRelations} />
                 </div>
                 <div className={activeTab === "discussion" ? "" : "hidden"}>
                   <DiscussionThread slug={slug} userId={userId} canAdmin={canAdmin} onCommentCountChange={setCommentCount} onIssueCountChange={setIssueCount} fields={displayedData.contract?.schema?.fields} />

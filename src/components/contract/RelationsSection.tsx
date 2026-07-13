@@ -25,12 +25,15 @@ function relationTooltip(left: string, sign: string, right: string): string {
   }
 }
 
-function TableCard({ refStr, side }: { refStr: string; side: "left" | "right" }) {
+function TableCard({ refStr, side, incoming }: { refStr: string; side: "left" | "right"; incoming?: boolean }) {
   const parts = splitRef(refStr);
   if (!parts) return <div className="text-sm text-gray-700">{refStr}</div>;
 
-  const accent = side === "left" ? "#f97316" : "#3b82f6";
-  const bgTint = side === "left" ? "rgba(249,115,22,0.06)" : "rgba(59,130,246,0.06)";
+  const baseAccent = incoming ? "#8b5cf6" : undefined;
+  const leftAccent = "#f97316";
+  const rightAccent = "#3b82f6";
+  const accent = incoming ? baseAccent! : (side === "left" ? leftAccent : rightAccent);
+  const bgTint = incoming ? "rgba(139,92,246,0.06)" : (side === "left" ? "rgba(249,115,22,0.06)" : "rgba(59,130,246,0.06)");
 
   return (
     <Link
@@ -45,7 +48,7 @@ function TableCard({ refStr, side }: { refStr: string; side: "left" | "right" })
   );
 }
 
-function Connector({ sign, label }: { sign: string; label: string }) {
+function Connector({ sign, label, incoming }: { sign: string; label: string; incoming?: boolean }) {
   const isManyLeft = sign === ">";
   const isManyRight = sign === "<";
 
@@ -54,7 +57,7 @@ function Connector({ sign, label }: { sign: string; label: string }) {
   const leftColor = isManyLeft ? "text-orange-600 bg-orange-50" : "text-blue-600 bg-blue-50";
   const rightColor = isManyRight ? "text-orange-600 bg-orange-50" : "text-blue-600 bg-blue-50";
   const lineColor = "#94a3b8";
-  const arrowColor = isManyLeft ? "#f97316" : "#3b82f6";
+  const arrowColor = incoming ? "#8b5cf6" : (isManyLeft ? "#f97316" : "#3b82f6");
 
   return (
     <div className="flex flex-col items-center shrink-0 mx-3" style={{ minWidth: 220 }}>
@@ -99,8 +102,37 @@ function Connector({ sign, label }: { sign: string; label: string }) {
   );
 }
 
-export function RelationsSection({ relations }: { relations?: Array<{ ref_name: string; ref: string }> }) {
-  if (!relations || relations.length === 0) return null;
+function RelationRow({ rel, incoming }: { rel: { ref_name: string; ref: string }; incoming?: boolean }) {
+  const parsed = parseCardinality(rel.ref);
+  if (!parsed) {
+    return <div className="text-sm text-gray-700">{rel.ref}</div>;
+  }
+  return (
+    <div title={relationTooltip(parsed.left, parsed.sign, parsed.right)}>
+      <div className="flex items-start justify-center gap-0">
+        <div className="flex-1 min-w-0">
+          <TableCard refStr={parsed.left} side="left" incoming={incoming} />
+        </div>
+        <Connector sign={parsed.sign} label={rel.ref_name} incoming={incoming} />
+        <div className="flex-1 min-w-0">
+          <TableCard refStr={parsed.right} side="right" incoming={incoming} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function RelationsSection({
+  relations,
+  incomingRelations,
+}: {
+  relations?: Array<{ ref_name: string; ref: string }>;
+  incomingRelations?: Array<{ ref_name: string; ref: string; declared_by_slug: string }>;
+}) {
+  const hasDeclared = relations && relations.length > 0;
+  const hasIncoming = incomingRelations && incomingRelations.length > 0;
+
+  if (!hasDeclared && !hasIncoming) return null;
 
   return (
     <section id="relations" className="mt-6">
@@ -110,27 +142,28 @@ export function RelationsSection({ relations }: { relations?: Array<{ ref_name: 
       </div>
       <div className="mt-2 overflow-hidden rounded-lg bg-white shadow sm:rounded-lg">
         <div className="px-4 py-5 sm:px-6">
-          <div className="space-y-6">
-            {relations.map((rel, i) => {
-              const parsed = parseCardinality(rel.ref);
-              if (!parsed) {
-                return <div key={i} className="text-sm text-gray-700">{rel.ref}</div>;
-              }
-              return (
-                <div key={i} title={relationTooltip(parsed.left, parsed.sign, parsed.right)}>
-                  <div className="flex items-start justify-center gap-0">
-                    <div className="flex-1 max-w-[200px]">
-                      <TableCard refStr={parsed.left} side="left" />
-                    </div>
-                    <Connector sign={parsed.sign} label={rel.ref_name} />
-                    <div className="flex-1 max-w-[200px]">
-                      <TableCard refStr={parsed.right} side="right" />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          {hasDeclared && (
+            <div className="space-y-6">
+              {hasIncoming && (
+                <h2 className="text-sm font-semibold text-gray-700">Déclarées</h2>
+              )}
+              {relations!.map((rel, i) => (
+                <RelationRow key={`decl-${i}`} rel={rel} />
+              ))}
+            </div>
+          )}
+
+          {hasIncoming && (
+            <div className={hasDeclared ? "mt-8 space-y-6" : "space-y-6"}>
+              <h2 className="text-sm font-semibold text-gray-700">
+                Références reçues
+                <span className="ml-2 text-xs font-normal text-gray-400">(déclarées par d&apos;autres contrats)</span>
+              </h2>
+              {incomingRelations!.map((rel, i) => (
+                <RelationRow key={`inc-${i}`} rel={rel} incoming />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </section>

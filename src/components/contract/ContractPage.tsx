@@ -15,6 +15,7 @@ export async function ContractPage({
   initialIssueCount,
   initialSubscribed,
   initialIsFavorite,
+  incomingRelations,
 }: {
   data: DataContract;
   slug: string;
@@ -28,10 +29,11 @@ export async function ContractPage({
   initialIssueCount: number;
   initialSubscribed?: boolean;
   initialIsFavorite?: boolean;
+  incomingRelations: Array<{ ref_name: string; ref: string; declared_by_slug: string }>;
 }) {
   return (
     <PageShell footerVersion="">
-      <ContractPageClient data={data} historyEntries={historyEntries} slug={slug} yamlRaw={yamlRaw} userId={userId} canRead={canRead} canEdit={canEdit} canAdmin={canAdmin} initialCommentCount={initialCommentCount} initialIssueCount={initialIssueCount} initialSubscribed={initialSubscribed} initialIsFavorite={initialIsFavorite} />
+      <ContractPageClient data={data} historyEntries={historyEntries} slug={slug} yamlRaw={yamlRaw} userId={userId} canRead={canRead} canEdit={canEdit} canAdmin={canAdmin} initialCommentCount={initialCommentCount} initialIssueCount={initialIssueCount} initialSubscribed={initialSubscribed} initialIsFavorite={initialIsFavorite} incomingRelations={incomingRelations} />
     </PageShell>
   );
 }
