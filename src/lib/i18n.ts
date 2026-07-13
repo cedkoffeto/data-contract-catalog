@@ -118,6 +118,7 @@ export const dictionaries = {
     contractActivity: "Contract activity",
     historyTitle: "History",
     version: "Version",
+    tags: "Tags",
 
     // YAML Dialog
     viewYaml: "View YAML",
@@ -524,7 +525,7 @@ export const dictionaries = {
     contractActivity: "Activité du contrat",
     historyTitle: "Historique",
     version: "Version",
-
+    tags: "Tags",
     viewYaml: "Voir le YAML",
     contractSource: "Source du contrat",
     yamlPreview: "Aperçu YAML",

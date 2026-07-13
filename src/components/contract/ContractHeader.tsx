@@ -49,12 +49,17 @@ export function ContractHeader({
         </dl>
 
         {tags.length > 0 ? (
-          <div className="contract-hero__tags">
-            {tags.map((tag) => (
-              <span key={tag} className="contract-hero__tag">
-                {tag}
-              </span>
-            ))}
+          <div className="contract-hero__facts">
+            <dt>{t("tags")}</dt>
+            <dd>
+              <div className="contract-hero__tags" style={{ marginTop: 0 }}>
+                {tags.map((tag) => (
+                  <span key={tag} className="contract-hero__tag">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </dd>
           </div>
         ) : null}
       </div>
