@@ -86,8 +86,8 @@ export function ContractHeader({
 
   return (
     <section className="contract-hero" style={{ paddingLeft: 0, paddingRight: 0 }}>
-      <div className="w-full overflow-hidden rounded-lg border border-gray-200 bg-white sm:rounded-lg">
-        <div className="px-4 py-4 sm:px-6">
+      <div className="w-full">
+        <div className="px-4 sm:px-0">
           <h1 className="text-lg font-semibold text-gray-900">{asset.name ?? "Unknown contract"}</h1>
 
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5">
@@ -105,6 +105,7 @@ export function ContractHeader({
 
           {tags.length > 0 ? (
             <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              <span className="text-xs font-medium text-gray-500">Tags :</span>
               {tags.map((tag) => (
                 <span
                   key={tag}
