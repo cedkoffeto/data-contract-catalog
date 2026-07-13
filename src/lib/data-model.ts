@@ -1,4 +1,6 @@
-import { type Node, type Edge } from "@xyflow/react";
+import { Position, type Node, type Edge } from "@xyflow/react";
+
+export type EdgeWithPorts = Edge & { sourcePosition?: Position; targetPosition?: Position };
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -272,6 +274,84 @@ export function parseContractsToGraph(
 
 import dagre from "dagre";
 
+function layoutOrphanGrid(
+  orphans: Node[],
+  heights: Map<string, number>,
+  gap: number,
+): { positions: Map<string, { x: number; y: number }>; gridWidth: number } {
+  if (orphans.length === 0) return { positions: new Map(), gridWidth: 0 };
+
+  const sorted = orphans.slice().sort((a, b) => {
+    const sa = (a.data as ContractTableNodeData).slug || "";
+    const sb = (b.data as ContractTableNodeData).slug || "";
+    return sa.localeCompare(sb);
+  });
+
+  const cols = Math.ceil(Math.sqrt(sorted.length));
+  const rows = cols;
+
+  const widths = sorted.map((n) => nodeWidth(n));
+
+  const colWidths: number[] = [];
+  for (let c = 0; c < cols; c++) {
+    let maxW = 0;
+    for (let r = 0; r < rows; r++) {
+      const idx = r * cols + c;
+      if (idx < sorted.length) maxW = Math.max(maxW, widths[idx]);
+    }
+    colWidths.push(maxW);
+  }
+
+  const rowHeights: number[] = [];
+  for (let r = 0; r < rows; r++) {
+    let maxH = 0;
+    for (let c = 0; c < cols; c++) {
+      const idx = r * cols + c;
+      if (idx < sorted.length) maxH = Math.max(maxH, heights.get(sorted[idx].id)!);
+    }
+    rowHeights.push(maxH);
+  }
+
+  const totalGridW = colWidths.reduce((s, w) => s + w, 0) + (cols - 1) * gap;
+  const totalGridH = rowHeights.reduce((s, h) => s + h, 0) + (rows - 1) * gap;
+
+  const colOffsets: number[] = [];
+  let xA = 0;
+  for (let c = 0; c < cols; c++) {
+    colOffsets.push(xA);
+    xA += colWidths[c] + gap;
+  }
+
+  const rowOffsets: number[] = [];
+  let yA = -totalGridH / 2;
+  for (let r = 0; r < rows; r++) {
+    rowOffsets.push(yA);
+    yA += rowHeights[r] + gap;
+  }
+
+  const positions = new Map<string, { x: number; y: number }>();
+  for (let i = 0; i < sorted.length; i++) {
+    const r = Math.floor(i / cols);
+    const c = i % cols;
+    const h = heights.get(sorted[i].id)!;
+    positions.set(sorted[i].id, {
+      x: colOffsets[c],
+      y: rowOffsets[r] + (rowHeights[r] - h) / 2,
+    });
+  }
+
+  return { positions, gridWidth: totalGridW };
+}
+
+function computeEdgePorts(dx: number, dy: number, threshold = 0.8): { sourcePosition: Position; targetPosition: Position } {
+  if (Math.abs(dx) > Math.abs(dy) * threshold) {
+    if (dx > 0) return { sourcePosition: Position.Right, targetPosition: Position.Left };
+    return { sourcePosition: Position.Left, targetPosition: Position.Right };
+  }
+  if (dy > 0) return { sourcePosition: Position.Bottom, targetPosition: Position.Top };
+  return { sourcePosition: Position.Top, targetPosition: Position.Bottom };
+}
+
 export type LayoutMode = "LR" | "TB" | "layer" | "domain";
 
 function nodeFieldCount(node: Node): number {
@@ -317,7 +397,7 @@ export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB"
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
   const isCompact = viewMode === "compact";
-  g.setGraph({ rankdir: direction, nodesep: isCompact ? 50 : 80, ranksep: isCompact ? 100 : 150, marginx: 80, marginy: 80 });
+  g.setGraph({ rankdir: direction, nodesep: isCompact ? 60 : 100, ranksep: isCompact ? 120 : 180, marginx: 80, marginy: 80 });
 
   for (const node of connected) {
     g.setNode(node.id, { width: nodeWidth(node), height: nodeHeight(node, connectedFields, viewMode) });
@@ -339,167 +419,67 @@ export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB"
     }
   }
 
-  // Position isolated nodes in a grid left of the connected graph
+  // Position isolated nodes in a square grid left of the connected graph
   if (isolated.length > 0) {
     const gap = 30;
-    const sorted = isolated.slice().sort((a, b) => {
-      const sa = (a.data as ContractTableNodeData).slug || "";
-      const sb = (b.data as ContractTableNodeData).slug || "";
-      return sa.localeCompare(sb);
-    });
-
-    // Compute actual dimensions
-    const widths = new Map<string, number>();
     const heights = new Map<string, number>();
-    for (const n of sorted) {
-      widths.set(n.id, nodeWidth(n));
+    for (const n of isolated) {
       heights.set(n.id, nodeHeight(n, connectedFields, viewMode));
     }
 
-    if (direction === "LR") {
-      // Row-major: 4 per row, fill left to right
-      const cols = 4;
-      const totalRows = Math.ceil(sorted.length / cols);
+    const { positions, gridWidth } = layoutOrphanGrid(isolated, heights, gap);
+    const gridLeft = connected.length > 0
+      ? Math.min(...Array.from(laidOut.values()).map((n) => n.position.x)) - gridWidth - 80
+      : -gridWidth / 2;
 
-      // Column width = max width of all items in that column position
-      const colWidths: number[] = [];
-      for (let c = 0; c < cols; c++) {
-        let maxW = 0;
-        for (let r = 0; r < totalRows; r++) {
-          const idx = r * cols + c;
-          if (idx < sorted.length) maxW = Math.max(maxW, widths.get(sorted[idx].id)!);
-        }
-        colWidths.push(maxW);
-      }
+    for (const [id, pos] of positions) {
+      laidOut.set(id, { ...(nodes.find((n) => n.id === id)!), position: { x: pos.x + gridLeft, y: pos.y } });
+    }
+  }
 
-      // Row height = max height of all items in that row
-      const rowHeights: number[] = [];
-      for (let r = 0; r < totalRows; r++) {
-        let maxH = 0;
-        for (let c = 0; c < cols; c++) {
-          const idx = r * cols + c;
-          if (idx < sorted.length) maxH = Math.max(maxH, heights.get(sorted[idx].id)!);
-        }
-        rowHeights.push(maxH);
-      }
-
-      const totalGridWidth = colWidths.reduce((s, w) => s + w, 0) + (cols - 1) * gap;
-      const totalGridHeight = rowHeights.reduce((s, h) => s + h, 0) + (totalRows - 1) * gap;
-
-      const gridLeft = connected.length > 0
-        ? Math.min(...Array.from(laidOut.values()).map((n) => n.position.x)) - totalGridWidth - 80
-        : -totalGridWidth / 2;
-
-      // Column X offsets
-      const colXOffsets: number[] = [];
-      let xAcc = gridLeft;
-      for (let c = 0; c < cols; c++) {
-        colXOffsets.push(xAcc);
-        xAcc += colWidths[c] + gap;
-      }
-
-      // Row Y offsets
-      const rowYOffsets: number[] = [];
-      let yAcc = -totalGridHeight / 2;
-      for (let r = 0; r < totalRows; r++) {
-        rowYOffsets.push(yAcc);
-        yAcc += rowHeights[r] + gap;
-      }
-
-      for (let i = 0; i < sorted.length; i++) {
-        const row = Math.floor(i / cols);
-        const col = i % cols;
-        laidOut.set(sorted[i].id, {
-          ...sorted[i],
-          position: {
-            x: colXOffsets[col],
-            y: rowYOffsets[row],
-          },
-        });
-      }
-    } else {
-      // Column-major: fill downward first (up to maxRows per column), then rightward
-      const maxRows = containerWidth
-        ? Math.max(2, Math.min(8, Math.floor((containerWidth * 0.35) / 280)))
-        : 4;
-      const totalCols = Math.ceil(sorted.length / maxRows);
-
-      const colWidths: number[] = [];
-      for (let c = 0; c < totalCols; c++) {
-        let maxW = 0;
-        for (let r = 0; r < maxRows; r++) {
-          const idx = c * maxRows + r;
-          if (idx < sorted.length) maxW = Math.max(maxW, widths.get(sorted[idx].id)!);
-        }
-        colWidths.push(maxW);
-      }
-
-      const rowHeights: number[] = [];
-      for (let r = 0; r < maxRows; r++) {
-        let maxH = 0;
-        for (let c = 0; c < totalCols; c++) {
-          const idx = c * maxRows + r;
-          if (idx < sorted.length) maxH = Math.max(maxH, heights.get(sorted[idx].id)!);
-        }
-        rowHeights.push(maxH);
-      }
-
-      const totalGridWidth = colWidths.reduce((s, w) => s + w, 0) + (totalCols - 1) * gap;
-      const totalGridHeight = rowHeights.reduce((s, h) => s + h, 0) + (Math.min(sorted.length, maxRows) - 1) * gap;
-
-      const gridLeft = connected.length > 0
-        ? Math.min(...Array.from(laidOut.values()).map((n) => n.position.x)) - totalGridWidth - 80
-        : -totalGridWidth / 2;
-
-      const colXOffsets: number[] = [];
-      let xAcc = gridLeft;
-      for (let c = 0; c < totalCols; c++) {
-        colXOffsets.push(xAcc);
-        xAcc += colWidths[c] + gap;
-      }
-
-      const rowYOffsets: number[] = [];
-      let yAcc = -totalGridHeight / 2;
-      for (let r = 0; r < maxRows; r++) {
-        rowYOffsets.push(yAcc);
-        yAcc += rowHeights[r] + gap;
-      }
-
-      for (let i = 0; i < sorted.length; i++) {
-        const col = Math.floor(i / maxRows);
-        const row = i % maxRows;
-        const nodeH = heights.get(sorted[i].id)!;
-        laidOut.set(sorted[i].id, {
-          ...sorted[i],
-          position: {
-            x: colXOffsets[col],
-            y: rowYOffsets[row] + (rowHeights[row] - nodeH) / 2,
-          },
-        });
-      }
+  // Compute optimal edge port sides based on final node positions
+  const edgesWithPorts = edges as EdgeWithPorts[];
+  for (const edge of edgesWithPorts) {
+    const src = laidOut.get(edge.source) ?? nodes.find((n) => n.id === edge.source);
+    const tgt = laidOut.get(edge.target) ?? nodes.find((n) => n.id === edge.target);
+    if (src && tgt) {
+      const dx = tgt.position.x - src.position.x;
+      const dy = tgt.position.y - src.position.y;
+      Object.assign(edge, computeEdgePorts(dx, dy));
     }
   }
 
   return { nodes: nodes.map((n) => laidOut.get(n.id) || n), edges };
 }
 
-export function layoutLayerGraph(nodes: Node[], _edges: Edge[], connectedFields?: Map<string, Set<string>>, viewMode?: "detailed" | "compact"): { nodes: Node[]; edges: Edge[] } {
-   const LAYER_ORDER = ["bronze", "silver", "gold"];
+export function layoutLayerGraph(nodes: Node[], edges: Edge[], connectedFields?: Map<string, Set<string>>, viewMode?: "detailed" | "compact"): { nodes: Node[]; edges: Edge[] } {
+  const LAYER_ORDER = ["bronze", "silver", "gold"];
   const COLUMN_WIDTH = 480;
   const VERTICAL_GAP = 60;
 
-  // Single pass: group + cache heights
+  // Separate connected from orphan (isolated) nodes
+  const connectedIds = new Set<string>();
+  for (const e of edges) {
+    connectedIds.add(e.source);
+    connectedIds.add(e.target);
+  }
+  const connected = nodes.filter((n) => connectedIds.has(n.id));
+  const orphans = nodes.filter((n) => !connectedIds.has(n.id));
+
+  // Heights cache for all nodes
   const heights = new Map<string, number>();
-  const byLayer = new Map<string, Node[]>();
   for (const n of nodes) {
-    const h = nodeHeight(n, connectedFields, viewMode);
-    heights.set(n.id, h);
+    heights.set(n.id, nodeHeight(n, connectedFields, viewMode));
+  }
+
+  // --- Layout connected nodes by layer ---
+  const byLayer = new Map<string, Node[]>();
+  for (const n of connected) {
     const maturity = (n.data as ContractTableNodeData).maturity || "bronze";
     if (!byLayer.has(maturity)) byLayer.set(maturity, []);
     byLayer.get(maturity)!.push(n);
   }
 
-  // Compute positions
   const positions = new Map<string, { x: number; y: number }>();
 
   for (let colIdx = 0; colIdx < LAYER_ORDER.length; colIdx++) {
@@ -520,33 +500,99 @@ export function layoutLayerGraph(nodes: Node[], _edges: Edge[], connectedFields?
     }
   }
 
-  // Single output pass
+  // --- Layout orphan tables in a grid to the right ---
+  if (orphans.length > 0) {
+    const orphanGap = 30;
+    const { positions: orphanPositions } = layoutOrphanGrid(orphans, heights, orphanGap);
+    const gridLeft = (connected.length > 0 ? LAYER_ORDER.length * COLUMN_WIDTH : 0) + orphanGap * 2;
+    for (const [id, pos] of orphanPositions) {
+      positions.set(id, { x: pos.x + gridLeft, y: pos.y });
+    }
+  }
+
+  // --- Layer background boxes ---
+  const bgNodes: Node[] = [];
+  for (const layer of LAYER_ORDER) {
+    const ns = byLayer.get(layer);
+    if (!ns || ns.length === 0) continue;
+
+    let minY = Infinity, maxY = -Infinity;
+    let maxW = 0;
+    for (const n of ns) {
+      const pos = positions.get(n.id);
+      if (!pos) continue;
+      const h = heights.get(n.id)!;
+      const w = nodeWidth(n);
+      minY = Math.min(minY, pos.y - h / 2);
+      maxY = Math.max(maxY, pos.y + h / 2);
+      maxW = Math.max(maxW, w);
+    }
+
+    const pad = 20;
+    const cx = LAYER_ORDER.indexOf(layer) * COLUMN_WIDTH;
+    const bw = maxW + pad * 2;
+    const bh = maxY - minY + pad * 2;
+
+    bgNodes.push({
+      id: `__bg_${layer}`,
+      type: "layerBackground" as any,
+      position: { x: cx, y: (minY + maxY) / 2 },
+      data: { label: layer, width: bw, height: bh },
+      draggable: false,
+      selectable: false,
+      style: { width: bw, height: bh, zIndex: -1 },
+    });
+  }
+
   const laidOut = nodes.map((n) => {
     const pos = positions.get(n.id);
     return pos ? { ...n, position: pos } : n;
   });
 
-  return { nodes: laidOut, edges: _edges };
+  // Compute optimal edge ports
+  const layerEdges = edges as EdgeWithPorts[];
+  for (const edge of layerEdges) {
+    const src = positions.get(edge.source) ?? nodes.find((n) => n.id === edge.source)?.position;
+    const tgt = positions.get(edge.target) ?? nodes.find((n) => n.id === edge.target)?.position;
+    if (src && tgt) {
+      Object.assign(edge, computeEdgePorts(tgt.x - src.x, tgt.y - src.y));
+    }
+  }
+
+  return { nodes: [...bgNodes, ...laidOut], edges };
 }
 
-export function layoutDomainGraph(nodes: Node[], _edges: Edge[], connectedFields?: Map<string, Set<string>>, viewMode?: "detailed" | "compact"): { nodes: Node[]; edges: Edge[] } {
+export function layoutDomainGraph(nodes: Node[], edges: Edge[], connectedFields?: Map<string, Set<string>>, viewMode?: "detailed" | "compact"): { nodes: Node[]; edges: Edge[] } {
   const COLUMN_WIDTH = 320;
   const DOMAIN_GAP_X = 160;
   const VERTICAL_GAP = 50;
 
-  // Single pass: group + cache heights
+  // Separate connected from orphan (isolated) nodes
+  const connectedIds = new Set<string>();
+  for (const e of edges) {
+    connectedIds.add(e.source);
+    connectedIds.add(e.target);
+  }
+  const connected = nodes.filter((n) => connectedIds.has(n.id));
+  const orphans = nodes.filter((n) => !connectedIds.has(n.id));
+
+  // Heights cache for all nodes
   const heights = new Map<string, number>();
-  const byDomain = new Map<string, Node[]>();
   for (const n of nodes) {
     heights.set(n.id, nodeHeight(n, connectedFields, viewMode));
+  }
+
+  // --- Layout connected nodes by domain ---
+  const byDomain = new Map<string, Node[]>();
+  for (const n of connected) {
     const domain = (n.data as ContractTableNodeData).domain || "Unknown";
     if (!byDomain.has(domain)) byDomain.set(domain, []);
     byDomain.get(domain)!.push(n);
   }
 
-  const sortedEntries = Array.from(byDomain.entries()).sort(([a], [b]) => a.localeCompare(b));
   const positions = new Map<string, { x: number; y: number }>();
 
+  const sortedEntries = Array.from(byDomain.entries()).sort(([a], [b]) => a.localeCompare(b));
   let xOffset = -(sortedEntries.length * (COLUMN_WIDTH + DOMAIN_GAP_X) - DOMAIN_GAP_X) / 2;
 
   for (const [, ns] of sortedEntries) {
@@ -565,13 +611,33 @@ export function layoutDomainGraph(nodes: Node[], _edges: Edge[], connectedFields
     xOffset += COLUMN_WIDTH + DOMAIN_GAP_X;
   }
 
+  // --- Layout orphan tables in a square grid to the right ---
+  if (orphans.length > 0) {
+    const orphanGap = 30;
+    const { positions: orphanPositions } = layoutOrphanGrid(orphans, heights, orphanGap);
+    const gridLeft = (connected.length > 0 ? xOffset : 0) + orphanGap * 2;
+    for (const [id, pos] of orphanPositions) {
+      positions.set(id, { x: pos.x + gridLeft, y: pos.y });
+    }
+  }
+
+  // Compute optimal edge ports
+  const domainEdges = edges as EdgeWithPorts[];
+  for (const edge of domainEdges) {
+    const src = positions.get(edge.source) ?? nodes.find((n) => n.id === edge.source)?.position;
+    const tgt = positions.get(edge.target) ?? nodes.find((n) => n.id === edge.target)?.position;
+    if (src && tgt) {
+      Object.assign(edge, computeEdgePorts(tgt.x - src.x, tgt.y - src.y));
+    }
+  }
+
   // Single output pass
   const laidOut = nodes.map((n) => {
     const pos = positions.get(n.id);
     return pos ? { ...n, position: pos } : n;
   });
 
-  return { nodes: laidOut, edges: _edges };
+  return { nodes: laidOut, edges };
 }
 
 export function layoutByMode(nodes: Node[], edges: Edge[], mode: LayoutMode, connectedFields?: Map<string, Set<string>>, viewMode?: "detailed" | "compact", containerWidth?: number): { nodes: Node[]; edges: Edge[] } {

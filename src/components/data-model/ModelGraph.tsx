@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useMemo, useCallback, useState, useEffect, useLayoutEffect, useRef } from "react";
+import { createContext, useMemo, useCallback, useState, useEffect, useLayoutEffect, useRef, memo } from "react";
 import {
   ReactFlow,
   Background,
@@ -13,6 +13,7 @@ import {
   PanOnScrollMode,
   type Node,
   type Edge,
+  type NodeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { ContractTableNode } from "./ContractTableNode";
@@ -20,7 +21,28 @@ import { RelationEdge } from "./RelationEdge";
 import { GraphControls } from "./GraphControls";
 import type { LayoutMode, ContractTableNodeData } from "@/src/lib/data-model";
 
-const nodeTypes = { contractTable: ContractTableNode };
+const layerColors: Record<string, { bg: string; border: string; text: string }> = {
+  bronze: { bg: "rgba(245,158,11,0.06)", border: "rgba(245,158,11,0.25)", text: "rgba(180,110,0,0.5)" },
+  silver: { bg: "rgba(100,116,139,0.06)", border: "rgba(100,116,139,0.25)", text: "rgba(71,85,105,0.5)" },
+  gold:   { bg: "rgba(234,179,8,0.06)",  border: "rgba(234,179,8,0.25)",  text: "rgba(160,120,0,0.5)" },
+};
+
+const LayerBackgroundNode = memo(function LayerBackgroundNode({ data }: NodeProps) {
+  const d = data as { label: string; width: number; height: number };
+  const c = layerColors[d.label] ?? layerColors.bronze;
+  return (
+    <div
+      className="rounded-xl border-2 pointer-events-none select-none flex flex-col items-center"
+      style={{ width: d.width, height: d.height, backgroundColor: c.bg, borderColor: c.border }}
+    >
+      <span className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: c.text }}>
+        {d.label}
+      </span>
+    </div>
+  );
+});
+
+const nodeTypes = { contractTable: ContractTableNode, layerBackground: LayerBackgroundNode };
 const edgeTypes = { relationEdge: RelationEdge };
 
 type ViewModeValue = {
@@ -29,6 +51,8 @@ type ViewModeValue = {
   onHeaderClick: (slug: string) => void;
   onFieldClick: (slug: string) => void;
   searchMatchIds: Set<string> | null;
+  collapsedTables: Set<string>;
+  onToggleCollapse: (nodeId: string) => void;
 };
 
 export const ViewModeCtx = createContext<ViewModeValue>({
@@ -37,6 +61,8 @@ export const ViewModeCtx = createContext<ViewModeValue>({
   onHeaderClick: () => {},
   onFieldClick: () => {},
   searchMatchIds: null,
+  collapsedTables: new Set(),
+  onToggleCollapse: () => {},
 });
 
 type HighlightValue = {
@@ -68,6 +94,8 @@ export function ModelGraph({
   visibleCount,
   totalCount,
   orphanRefs,
+  collapsedTables,
+  onToggleCollapse,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
@@ -87,6 +115,8 @@ export function ModelGraph({
   visibleCount: number;
   totalCount: number;
   orphanRefs?: string[];
+  collapsedTables: Set<string>;
+  onToggleCollapse: (nodeId: string) => void;
 }) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -95,7 +125,6 @@ export function ModelGraph({
 
   const { setCenter, fitView } = useReactFlow();
   const fitKeyRef = useRef(0);
-  const centerKeyRef = useRef(0);
 
   useEffect(() => { setEdges(initialEdges); }, [initialEdges, setEdges]);
 
@@ -103,14 +132,23 @@ export function ModelGraph({
   useLayoutEffect(() => {
     setNodes(initialNodes.map((n) => ({
       ...n,
-      hidden: !visibleTables.has(n.id),
+      hidden: n.id.startsWith("__bg_") ? false : !visibleTables.has(n.id),
     })));
   }, [initialNodes, setNodes]);
 
   // Toggle visibility — preserves dragged positions (uses callback form)
   useEffect(() => {
-    setNodes((nds) => nds.map((n) => ({ ...n, hidden: !visibleTables.has(n.id) })));
+    setNodes((nds) => nds.map((n) => ({ ...n, hidden: n.id.startsWith("__bg_") ? false : !visibleTables.has(n.id) })));
   }, [initialNodes, visibleTables, setNodes]);
+
+  // Sync collapse state into node data so React Flow re-renders ContractTableNode
+  useEffect(() => {
+    setNodes((nds) => nds.map((n) => {
+      const collapsed = collapsedTables.has(n.id);
+      if ((n.data as Record<string, unknown>)?._collapsed === collapsed) return n;
+      return { ...n, data: { ...n.data, _collapsed: collapsed } };
+    }));
+  }, [collapsedTables, setNodes]);
 
   const handleMouseEnter = useCallback((_event: React.MouseEvent, node: Node) => {
     setHighlightedNode(node.id);
@@ -143,35 +181,35 @@ export function ModelGraph({
     [searchMatchIds],
   );
 
-  // Update opacity when highlight or search changes
+  // Update opacity when search changes
   useEffect(() => {
     if (searchMatchSet && searchMatchSet.size > 0) {
       setNodes((nds) => nds.map((n) => ({
         ...n,
-        style: { ...n.style, opacity: searchMatchSet.has(n.id) ? 1 : 0.3 },
+        style: n.id.startsWith("__bg_") ? n.style : { ...n.style, opacity: searchMatchSet.has(n.id) ? 1 : 0.3 },
         className: searchMatchSet.has(n.id) ? "search-match" : undefined,
       })));
-    } else if (!highlightedNeighbors) {
+    } else {
       setNodes((nds) => nds.map((n) => {
         if (!n.style?.opacity || n.style.opacity === 1) return n;
         const { opacity: _, ...rest } = n.style;
         return { ...n, style: Object.keys(rest).length ? rest : undefined, className: undefined };
       }));
-    } else {
-      setNodes((nds) => nds.map((n) => ({
-        ...n,
-        style: { ...n.style, opacity: highlightedNode === n.id || highlightedNeighbors.has(n.id) ? 1 : 0.25 },
-      })));
     }
-  }, [highlightedNeighbors, highlightedNode, searchMatchSet, setNodes]);
+  }, [searchMatchSet, setNodes]);
 
-  // Center on table from panel
+  // Center on table — guard-ref prevents re-centering on drag or relayout
+  const centerRef = useRef<{ key: number; slug: string | null } | null>(null);
   useEffect(() => {
-    if (!centerSlug || centerKey <= centerKeyRef.current) return;
-    centerKeyRef.current = centerKey;
+    if (!centerSlug) return;
+    const prev = centerRef.current;
+    if (prev && centerKey <= prev.key && centerSlug === prev.slug) return;
+    centerRef.current = { key: centerKey, slug: centerSlug };
     const node = nodes.find((n) => n.id === centerSlug);
     if (!node) return;
-    setCenter(node.position.x + (node.measured?.width ?? 220) / 2, node.position.y + 20, { zoom: 1 });
+    const x = node.position.x + (node.measured?.width ?? 220) / 2;
+    const y = node.position.y + 20;
+    requestAnimationFrame(() => setCenter(x, y, { zoom: 1 }));
   }, [centerSlug, centerKey, nodes, setCenter]);
 
   // Fit view after re-layout — ref-guarded so it only fires once per fitKey increment
@@ -191,7 +229,9 @@ export function ModelGraph({
     onHeaderClick,
     onFieldClick: onNodeClick,
     searchMatchIds: searchMatchSet,
-  }), [viewMode, connectedFields, onHeaderClick, onNodeClick, searchMatchSet]);
+    collapsedTables,
+    onToggleCollapse,
+  }), [viewMode, connectedFields, onHeaderClick, onNodeClick, searchMatchSet, collapsedTables, onToggleCollapse]);
 
   const filteredEdges = useMemo(
     () => edges.filter((e) => visibleTables.has(e.source) && visibleTables.has(e.target)),

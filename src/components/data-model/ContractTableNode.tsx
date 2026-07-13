@@ -3,7 +3,7 @@
 import { memo, useContext, useEffect, useMemo } from "react";
 import type { NodeProps } from "@xyflow/react";
 import { Handle, Position } from "@xyflow/react";
-import { Table, Key } from "lucide-react";
+import { Table, Key, ChevronUp, ChevronDown } from "lucide-react";
 import { ViewModeCtx } from "./ModelGraph";
 import type { ContractTableNodeData } from "@/src/lib/data-model";
 
@@ -17,16 +17,19 @@ const maturityBadge: Record<string, string> = {
 
 export const ContractTableNode = memo(function ContractTableNode({ selected, id, data }: NodeProps) {
   const d = data as ContractTableNodeData;
-  const { viewMode, connectedFields, onHeaderClick, onFieldClick, searchMatchIds } = useContext(ViewModeCtx);
+  const { viewMode, connectedFields, onHeaderClick, onFieldClick, searchMatchIds, collapsedTables, onToggleCollapse } = useContext(ViewModeCtx);
   const isSearchMatch = searchMatchIds?.has(id) ?? false;
   const allFields = d.fields;
   const nodeConnected = connectedFields.get(id);
   const connectedSet = nodeConnected ?? new Set<string>();
 
+  const collapsed = collapsedTables.has(id);
+  const showingDetailed = viewMode === "detailed" ? !collapsed : collapsed;
+
   const fields = useMemo(() => {
-    if (viewMode === "detailed") return allFields;
+    if (showingDetailed) return allFields;
     return allFields.filter((f) => connectedSet.has(f.name));
-  }, [allFields, viewMode, connectedSet]);
+  }, [allFields, showingDetailed, connectedSet]);
 
   // Inject spinner keyframes once
   useEffect(() => {
@@ -49,7 +52,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
       }`}
       style={{
         minWidth: 220,
-        maxWidth: 320,
+        maxWidth: 480,
         padding: 2,
         position: "relative",
       }}
@@ -75,7 +78,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
         <div style={{ height: 4, backgroundColor: d.color }} />
 
         {/* Header */}
-        <div className="flex min-w-0 cursor-grab active:cursor-grabbing items-center gap-2 px-3 py-2">
+        <div className="flex min-w-0 cursor-grab active:cursor-grabbing items-center gap-2 px-3 py-2" style={{ background: d.color.replace("hsl(", "hsla(").replace(")", ", 0.1)") }}>
           <span className="flex h-5 cursor-pointer items-center" onClick={(e) => { e.stopPropagation(); window.open(`/${d.slug}`, "_blank", "noopener,noreferrer"); }} title="Open contract detail"><Table size={14} style={{ color: d.color }} /></span>
           <span className="flex h-5 min-w-0 items-center text-sm font-semibold tracking-tight text-gray-900" title={`${d.label}\ndomain: ${d.domain}\ncontext: ${d.context ?? ""}\nslug: ${d.slug}`}
             onClick={(e) => {
@@ -96,7 +99,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
           {fields.length === 0 && (
             <div className="px-3 py-2 text-xs italic text-gray-400">No fields</div>
           )}
-          {viewMode === "compact" && allFields.length > fields.length && (
+          {!showingDetailed && allFields.length > fields.length && (
             <div className="px-3 py-1.5 text-[10px] text-gray-400 border-t border-gray-50">
               {fields.length} connected · {allFields.length - fields.length} hidden
             </div>
@@ -114,12 +117,24 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
                 ) : (
                   <span className="w-[10px] shrink-0" />
                 )}
-                <span className={`min-w-0 font-mono text-[11px] leading-none ${isConnected ? "font-bold text-gray-900" : "text-gray-600"}`}><span className="truncate">{f.name}</span></span>
-                <span className="ml-auto min-w-0 text-[10px] leading-none text-gray-400"><span className="truncate">{f.type}</span></span>
+                <span className={`min-w-0 font-mono text-[11px] leading-none ${isConnected ? "font-bold text-gray-900" : "text-gray-600"}`}>{f.name}</span>
+                <span className="ml-auto whitespace-nowrap text-[10px] leading-none text-gray-400">{f.type}</span>
                 {isConnected && <Handle type="source" position={Position.Right} id={f.name} className="!opacity-0 !pointer-events-none" />}
               </div>
             );
           })}
+        </div>
+
+        {/* Collapse toggle footer */}
+        <div
+          className="flex cursor-pointer items-center justify-center border-t border-gray-100 py-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleCollapse(id);
+          }}
+          title={showingDetailed ? "Collapse table" : "Expand table"}
+        >
+          {showingDetailed ? <ChevronUp size={14} strokeWidth={1.5} /> : <ChevronDown size={14} strokeWidth={1.5} />}
         </div>
       </div>
     </div>

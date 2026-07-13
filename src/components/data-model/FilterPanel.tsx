@@ -120,7 +120,7 @@ export function FilterPanel({
       if (layerFilter && layer !== layerFilter) return false;
       if (query) {
         const q = query.toLowerCase();
-        if (!d.label?.toLowerCase().includes(q) && !domain.toLowerCase().includes(q))
+        if (!d.label?.toLowerCase().includes(q) && !d.slug?.toLowerCase().includes(q) && !domain.toLowerCase().includes(q))
           return false;
       }
       return true;

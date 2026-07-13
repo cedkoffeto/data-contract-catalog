@@ -90,8 +90,8 @@ export function SidePanel({
       onClick={onClose}
     >
       <div
-        className="flex h-[65vh] flex-col rounded-lg bg-white shadow-xl"
-        style={{ width: "min(65vw, 800px)" }}
+        className="flex h-[80vh] flex-col rounded-lg bg-white shadow-xl overflow-hidden resize"
+        style={{ width: "min(80vw, 1100px)" }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -146,19 +146,22 @@ export function SidePanel({
                   {query ? "No fields match your search" : "No fields"}
                 </div>
               ) : (
-                <div className="divide-y divide-gray-50">
-                  {filteredFields.map((f) => (
-                    <div key={f.name} className="flex items-center gap-2 px-4 py-2 text-xs hover:bg-gray-50">
-                      <span className="font-mono font-medium text-gray-900">{f.name}</span>
-                      <span className="ml-auto text-[11px] text-gray-400">{f.type}</span>
-                      {f.description && (
-                        <span className="text-[10px] text-gray-400 truncate max-w-[100px]" title={f.description}>
-                          {f.description}
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                <>
+                  <div className="px-4 py-2 grid grid-cols-[2fr_140px_2fr] gap-3 items-center border-b border-gray-100 bg-gray-50/50 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    <span className="min-w-0">Field Name</span>
+                    <span className="min-w-0">Data Type</span>
+                    <span className="min-w-0">Description</span>
+                  </div>
+                  <div className="divide-y divide-gray-50">
+                    {filteredFields.map((f) => (
+                      <div key={f.name} className="grid grid-cols-[2fr_140px_2fr] gap-3 px-4 py-2 items-center text-xs hover:bg-gray-50">
+                        <span className="min-w-0 font-mono font-medium text-gray-900 break-words" title={f.name}>{f.name}</span>
+                        <span className="min-w-0 font-mono text-gray-400 truncate" title={f.type}>{f.type}</span>
+                        <span className="min-w-0 text-gray-400 break-words" title={f.description ?? ""}>{f.description}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
 
@@ -166,7 +169,7 @@ export function SidePanel({
             <div className="flex items-center justify-between border-t border-gray-100 px-4 py-2">
               <button
                 onClick={() => window.open(`/${contract.slug}`, "_blank", "noopener,noreferrer")}
-                className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-orange-600 hover:bg-orange-50 transition-colors"
               >
                 <ExternalLink size={12} />
                 Open contract detail

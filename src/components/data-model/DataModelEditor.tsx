@@ -15,15 +15,6 @@ import { FilterPanel } from "./FilterPanel";
 import { SidePanel } from "./SidePanel";
 import { Position, type Edge, type Node as FlowNode } from "@xyflow/react";
 
-function useSearchParam(key: string): string | null {
-  const [value, setValue] = useState<string | null>(null);
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    setValue(params.get(key));
-  }, [key]);
-  return value;
-}
-
 function computeConnectedFields(edges: Edge[]): Map<string, Set<string>> {
   const map = new Map<string, Set<string>>();
   for (const edge of edges) {
@@ -44,9 +35,11 @@ function computeConnectedFields(edges: Edge[]): Map<string, Set<string>> {
 export function DataModelEditor({
   contracts,
   models,
+  focusSlug,
 }: {
   contracts: DataModelContract[];
   models: LoadedModel[];
+  focusSlug?: string | null;
 }) {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [layerFilter, setLayerFilter] = useState<string | null>(null);
@@ -55,6 +48,7 @@ export function DataModelEditor({
   const [fitKey, setFitKey] = useState(0);
   const [centerSlug, setCenterSlug] = useState<string | null>(null);
   const [centerKey, setCenterKey] = useState(0);
+  const [collapsedTables, setCollapsedTables] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const [containerWidth, setContainerWidth] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -134,11 +128,14 @@ export function DataModelEditor({
 
   const layoutEdges = useMemo(() => {
     const isTB = layoutMode === "TB";
-    return edges.map((e) => ({
-      ...e,
-      sourcePosition: isTB ? Position.Bottom : Position.Right,
-      targetPosition: isTB ? Position.Top : Position.Left,
-    }));
+    return edges.map((e) => {
+      const ew = e as unknown as { sourcePosition?: Position; targetPosition?: Position };
+      return {
+        ...e,
+        sourcePosition: ew.sourcePosition ?? (isTB ? Position.Bottom : Position.Right),
+        targetPosition: ew.targetPosition ?? (isTB ? Position.Top : Position.Left),
+      };
+    });
   }, [edges, layoutMode]);
 
   const [laidOutNodes, setLaidOutNodes] = useState<FlowNode[]>(() => layoutByMode(rawNodes, layoutEdges, layoutMode, connectedFields, viewMode, 0).nodes);
@@ -174,13 +171,11 @@ export function DataModelEditor({
   useEffect(() => { savePrefs({ viewMode }); }, [viewMode]);
   useEffect(() => { savePrefs({ layerFilter }); }, [layerFilter]);
 
-  const focusSlug = useSearchParam("slug");
-
   useEffect(() => {
     if (!focusSlug || rawNodes.length === 0) return;
     const node = rawNodes.find((n) => {
       const d = n.data as ContractTableNodeData;
-      return d.slug === focusSlug;
+      return d.slug === focusSlug || focusSlug === `${d.maturity}-${d.slug}`;
     });
     if (node) {
       setCenterSlug(node.id);
@@ -254,6 +249,15 @@ export function DataModelEditor({
     setSelectedSlug(slug);
   }, []);
 
+  const handleToggleCollapse = useCallback((nodeId: string) => {
+    setCollapsedTables((prev) => {
+      const next = new Set(prev);
+      if (next.has(nodeId)) next.delete(nodeId);
+      else next.add(nodeId);
+      return next;
+    });
+  }, []);
+
   function handleFitViewVisible() {
     setLaidOutNodes(relayoutVisible);
     setFitKey((k) => k + 1);
@@ -297,6 +301,8 @@ export function DataModelEditor({
               visibleCount={visibleTablesState.size}
               totalCount={rawNodes.length}
               orphanRefs={orphanRefs}
+              collapsedTables={collapsedTables}
+              onToggleCollapse={handleToggleCollapse}
             />
           </div>
         </div>

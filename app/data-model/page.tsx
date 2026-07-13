@@ -6,14 +6,17 @@ export const metadata = {
   description: "Interactive lineage graph for data contracts",
 };
 
-export default function DataModelPage() {
+export default async function DataModelPage(props: { searchParams?: Promise<{ slug?: string }> }) {
+  const searchParams = await props.searchParams;
+  const focusSlug = searchParams?.slug ?? null;
+
   return (
     <>
       <style>{`html { overflow: hidden !important; }`}</style>
       <PageShell showFooter={false}>
         <div className="flex flex-1 flex-col overflow-hidden">
           <div className="relative min-h-0 flex-1">
-            <DataModelClient />
+            <DataModelClient focusSlug={focusSlug} />
           </div>
         </div>
       </PageShell>
