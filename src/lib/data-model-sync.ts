@@ -63,7 +63,7 @@ function parseContractFromRaw(
     }
   }
 
-  const rawRels = doc.relations;
+  const rawRels = schema?.relations ?? doc.relations;
   const relations: { ref_name: string; ref: string }[] = [];
   if (Array.isArray(rawRels)) {
     for (const r of rawRels as Record<string, unknown>[]) {

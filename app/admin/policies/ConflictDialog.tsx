@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+
 import type { ConflictDialog as ConflictDialogType } from "./types";
 import { t, tWith } from "@/src/lib/i18n";
 
@@ -12,6 +14,14 @@ export default function ConflictDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onCancel();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onCancel]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/50" onClick={onCancel} />

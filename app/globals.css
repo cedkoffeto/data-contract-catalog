@@ -1534,10 +1534,14 @@ body[data-ra-modal] [data-ra-overlay] {
 }
 
 .catalog-card__badge,
-.contract-hero__tag,
 .editor-status-pill {
   background: #f8fafc;
   color: var(--ui-text-soft);
+}
+
+.contract-hero__tag {
+  background: rgba(249, 115, 22, 0.08);
+  color: var(--ui-primary);
 }
 
 .catalog-card__badge--subtle {

@@ -29,6 +29,14 @@ export function NotificationPreferencesDialog({ onClose }: { onClose: () => void
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
   async function handleSave() {
     setSaving(true);
     try {

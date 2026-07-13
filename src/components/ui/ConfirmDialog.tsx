@@ -50,6 +50,15 @@ export function ConfirmDialog({ open, title, message, confirmLabel: _confirmLabe
     return () => clearInterval(intervalRef.current);
   }, [open, autoCloseMs, onCancel]);
 
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onCancel();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, onCancel]);
+
   if (!open) return null;
 
   const progress = autoCloseMs ? (timeLeft / totalRef.current) * 100 : 0;

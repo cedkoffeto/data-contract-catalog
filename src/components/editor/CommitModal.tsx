@@ -86,6 +86,14 @@ export function CommitModal({
     return () => clearTimeout(timer);
   }, [error]);
 
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") handleClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [handleClose]);
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
