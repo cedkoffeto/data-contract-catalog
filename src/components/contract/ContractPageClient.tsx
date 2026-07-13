@@ -385,20 +385,49 @@ export function ContractPageClient({
 
             <section className="contract-summary-strip">
               <article className="contract-summary-strip__card">
-                <span className="contract-summary-strip__label">{t("schemaFields")}</span>
-                <strong>{fields}</strong>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <svg className="h-4 w-4 shrink-0 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h12A2.25 2.25 0 0 1 20.25 6v12A2.25 2.25 0 0 1 18 20.25H6A2.25 2.25 0 0 1 3.75 18V6Z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9h16.5M3.75 13.5h16.5M9 9v11.25M15 9v11.25" />
+                    </svg>
+                    <span className="contract-summary-strip__label">{t("schemaFields")}</span>
+                  </div>
+                  <strong className="m-0 text-base font-bold text-indigo-600">{fields}</strong>
+                </div>
               </article>
               <article className="contract-summary-strip__card">
-                <span className="contract-summary-strip__label">{t("inputSources")}</span>
-                <strong>{sources}</strong>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <svg className="h-4 w-4 shrink-0 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 8.688c0-.747.468-1.416 1.163-1.665l11.25-4.026a1.5 1.5 0 0 1 1.953.664l.622 1.11M3 8.688v5.624c0 .747.468 1.416 1.163 1.665l11.25 4.026a1.5 1.5 0 0 0 1.953-.664l.622-1.11M3 8.688 14.25 13.5M20.25 8.688v5.624c0 .747-.468 1.416-1.163 1.665l-4.5 1.61" />
+                    </svg>
+                    <span className="contract-summary-strip__label">{t("inputSources")}</span>
+                  </div>
+                  <strong className="m-0 text-base font-bold text-teal-600">{sources}</strong>
+                </div>
               </article>
               <article className="contract-summary-strip__card">
-                <span className="contract-summary-strip__label">{t("qualityChecks")}</span>
-                <strong>{qualityChecks}</strong>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <svg className="h-4 w-4 shrink-0 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    </svg>
+                    <span className="contract-summary-strip__label">{t("qualityChecks")}</span>
+                  </div>
+                  <strong className="m-0 text-base font-bold text-green-600">{qualityChecks}</strong>
+                </div>
               </article>
               <article className="contract-summary-strip__card">
-                <span className="contract-summary-strip__label">{t("lifecycle")}</span>
-                <strong>{asset.status ?? t("draft")}</strong>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <svg className="h-4 w-4 shrink-0 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" />
+                    </svg>
+                    <span className="contract-summary-strip__label">{t("lifecycle")}</span>
+                  </div>
+                  <strong className="m-0 text-base font-bold text-orange-600">{asset.status ?? t("draft")}</strong>
+                </div>
               </article>
             </section>
 

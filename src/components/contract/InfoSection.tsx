@@ -64,7 +64,7 @@ export function InfoSection({ asset, slug }: { asset: Asset; slug?: string }) {
   return (
     <section id="information">
       <div className="px-4 sm:px-0">
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between">
           <div>
             <h1 className="text-base font-semibold leading-6 text-gray-900" id="info">
               Informations
@@ -73,7 +73,7 @@ export function InfoSection({ asset, slug }: { asset: Asset; slug?: string }) {
               Informations sur le contrat de données{slug ? <strong className="font-semibold text-orange-600"> {slug}</strong> : null}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mt-0.5">
             {asset.status ? (
               <span className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${sc.badge}`}>
                 <span className={`h-1.5 w-1.5 rounded-full ${sc.dot}`} />
