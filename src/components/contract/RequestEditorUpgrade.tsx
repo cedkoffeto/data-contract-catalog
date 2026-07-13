@@ -83,18 +83,21 @@ export function RequestEditorUpgrade({
       <button
         type="button"
         onClick={handleCompactClick}
-        disabled={compact && done && requestStatus !== "rejected"}
-        className={compact
-          ? done
-            ? "flex items-center gap-1 text-xs font-semibold text-gray-400 cursor-not-allowed"
-            : "flex items-center gap-1 text-xs font-semibold text-orange-600 hover:text-orange-800"
-          : "catalog-secondary-link catalog-secondary-link--button"
+        disabled={done && requestStatus !== "rejected"}
+        className={
+          done && requestStatus !== "rejected"
+            ? compact
+              ? "flex items-center gap-1 text-xs font-semibold text-gray-400 cursor-not-allowed"
+              : "catalog-secondary-link catalog-secondary-link--disabled cursor-not-allowed"
+            : compact
+              ? "flex items-center gap-1 text-xs font-semibold text-orange-600 hover:text-orange-800"
+              : "catalog-secondary-link catalog-secondary-link--button"
         }
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2Zm10-10V7a4 4 0 0 0-8 0v4h8Z" />
         </svg>
-        {compact ? (done ? t("requestSentAdmin") : t("requestEditor")) : t("requestEditorAccess")}
+        {done ? t("requestSentAdmin") : compact ? t("requestEditor") : t("requestEditorAccess")}
       </button>
 
       {open && createPortal(
@@ -122,11 +125,16 @@ export function RequestEditorUpgrade({
 
             {done ? (
               <div className="flex flex-1 flex-col items-center justify-center px-4 py-6 text-center">
-                <p className="text-sm font-medium text-green-600">{t("requestSentAdmin")}</p>
+                <div className="flex items-center gap-1.5" style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--ui-text-soft)" }}>
+                  <svg className="h-4 w-4 shrink-0 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
+                  </svg>
+                  <span>{t("requestSentAdmin")}</span>
+                </div>
                 <button
                   type="button"
                   onClick={() => { setOpen(false); setMessage(""); }}
-                  className="mt-3 rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
+                  className="mt-3 rounded-md px-4 py-2 text-xs text-gray-600 hover:bg-gray-100"
                 >
 {t("close")}
                 </button>

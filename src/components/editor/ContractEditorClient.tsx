@@ -1508,7 +1508,7 @@ export function ContractEditorClient({
               <button
                 aria-label="Close editor"
                 className="editor-close-button"
-                onClick={() => { window.location.href = selectedDocument.isDraft || !selectedDocument.contractSlug ? "/" : `/${selectedDocument.contractSlug}`; }}
+                onClick={() => { window.location.href = selectedDocument.isDraft || !selectedDocument.contractSlug ? "/" : `/contracts/${selectedDocument.contractSlug}`; }}
                 title="Close editor"
                 type="button"
               >

@@ -729,7 +729,7 @@ export async function getCatalogCards(): Promise<CatalogCard[]> {
         context,
         accessible: true,
         searchData: `${title} ${version} ${owner} ${description} ${maturity} ${domain} ${context} ${contract.fullPath}`.toLowerCase(),
-        href: `/${contract.slug}`
+        href: `/contracts/${contract.slug}`
       } satisfies CatalogCard;
     })
     .sort((a, b) => a.title.localeCompare(b.title));

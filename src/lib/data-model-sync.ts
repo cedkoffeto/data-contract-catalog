@@ -63,6 +63,14 @@ function parseContractFromRaw(
     }
   }
 
+  const rawRels = doc.relations;
+  const relations: { ref_name: string; ref: string }[] = [];
+  if (Array.isArray(rawRels)) {
+    for (const r of rawRels as Record<string, unknown>[]) {
+      relations.push({ ref_name: (r.ref_name as string) || "", ref: (r.ref as string) || "" });
+    }
+  }
+
   return {
     slug,
     maturity: maturity as "bronze" | "silver" | "gold",
@@ -71,6 +79,7 @@ function parseContractFromRaw(
     name: (asset.name as string) || slug,
     description: asset.description as string | undefined,
     fields,
+    relations: relations.length > 0 ? relations : undefined,
   };
 }
 

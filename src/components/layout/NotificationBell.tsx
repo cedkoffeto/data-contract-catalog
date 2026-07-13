@@ -238,7 +238,7 @@ export function NotificationBell() {
     if (typeof metadata.path === "string" && metadata.path.startsWith("/")) {
       window.location.href = metadata.path;
     } else if (n.type === "mention" && contractSlug && commentId) {
-      window.location.href = `/${contractSlug}#comment-${commentId}`;
+      window.location.href = `/contracts/${contractSlug}#comment-${commentId}`;
     } else if (n.type === "change_request_created") {
       const changeRequestId = typeof metadata.changeRequestId === "number" ? metadata.changeRequestId : "";
       window.location.href = `/admin?tab=changes${changeRequestId ? `&highlight=${changeRequestId}` : ""}`;
@@ -246,11 +246,11 @@ export function NotificationBell() {
       const changeRequestId = typeof metadata.changeRequestId === "number" ? metadata.changeRequestId : "";
       window.location.href = `/admin?tab=changes${changeRequestId ? `&highlight=${changeRequestId}` : ""}`;
     } else if (n.type === "comment_reply" && contractSlug && commentId) {
-      window.location.href = `/${contractSlug}#comment-${commentId}`;
+      window.location.href = `/contracts/${contractSlug}#comment-${commentId}`;
     } else if (n.type === "policy_updated") {
       window.location.href = "/admin?tab=policies";
     } else if (contractSlug) {
-      window.location.href = `/${contractSlug}`;
+      window.location.href = `/contracts/${contractSlug}`;
     }
   }
 
@@ -296,7 +296,7 @@ export function NotificationBell() {
                     return (
                       <div key={c.slug} className="notification-dropdown__item notification-dropdown__item--sub-row">
                         <Link
-                          href={`/${c.slug}`}
+                          href={`/contracts/${c.slug}`}
                           className="notification-dropdown__item-link"
                           onClick={() => setIsOpen(false)}
                         >

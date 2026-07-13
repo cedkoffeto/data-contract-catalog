@@ -17,14 +17,14 @@ export default function NotFound() {
                   </svg>
                 </div>
                 <p className="text-base font-semibold text-gray-900">Contrat introuvable</p>
-                <h1 className="text-7xl font-bold text-gray-400">404</h1>
+                <h1 className="text-7xl font-bold text-orange-500">404</h1>
               </div>
               <p className="mt-1 text-sm text-gray-500">La ressource demandée n'existe pas.</p>
             </div>
             <div className="flex items-center justify-center gap-3 border-t border-gray-100 px-20 pb-12 pt-4">
               <Link
                 href="/"
-                className="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800"
+                className="catalog-primary-link"
               >
                 Retour au catalogue
               </Link>

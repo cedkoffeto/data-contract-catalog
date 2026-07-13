@@ -9,7 +9,7 @@ const nextConfig = {
       },
       {
         source: '/:slug.html',
-        destination: '/:slug',
+        destination: '/contracts/:slug',
         permanent: true
       }
     ];

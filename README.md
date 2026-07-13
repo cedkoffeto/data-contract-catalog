@@ -24,7 +24,7 @@ Si tu onboardes sur le projet, voici l'ordre conseille:
 2. Installer les dependances et lancer l'app.
 3. Demarrer Keycloak local via Docker Compose.
 4. Se connecter avec l'utilisateur de demo.
-5. Parcourir les pages `/`, `/:slug`, `/editor`, `/docs`.
+5. Parcourir les pages `/`, `/contracts/:slug`, `/editor`, `/docs`.
 6. Lire ensuite les fichiers d'entree:
    - [app/layout.tsx](app/layout.tsx)
    - [app/page.tsx](app/page.tsx)
@@ -205,7 +205,7 @@ Responsabilite:
 
 ### Detail contrat
 
-- route: `/:slug`
+- route: `/contracts/:slug`
 - point d'entree: `app/[slug]/page.tsx`
 - composants principaux dans `src/components/contract/`
 
@@ -403,7 +403,7 @@ npm run db:seed      # Inserer les donnees de base
 | Route | Description |
 |---|---|
 | `/` | Catalogue des contrats |
-| `/:slug` | Détail d'un contrat |
+| `/contracts/:slug` | Détail d'un contrat |
 | `/editor` | Workspace d'édition YAML / formulaire |
 | `/editor?file=:path` | Édition d'un fichier spécifique |
 | `/data-model` | Visualisation du data model (graphe React Flow) |
@@ -518,16 +518,16 @@ Les notifications sont stockées dans la base PostgreSQL et servies via l'API RE
 
 | Type | Déclencheur | Destinataire(s) | Navigation au clic |
 |---|---|---|---|
-| `mention` | @mention dans un commentaire | Utilisateur mentionné | `/:slug#comment-:id` |
-| `comment_reply` | Réponse à un commentaire | Auteur du commentaire parent | `/:slug#comment-:id` |
-| `contract.created` | Nouveau contrat soumis | Admins + users scope | `/:slug` |
-| `contract.submitted` | Contrat existant mis à jour | Admins + abonnés (canal `in_app`) | `/:slug` |
-| `contract_updated` | Merge manuel ou sync GitLab | Abonnés du contrat | `/:slug` |
+| `mention` | @mention dans un commentaire | Utilisateur mentionné | `/contracts/:slug#comment-:id` |
+| `comment_reply` | Réponse à un commentaire | Auteur du commentaire parent | `/contracts/:slug#comment-:id` |
+| `contract.created` | Nouveau contrat soumis | Admins + users scope | `/contracts/:slug` |
+| `contract.submitted` | Contrat existant mis à jour | Admins + abonnés (canal `in_app`) | `/contracts/:slug` |
+| `contract_updated` | Merge manuel ou sync GitLab | Abonnés du contrat | `/contracts/:slug` |
 | `change_request_created` | CR créé (avec ou sans GitLab) | Éditeur + admins | `/admin?tab=changes&highlight=:id` |
 | `change_request_merged` | Admin merge un CR | Éditeur du CR | `/admin?tab=changes&highlight=:id` |
 | `change_request_approved` | Sync GitLab détecte MR merged | Éditeur du CR | `/admin?tab=changes&highlight=:id` |
 | `change_request_rejected` | Admin reject / MR closed | Éditeur du CR | `/admin?tab=changes&highlight=:id` |
-| `access_request` | Création / approbation / rejet | Admins (création) / demandeur (statut) | `/:slug` ou `/admin` |
+| `access_request` | Création / approbation / rejet | Admins (création) / demandeur (statut) | `/contracts/:slug` ou `/admin` |
 | `policy_updated` | Création / modification / suppression d'une police d'accès | Utilisateur concerné (ou membres du groupe) | `/admin?tab=policies` |
 | `group_membership` | Ajout / retrait d'un groupe | Utilisateur concerné | — (aucune route dédiée) |
 

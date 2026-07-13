@@ -825,6 +825,12 @@ a:has(> .kpi-card) {
   cursor: pointer;
 }
 
+.catalog-secondary-link--disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 .site-footer {
   padding: 0 1rem 0.8rem;
 }

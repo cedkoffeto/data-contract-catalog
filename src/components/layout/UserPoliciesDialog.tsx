@@ -65,7 +65,7 @@ function RequestEditorForm({ onDone }: { onDone: () => void }) {
   }
 
   if (sent) {
-    return <p className="mt-2 text-sm font-medium text-green-600">{t("requestSentAdmin")}</p>;
+    return <p className="mt-2 text-xs font-medium text-green-600">{t("requestSentAdmin")}</p>;
   }
 
   return (
@@ -139,6 +139,14 @@ export function UserPoliciesDialog({
       .catch(() => setPolicies([]))
       .finally(() => setLoading(false));
   }, [userId]);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   if (!mounted) return null;
 

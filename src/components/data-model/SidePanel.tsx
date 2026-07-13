@@ -168,7 +168,7 @@ export function SidePanel({
             {/* Link */}
             <div className="flex items-center justify-between border-t border-gray-100 px-4 py-2">
               <button
-                onClick={() => window.open(`/${contract.slug}`, "_blank", "noopener,noreferrer")}
+                onClick={() => window.open(`/contracts/${contract.slug}`, "_blank", "noopener,noreferrer")}
                 className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-orange-600 hover:bg-orange-50 transition-colors"
               >
                 <ExternalLink size={12} />

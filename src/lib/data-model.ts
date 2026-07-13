@@ -18,6 +18,7 @@ export type DataModelContract = {
   name: string;
   description?: string;
   fields: ContractField[];
+  relations?: DataModelRelation[];
 };
 
 export type DataModelRelation = {
@@ -237,6 +238,71 @@ export function parseContractsToGraph(
           fontWeight: 600,
           fontFamily: "monospace",
           fill: "#334155",
+        },
+        labelBgStyle: {
+          fill: "#ffffff",
+          fillOpacity: 0.9,
+          rx: 3,
+        },
+        labelBgPadding: [6, 3] as [number, number],
+      });
+    }
+  }
+
+  // 3. Resolve contract-level relations → edges
+  for (const contract of contracts) {
+    if (!contract.relations || contract.relations.length === 0) continue;
+    const defaults = { layer: contract.maturity, domain: contract.domain, context: contract.context };
+    for (const rel of contract.relations) {
+      const parsed = parseRef(rel.ref, defaults);
+      if (!parsed) continue;
+
+      const src = parsed.left;
+      const tgt = parsed.right;
+      const srcKey = keyOf(src);
+      const tgtKey = keyOf(tgt);
+
+      const srcContract = contractMap.get(srcKey);
+      const tgtContract = contractMap.get(tgtKey);
+      if (!srcContract || !tgtContract) {
+        orphanRefs.push(rel.ref);
+        continue;
+      }
+
+      const srcFieldOk = srcContract.fields.some((f) => f.name === src.field);
+      const tgtFieldOk = tgtContract.fields.some((f) => f.name === tgt.field);
+      if (!srcFieldOk || !tgtFieldOk) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn(`[data-model] Skipping contract edge "${rel.ref}": field "${!srcFieldOk ? src.field : tgt.field}" not found in ${!srcFieldOk ? srcContract.slug : tgtContract.slug}`);
+        }
+        continue;
+      }
+
+      const srcId = slugToId(srcContract.slug, srcContract.maturity);
+      const tgtId = slugToId(tgtContract.slug, tgtContract.maturity);
+
+      if (!nodeMap.has(srcId)) nodeMap.set(srcId, createNode(srcContract));
+      if (!nodeMap.has(tgtId)) nodeMap.set(tgtId, createNode(tgtContract));
+
+      const edgeKey = `${srcId}.${src.field}->${tgtId}.${tgt.field}`;
+      if (edgeSet.has(edgeKey)) continue;
+      edgeSet.add(edgeKey);
+
+      edges.push({
+        id: edgeKey,
+        source: srcId,
+        target: tgtId,
+        sourceHandle: src.field,
+        targetHandle: tgt.field,
+        label: rel.ref_name || `${src.field} → ${tgt.field}`,
+        type: "relationEdge",
+        style: { stroke: "#94a3b8", strokeWidth: 2 },
+        animated: false,
+        data: { ref: rel.ref, ref_name: rel.ref_name },
+        labelStyle: {
+          fontSize: 11,
+          fontWeight: 500,
+          fill: "#475569",
         },
         labelBgStyle: {
           fill: "#ffffff",

@@ -30,6 +30,7 @@
     "@rjsf/validator-ajv8": "^6.4.1",
     "@uiw/react-codemirror": "^4.25.8",
     "@xyflow/react": "^12.11.1",
+    "cross-env": "^10.1.0",
     "dagre": "^0.8.5",
     "diff": "^9.0.0",
     "html-to-image": "^1.11.13",
