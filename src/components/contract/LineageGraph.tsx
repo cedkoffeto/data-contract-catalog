@@ -23,11 +23,11 @@ export function LineageGraph({ data }: { data: DataContract }) {
       <div className="mt-2 overflow-hidden rounded-lg bg-white shadow sm:rounded-lg">
         <div className="px-4 py-5 sm:px-6">
           <div className="grid gap-4 lg:grid-cols-[1fr_auto_1fr]">
-            <div className="rounded-xl border border-blue-100 bg-blue-50 p-3">
-              <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-blue-700">Upstream</h3>
+            <div className="rounded-xl border border-gray-200 bg-white p-3">
+              <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-orange-700">Upstream</h3>
               <div className="space-y-2">
                 {upstream.map((item) => (
-                  <div key={`up-${item}`} className="rounded-lg border border-blue-100 bg-white px-3 py-2 text-sm text-gray-700">
+                  <div key={`up-${item}`} className="rounded-lg border border-orange-400 bg-white px-3 py-2 text-sm text-gray-700">
                     {item}
                   </div>
                 ))}
@@ -40,11 +40,11 @@ export function LineageGraph({ data }: { data: DataContract }) {
               </svg>
             </div>
 
-            <div className="rounded-xl border border-green-100 bg-green-50 p-3">
-              <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-green-700">Downstream</h3>
+            <div className="rounded-xl border border-blue-100 bg-blue-50 p-3">
+              <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-blue-700">Downstream</h3>
               <div className="space-y-2">
                 {downstream.map((item) => (
-                  <div key={`down-${item}`} className="rounded-lg border border-green-100 bg-white px-3 py-2 text-sm text-gray-700">
+                  <div key={`down-${item}`} className="rounded-lg border border-blue-400 bg-white px-3 py-2 text-sm text-gray-700">
                     {item}
                   </div>
                 ))}

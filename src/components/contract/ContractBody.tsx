@@ -22,7 +22,7 @@ export function ContractBody({ data, slug, userId, fieldAnnotations, onFieldClic
 
   return (
     <div className="mt-6 space-y-6">
-      <InfoSection asset={asset} />
+      <InfoSection asset={asset} slug={slug} />
 
       <ModelsSection asset={asset} fields={schema.fields ?? []} grain={contract.grain} primaryKey={contract.primary_key} slug={slug} userId={userId} fieldAnnotations={fieldAnnotations} onFieldClick={onFieldClick} onAnnotationPosted={onAnnotationPosted} />
 
@@ -58,6 +58,7 @@ export function ContractBody({ data, slug, userId, fieldAnnotations, onFieldClic
           retention={output.retention}
           storageFormat={output.storage_format}
           tableName={output.table_name}
+          queryUrl={serving.query_url}
         />
       ) : null}
     </div>

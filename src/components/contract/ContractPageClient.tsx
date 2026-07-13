@@ -381,7 +381,7 @@ export function ContractPageClient({
               </div>
             ) : null}
 
-            <ContractHeader asset={asset} showActions={false} />
+            <ContractHeader asset={asset} slug={slug} showActions={false} />
 
             <section className="contract-summary-strip">
               <article className="contract-summary-strip__card">
@@ -426,9 +426,13 @@ export function ContractPageClient({
               <p>{t("workspaceDesc")}</p>
               <div className="contract-side-card__actions">
                 {canEdit ? (
-                  <a className="catalog-primary-link w-full justify-center" href={`/editor?contract=${encodeURIComponent(slug)}`}>
+                  <button
+                    type="button"
+                    className="catalog-primary-link w-full justify-center"
+                    onClick={() => { window.location.href = `/editor?contract=${encodeURIComponent(slug)}`; }}
+                  >
                     {t("openEditor")}
-                  </a>
+                  </button>
                 ) : (
                   <>
                     <button

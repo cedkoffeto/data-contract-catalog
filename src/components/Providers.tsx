@@ -7,7 +7,7 @@ import type { Session } from "next-auth";
 
 export function Providers({ children, session }: { children: React.ReactNode; session: Session | null }) {
   return (
-    <SessionProvider session={session}>
+    <SessionProvider session={session} refetchInterval={0} refetchOnWindowFocus={false}>
       <AuditSessionProvider>
         <ToastProvider>{children}</ToastProvider>
       </AuditSessionProvider>

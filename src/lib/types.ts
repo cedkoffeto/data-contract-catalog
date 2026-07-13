@@ -111,6 +111,7 @@ export type DataContract = {
       type?: string;
       notes?: string;
     };
+    query_url?: string;
   };
   output?: {
     location?: string;
