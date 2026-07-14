@@ -271,7 +271,16 @@ function findSchemaDescription(propertyPath: string | undefined, schema: RJSFSch
   const parts = path.split(".");
   let current: Record<string, unknown> | undefined = schema;
   for (const part of parts) {
-    if (!current || typeof current !== "object" || !("properties" in current)) return undefined;
+    if (!current || typeof current !== "object") return undefined;
+
+    if (/^\d+$/.test(part)) {
+      if ("items" in current && current.items) {
+        current = (current.items as Record<string, unknown>) ?? undefined;
+      }
+      continue;
+    }
+
+    if (!("properties" in current)) return undefined;
     const props = (current as Record<string, unknown>).properties as Record<string, unknown> | undefined;
     if (!props || !(part in props)) return undefined;
     current = props[part] as Record<string, unknown> | undefined;
