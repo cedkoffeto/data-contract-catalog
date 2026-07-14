@@ -262,6 +262,27 @@ function ErrorPopover({ lineNumber, message, x, y, onClose }: {
   );
 }
 
+function findSchemaDescription(propertyPath: string | undefined, schema: RJSFSchema): string | undefined {
+  if (!propertyPath || !schema) return undefined;
+
+  const path = propertyPath.replace(/^root\.?/, "").replace(/^\./, "");
+  if (!path) return undefined;
+
+  const parts = path.split(".");
+  let current: Record<string, unknown> | undefined = schema;
+  for (const part of parts) {
+    if (!current || typeof current !== "object" || !("properties" in current)) return undefined;
+    const props = (current as Record<string, unknown>).properties as Record<string, unknown> | undefined;
+    if (!props || !(part in props)) return undefined;
+    current = props[part] as Record<string, unknown> | undefined;
+  }
+
+  if (current && typeof current === "object" && "description" in current) {
+    return (current as Record<string, unknown>).description as string;
+  }
+  return undefined;
+}
+
 function createFileTree(files: WorkspaceDocument[], prefixToStrip: string) {
   const root: FileTreeNode = { folders: new Map(), files: [] };
 
@@ -826,6 +847,10 @@ export function ContractEditorClient({
         if (ajvParams?.allowedValues) {
           msg += `\nValeurs autorisées : ${ajvParams.allowedValues.join(", ")}`;
         }
+        const desc = findSchemaDescription(error.property, schema);
+        if (desc) {
+          msg += `\n${desc}`;
+        }
         map.set(line, map.has(line) ? `${map.get(line)}\n${msg}` : msg);
       }
     }
@@ -838,7 +863,8 @@ export function ContractEditorClient({
     selectedDocument.content,
     validationErrors,
     yamlValidationState.parseLineNumber,
-    yamlValidationState.parseError
+    yamlValidationState.parseError,
+    schema
   ]);
   const normalizedExplorerQuery = explorerQuery.trim().toLowerCase();
 
