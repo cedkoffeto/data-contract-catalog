@@ -13,9 +13,9 @@ const animStyleId = "dcc-edge-flow";
 
 export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
   const [hovered, setHovered] = useState(false);
-  const { highlightedNode, highlightedNeighbors } = useContext(HighlightCtx);
+  const { highlightedNode, highlightedNeighbors, selectedEdge } = useContext(HighlightCtx);
 
-  const { source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style, label, data, animated } = props;
+  const { source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style, label, data, animated, id } = props;
 
   const edgeData = (data ?? {}) as { cardSource?: string; cardTarget?: string; parallelOffset?: number; targetParallelOffset?: number };
   const parallelOffset = edgeData.parallelOffset ?? 0;
@@ -65,7 +65,8 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
   }, [highlightedNode, highlightedNeighbors, source, target]);
 
   const isConnectedToHoveredNode = highlightedNode !== null && (source === highlightedNode || target === highlightedNode);
-  const edgeActive = hovered || isConnectedToHoveredNode;
+  const isSelected = selectedEdge === id;
+  const edgeActive = hovered || isConnectedToHoveredNode || isSelected;
 
   const pathStyle: React.CSSProperties = useMemo(() => ({
     ...(style as React.CSSProperties),

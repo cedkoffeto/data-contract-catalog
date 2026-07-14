@@ -47,7 +47,7 @@ const edgeTypes = { relationEdge: RelationEdge };
 
 type ViewModeValue = {
   viewMode: "detailed" | "compact";
-  connectedFields: Map<string, Set<string>>;
+  connectedFields: Map<string, Map<string, number>>;
   onHeaderClick: (slug: string) => void;
   onFieldClick: (slug: string) => void;
   searchMatchIds: Set<string> | null;
@@ -68,11 +68,13 @@ export const ViewModeCtx = createContext<ViewModeValue>({
 type HighlightValue = {
   highlightedNode: string | null;
   highlightedNeighbors: Set<string> | null;
+  selectedEdge: string | null;
 };
 
 export const HighlightCtx = createContext<HighlightValue>({
   highlightedNode: null,
   highlightedNeighbors: null,
+  selectedEdge: null,
 });
 
 export function ModelGraph({
@@ -99,7 +101,7 @@ export function ModelGraph({
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
-  connectedFields: Map<string, Set<string>>;
+  connectedFields: Map<string, Map<string, number>>;
   viewMode: "detailed" | "compact";
   visibleTables: Set<string>;
   layoutMode: LayoutMode;
@@ -121,6 +123,7 @@ export function ModelGraph({
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [highlightedNode, setHighlightedNode] = useState<string | null>(null);
+  const [selectedEdge, setSelectedEdge] = useState<string | null>(null);
   const [showGrid, setShowGrid] = useState(true);
 
   const { setCenter, fitView } = useReactFlow();
@@ -156,6 +159,14 @@ export function ModelGraph({
 
   const handleMouseLeave = useCallback(() => {
     setHighlightedNode(null);
+  }, []);
+
+  const handleEdgeClick = useCallback((_event: React.MouseEvent, edge: Edge) => {
+    setSelectedEdge(edge.id);
+  }, []);
+
+  const handlePaneClick = useCallback(() => {
+    setSelectedEdge(null);
   }, []);
 
   // Adjacency map built once when edges change — O(E) once, O(1) per lookup
@@ -239,7 +250,8 @@ export function ModelGraph({
   const highlightCtxValue = useMemo<HighlightValue>(() => ({
     highlightedNode,
     highlightedNeighbors,
-  }), [highlightedNode, highlightedNeighbors]);
+    selectedEdge,
+  }), [highlightedNode, highlightedNeighbors, selectedEdge]);
 
   return (
     <HighlightCtx.Provider value={highlightCtxValue}>
@@ -252,6 +264,8 @@ export function ModelGraph({
           onEdgesChange={onEdgesChange}
           onNodeMouseEnter={handleMouseEnter}
           onNodeMouseLeave={handleMouseLeave}
+          onEdgeClick={handleEdgeClick}
+          onClick={handlePaneClick}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           fitView={false}
