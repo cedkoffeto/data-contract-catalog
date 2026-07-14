@@ -25,6 +25,28 @@ function edgeOffset(position: Position, side: "source" | "target", distance: num
   return { dx: distance, dy: 0 };
 }
 
+function cardinalitySymbolD(
+  x: number, y: number, pos: Position, type: "one" | "many"
+): string {
+  const len = 2;
+  const gap = 4;
+  const horiz = pos === Position.Top || pos === Position.Bottom;
+  if (type === "one") {
+    if (horiz) return `M ${x-len},${y} L ${x+len},${y}`;
+    return `M ${x},${y-len} L ${x},${y+len}`;
+  }
+  // many — three parallel lines
+  const parts: string[] = [];
+  for (const off of [-gap, 0, gap]) {
+    if (horiz) {
+      parts.push(`M ${x-len},${y+off} L ${x+len},${y+off}`);
+    } else {
+      parts.push(`M ${x+off},${y-len} L ${x+off},${y+len}`);
+    }
+  }
+  return parts.join(" ");
+}
+
 export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
   const [hovered, setHovered] = useState(false);
   const { highlightedNode, highlightedNeighbors, selectedEdge } = useContext(HighlightCtx);
@@ -148,6 +170,19 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
       >
         {cardSource === "many" ? "*" : "1"}
       </text>
+      <path
+        d={cardinalitySymbolD(
+          sourceX + hOff + edgeOffset(sourcePosition, "source", 6).dx,
+          sourceY + sourceOffset + edgeOffset(sourcePosition, "source", 6).dy,
+          sourcePosition,
+          cardSource === "many" ? "many" : "one",
+        )}
+        stroke={edgeActive ? "#3b82f6" : "#cbd5e1"}
+        strokeWidth={edgeActive ? 2 : 1.5}
+        strokeLinecap="round"
+        pointerEvents="none"
+        style={{ transition: "stroke 0.2s, stroke-width 0.2s" }}
+      />
 
       <text
         x={targetX + hOff + edgeOffset(targetPosition, "target", 14).dx}
@@ -163,6 +198,19 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
       >
         {cardTarget === "many" ? "*" : "1"}
       </text>
+      <path
+        d={cardinalitySymbolD(
+          targetX + hOff + edgeOffset(targetPosition, "target", 6).dx,
+          targetY + targetOffset + edgeOffset(targetPosition, "target", 6).dy,
+          targetPosition,
+          cardTarget === "many" ? "many" : "one",
+        )}
+        stroke={edgeActive ? "#3b82f6" : "#cbd5e1"}
+        strokeWidth={edgeActive ? 2 : 1.5}
+        strokeLinecap="round"
+        pointerEvents="none"
+        style={{ transition: "stroke 0.2s, stroke-width 0.2s" }}
+      />
 
       <EdgeLabelRenderer>
         <div
