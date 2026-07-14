@@ -51,13 +51,8 @@ function cardinalitySymbolD(
   return `M ${x},${y} L ${x-spread},${y-len} M ${x},${y} L ${x},${y-len} M ${x},${y} L ${x+spread},${y-len}`;
 }
 
-function getPortPosition(dx: number, dy: number): Position {
-  const a = Math.atan2(dy, dx);
-  if (a < -Math.PI * 3 / 4) return Position.Left;
-  if (a < -Math.PI / 4) return Position.Top;
-  if (a < Math.PI / 4) return Position.Right;
-  if (a < Math.PI * 3 / 4) return Position.Bottom;
-  return Position.Left;
+function getPortPosition(dx: number): Position {
+  return dx >= 0 ? Position.Right : Position.Left;
 }
 
 function portX(pos: Position, nx: number, nw: number): number {
@@ -105,8 +100,8 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
     const scy = srcNode.position.y + (srcMeas.height ?? 40) / 2;
     const tcx = tgtNode.position.x + (tgtMeas.width ?? 220) / 2;
     const tcy = tgtNode.position.y + (tgtMeas.height ?? 40) / 2;
-    sp = getPortPosition(tcx - scx, tcy - scy);
-    tp = getPortPosition(scx - tcx, scy - tcy);
+    sp = getPortPosition(tcx - scx);
+    tp = getPortPosition(scx - tcx);
     sx = portX(sp, srcNode.position.x, srcMeas.width ?? 220);
     sy = portY(sp, srcNode.position.y, srcMeas.height ?? 40);
     tx = portX(tp, tgtNode.position.x, tgtMeas.width ?? 220);
