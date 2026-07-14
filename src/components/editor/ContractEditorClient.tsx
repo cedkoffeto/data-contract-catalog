@@ -168,9 +168,14 @@ function findYamlLineForPath(content: string, path: string) {
 }
 
 class ErrorDotGutterMarker extends GutterMarker {
+  constructor(readonly lineNumber: number) {
+    super();
+  }
+
   toDOM() {
     const el = document.createElement("div");
     el.className = "cm-error-dot-gutter-marker";
+    el.dataset.errorLine = String(this.lineNumber);
     return el;
   }
 }
@@ -185,7 +190,7 @@ function createErrorGutter(
       for (const [lineNumber, msg] of errorMap) {
         if (lineNumber < 1 || lineNumber > view.state.doc.lines) continue;
         const line = view.state.doc.line(lineNumber);
-        result.push({ from: line.from, to: line.from, value: new ErrorDotGutterMarker() });
+        result.push({ from: line.from, to: line.from, value: new ErrorDotGutterMarker(lineNumber) });
       }
       return RangeSet.of(result, true);
     },
@@ -838,29 +843,21 @@ export function ContractEditorClient({
   const normalizedExplorerQuery = explorerQuery.trim().toLowerCase();
 
   useEffect(() => {
-    const view = codeMirrorRef.current?.view;
-    if (!view || validationErrorMap.size === 0) return;
+    if (validationErrorMap.size === 0) return;
 
     const handleMouseDown = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      const marker = target.closest(".cm-error-dot-gutter-marker") as HTMLElement | null;
+      const marker = (event.target as HTMLElement).closest("[data-error-line]") as HTMLElement | null;
       if (!marker) return;
 
-      const gutterElement = marker.closest(".cm-gutterElement") as HTMLElement | null;
-      if (!gutterElement) return;
-
-      const rect = gutterElement.getBoundingClientRect();
-      const y = (rect.top + rect.bottom) / 2;
-      const line = view.lineBlockAtHeight(y - view.documentTop);
-      const lineNumber = view.state.doc.lineAt(line.from).number;
+      const lineNumber = parseInt(marker.dataset.errorLine || "", 10);
       const msg = validationErrorMap.get(lineNumber);
       if (msg) {
         setErrorPopover({ lineNumber, message: msg, x: event.clientX, y: event.clientY });
       }
     };
 
-    view.dom.addEventListener("mousedown", handleMouseDown);
-    return () => view.dom.removeEventListener("mousedown", handleMouseDown);
+    document.addEventListener("mousedown", handleMouseDown);
+    return () => document.removeEventListener("mousedown", handleMouseDown);
   }, [validationErrorMap]);
 
   const contractsByMaturity = useMemo(() => {
