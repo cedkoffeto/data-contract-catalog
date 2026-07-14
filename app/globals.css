@@ -3794,6 +3794,69 @@ body[data-ra-modal] [data-ra-overlay] {
   padding: 0.8rem;
 }
 
+.editor-error-popover {
+  position: fixed;
+  z-index: 9999;
+  background: #1e293b;
+  color: #f1f5f9;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  max-width: 420px;
+  min-width: 200px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.editor-error-popover-arrow {
+  position: absolute;
+  top: 12px;
+  left: -6px;
+  width: 0;
+  height: 0;
+  border: 6px solid transparent;
+  border-right-color: #1e293b;
+}
+
+.editor-error-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  font-weight: 600;
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.editor-error-popover-close {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.editor-error-popover-close:hover {
+  color: #f1f5f9;
+}
+
+.editor-error-popover-body {
+  padding: 10px 12px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.editor-error-popover-body pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: #fca5a5;
+}
+
 @media (max-width: 1100px) {
   .catalog-layout,
   .catalog-grid,

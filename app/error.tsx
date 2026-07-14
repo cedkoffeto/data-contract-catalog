@@ -3,7 +3,6 @@
 import Link from "next/link";
 
 import { GoBackButton } from "@/src/components/ui/GoBackButton";
-import { PageShell } from "@/src/components/layout/PageShell";
 
 export default function GlobalError({
   error,
@@ -13,8 +12,8 @@ export default function GlobalError({
   reset: () => void;
 }) {
   return (
-    <PageShell footerVersion="">
-      <main className="pb-7">
+    <div className="flex min-h-screen flex-col">
+      <main className="flex-1 pb-7">
         <div className="mx-auto flex min-h-[60vh] max-w-7xl items-center justify-center px-6 pb-8 pt-10 lg:px-8">
           <div className="w-full max-w-xl rounded-xl border bg-white shadow-lg">
             <div className="p-12 text-center">
@@ -44,6 +43,6 @@ export default function GlobalError({
           </div>
         </div>
       </main>
-    </PageShell>
+    </div>
   );
 }

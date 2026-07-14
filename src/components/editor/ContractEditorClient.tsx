@@ -5,9 +5,9 @@ import { Fragment, type ReactNode, useCallback, useEffect, useMemo, useRef, useS
 import type { IChangeEvent } from "@rjsf/core";
 import { yaml as yamlLanguage } from "@codemirror/lang-yaml";
 import { foldGutter, indentUnit } from "@codemirror/language";
-import { RangeSetBuilder, StateField } from "@codemirror/state";
+import { RangeSet, RangeSetBuilder, StateField } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { Decoration } from "@codemirror/view";
+import { Decoration, gutter, GutterMarker } from "@codemirror/view";
 import Form from "@rjsf/shadcn";
 import validator from "@rjsf/validator-ajv8";
 import type { RJSFSchema, RJSFValidationError, UiSchema } from "@rjsf/utils";
@@ -167,6 +167,33 @@ function findYamlLineForPath(content: string, path: string) {
   return fallbackLine;
 }
 
+class ErrorDotGutterMarker extends GutterMarker {
+  toDOM() {
+    const el = document.createElement("div");
+    el.className = "cm-error-dot-gutter-marker";
+    return el;
+  }
+}
+
+function createErrorGutter(
+  errorMap: Map<number, string>,
+) {
+  return gutter({
+    class: "cm-error-dot-gutter",
+    markers: (view) => {
+      const result: { from: number; to: number; value: GutterMarker }[] = [];
+      for (const [lineNumber, msg] of errorMap) {
+        if (lineNumber < 1 || lineNumber > view.state.doc.lines) continue;
+        const line = view.state.doc.line(lineNumber);
+        result.push({ from: line.from, to: line.from, value: new ErrorDotGutterMarker() });
+      }
+      return RangeSet.of(result, true);
+    },
+  });
+}
+
+
+
 function createValidationDecorations(lineNumbers: number[]) {
   const uniqueLineNumbers = Array.from(new Set(lineNumbers.filter((lineNumber) => lineNumber > 0)));
 
@@ -184,6 +211,50 @@ function createValidationDecorations(lineNumbers: number[]) {
 
     return builder.finish();
   });
+}
+
+function ErrorPopover({ lineNumber, message, x, y, onClose }: {
+  lineNumber: number;
+  message: string;
+  x: number;
+  y: number;
+  onClose: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      ref={ref}
+      className="editor-error-popover"
+      style={{ left: x + 20, top: y - 12 }}
+    >
+      <div className="editor-error-popover-arrow" />
+      <div className="editor-error-popover-header">
+        <span>Ligne {lineNumber}</span>
+        <button className="editor-error-popover-close" onClick={onClose} aria-label="Fermer">&times;</button>
+      </div>
+      <div className="editor-error-popover-body">
+        <pre>{message}</pre>
+      </div>
+    </div>
+  );
 }
 
 function createFileTree(files: WorkspaceDocument[], prefixToStrip: string) {
@@ -237,7 +308,25 @@ const rawEditorTheme = EditorView.theme({
   ".cm-activeLine": { backgroundColor: "rgba(148, 163, 184, 0.08)" },
   ".cm-cursor": { borderLeftColor: "#f97316" },
   ".cm-selectionBackground, ::selection": { backgroundColor: "rgba(249, 115, 22, 0.30) !important" },
-  ".cm-focused": { outline: "none" }
+  ".cm-focused": { outline: "none" },
+  ".cm-error-dot-gutter": { width: "20px" },
+  ".cm-error-dot-gutter .cm-gutterElement": {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "default"
+  },
+  ".cm-error-dot-gutter-marker": {
+    width: "8px",
+    height: "8px",
+    borderRadius: "50%",
+    backgroundColor: "#ef4444",
+    cursor: "pointer",
+    transition: "transform 0.15s"
+  },
+  ".cm-error-dot-gutter-marker:hover": {
+    transform: "scale(1.4)"
+  }
 });
 
 const diffLineDecorations = StateField.define({
@@ -578,6 +667,14 @@ export function ContractEditorClient({
   });
   const [isExplorerOpen, setIsExplorerOpen] = useState(true);
   const [isPreviewOpen, setIsPreviewOpen] = useState(true);
+  const [errorPopover, setErrorPopover] = useState<{
+    lineNumber: number;
+    message: string;
+    x: number;
+    y: number;
+  } | null>(null);
+  const closeErrorPopover = useCallback(() => setErrorPopover(null), []);
+
   const [isBottomPanelOpen, setIsBottomPanelOpen] = useState(false);
   const [openFolders, setOpenFolders] = useState<Record<ExplorerFolder, boolean>>({
     workspace: true,
@@ -704,7 +801,67 @@ export function ContractEditorClient({
     validationErrors,
     yamlValidationState.parseLineNumber
   ]);
+
+  const validationErrorMap = useMemo(() => {
+    const map = new Map<number, string>();
+    if (!isContractDocument || activeTab !== "yaml" || isHistoryYamlView || isCompareYamlView) {
+      return map;
+    }
+
+    if (yamlValidationState.parseLineNumber && yamlValidationState.parseError) {
+      map.set(yamlValidationState.parseLineNumber, yamlValidationState.parseError);
+      return map;
+    }
+
+    for (const error of validationErrors) {
+      const line = findYamlLineForPath(selectedDocument.content, error.property ?? "");
+      if (line != null) {
+        let msg = error.stack || error.message || "";
+        const ajvParams = (error as any).params;
+        if (ajvParams?.allowedValues) {
+          msg += `\nValeurs autorisées : ${ajvParams.allowedValues.join(", ")}`;
+        }
+        map.set(line, map.has(line) ? `${map.get(line)}\n${msg}` : msg);
+      }
+    }
+    return map;
+  }, [
+    activeTab,
+    isCompareYamlView,
+    isContractDocument,
+    isHistoryYamlView,
+    selectedDocument.content,
+    validationErrors,
+    yamlValidationState.parseLineNumber,
+    yamlValidationState.parseError
+  ]);
   const normalizedExplorerQuery = explorerQuery.trim().toLowerCase();
+
+  useEffect(() => {
+    const view = codeMirrorRef.current?.view;
+    if (!view || validationErrorMap.size === 0) return;
+
+    const handleMouseDown = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      const marker = target.closest(".cm-error-dot-gutter-marker") as HTMLElement | null;
+      if (!marker) return;
+
+      const gutterElement = marker.closest(".cm-gutterElement") as HTMLElement | null;
+      if (!gutterElement) return;
+
+      const rect = gutterElement.getBoundingClientRect();
+      const y = (rect.top + rect.bottom) / 2;
+      const line = view.lineBlockAtHeight(y - view.documentTop);
+      const lineNumber = view.state.doc.lineAt(line.from).number;
+      const msg = validationErrorMap.get(lineNumber);
+      if (msg) {
+        setErrorPopover({ lineNumber, message: msg, x: event.clientX, y: event.clientY });
+      }
+    };
+
+    view.dom.addEventListener("mousedown", handleMouseDown);
+    return () => view.dom.removeEventListener("mousedown", handleMouseDown);
+  }, [validationErrorMap]);
 
   const contractsByMaturity = useMemo(() => {
     const groups = new Map<string, WorkspaceDocument[]>();
@@ -1560,8 +1717,9 @@ export function ContractEditorClient({
                         extensions={useMemo(() => [
                           ...STATIC_EDITOR_EXTENSIONS,
                           ...(validationIssueLines.length > 0 ? [createValidationDecorations(validationIssueLines)] : []),
+                          ...(validationErrorMap.size > 0 ? [createErrorGutter(validationErrorMap)] : []),
                           ...(isCompareYamlView ? [diffLineDecorations] : [])
-                        ], [validationIssueLines, isCompareYamlView])}
+                        ], [validationIssueLines, validationErrorMap, isCompareYamlView])}
                         onChange={handleContentChange}
                         value={displayedYaml}
                       />
@@ -1578,6 +1736,16 @@ export function ContractEditorClient({
                     </div>
                   </div>
                 ) : null}
+
+                {errorPopover && (
+                  <ErrorPopover
+                    lineNumber={errorPopover.lineNumber}
+                    message={errorPopover.message}
+                    x={errorPopover.x}
+                    y={errorPopover.y}
+                    onClose={closeErrorPopover}
+                  />
+                )}
 
                 {activeTab === "form" ? (
                   <div className="editor-form-surface">
