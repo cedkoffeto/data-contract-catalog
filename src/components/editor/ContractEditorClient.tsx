@@ -950,6 +950,14 @@ export function ContractEditorClient({
     };
   }, [validationErrorMap]);
 
+  const codeMirrorExtensions = useMemo(() => [
+    ...STATIC_EDITOR_EXTENSIONS,
+    ...(validationIssueLines.length > 0 ? [createValidationDecorations(validationIssueLines)] : []),
+    ...(validationErrorMap.size > 0 ? [createErrorGutter(validationErrorMap)] : []),
+    ...(isCompareYamlView ? [diffLineDecorations] : []),
+    ...(sortedErrorLines.length > 0 ? [errorKeymap] : [])
+  ], [validationIssueLines, validationErrorMap, isCompareYamlView, sortedErrorLines, errorKeymap]);
+
   const contractsByMaturity = useMemo(() => {
     const groups = new Map<string, WorkspaceDocument[]>();
     documents
@@ -1828,13 +1836,7 @@ export function ContractEditorClient({
                         }}
                         className="editor-codemirror"
                         editable={isEditable && !isHistoryYamlView && !isCompareYamlView}
-                        extensions={useMemo(() => [
-                          ...STATIC_EDITOR_EXTENSIONS,
-                          ...(validationIssueLines.length > 0 ? [createValidationDecorations(validationIssueLines)] : []),
-                          ...(validationErrorMap.size > 0 ? [createErrorGutter(validationErrorMap)] : []),
-                          ...(isCompareYamlView ? [diffLineDecorations] : []),
-                          ...(sortedErrorLines.length > 0 ? [errorKeymap] : [])
-                        ], [validationIssueLines, validationErrorMap, isCompareYamlView, sortedErrorLines, errorKeymap])}
+                        extensions={codeMirrorExtensions}
                         onChange={handleContentChange}
                         value={displayedYaml}
                       />
