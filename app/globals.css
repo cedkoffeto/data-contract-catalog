@@ -3797,10 +3797,11 @@ body[data-ra-modal] [data-ra-overlay] {
 .editor-error-popover {
   position: fixed;
   z-index: 9999;
-  background: #1e293b;
-  color: #f1f5f9;
+  background: #fff;
+  color: #1e293b;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
   max-width: 420px;
   min-width: 200px;
   font-size: 0.8rem;
@@ -3814,7 +3815,7 @@ body[data-ra-modal] [data-ra-overlay] {
   width: 0;
   height: 0;
   border: 6px solid transparent;
-  border-right-color: #1e293b;
+  border-right-color: #fff;
 }
 
 .editor-error-popover-header {
@@ -3822,10 +3823,10 @@ body[data-ra-modal] [data-ra-overlay] {
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.12);
+  border-bottom: 1px solid #e2e8f0;
   font-weight: 600;
   font-size: 0.78rem;
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .editor-error-popover-close {
@@ -3839,7 +3840,7 @@ body[data-ra-modal] [data-ra-overlay] {
 }
 
 .editor-error-popover-close:hover {
-  color: #f1f5f9;
+  color: #475569;
 }
 
 .editor-error-popover-body {
@@ -3854,7 +3855,7 @@ body[data-ra-modal] [data-ra-overlay] {
   word-break: break-word;
   font-family: var(--font-mono);
   font-size: 0.78rem;
-  color: #fca5a5;
+  color: #dc2626;
 }
 
 @media (max-width: 1100px) {
