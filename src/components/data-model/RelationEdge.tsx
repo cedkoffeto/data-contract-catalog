@@ -5,6 +5,7 @@ import {
   getSmoothStepPath,
   EdgeLabelRenderer,
   Position,
+  useReactFlow,
   type EdgeProps,
 } from "@xyflow/react";
 import { HighlightCtx } from "./ModelGraph";
@@ -28,23 +29,47 @@ function edgeOffset(position: Position, side: "source" | "target", distance: num
 function cardinalitySymbolD(
   x: number, y: number, pos: Position, type: "one" | "many"
 ): string {
-  const len = 2;
-  const gap = 4;
-  const horiz = pos === Position.Top || pos === Position.Bottom;
   if (type === "one") {
-    if (horiz) return `M ${x-len},${y} L ${x+len},${y}`;
-    return `M ${x},${y-len} L ${x},${y+len}`;
-  }
-  // many — three parallel lines
-  const parts: string[] = [];
-  for (const off of [-gap, 0, gap]) {
-    if (horiz) {
-      parts.push(`M ${x-len},${y+off} L ${x+len},${y+off}`);
-    } else {
-      parts.push(`M ${x+off},${y-len} L ${x+off},${y+len}`);
+    if (pos === Position.Top || pos === Position.Bottom) {
+      return `M ${x-2},${y} L ${x+2},${y}`;
     }
+    return `M ${x},${y-2} L ${x},${y+2}`;
   }
-  return parts.join(" ");
+  // many — three diverging lines (crow's foot) spreading toward the table
+  const len = 5;
+  const spread = 4;
+  if (pos === Position.Right) {
+    return `M ${x},${y} L ${x-len},${y-spread} M ${x},${y} L ${x-len},${y} M ${x},${y} L ${x-len},${y+spread}`;
+  }
+  if (pos === Position.Left) {
+    return `M ${x},${y} L ${x+len},${y-spread} M ${x},${y} L ${x+len},${y} M ${x},${y} L ${x+len},${y+spread}`;
+  }
+  if (pos === Position.Top) {
+    return `M ${x},${y} L ${x-spread},${y+len} M ${x},${y} L ${x},${y+len} M ${x},${y} L ${x+spread},${y+len}`;
+  }
+  // Bottom
+  return `M ${x},${y} L ${x-spread},${y-len} M ${x},${y} L ${x},${y-len} M ${x},${y} L ${x+spread},${y-len}`;
+}
+
+function getPortPosition(dx: number, dy: number): Position {
+  const a = Math.atan2(dy, dx);
+  if (a < -Math.PI * 3 / 4) return Position.Left;
+  if (a < -Math.PI / 4) return Position.Top;
+  if (a < Math.PI / 4) return Position.Right;
+  if (a < Math.PI * 3 / 4) return Position.Bottom;
+  return Position.Left;
+}
+
+function portX(pos: Position, nx: number, nw: number): number {
+  if (pos === Position.Left) return nx;
+  if (pos === Position.Right) return nx + nw;
+  return nx + nw / 2;
+}
+
+function portY(pos: Position, ny: number, nh: number): number {
+  if (pos === Position.Top) return ny;
+  if (pos === Position.Bottom) return ny + nh;
+  return ny + nh / 2;
 }
 
 export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
@@ -61,13 +86,40 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
 
   const hOff = parallelOffset * 8;
 
+  const { getNodes } = useReactFlow();
+  const nodes = getNodes();
+  const srcNode = nodes.find((n) => n.id === source);
+  const tgtNode = nodes.find((n) => n.id === target);
+  const srcMeas = srcNode?.measured;
+  const tgtMeas = tgtNode?.measured;
+
+  let sp = sourcePosition;
+  let tp = targetPosition;
+  let sx = sourceX;
+  let sy = sourceY;
+  let tx = targetX;
+  let ty = targetY;
+
+  if (srcNode && tgtNode && srcMeas && tgtMeas) {
+    const scx = srcNode.position.x + (srcMeas.width ?? 220) / 2;
+    const scy = srcNode.position.y + (srcMeas.height ?? 40) / 2;
+    const tcx = tgtNode.position.x + (tgtMeas.width ?? 220) / 2;
+    const tcy = tgtNode.position.y + (tgtMeas.height ?? 40) / 2;
+    sp = getPortPosition(tcx - scx, tcy - scy);
+    tp = getPortPosition(scx - tcx, scy - tcy);
+    sx = portX(sp, srcNode.position.x, srcMeas.width ?? 220);
+    sy = portY(sp, srcNode.position.y, srcMeas.height ?? 40);
+    tx = portX(tp, tgtNode.position.x, tgtMeas.width ?? 220);
+    ty = portY(tp, tgtNode.position.y, tgtMeas.height ?? 40);
+  }
+
   const [edgePath, labelX, labelY] = getSmoothStepPath({
-    sourceX: sourceX + hOff,
-    sourceY: sourceY + sourceOffset,
-    sourcePosition,
-    targetX: targetX + hOff,
-    targetY: targetY + targetOffset,
-    targetPosition,
+    sourceX: sx + hOff,
+    sourceY: sy + sourceOffset,
+    sourcePosition: sp,
+    targetX: tx + hOff,
+    targetY: ty + targetOffset,
+    targetPosition: tp,
     borderRadius: 18,
   });
 
@@ -157,8 +209,8 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
       <g opacity={edgeActive || isEdgeHighlighted ? 1 : 0.2} />
 
       <text
-        x={sourceX + hOff + edgeOffset(sourcePosition, "source", 14).dx}
-        y={sourceY + sourceOffset + edgeOffset(sourcePosition, "source", 14).dy - 9}
+        x={sx + hOff + edgeOffset(sp, "source", 14).dx}
+        y={sy + sourceOffset + edgeOffset(sp, "source", 14).dy - 9}
         textAnchor="middle"
         dominantBaseline="central"
         fill={edgeActive ? "#3b82f6" : "#cbd5e1"}
@@ -172,9 +224,9 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
       </text>
       <path
         d={cardinalitySymbolD(
-          sourceX + hOff + edgeOffset(sourcePosition, "source", 6).dx,
-          sourceY + sourceOffset + edgeOffset(sourcePosition, "source", 6).dy,
-          sourcePosition,
+          sx + hOff + edgeOffset(sp, "source", 6).dx,
+          sy + sourceOffset + edgeOffset(sp, "source", 6).dy,
+          sp,
           cardSource === "many" ? "many" : "one",
         )}
         stroke={edgeActive ? "#3b82f6" : "#cbd5e1"}
@@ -185,8 +237,8 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
       />
 
       <text
-        x={targetX + hOff + edgeOffset(targetPosition, "target", 14).dx}
-        y={targetY + targetOffset + edgeOffset(targetPosition, "target", 14).dy - 9}
+        x={tx + hOff + edgeOffset(tp, "target", 14).dx}
+        y={ty + targetOffset + edgeOffset(tp, "target", 14).dy - 9}
         textAnchor="middle"
         dominantBaseline="central"
         fill={edgeActive ? "#3b82f6" : "#cbd5e1"}
@@ -200,9 +252,9 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
       </text>
       <path
         d={cardinalitySymbolD(
-          targetX + hOff + edgeOffset(targetPosition, "target", 6).dx,
-          targetY + targetOffset + edgeOffset(targetPosition, "target", 6).dy,
-          targetPosition,
+          tx + hOff + edgeOffset(tp, "target", 6).dx,
+          ty + targetOffset + edgeOffset(tp, "target", 6).dy,
+          tp,
           cardTarget === "many" ? "many" : "one",
         )}
         stroke={edgeActive ? "#3b82f6" : "#cbd5e1"}

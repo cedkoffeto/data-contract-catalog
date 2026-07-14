@@ -1,19 +1,23 @@
 "use client";
 
-import { createContext, useMemo, useCallback, useState, useEffect, useLayoutEffect, useRef, memo } from "react";
+import { createContext, useMemo, useCallback, useState, useEffect, useLayoutEffect, useRef, memo, useContext, type RefObject } from "react";
 import {
   ReactFlow,
   Background,
   BackgroundVariant,
   MiniMap,
   Panel,
+  EdgeLabelRenderer,
   useNodesState,
   useEdgesState,
   useReactFlow,
+  useOnViewportChange,
   PanOnScrollMode,
+  Position,
   type Node,
   type Edge,
   type NodeProps,
+  type Viewport,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { ContractTableNode } from "./ContractTableNode";
@@ -65,16 +69,35 @@ export const ViewModeCtx = createContext<ViewModeValue>({
   onToggleCollapse: () => {},
 });
 
+export type EdgeRenderData = {
+  path: string;
+  sourceX: number;
+  sourceY: number;
+  targetX: number;
+  targetY: number;
+  parallelOffset: number;
+  targetParallelOffset: number;
+  cardSource: string;
+  cardTarget: string;
+  label: string;
+};
+
 type HighlightValue = {
   highlightedNode: string | null;
   highlightedNeighbors: Set<string> | null;
   selectedEdge: string | null;
+  hoveredEdgeId: string | null;
+  onHoveredEdgeChange: (id: string | null) => void;
+  edgeRenderDataRef: React.RefObject<Map<string, EdgeRenderData>>;
 };
 
 export const HighlightCtx = createContext<HighlightValue>({
   highlightedNode: null,
   highlightedNeighbors: null,
   selectedEdge: null,
+  hoveredEdgeId: null,
+  onHoveredEdgeChange: () => {},
+  edgeRenderDataRef: { current: new Map() },
 });
 
 export function ModelGraph({
@@ -124,7 +147,9 @@ export function ModelGraph({
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [highlightedNode, setHighlightedNode] = useState<string | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<string | null>(null);
+  const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
   const edgeClickGuardRef = useRef(false);
+  const edgeRenderDataRef = useRef(new Map<string, EdgeRenderData>());
   const [showGrid, setShowGrid] = useState(true);
 
   const { setCenter, fitView } = useReactFlow();
@@ -171,6 +196,10 @@ export function ModelGraph({
   const handlePaneClick = useCallback(() => {
     if (edgeClickGuardRef.current) return;
     setSelectedEdge(null);
+  }, []);
+
+  const handleHoveredEdgeChange = useCallback((id: string | null) => {
+    setHoveredEdgeId(id);
   }, []);
 
   // Adjacency map built once when edges change — O(E) once, O(1) per lookup
@@ -255,7 +284,10 @@ export function ModelGraph({
     highlightedNode,
     highlightedNeighbors,
     selectedEdge,
-  }), [highlightedNode, highlightedNeighbors, selectedEdge]);
+    hoveredEdgeId,
+    onHoveredEdgeChange: handleHoveredEdgeChange,
+    edgeRenderDataRef,
+  }), [highlightedNode, highlightedNeighbors, selectedEdge, hoveredEdgeId, handleHoveredEdgeChange]);
 
   return (
     <HighlightCtx.Provider value={highlightCtxValue}>
