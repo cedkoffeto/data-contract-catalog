@@ -181,19 +181,17 @@ export function ModelGraph({
     [searchMatchIds],
   );
 
-  // Update opacity when search changes
+  // Update highlight when search changes
   useEffect(() => {
     if (searchMatchSet && searchMatchSet.size > 0) {
       setNodes((nds) => nds.map((n) => ({
         ...n,
-        style: n.id.startsWith("__bg_") ? n.style : { ...n.style, opacity: searchMatchSet.has(n.id) ? 1 : 0.3 },
         className: searchMatchSet.has(n.id) ? "search-match" : undefined,
       })));
     } else {
       setNodes((nds) => nds.map((n) => {
-        if (!n.style?.opacity || n.style.opacity === 1) return n;
-        const { opacity: _, ...rest } = n.style;
-        return { ...n, style: Object.keys(rest).length ? rest : undefined, className: undefined };
+        if (!n.className) return n;
+        return { ...n, className: undefined };
       }));
     }
   }, [searchMatchSet, setNodes]);

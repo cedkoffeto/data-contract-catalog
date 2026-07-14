@@ -4146,6 +4146,11 @@ body[data-ra-modal] [data-ra-overlay] {
   background: var(--ui-bg-soft);
 }
 
+#commit-modal {
+  resize: both;
+  overflow: auto;
+}
+
 .contract-side-card__header-actions {
   display: flex;
   align-items: center;
@@ -4902,4 +4907,11 @@ body[data-ra-modal] [data-ra-overlay] {
   background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+.search-match > .react-flow__node-default,
+.search-match > .react-flow__node-contract-table {
+  outline: 2px solid #f97316;
+  outline-offset: 2px;
+  border-radius: 10px;
 }

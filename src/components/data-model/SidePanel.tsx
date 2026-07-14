@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { Search, ArrowRight, ArrowLeft, ExternalLink } from "lucide-react";
+import { Search, ExternalLink } from "lucide-react";
 import type { Edge } from "@xyflow/react";
 import type { DataModelContract } from "@/src/lib/data-model";
 
@@ -147,20 +147,24 @@ export function SidePanel({
                 </div>
               ) : (
                 <>
-                  <div className="px-4 py-2 grid grid-cols-[2fr_140px_2fr] gap-3 items-center border-b border-gray-100 bg-gray-50/50 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    <span className="min-w-0">Field Name</span>
-                    <span className="min-w-0">Data Type</span>
-                    <span className="min-w-0">Description</span>
-                  </div>
-                  <div className="divide-y divide-gray-50">
-                    {filteredFields.map((f) => (
-                      <div key={f.name} className="grid grid-cols-[2fr_140px_2fr] gap-3 px-4 py-2 items-center text-xs hover:bg-gray-50">
-                        <span className="min-w-0 font-mono font-medium text-gray-900 break-words" title={f.name}>{f.name}</span>
-                        <span className="min-w-0 font-mono text-gray-400 truncate" title={f.type}>{f.type}</span>
-                        <span className="min-w-0 text-gray-400 break-words" title={f.description ?? ""}>{f.description}</span>
-                      </div>
-                    ))}
-                  </div>
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-gray-100 bg-gray-50/50 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        <th className="px-4 py-2 text-left whitespace-nowrap">Field Name</th>
+                        <th className="px-4 py-2 text-left whitespace-nowrap">Data Type</th>
+                        <th className="w-full px-4 py-2 text-left">Description</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {filteredFields.map((f) => (
+                        <tr key={f.name} className="hover:bg-gray-50">
+                          <td className="px-4 py-2 font-mono font-medium text-gray-900 break-words align-top" title={f.name}>{f.name}</td>
+                          <td className="px-4 py-2 font-mono text-gray-400 break-words align-top" title={f.type}>{f.type}</td>
+                          <td className="w-full px-4 py-2 text-gray-400 break-words align-top" title={f.description ?? ""}>{f.description}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </>
               )}
             </div>
@@ -194,44 +198,50 @@ export function SidePanel({
               </div>
             )}
 
-            {/* Relations */}
-            {outgoing.length > 0 && (
-              <div className="border-b border-gray-100 px-4 py-2">
-                <h3 className="text-[10px] font-semibold text-gray-500 mb-1">
-                  Outgoing ({outgoing.length})
-                </h3>
-                <div className="space-y-0.5">
-                  {outgoing.map(({ edge, other }) => (
-                    <button
-                      key={edge.id}
-                      onClick={() => onCenterView?.(contractId(other))}
-                      className="flex w-full items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-left hover:bg-gray-50 transition-colors"
-                    >
-                      <ArrowRight size={8} className="shrink-0 text-amber-500" />
-                      <span className="font-mono text-gray-700 truncate">{other.slug}</span>
-                      <span className="ml-auto text-[9px] text-gray-400 truncate">{edge.label as string}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            {incoming.length > 0 && (
-              <div className="px-4 py-2">
-                <h3 className="text-[10px] font-semibold text-gray-500 mb-1">
-                  Incoming ({incoming.length})
-                </h3>
-                <div className="space-y-0.5">
-                  {incoming.map(({ edge, other }) => (
-                    <button
-                      key={edge.id}
-                      onClick={() => onCenterView?.(contractId(other))}
-                      className="flex w-full items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-left hover:bg-gray-50 transition-colors"
-                    >
-                      <ArrowLeft size={8} className="shrink-0 text-blue-500" />
-                      <span className="font-mono text-gray-700 truncate">{other.slug}</span>
-                      <span className="ml-auto text-[9px] text-gray-400 truncate">{edge.label as string}</span>
-                    </button>
-                  ))}
+            {/* Lineage block */}
+            {(incoming.length > 0 || outgoing.length > 0) && (
+              <div className="border-t border-gray-100 px-4 py-3">
+                <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">Lineage</h4>
+                <div className="grid grid-cols-[1fr_auto_1fr] gap-2">
+                  <div className="rounded-lg border border-orange-200 bg-orange-50/50 p-2">
+                    <h5 className="text-[9px] font-bold uppercase tracking-wide text-orange-700 mb-1.5">Upstream</h5>
+                    <div className="space-y-1">
+                      {incoming.length > 0 ? incoming.map(({ edge, other }) => (
+                        <button
+                          key={edge.id}
+                          onClick={() => onCenterView?.(contractId(other))}
+                          className="block w-full rounded border border-orange-300 bg-white px-2 py-1 text-[10px] text-gray-700 text-left hover:bg-orange-50 transition-colors font-mono truncate"
+                        >
+                          {other.slug}
+                        </button>
+                      )) : (
+                        <span className="text-[10px] text-gray-400 italic">None</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-center">
+                    <svg className="h-6 w-6 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 12h16m-5-5 5 5-5 5" />
+                    </svg>
+                  </div>
+
+                  <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-2">
+                    <h5 className="text-[9px] font-bold uppercase tracking-wide text-blue-700 mb-1.5">Downstream</h5>
+                    <div className="space-y-1">
+                      {outgoing.length > 0 ? outgoing.map(({ edge, other }) => (
+                        <button
+                          key={edge.id}
+                          onClick={() => onCenterView?.(contractId(other))}
+                          className="block w-full rounded border border-blue-300 bg-white px-2 py-1 text-[10px] text-gray-700 text-left hover:bg-blue-50 transition-colors font-mono truncate"
+                        >
+                          {other.slug}
+                        </button>
+                      )) : (
+                        <span className="text-[10px] text-gray-400 italic">None</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

@@ -52,6 +52,7 @@ function parseContractFromRaw(
   const maturity = (asset.maturity as string) || defaultMaturity;
 
   const fields: ContractField[] = [];
+  const relations: { ref_name: string; ref: string }[] = [];
   const schema = (doc.contract as Record<string, unknown>)?.schema as Record<string, unknown> | undefined;
   if (schema?.fields && Array.isArray(schema.fields)) {
     for (const f of schema.fields as Record<string, unknown>[]) {
@@ -60,11 +61,16 @@ function parseContractFromRaw(
         type: (f.type as string) || "string",
         description: f.description as string | undefined,
       });
+      const fieldRels = f.relations;
+      if (Array.isArray(fieldRels)) {
+        for (const r of fieldRels as Record<string, unknown>[]) {
+          relations.push({ ref_name: (r.ref_name as string) || "", ref: (r.ref as string) || "" });
+        }
+      }
     }
   }
 
   const rawRels = schema?.relations ?? doc.relations;
-  const relations: { ref_name: string; ref: string }[] = [];
   if (Array.isArray(rawRels)) {
     for (const r of rawRels as Record<string, unknown>[]) {
       relations.push({ ref_name: (r.ref_name as string) || "", ref: (r.ref as string) || "" });

@@ -1,9 +1,10 @@
 "use client";
 
-import { memo, useContext, useEffect, useMemo } from "react";
+import { memo, useContext, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import type { NodeProps } from "@xyflow/react";
 import { Handle, Position } from "@xyflow/react";
-import { Table, Key, ChevronUp, ChevronDown } from "lucide-react";
+import { Table, Key, ChevronUp, ChevronDown, Info } from "lucide-react";
 import { ViewModeCtx } from "./ModelGraph";
 import type { ContractTableNodeData } from "@/src/lib/data-model";
 
@@ -22,6 +23,8 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
   const allFields = d.fields;
   const nodeConnected = connectedFields.get(id);
   const connectedSet = nodeConnected ?? new Set<string>();
+  const [hoveredField, setHoveredField] = useState<string | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
 
   const collapsed = collapsedTables.has(id);
   const showingDetailed = viewMode === "detailed" ? !collapsed : collapsed;
@@ -45,7 +48,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
     }
   }, []);
 
-  return (
+  return (<>
     <div
       className={`overflow-hidden rounded-2xl border border-gray-200 shadow-md transition-shadow hover:shadow-lg ${
         selected ? "ring-2 ring-blue-500" : isSearchMatch ? "ring-2 ring-green-500" : ""
@@ -80,7 +83,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
         {/* Header */}
         <div className="flex min-w-0 cursor-grab active:cursor-grabbing items-center gap-2 px-3 py-2" style={{ background: d.color.replace("hsl(", "hsla(").replace(")", ", 0.1)") }}>
           <span className="flex h-5 cursor-pointer items-center" onClick={(e) => { e.stopPropagation(); window.open(`/contracts/${d.slug}`, "_blank", "noopener,noreferrer"); }} title="Open contract detail"><Table size={14} style={{ color: d.color }} /></span>
-          <span className="flex h-5 min-w-0 items-center text-sm font-semibold tracking-tight text-gray-900" title={`${d.label}\ndomain: ${d.domain}\ncontext: ${d.context ?? ""}\nslug: ${d.slug}`}
+          <span className="flex h-5 min-w-0 items-center text-sm font-semibold tracking-tight text-gray-900" title={`${d.label}\ndomain: ${d.domain}\ncontext: ${d.context ?? ""}\nid: ${id}`}
             onClick={(e) => {
               if (e.ctrlKey || e.metaKey) { e.stopPropagation(); window.open(`/contracts/${d.slug}`, "_blank", "noopener,noreferrer"); }
               else onHeaderClick(d.slug);
@@ -107,7 +110,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
           {fields.map((f) => {
             const isConnected = connectedSet.has(f.name);
             return (
-              <div key={f.name} className="relative flex min-w-0 cursor-pointer items-center gap-2 border-t border-gray-50 px-3 py-[7px] text-xs text-gray-700 hover:bg-gray-50" onClick={(e) => {
+              <div key={f.name} className="group relative flex min-w-0 cursor-pointer items-center gap-2 border-t border-gray-50 px-3 py-[7px] text-xs text-gray-700 hover:bg-gray-50" onClick={(e) => {
                 if (e.ctrlKey || e.metaKey) { e.stopPropagation(); window.open(`/contracts/${d.slug}`, "_blank", "noopener,noreferrer"); }
                 else onFieldClick?.(d.slug);
               }}>
@@ -118,6 +121,18 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
                   <span className="w-[10px] shrink-0" />
                 )}
                 <span className={`min-w-0 font-mono text-[11px] leading-none ${isConnected ? "font-bold text-gray-900" : "text-gray-600"}`}>{f.name}</span>
+                {f.description && (
+                  <Info
+                    size={11}
+                    className="invisible group-hover:visible shrink-0 cursor-pointer text-gray-400 hover:text-blue-500 transition-colors"
+                    onMouseEnter={(e) => {
+                      setHoveredField(f.name);
+                      const rect = (e.currentTarget as unknown as HTMLElement).getBoundingClientRect();
+                      setTooltipPos({ top: rect.top - 6, left: rect.right + 8 });
+                    }}
+                    onMouseLeave={() => { setHoveredField(null); setTooltipPos(null); }}
+                  />
+                )}
                 <span className="ml-auto whitespace-nowrap text-[10px] leading-none text-gray-400">{f.type}</span>
                 {isConnected && <Handle type="source" position={Position.Right} id={f.name} className="!opacity-0 !pointer-events-none" />}
               </div>
@@ -137,8 +152,18 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
           {showingDetailed ? <ChevronUp size={14} strokeWidth={1.5} /> : <ChevronDown size={14} strokeWidth={1.5} />}
         </div>
       </div>
+
+      {hoveredField && tooltipPos && createPortal(
+        <div
+          className="fixed z-[9999] rounded-md bg-white px-2.5 py-1.5 text-[11px] text-gray-700 shadow-lg border border-gray-200 max-w-[260px] break-words pointer-events-none"
+          style={{ top: tooltipPos.top, left: tooltipPos.left }}
+        >
+          {allFields.find((f) => f.name === hoveredField)?.description}
+        </div>,
+        document.body,
+      )}
     </div>
-  );
+  </>);
 }, (prev, next) => {
   return prev.selected === next.selected && prev.id === next.id && prev.data === next.data;
 });

@@ -103,6 +103,7 @@ export function CommitModal({
       <div
         className="flex max-h-[80vh] flex-col rounded-lg bg-white shadow-xl"
         style={{ width: "min(60vw, 800px)" }}
+        id="commit-modal"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
@@ -159,7 +160,7 @@ export function CommitModal({
             id={`commit-msg-${id}`}
             onChange={(e) => setMessage(e.target.value)}
             placeholder={t("describeChanges")}
-            rows={4}
+            rows={6}
             value={message}
           />
         </div>

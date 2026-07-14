@@ -38,6 +38,12 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
     const payload = await getGitLabFileContent(slug, ref);
     return NextResponse.json(payload);
   } catch (error) {
+    if (error instanceof Error && error.cause && typeof error.cause === "object") {
+      const cause = error.cause as { response?: { status?: number } };
+      if (cause.response?.status === 404) {
+        return NextResponse.json({ content: null, notFoundAtRef: true });
+      }
+    }
     return apiError(error, isGitLabConfigurationError(error) ? 503 : 500);
   }
 }

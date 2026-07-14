@@ -19,18 +19,11 @@ type HunkRange = [start: number, end: number];
 
 function computeHunks(changes: DiffResult["unified"]): HunkRange[] {
   const hunks: HunkRange[] = [];
-  let start: number | null = null;
 
   for (let index = 0; index < changes.length; index += 1) {
     if (changes[index].type !== "unchanged") {
-      if (start === null) start = index;
-    } else if (start !== null) {
-      hunks.push([start, index - 1]);
-      start = null;
+      hunks.push([index, index]);
     }
-  }
-  if (start !== null) {
-    hunks.push([start, changes.length - 1]);
   }
 
   return hunks;

@@ -24,7 +24,7 @@ function formatDate(value: string) {
 
 const contentCache = new Map<string, { content: string; ts: number }>();
 
-async function fetchContent(slug: string, ref: string): Promise<string> {
+async function fetchContent(slug: string, ref: string): Promise<string | null> {
   const cacheKey = `${slug}:${ref}`;
   const cached = contentCache.get(cacheKey);
   if (cached && Date.now() - cached.ts < 30_000) {
@@ -34,7 +34,11 @@ async function fetchContent(slug: string, ref: string): Promise<string> {
   const response = await fetch(`/api/contracts/${slug}/repository-content?ref=${encodeURIComponent(ref)}`, {
     cache: "no-store"
   });
-  const data = await response.json() as { content?: string; error?: string };
+  const data = await response.json() as { content?: string; error?: string; notFoundAtRef?: boolean };
+
+  if (data.notFoundAtRef) {
+    return null;
+  }
 
   if (!response.ok || !data.content) {
     throw new Error(data.error ?? "Unable to load contract version");
@@ -105,12 +109,37 @@ export function ContractDiffDialog({
 
     try {
       const fromContent = await fetchContent(slug, fromRef);
-      const toContent = toRef === "latest" ? currentYamlRaw : await fetchContent(slug, toRef);
+      if (fromContent === null) {
+        setError(tWith("contractNotExistAtRef", { ref: fromEntry?.shortId ?? fromRef }));
+        return;
+      }
 
-      const fromData = yaml.load(fromContent) as Record<string, unknown> | null;
-      const toData = toRef === "latest"
-        ? (currentData as unknown as Record<string, unknown>)
-        : (yaml.load(toContent) as Record<string, unknown> | null);
+      const toContent = toRef === "latest" ? currentYamlRaw : await fetchContent(slug, toRef);
+      if (toContent === null) {
+        setError(tWith("contractNotExistAtRef", { ref: toEntry?.shortId ?? toRef }));
+        return;
+      }
+
+      let fromData: Record<string, unknown> | null;
+      let toData: Record<string, unknown> | null;
+
+      try {
+        fromData = yaml.load(fromContent) as Record<string, unknown> | null;
+      } catch {
+        setError(t("invalidYamlAtRef"));
+        return;
+      }
+
+      if (toRef === "latest") {
+        toData = currentData as unknown as Record<string, unknown>;
+      } else {
+        try {
+          toData = yaml.load(toContent) as Record<string, unknown> | null;
+        } catch {
+          setError(t("invalidYamlAtRef"));
+          return;
+        }
+      }
 
       const diff = computeDiff(
         fromContent,

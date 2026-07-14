@@ -140,6 +140,8 @@ export const dictionaries = {
     compare: "Compare",
     currentMain: "Current (main)",
     diffPlaceholder: "Select two versions and click \"Compare\" to see the differences.",
+    contractNotExistAtRef: "This contract did not exist at version {ref}.",
+    invalidYamlAtRef: "The YAML content at this version is invalid and cannot be parsed.",
 
     // Contract Issues
     issuesTitle: "Issues",
@@ -544,6 +546,8 @@ export const dictionaries = {
     compare: "Comparer",
     currentMain: "Actuelle (main)",
     diffPlaceholder: "Sélectionnez deux versions et cliquez sur \"Comparer\" pour voir les différences.",
+    contractNotExistAtRef: "Ce contrat n'existait pas à la version {ref}.",
+    invalidYamlAtRef: "Le contenu YAML de cette version est invalide et ne peut pas être analysé.",
 
     issuesTitle: "Signalements",
     issuesSubtitle: "Signalez des erreurs, fausses alertes ou problèmes de qualité des données.",
