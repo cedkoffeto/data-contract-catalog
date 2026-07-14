@@ -3125,6 +3125,14 @@ body[data-ra-modal] [data-ra-overlay] {
   overflow: hidden;
 }
 
+.editor-breadcrumb-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
 .editor-breadcrumb {
   font-size: 0.74rem;
   min-width: 0;
@@ -3134,7 +3142,6 @@ body[data-ra-modal] [data-ra-overlay] {
 }
 
 .editor-title {
-  margin: 0.15rem 0 0;
   font-size: 0.95rem;
   font-weight: 800;
 }
@@ -3142,7 +3149,6 @@ body[data-ra-modal] [data-ra-overlay] {
 .editor-title-input {
   min-width: 0;
   flex: 1;
-  margin: 0.15rem 0 0;
   padding: 0;
   border: 0;
   background: transparent;
@@ -3169,14 +3175,13 @@ body[data-ra-modal] [data-ra-overlay] {
 .editor-inline-tag {
   display: inline-flex;
   align-items: center;
-  min-height: 1.2rem;
-  padding: 0.1rem 0.42rem;
+  padding: 0 0.5rem;
   border-radius: 999px;
   background: rgba(249, 115, 22, 0.12);
   color: var(--ui-primary);
-  font-size: 0.62rem;
-  font-weight: 700;
-  line-height: 1;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.4;
   white-space: nowrap;
 }
 

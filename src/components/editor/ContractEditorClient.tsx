@@ -6,7 +6,7 @@ import type { IChangeEvent } from "@rjsf/core";
 import { yaml as yamlLanguage } from "@codemirror/lang-yaml";
 import { foldGutter, indentUnit } from "@codemirror/language";
 import { RangeSet, RangeSetBuilder, StateField } from "@codemirror/state";
-import { EditorView } from "@codemirror/view";
+import { EditorView, keymap } from "@codemirror/view";
 import { Decoration, gutter, GutterMarker } from "@codemirror/view";
 import Form from "@rjsf/shadcn";
 import validator from "@rjsf/validator-ajv8";
@@ -200,7 +200,7 @@ function createErrorGutter(
 
 
 function createValidationDecorations(lineNumbers: number[]) {
-  const uniqueLineNumbers = Array.from(new Set(lineNumbers.filter((lineNumber) => lineNumber > 0)));
+  const uniqueLineNumbers = Array.from(new Set(lineNumbers.filter((lineNumber) => lineNumber > 0))).sort((a, b) => a - b);
 
   return EditorView.decorations.of((view) => {
     const builder = new RangeSetBuilder<Decoration>();
@@ -218,12 +218,13 @@ function createValidationDecorations(lineNumbers: number[]) {
   });
 }
 
-function ErrorPopover({ lineNumber, message, x, y, onClose }: {
+function ErrorPopover({ lineNumber, message, x, y, onClose, onHoverChange }: {
   lineNumber: number;
   message: string;
   x: number;
   y: number;
   onClose: () => void;
+  onHoverChange?: (hovering: boolean) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -249,6 +250,8 @@ function ErrorPopover({ lineNumber, message, x, y, onClose }: {
       ref={ref}
       className="editor-error-popover"
       style={{ left: x + 20, top: y - 12 }}
+      onMouseEnter={() => onHoverChange?.(true)}
+      onMouseLeave={() => onHoverChange?.(false)}
     >
       <div className="editor-error-popover-arrow" />
       <div className="editor-error-popover-header">
@@ -709,6 +712,8 @@ export function ContractEditorClient({
     y: number;
   } | null>(null);
   const closeErrorPopover = useCallback(() => setErrorPopover(null), []);
+  const errorPopoverHoverRef = useRef(false);
+  const [errorNavIndex, setErrorNavIndex] = useState<number>(-1);
 
   const [isBottomPanelOpen, setIsBottomPanelOpen] = useState(false);
   const [openFolders, setOpenFolders] = useState<Record<ExplorerFolder, boolean>>({
@@ -777,7 +782,11 @@ export function ContractEditorClient({
 
   const validationErrors = (validationResult?.errors ?? []) as RJSFValidationError[];
 
-  const validationIssueCount = yamlValidationState.parseError ? 1 : validationErrors.length;
+  const validationIssueCount = useMemo(() => {
+    if (yamlValidationState.parseError) return 1;
+    const uniqueFields = new Set(validationErrors.map(e => e.property ?? "schema"));
+    return uniqueFields.size;
+  }, [validationErrors, yamlValidationState.parseError]);
   const hasBlockingErrors = isContractDocument && (!!yamlValidationState.parseError || validationErrors.length > 0);
 
   const codeMirrorRef = useRef<React.ComponentRef<typeof CodeMirror>>(null);
@@ -875,15 +884,46 @@ export function ContractEditorClient({
     yamlValidationState.parseError,
     schema
   ]);
+
+  const sortedErrorLines = useMemo(
+    () => Array.from(validationErrorMap.keys()).sort((a, b) => a - b),
+    [validationErrorMap],
+  );
+
+  const navigateError = useCallback((dir: -1 | 1) => {
+    if (sortedErrorLines.length === 0) return;
+    const nextIdx = ((errorNavIndex + dir) % sortedErrorLines.length + sortedErrorLines.length) % sortedErrorLines.length;
+    setErrorNavIndex(nextIdx);
+    const lineNumber = sortedErrorLines[nextIdx];
+    const msg = validationErrorMap.get(lineNumber);
+    if (!msg) return;
+    setErrorPopover({ lineNumber, message: msg, x: 0, y: 0 });
+    const view = codeMirrorRef.current?.view;
+    if (!view) return;
+    const line = view.state.doc.line(lineNumber);
+    view.dispatch({
+      effects: EditorView.scrollIntoView(line.from, { y: "center" }),
+      selection: { anchor: line.from, head: line.to },
+    });
+    view.focus();
+  }, [sortedErrorLines, validationErrorMap, errorNavIndex]);
+
+  const errorKeymap = useMemo(() => keymap.of([
+    { key: "Alt-ArrowUp", run: () => { navigateError(-1); return true; } },
+    { key: "Alt-ArrowDown", run: () => { navigateError(1); return true; } },
+  ]), [navigateError]);
   const normalizedExplorerQuery = explorerQuery.trim().toLowerCase();
 
   useEffect(() => {
     if (validationErrorMap.size === 0) return;
 
-    const handleMouseDown = (event: MouseEvent) => {
+    let hideTimer: ReturnType<typeof setTimeout>;
+
+    const handleMouseOver = (event: MouseEvent) => {
       const marker = (event.target as HTMLElement).closest("[data-error-line]") as HTMLElement | null;
       if (!marker) return;
 
+      clearTimeout(hideTimer);
       const lineNumber = parseInt(marker.dataset.errorLine || "", 10);
       const msg = validationErrorMap.get(lineNumber);
       if (msg) {
@@ -891,8 +931,23 @@ export function ContractEditorClient({
       }
     };
 
-    document.addEventListener("mousedown", handleMouseDown);
-    return () => document.removeEventListener("mousedown", handleMouseDown);
+    const handleMouseOut = (event: MouseEvent) => {
+      const marker = (event.target as HTMLElement).closest("[data-error-line]") as HTMLElement | null;
+      if (!marker) return;
+      hideTimer = setTimeout(() => {
+        if (!errorPopoverHoverRef.current) {
+          setErrorPopover(null);
+        }
+      }, 200);
+    };
+
+    document.addEventListener("mouseover", handleMouseOver);
+    document.addEventListener("mouseout", handleMouseOut);
+    return () => {
+      document.removeEventListener("mouseover", handleMouseOver);
+      document.removeEventListener("mouseout", handleMouseOut);
+      clearTimeout(hideTimer);
+    };
   }, [validationErrorMap]);
 
   const contractsByMaturity = useMemo(() => {
@@ -1637,7 +1692,10 @@ export function ContractEditorClient({
             </button>
 
             <div className="editor-topbar__title">
-              <div className="editor-breadcrumb" title={selectedDocument.path}>{selectedDocument.path}</div>
+              <div className="editor-breadcrumb-row">
+                <div className="editor-breadcrumb" title={selectedDocument.path}>{selectedDocument.path}</div>
+                {selectedDocument.isDirty ? <span className="editor-inline-tag">Unsaved</span> : null}
+              </div>
               <div className="editor-title-row">
                 {isContractDocument ? (
                   <input
@@ -1651,7 +1709,6 @@ export function ContractEditorClient({
                 ) : (
                   <h1 className="editor-title" title={selectedDocument.name}>{selectedDocument.name}</h1>
                 )}
-                {selectedDocument.isDirty ? <span className="editor-inline-tag">Unsaved</span> : null}
               </div>
             </div>
 
@@ -1718,17 +1775,42 @@ export function ContractEditorClient({
             {selectedDocument.parseError ? <div className="editor-status-pill is-warning">YAML error</div> : null}
           </div>
 
-          <div className="editor-tabs" role="tablist" aria-label="Workspace tabs">
-            {YAML_FORM_TABS.map(([value, label]) => (
-              <button
-                key={value}
-                className={activeTab === value ? "editor-tabs__item is-active" : "editor-tabs__item"}
-                onClick={() => setActiveTab(value as WorkspaceTab)}
-                type="button"
-              >
-                {label}
-              </button>
-            ))}
+          <div className="flex items-center justify-between border-b border-gray-100">
+            <div className="editor-tabs" role="tablist" aria-label="Workspace tabs">
+              {YAML_FORM_TABS.map(([value, label]) => (
+                <button
+                  key={value}
+                  className={activeTab === value ? "editor-tabs__item is-active" : "editor-tabs__item"}
+                  onClick={() => setActiveTab(value as WorkspaceTab)}
+                  type="button"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {sortedErrorLines.length > 0 && (
+              <div className="flex items-center gap-0.5 pr-2 text-[11px] text-gray-400">
+                <span className="mr-1">{errorNavIndex + 1}/{sortedErrorLines.length}</span>
+                <button
+                  className="inline-flex items-center justify-center w-5 h-5 rounded hover:bg-gray-100 disabled:opacity-30"
+                  onClick={() => navigateError(-1)}
+                  disabled={sortedErrorLines.length === 0}
+                  type="button"
+                  title="Previous error"
+                >
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5"><path d="M10 11L6 8l4-3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </button>
+                <button
+                  className="inline-flex items-center justify-center w-5 h-5 rounded hover:bg-gray-100 disabled:opacity-30"
+                  onClick={() => navigateError(1)}
+                  disabled={sortedErrorLines.length === 0}
+                  type="button"
+                  title="Next error"
+                >
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5"><path d="M6 5l4 3-4 3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </button>
+              </div>
+            )}
           </div>
 
           <PanelGroup className="editor-main-stack" direction="vertical">
@@ -1750,8 +1832,9 @@ export function ContractEditorClient({
                           ...STATIC_EDITOR_EXTENSIONS,
                           ...(validationIssueLines.length > 0 ? [createValidationDecorations(validationIssueLines)] : []),
                           ...(validationErrorMap.size > 0 ? [createErrorGutter(validationErrorMap)] : []),
-                          ...(isCompareYamlView ? [diffLineDecorations] : [])
-                        ], [validationIssueLines, validationErrorMap, isCompareYamlView])}
+                          ...(isCompareYamlView ? [diffLineDecorations] : []),
+                          ...(sortedErrorLines.length > 0 ? [errorKeymap] : [])
+                        ], [validationIssueLines, validationErrorMap, isCompareYamlView, sortedErrorLines, errorKeymap])}
                         onChange={handleContentChange}
                         value={displayedYaml}
                       />
@@ -1776,6 +1859,7 @@ export function ContractEditorClient({
                     x={errorPopover.x}
                     y={errorPopover.y}
                     onClose={closeErrorPopover}
+                    onHoverChange={(v) => { errorPopoverHoverRef.current = v; }}
                   />
                 )}
 
@@ -1839,16 +1923,33 @@ export function ContractEditorClient({
                                 </ul>
                               ) : (
                                 <ul className="editor-list editor-list--validation">
-                                  {validationErrors.map((error) => {
-                                    const lineNumber = findYamlLineForPath(selectedDocument.content, error.property ?? "");
-                                    return (
-                                      <li key={`${error.property}-${error.stack}`} className="editor-list__item editor-list__item--error" style={{ cursor: lineNumber ? "pointer" : "default" }} onClick={() => scrollToLine(lineNumber)}>
-                                        <strong>{error.property || "schema"}</strong>
-                                        {lineNumber != null && <span className="text-xs text-red-600 font-mono">L{lineNumber}</span>}
-                                        <span>{error.message}</span>
-                                      </li>
-                                    );
-                                  })}
+                                                           {(() => {
+                                      const grouped = new Map<string, { property: string; messages: string[]; lineNumber: number | null }>();
+                                      for (const error of validationErrors) {
+                                        const property = error.property || "schema";
+                                        const msg = error.message ?? "";
+                                        const existing = grouped.get(property);
+                                        if (existing) {
+                                          existing.messages.push(msg);
+                                        } else {
+                                          const lineNumber = findYamlLineForPath(selectedDocument.content, property);
+                                          grouped.set(property, { property, messages: [msg], lineNumber });
+                                        }
+                                      }
+                                      const sorted = Array.from(grouped.values()).sort((a, b) => {
+                                        const la = a.lineNumber ?? Infinity;
+                                        const lb = b.lineNumber ?? Infinity;
+                                        if (la !== lb) return la - lb;
+                                        return a.property.localeCompare(b.property);
+                                      });
+                                      return sorted.map(({ property, messages, lineNumber }) => (
+                                        <li key={property} className="editor-list__item editor-list__item--error" style={{ cursor: lineNumber ? "pointer" : "default" }} onClick={() => scrollToLine(lineNumber)}>
+                                          {lineNumber != null && <span className="text-xs text-red-600 font-mono">L{lineNumber}</span>}
+                                          <strong>{property}</strong>
+                                          {messages.map((msg, i) => <span key={i}>– {msg}</span>)}
+                                        </li>
+                                      ));
+                                  })()}
                                 </ul>
                               )
                             ) : (
