@@ -22,7 +22,8 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
   const isSearchMatch = searchMatchIds?.has(id) ?? false;
   const allFields = d.fields;
   const nodeConnected = connectedFields.get(id);
-  const connectedSet = nodeConnected ?? new Set<string>();
+  const connectedCount = nodeConnected ?? new Map<string, number>();
+  const isConnected = (name: string) => (connectedCount.get(name) ?? 0) > 0;
   const [hoveredField, setHoveredField] = useState<string | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
 
@@ -31,8 +32,8 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
 
   const fields = useMemo(() => {
     if (showingDetailed) return allFields;
-    return allFields.filter((f) => connectedSet.has(f.name));
-  }, [allFields, showingDetailed, connectedSet]);
+    return allFields.filter((f) => isConnected(f.name));
+  }, [allFields, showingDetailed, connectedCount]);
 
   // Inject spinner keyframes once
   useEffect(() => {
@@ -108,19 +109,22 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
             </div>
           )}
           {fields.map((f) => {
-            const isConnected = connectedSet.has(f.name);
+            const c = connectedCount.get(f.name) ?? 0;
+            const edgeCount = c > 0 ? c : 0;
+            const extraPyTop = edgeCount > 1 ? (edgeCount + 1) * 6 : 0;
+            const extraPyBottom = edgeCount > 1 ? (edgeCount + 3) * 6 : 0;
             return (
-              <div key={f.name} className="group relative flex min-w-0 cursor-pointer items-center gap-2 border-t border-gray-50 px-3 py-[7px] text-xs text-gray-700 hover:bg-gray-50" onClick={(e) => {
+              <div key={f.name} className="group relative flex min-w-0 cursor-pointer items-center gap-2 border-t border-gray-50 px-3 text-xs text-gray-700 hover:bg-gray-50" style={{ paddingTop: 7 + extraPyTop, paddingBottom: 7 + extraPyBottom }} onClick={(e) => {
                 if (e.ctrlKey || e.metaKey) { e.stopPropagation(); window.open(`/contracts/${d.slug}`, "_blank", "noopener,noreferrer"); }
                 else onFieldClick?.(d.slug);
               }}>
-                {isConnected && <Handle type="target" position={Position.Left} id={f.name} className="!opacity-0 !pointer-events-none" />}
-                {isConnected ? (
+                {edgeCount > 0 && <Handle type="target" position={Position.Left} id={f.name} className="!opacity-0 !pointer-events-none" />}
+                {edgeCount > 0 ? (
                   <Key size={10} className="shrink-0 text-amber-500" />
                 ) : (
                   <span className="w-[10px] shrink-0" />
                 )}
-                <span className={`min-w-0 font-mono text-[11px] leading-none ${isConnected ? "font-bold text-gray-900" : "text-gray-600"}`}>{f.name}</span>
+                <span className={`min-w-0 font-mono text-[11px] leading-none ${edgeCount > 0 ? "font-bold text-gray-900" : "text-gray-600"}`}>{f.name}</span>
                 <span className="w-4 shrink-0 flex items-center justify-center">
                   {f.description && (
                     <Info
@@ -136,7 +140,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
                   )}
                 </span>
                 <span className="ml-auto whitespace-nowrap text-[10px] leading-none text-gray-400">{f.type}</span>
-                {isConnected && <Handle type="source" position={Position.Right} id={f.name} className="!opacity-0 !pointer-events-none" />}
+                {edgeCount > 0 && <Handle type="source" position={Position.Right} id={f.name} className="!opacity-0 !pointer-events-none" />}
               </div>
             );
           })}

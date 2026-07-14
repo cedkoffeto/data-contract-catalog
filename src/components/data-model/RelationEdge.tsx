@@ -11,6 +11,20 @@ import { HighlightCtx } from "./ModelGraph";
 
 const animStyleId = "dcc-edge-flow";
 
+function edgeOffset(position: Position, side: "source" | "target", distance: number): { dx: number; dy: number } {
+  if (side === "source") {
+    if (position === Position.Right)  return { dx:  distance, dy: 0 };
+    if (position === Position.Left)   return { dx: -distance, dy: 0 };
+    if (position === Position.Top)    return { dx: 0, dy: -distance };
+    if (position === Position.Bottom) return { dx: 0, dy:  distance };
+  }
+  if (position === Position.Left)   return { dx: -distance, dy: 0 };
+  if (position === Position.Right)  return { dx:  distance, dy: 0 };
+  if (position === Position.Bottom) return { dx: 0, dy:  distance };
+  if (position === Position.Top)    return { dx: 0, dy: -distance };
+  return { dx: distance, dy: 0 };
+}
+
 export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
   const [hovered, setHovered] = useState(false);
   const { highlightedNode, highlightedNeighbors, selectedEdge } = useContext(HighlightCtx);
@@ -23,11 +37,13 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
   const sourceOffset = parallelOffset * 16;
   const targetOffset = (parallelOffset + targetParallelOffset) * 16;
 
+  const hOff = parallelOffset * 8;
+
   const [edgePath, labelX, labelY] = getSmoothStepPath({
-    sourceX,
+    sourceX: sourceX + hOff,
     sourceY: sourceY + sourceOffset,
     sourcePosition,
-    targetX,
+    targetX: targetX + hOff,
     targetY: targetY + targetOffset,
     targetPosition,
     borderRadius: 18,
@@ -117,6 +133,37 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
         />
       )}
       <g opacity={edgeActive || isEdgeHighlighted ? 1 : 0.2} />
+
+      <text
+        x={sourceX + hOff + edgeOffset(sourcePosition, "source", 14).dx}
+        y={sourceY + sourceOffset + edgeOffset(sourcePosition, "source", 14).dy - 9}
+        textAnchor="middle"
+        dominantBaseline="central"
+        fill={edgeActive ? "#3b82f6" : "#cbd5e1"}
+        fontSize={edgeActive ? 14 : 10}
+        fontWeight={edgeActive ? 800 : 600}
+        fontFamily="monospace"
+        pointerEvents="none"
+        style={{ transition: "fill 0.2s, font-size 0.2s, font-weight 0.2s" }}
+      >
+        {cardSource === "many" ? "*" : "1"}
+      </text>
+
+      <text
+        x={targetX + hOff + edgeOffset(targetPosition, "target", 14).dx}
+        y={targetY + targetOffset + edgeOffset(targetPosition, "target", 14).dy - 9}
+        textAnchor="middle"
+        dominantBaseline="central"
+        fill={edgeActive ? "#3b82f6" : "#cbd5e1"}
+        fontSize={edgeActive ? 14 : 10}
+        fontWeight={edgeActive ? 800 : 600}
+        fontFamily="monospace"
+        pointerEvents="none"
+        style={{ transition: "fill 0.2s, font-size 0.2s, font-weight 0.2s" }}
+      >
+        {cardTarget === "many" ? "*" : "1"}
+      </text>
+
       <EdgeLabelRenderer>
         <div
           style={{

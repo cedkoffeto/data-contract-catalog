@@ -124,6 +124,7 @@ export function ModelGraph({
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [highlightedNode, setHighlightedNode] = useState<string | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<string | null>(null);
+  const edgeClickGuardRef = useRef(false);
   const [showGrid, setShowGrid] = useState(true);
 
   const { setCenter, fitView } = useReactFlow();
@@ -162,10 +163,13 @@ export function ModelGraph({
   }, []);
 
   const handleEdgeClick = useCallback((_event: React.MouseEvent, edge: Edge) => {
+    edgeClickGuardRef.current = true;
     setSelectedEdge(edge.id);
+    requestAnimationFrame(() => { edgeClickGuardRef.current = false; });
   }, []);
 
   const handlePaneClick = useCallback(() => {
+    if (edgeClickGuardRef.current) return;
     setSelectedEdge(null);
   }, []);
 
