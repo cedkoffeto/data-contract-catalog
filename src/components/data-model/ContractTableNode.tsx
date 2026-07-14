@@ -121,18 +121,20 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
                   <span className="w-[10px] shrink-0" />
                 )}
                 <span className={`min-w-0 font-mono text-[11px] leading-none ${isConnected ? "font-bold text-gray-900" : "text-gray-600"}`}>{f.name}</span>
-                {f.description && (
-                  <Info
-                    size={11}
-                    className="invisible group-hover:visible shrink-0 cursor-pointer text-gray-400 hover:text-blue-500 transition-colors"
-                    onMouseEnter={(e) => {
-                      setHoveredField(f.name);
-                      const rect = (e.currentTarget as unknown as HTMLElement).getBoundingClientRect();
-                      setTooltipPos({ top: rect.top - 6, left: rect.right + 8 });
-                    }}
-                    onMouseLeave={() => { setHoveredField(null); setTooltipPos(null); }}
-                  />
-                )}
+                <span className="w-4 shrink-0 flex items-center justify-center">
+                  {f.description && (
+                    <Info
+                      size={11}
+                      className="invisible group-hover:visible cursor-pointer text-gray-400 hover:text-blue-500 transition-colors"
+                      onMouseEnter={(e) => {
+                        setHoveredField(f.name);
+                        const rect = (e.currentTarget as unknown as HTMLElement).getBoundingClientRect();
+                        setTooltipPos({ top: rect.top - 6, left: rect.right + 8 });
+                      }}
+                      onMouseLeave={() => { setHoveredField(null); setTooltipPos(null); }}
+                    />
+                  )}
+                </span>
                 <span className="ml-auto whitespace-nowrap text-[10px] leading-none text-gray-400">{f.type}</span>
                 {isConnected && <Handle type="source" position={Position.Right} id={f.name} className="!opacity-0 !pointer-events-none" />}
               </div>

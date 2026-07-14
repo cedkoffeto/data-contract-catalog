@@ -275,6 +275,22 @@ export function parseContractsToGraph(
     e.data = { ...(e.data as object || {}), parallelOffset: idx - (total - 1) / 2 };
   }
 
+  // Fan-in offset: edges sharing the same target (N→1 convergence) get an extra
+  // vertical offset on the target side so they spread at the target node.
+  const tgtCount = new Map<string, number>();
+  for (const e of edges) {
+    tgtCount.set(e.target, (tgtCount.get(e.target) ?? 0) + 1);
+  }
+  const tgtIdx = new Map<string, number>();
+  for (const e of edges) {
+    const total = tgtCount.get(e.target) ?? 1;
+    if (total <= 1) continue;
+    const idx = tgtIdx.get(e.target) ?? 0;
+    tgtIdx.set(e.target, idx + 1);
+    const fanIn = idx - (total - 1) / 2;
+    e.data = { ...(e.data as object || {}), targetParallelOffset: fanIn };
+  }
+
   return {
     nodes: Array.from(nodeMap.values()),
     edges,
