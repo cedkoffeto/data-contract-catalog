@@ -7,10 +7,10 @@ asset:
   context: "RELATION_CLIENT"
   type: "data_product"
   description: >
-    L'ensemble des tâches, rendez-vous, appels et autres
-    interactions enregistrées dans le CRM. Une ligne par activité, dédupliquée
+    aaa L' aaa des tâches, rendez-vous stri, hello et autres
     via getLive sur row_id, avec champs renommés et métadonnées de run.
-    Alimente Customer 360 et les produits gold CRM.
+    Alimente Customer 360 et les produits WWW gold CRM.
+    ddddd
   version: "1.0.0"
   owners:
     business_owner:
@@ -44,7 +44,7 @@ contract:
     fields:
       - name: "row_id_act"
         type: "string"
-        description: "Identifiant technique unique de l'activité CRM (clé primaire)"
+        description: "Identifiant technique unique de l'activité CRM (clé primaire) aaa"
         required: true
         pii_classification: "none"
         business_rules:
@@ -57,7 +57,7 @@ contract:
         pii_classification: "indirect"
       - name: "nom_activite"
         type: "string"
-        description: "Libellé ou intitulé de l'activité tel que saisi dans le CRM"
+        description: "Libellé ou intitulé de l'activité tel que saisi dans le CRM aaa"
         required: false
         pii_classification: "none"
       - name: "nature_activite"
@@ -87,7 +87,7 @@ contract:
         pii_classification: "none"
       - name: "fin_le"
         type: "timestamp"
-        description: "Date et heure de fin effective ou planifiée de l'activité"
+        description: "Date et heure de fin effective ou planifiée de l'activité aaa"
         required: false
         pii_classification: "none"
       - name: "login_createur"
@@ -112,7 +112,7 @@ contract:
         pii_classification: "none"
       - name: "position"
         type: "string"
-        description: "Fonction ou poste du collaborateur associé à l'activité"
+        description: "Fonction ou poste du collaborateur associé à l'activité aaa"
         required: false
         pii_classification: "none"
       - name: "agence"
@@ -132,13 +132,12 @@ contract:
         pii_classification: "none"
       - name: "commentaire_activite"
         type: "string"
-        description: "Notes ou commentaires libres saisis sur l'activité"
+        description: "Notes ou commentaires libres saisis sur l'activité aaa"
         required: false
         pii_classification: "none"
-      - name: "row_id"
-        type: "string"
-        description: "row_id field"
-        required: false
+    relations:
+      - ref_name: "personne_host"
+        ref: "@crm_activities.numero_personne_host > @personne_host.numero_personne_host"
 
 quality:
   checks:
@@ -214,7 +213,7 @@ inputs:
     - step: "column_renaming"
       description: "Renommage: row_id -> row_id_act, opty_cd -> contexte, commentaire -> commentaire_activite"
     - step: "metadata_enrichment"
-      description: "Ajout de métadonnées (run_date, version)"
+      description: "Ajout de métadonnées (run_date, version) aaa"
 
 output:
   table_name: "crm_activities"
@@ -232,12 +231,9 @@ serving:
     enabled: true
     tables:
       - name: "view_crm_activities"
-      - name: "row_id"
-        type: "string"
-        description: "row_id field"
-        required: false
         source_table: "crm_activities"
-    notes: "Vue Hive pour les consommateurs des activités CRM"
+    notes: "Vue Hive pour les consommateurs des activités CRM aaa"
+    query_url: "https://datalake.com/query/{tableName}"
 
 operations:
   airflow_dag_id: "dp_silver_crm_activities"

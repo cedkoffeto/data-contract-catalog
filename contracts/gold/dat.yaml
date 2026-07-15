@@ -210,10 +210,11 @@ contract:
         description: "Version de la logique produit"
         required: true
         pii_classification: "none"
-      - name: "numero_contrat"
-        type: "string"
-        description: "numero_contrat field"
-        required: false
+    relations:
+      - ref_name: "personne_host"
+        ref: "@dat.numero_personne_host > @personne_host.numero_personne_host"
+      - ref_name: "client_host"
+        ref: "@dat.numero_client_host > @client.numero_client_host"
 
 quality:
   checks:
@@ -409,6 +410,7 @@ serving:
       Table externe Oracle CUSTOMER_360_EXT_STG pour les consommateurs avec colonnes JSON 
       pour les DAT BDC et DAT CAT. Optimisée pour la consommation par les applications métier 
       et Customer360 en mode APPEND.
+    query_url: "https://datalake.com/query/{tableName}"
 
 operations:
   airflow_dag_id: "dp_gold_dat_product"

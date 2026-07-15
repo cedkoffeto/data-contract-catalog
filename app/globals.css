@@ -3086,6 +3086,17 @@ body[data-ra-modal] [data-ra-overlay] {
   font-size: 0.68rem;
 }
 
+.repo-tree__file-main span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.repo-tree__file > span:last-child {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 .editor-main-pane,
 .editor-preview-pane {
   display: flex;
@@ -4919,4 +4930,11 @@ body[data-ra-modal] [data-ra-overlay] {
   outline: 2px solid #f97316;
   outline-offset: 2px;
   border-radius: 10px;
+}
+
+.data-model-graph .react-flow__edges {
+  z-index: 10;
+}
+.data-model-graph .react-flow__nodes {
+  z-index: 1;
 }

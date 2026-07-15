@@ -146,6 +146,9 @@ contract:
         pii_classification: "none"
         business_rules:
           - "Always set to 'CAT'"
+    relations:
+      - ref_name: "personne_host"
+        ref: "@dat_cat.numero_personne_host > @personne_host.numero_personne_host"
 
 quality:
   checks:
@@ -278,6 +281,7 @@ serving:
       - name: "view_dat_cat"
         source_table: "dat_cat"
     notes: "Vue Hive pour les consommateurs des DAT Comptes À Terme"
+    query_url: "https://datalake.com/query/{tableName}"
 
 operations:
   airflow_dag_id: "dp_silver_dat_cat"

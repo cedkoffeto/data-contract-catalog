@@ -407,15 +407,9 @@ contract:
         description: "Horodatage d'exécution du data product"
         required: false
         pii_classification: "none"
-      - name: "numero_personne_host"
-        type: "string"
-        description: "numero_personne_host field"
-        required: false
-      - name: "numero_contrat"
-        type: "string"
-        description: "numero_contrat field"
-        required: false
-  
+    relations:
+      - ref_name: "personne_host"
+        ref: "@pnb_cumule.numero_personne_host > @personne_host.numero_personne_host"
 
 quality:
   checks:
@@ -573,6 +567,7 @@ serving:
     enabled: true
     name: "gold_PNB_job"
     notes: "Iceberg silver table consumed by a spark job to build the PNB gold layer."
+    query_url: "https://datalake.com/query/{tableName}"
 
 
 operations:

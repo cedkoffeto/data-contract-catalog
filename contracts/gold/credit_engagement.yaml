@@ -170,10 +170,9 @@ contract:
         description: "Version of product logic"
         required: true
         pii_classification: "none"
-      - name: "engagement_id"
-        type: "string"
-        description: "engagement_id field"
-        required: false
+    relations:
+      - ref_name: "personne_host"
+        ref: "@credit_engagement.numero_personne_host > @personne_host.numero_personne_host"
 
 quality:
   checks:
@@ -290,6 +289,7 @@ serving:
     enabled: true
     name: "ext_<DOMAIN>_product"
     notes: "External table for Oracle consumers with JSON column."
+    query_url: "https://datalake.com/query/{tableName}"
 
 operations:
   airflow_dag_id: "dp_credit_engagement_product"

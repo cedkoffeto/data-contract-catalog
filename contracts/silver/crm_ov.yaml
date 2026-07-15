@@ -144,6 +144,9 @@ contract:
         description: "Date technique"
         required: false
         pii_classification: "none"
+    relations:
+      - ref_name: "personne_host"
+        ref: "@crm_ov.numero_personne_host > @personne_host.numero_personne_host"
 
 quality:
   checks:
@@ -241,6 +244,7 @@ serving:
       - name: "view_crm_ov"
         source_table: "crm_ov"
     notes: "Vue Hive pour les consommateurs des opportunités de ventes"
+    query_url: "https://datalake.com/query/{tableName}"
 
 operations:
   airflow_dag_id: "dp_silver_crm_ov"

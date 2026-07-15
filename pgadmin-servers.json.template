@@ -3,11 +3,11 @@
     "1": {
       "Name": "Data Contract Catalog",
       "Group": "Servers",
-      "Host": "${PGADMIN_SERVER_HOST}",
-      "Port": ${PGADMIN_SERVER_PORT},
+      "Host": "${PG_SERVER_HOST}",
+      "Port": ${PG_SERVER_PORT},
       "MaintenanceDB": "postgres",
-      "Username": "${PGADMIN_SERVER_USER}",
-      "Password": "${PGADMIN_SERVER_PASSWORD}",
+      "Username": "${PG_SERVER_USER}",
+      "Password": "${PG_SERVER_PASSWORD}",
       "UseSSHTunnel": 0,
       "SavePassword": true
     }

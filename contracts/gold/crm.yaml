@@ -401,10 +401,11 @@ contract:
         description: "Version de la logique produit"
         required: true
         pii_classification: "none"
-      - name: "row_id"
-        type: "string"
-        description: "row_id field"
-        required: false
+    relations:
+      - ref_name: "personne_host"
+        ref: "@crm.numero_personne_host > @personne_host.numero_personne_host"
+      - ref_name: "client_host"
+        ref: "@crm.numero_client_host > @client.numero_client_host"
 
 quality:
   checks:
@@ -651,6 +652,7 @@ serving:
       Table externe Oracle pour les consommateurs avec colonnes JSON pour 
       OVs, alertes, réclamations, activités et comptes rendus. 
       Optimisée pour la consommation par les applications métier et Customer360.
+    query_url: "https://datalake.com/query/{tableName}"
 
 operations:
   airflow_dag_id: "dp_gold_crm_product"

@@ -292,7 +292,7 @@ export function ModelGraph({
   return (
     <HighlightCtx.Provider value={highlightCtxValue}>
     <ViewModeCtx.Provider value={ctxValue}>
-      <div className="relative h-full w-full">
+      <div className="data-model-graph relative h-full w-full">
         <ReactFlow
           nodes={nodes}
           edges={filteredEdges}

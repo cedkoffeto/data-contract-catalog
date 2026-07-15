@@ -104,9 +104,14 @@ function Connector({ sign, label, incoming }: { sign: string; label: string; inc
 }
 
 function RelationRow({ rel, incoming }: { rel: { ref_name: string; ref: string }; incoming?: boolean }) {
-  const parsed = parseCardinality(rel.ref);
+  if (!rel) return null;
+  const ref = rel.ref;
+  if (!ref) {
+    return <div className="text-sm text-gray-700">{rel.ref_name ?? "(no ref)"}</div>;
+  }
+  const parsed = parseCardinality(ref);
   if (!parsed) {
-    return <div className="text-sm text-gray-700">{rel.ref}</div>;
+    return <div className="text-sm text-gray-700">{ref}</div>;
   }
   return (
     <div title={relationTooltip(parsed.left, parsed.sign, parsed.right)}>
@@ -149,7 +154,7 @@ export function RelationsSection({
               {hasIncoming && (
                 <h2 className="text-sm font-semibold text-gray-700">{t("sectionRelationsDeclared")}</h2>
               )}
-              {relations!.map((rel, i) => (
+              {relations!.filter(Boolean).map((rel, i) => (
                 <RelationRow key={`decl-${i}`} rel={rel} />
               ))}
             </div>
@@ -161,7 +166,7 @@ export function RelationsSection({
                 {t("sectionRelationsIncoming")}
                 <span className="ml-2 text-xs font-normal text-gray-400">{t("sectionRelationsIncomingDesc")}</span>
               </h2>
-              {incomingRelations!.map((rel, i) => (
+              {incomingRelations!.filter(Boolean).map((rel, i) => (
                 <RelationRow key={`inc-${i}`} rel={rel} incoming />
               ))}
             </div>

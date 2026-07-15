@@ -7,7 +7,7 @@ asset:
   context: "RELATION_CLIENT"
   type: "data_product"
   description: >
-    Données silver des alertes CRM actives.
+    Afdf AA Données silver des alertes CRM actives.
     Filtrées pour ne conserver que celles dont la date d'échéance est future ou actuelle.
     Couche silver nettoyée et standardisée.
   version: "1.0.0"
@@ -139,6 +139,9 @@ contract:
         description: "Date technique"
         required: false
         pii_classification: "none"
+    relations:
+      - ref_name: "personne_host"
+        ref: "@crm_alerte.numero_personne_host > @personne_host.numero_personne_host"
 
 quality:
   checks:
@@ -236,6 +239,7 @@ serving:
       - name: "view_crm_alerte"
         source_table: "crm_alerte"
     notes: "Vue Hive pour les consommateurs des alertes CRM"
+    query_url: "https://datalake.com/query/{tableName}"
 
 operations:
   airflow_dag_id: "dp_silver_crm_alerte"

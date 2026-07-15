@@ -128,14 +128,6 @@ contract:
         description: "Indicateur de migration"
         required: false
         pii_classification: "none"
-      - name: "numero_personne_host"
-        type: "string"
-        description: "numero_personne_host field"
-        required: false
-      - name: "row_id"
-        type: "string"
-        description: "row_id field"
-        required: false
 
 quality:
   checks:
@@ -234,16 +226,9 @@ serving:
     enabled: true
     tables:
       - name: "view_crm_reclamation"
-      - name: "numero_personne_host"
-        type: "string"
-        description: "numero_personne_host field"
-        required: false
-      - name: "row_id"
-        type: "string"
-        description: "row_id field"
-        required: false
         source_table: "crm_reclamation"
     notes: "Vue Hive pour les consommateurs des réclamations CRM"
+    query_url: "https://datalake.com/query/{tableName}"
 
 operations:
   airflow_dag_id: "dp_silver_crm_reclamation"
