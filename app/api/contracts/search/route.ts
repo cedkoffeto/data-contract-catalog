@@ -20,7 +20,11 @@ export async function GET(request: Request) {
   const cards = await searchCatalogCards({
     q: searchParams.get("q") ?? "",
     domain: searchParams.get("domain") ?? "",
-    maturity: searchParams.get("maturity") ?? ""
+    maturity: searchParams.get("maturity") ?? "",
+    title: searchParams.get("title") ?? "",
+    owner: searchParams.get("owner") ?? "",
+    context: searchParams.get("context") ?? "",
+    slug: searchParams.get("slug") ?? ""
   });
 
   const filtered = await filterCatalogCards(userId, cards, permissions);

@@ -761,23 +761,39 @@ export async function getDistinctScopes(): Promise<{ domain: string; context: st
 export async function searchCatalogCards({
   q = "",
   domain = "",
-  maturity = ""
+  maturity = "",
+  title = "",
+  owner = "",
+  context = "",
+  slug = ""
 }: {
   q?: string;
   domain?: string;
   maturity?: string;
-}): Promise<CatalogCard[]> {
+  title?: string;
+  owner?: string;
+  context?: string;
+  slug?: string;
+} = {}): Promise<CatalogCard[]> {
   const normalizedQuery = q.trim().toLowerCase();
   const normalizedDomain = domain.trim().toLowerCase();
   const normalizedMaturity = maturity.trim().toLowerCase();
+  const normalizedTitle = title.trim().toLowerCase();
+  const normalizedOwner = owner.trim().toLowerCase();
+  const normalizedContext = context.trim().toLowerCase();
+  const normalizedSlug = slug.trim().toLowerCase();
   const cards = await getCatalogCards();
 
   return cards.filter((card) => {
     const matchesQuery = !normalizedQuery || card.searchData.includes(normalizedQuery);
-    const matchesDomain = !normalizedDomain || card.domain.trim().toLowerCase() === normalizedDomain;
-    const matchesMaturity = !normalizedMaturity || card.maturity.trim().toLowerCase() === normalizedMaturity;
+    const matchesDomain = !normalizedDomain || card.domain.trim().toLowerCase().includes(normalizedDomain);
+    const matchesMaturity = !normalizedMaturity || card.maturity.trim().toLowerCase().includes(normalizedMaturity);
+    const matchesTitle = !normalizedTitle || card.title.trim().toLowerCase().includes(normalizedTitle);
+    const matchesOwner = !normalizedOwner || card.owner.trim().toLowerCase().includes(normalizedOwner);
+    const matchesContext = !normalizedContext || card.context.trim().toLowerCase().includes(normalizedContext);
+    const matchesSlug = !normalizedSlug || card.slug.trim().toLowerCase().includes(normalizedSlug);
 
-    return matchesQuery && matchesDomain && matchesMaturity;
+    return matchesQuery && matchesDomain && matchesMaturity && matchesTitle && matchesOwner && matchesContext && matchesSlug;
   });
 }
 

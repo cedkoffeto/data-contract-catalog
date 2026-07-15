@@ -1208,6 +1208,12 @@ a:has(> .kpi-card) {
   gap: 0.4rem;
 }
 
+.catalog-searchbar__multi-actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.2rem;
+}
+
 .catalog-searchbar__help {
   width: 1.6rem;
   height: 1.6rem;
@@ -4945,6 +4951,204 @@ body[data-ra-modal] [data-ra-overlay] {
 }
 
 .ss-select__empty {
+  padding: 1.5rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--ui-text-soft);
+}
+
+/* ── Multi-select ───────────────────────────────────────────── */
+
+.ss-multi {
+  position: relative;
+  width: 100%;
+}
+
+.ss-multi__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--ui-subtle);
+  border-radius: var(--ui-radius);
+  background: #fff;
+  cursor: pointer;
+  min-height: 2.2rem;
+  flex-wrap: wrap;
+}
+
+.ss-multi__trigger:hover {
+  border-color: #d1d5db;
+}
+
+.ss-multi__trigger--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ss-multi__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ss-multi__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.15rem 0.45rem;
+  background: var(--ui-primary-soft);
+  color: var(--ui-primary);
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  white-space: nowrap;
+  max-width: 10rem;
+}
+
+.ss-multi__chip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ss-multi__chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  border: 0;
+  background: transparent;
+  color: var(--ui-primary);
+  cursor: pointer;
+  border-radius: 50%;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.ss-multi__chip-remove:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.ss-multi__placeholder {
+  font-size: 0.82rem;
+  color: var(--ui-text-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ss-multi__arrow {
+  flex-shrink: 0;
+  color: var(--ui-text-soft);
+}
+
+.ss-multi__dropdown {
+  position: absolute;
+  z-index: 70;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: var(--ui-radius-lg);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  overflow: hidden;
+  max-height: 18rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.ss-multi__dropdown--flip {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+
+.ss-multi__search {
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--ui-subtle);
+}
+
+.ss-multi__search-input {
+  width: 100%;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--ui-subtle);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.ss-multi__search-input:focus {
+  border-color: var(--ui-primary);
+  box-shadow: 0 0 0 2px var(--ui-primary-soft);
+}
+
+.ss-multi__list {
+  overflow-y: auto;
+  flex: 1 1 auto;
+}
+
+.ss-multi__option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ss-multi__option:hover {
+  background: var(--ui-subtle-2);
+}
+
+.ss-multi__option--selected {
+  background: var(--ui-primary-soft);
+}
+
+.ss-multi__checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 3px;
+  background: #fff;
+  flex-shrink: 0;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.ss-multi__checkbox svg {
+  width: 0.7rem;
+  height: 0.7rem;
+}
+
+.ss-multi__checkbox--checked {
+  background: var(--ui-primary);
+  border-color: var(--ui-primary);
+  color: #fff;
+}
+
+.ss-multi__option-label {
+  font-size: 0.8rem;
+  color: var(--ui-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ss-multi__empty {
   padding: 1.5rem;
   text-align: center;
   font-size: 0.8rem;

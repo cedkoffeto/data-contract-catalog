@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CatalogCard } from "@/src/components/catalog/CatalogCard";
 import { Button } from "@/src/components/ui/Button";
 import { Input } from "@/src/components/ui/Input";
+import { SearchableMultiSelect } from "@/src/components/ui/SearchableMultiSelect";
 import { useToast } from "@/src/components/ui/ToastProvider";
 import { useT } from "@/src/lib/use-i18n";
 import type { CatalogCard as CatalogCardType } from "@/src/lib/types";
@@ -12,13 +13,15 @@ import type { CatalogCard as CatalogCardType } from "@/src/lib/types";
 const ALL_DOMAINS = "__all_domains__";
 
 const MULTI_FIELDS: { key: keyof CatalogCardType; label: string; placeholder: string }[] = [
-  { key: "title", label: "name", placeholder: "searchFieldName" },
   { key: "domain", label: "domain", placeholder: "searchFieldDomain" },
   { key: "owner", label: "owner", placeholder: "searchFieldOwner" },
   { key: "context", label: "context", placeholder: "searchFieldContext" },
   { key: "maturity", label: "maturity", placeholder: "searchFieldMaturity" },
-  { key: "slug", label: "slug", placeholder: "searchFieldSlug" },
+  { key: "slug", label: "id", placeholder: "searchFieldSlug" },
+  { key: "title", label: "name", placeholder: "searchFieldName" },
 ];
+
+const MULTI_KEYS: (keyof CatalogCardType)[] = ["domain", "owner", "context", "maturity", "slug", "title"];
 
 function humanize(value: string): string {
   const trimmed = value.trim();
@@ -41,9 +44,9 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
   cardsRef.current = cards;
   const [searchMode, setSearchMode] = useState<"free" | "multi">("free");
   const [freeText, setFreeText] = useState("");
-  const [multiFilters, setMultiFilters] = useState<Record<string, string>>({});
+  const [multiFilters, setMultiFilters] = useState<Record<string, string[]>>({});
+  const [appliedMultiFilters, setAppliedMultiFilters] = useState<Record<string, string[]>>({});
   const [debouncedFreeText, setDebouncedFreeText] = useState("");
-  const [debouncedMulti, setDebouncedMulti] = useState<Record<string, string>>({});
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
@@ -58,10 +61,9 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       setDebouncedFreeText(freeText);
-      setDebouncedMulti(multiFilters);
     }, 200);
     return () => clearTimeout(debounceRef.current);
-  }, [freeText, multiFilters]);
+  }, [freeText]);
   const [selectedDomain, setSelectedDomain] = useState(ALL_DOMAINS);
   const [selectedContexts, setSelectedContexts] = useState<Set<string>>(new Set());
   const [selectedMaturities, setSelectedMaturities] = useState<Set<string>>(new Set());
@@ -159,12 +161,16 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
 
   const visibleCards = useMemo(() => {
     const ft = debouncedFreeText.trim().toLowerCase();
-    const mf = debouncedMulti;
+    const mf = appliedMultiFilters;
 
     return cards
       .filter((card) => {
         const matchesFieldFilter = Object.entries(mf).every(
-          ([field, value]) => !value || (card[field as keyof CatalogCardType] as string)?.toLowerCase().includes(value.toLowerCase()),
+          ([field, values]) => {
+            if (!values || values.length === 0) return true;
+            const cardValue = (card[field as keyof CatalogCardType] as string)?.toLowerCase() ?? "";
+            return values.some((v) => cardValue.includes(v.toLowerCase()));
+          },
         );
         const matchesSearch = !ft || card.searchData.includes(ft);
         if (!matchesFieldFilter || !matchesSearch) return false;
@@ -184,7 +190,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
         if (aFav !== bFav) return aFav - bFav;
         return a.title.localeCompare(b.title);
       });
-  }, [cards, debouncedFreeText, debouncedMulti, selectedDomain, selectedContexts, selectedMaturities, showOnlyAccessible, showFavoritesOnly]);
+  }, [cards, debouncedFreeText, appliedMultiFilters, selectedDomain, selectedContexts, selectedMaturities, showOnlyAccessible, showFavoritesOnly]);
 
   const handleTogglePin = useCallback(async (slug: string) => {
     const card = cardsRef.current.find((c) => c.slug === slug);
@@ -245,6 +251,28 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
     [cards.length, domains.length, contexts.length, maturities.length]
   );
 
+  const multiOptions = useMemo(() => {
+    const opts: Record<string, { value: string; label: string }[]> = {};
+    for (const field of MULTI_KEYS) {
+      const unique = new Set(cards.map((card) => (card[field] as string)?.trim()).filter(Boolean));
+      opts[field] = Array.from(unique)
+        .sort((a, b) => a.localeCompare(b))
+        .map((v) => ({ value: v, label: v }));
+    }
+    return opts;
+  }, [cards]);
+
+  const hasActiveMultiFilters = Object.values(multiFilters).some((arr) => arr.length > 0);
+
+  function handleApplyMultiSearch() {
+    setAppliedMultiFilters({ ...multiFilters });
+  }
+
+  function handleResetMultiSearch() {
+    setMultiFilters({});
+    setAppliedMultiFilters({});
+  }
+
   return (
     <div className="catalog-shell">
       {showGitError ? (
@@ -303,17 +331,29 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
             />
           </div>
         ) : (
-          <div className="catalog-searchbar__multi">
-            {MULTI_FIELDS.map((field) => (
-              <Input
-                key={field.key}
-                value={multiFilters[field.key] ?? ""}
-                onChange={(e) => setMultiFilters((prev) => ({ ...prev, [field.key]: e.target.value }))}
-                placeholder={t(field.placeholder as any)}
-                wrapperClassName="catalog-searchbar__multi-field"
-              />
-            ))}
-          </div>
+          <>
+            <div className="catalog-searchbar__multi">
+              {MULTI_FIELDS.map((field) => (
+                <SearchableMultiSelect
+                  key={field.key}
+                  value={multiFilters[field.key] ?? []}
+                  onChange={(values) => setMultiFilters((prev) => ({ ...prev, [field.key]: values }))}
+                  options={multiOptions[field.key] ?? []}
+                  placeholder={t(field.placeholder as any)}
+                />
+              ))}
+            </div>
+            <div className="catalog-searchbar__multi-actions">
+              <Button onClick={handleApplyMultiSearch} disabled={!hasActiveMultiFilters}>
+                {t("searchButton")}
+              </Button>
+              {hasActiveMultiFilters && (
+                <Button variant="outline" onClick={handleResetMultiSearch}>
+                  {t("reset")}
+                </Button>
+              )}
+            </div>
+          </>
         )}
 
         <div className="catalog-domain-row">
@@ -371,11 +411,12 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
         <aside className="catalog-filters">
           <div className="catalog-filters__heading">
             <h2>{t("filters")}</h2>
-            {(freeText || Object.values(multiFilters).some(Boolean) || selectedDomain !== ALL_DOMAINS || selectedContexts.size > 0 || selectedMaturities.size > 0 || showOnlyAccessible || showFavoritesOnly) && (
+            {(freeText || Object.values(multiFilters).some((arr) => arr.length > 0) || selectedDomain !== ALL_DOMAINS || selectedContexts.size > 0 || selectedMaturities.size > 0 || showOnlyAccessible || showFavoritesOnly) && (
               <Button
                 onClick={() => {
                   setFreeText("");
                   setMultiFilters({});
+                  setAppliedMultiFilters({});
                   setSelectedDomain(ALL_DOMAINS);
                   setSelectedContexts(new Set());
                   setSelectedMaturities(new Set());
