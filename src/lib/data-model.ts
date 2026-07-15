@@ -458,7 +458,10 @@ function nodeHeight(node: Node, connectedFields?: Map<string, Map<string, number
   return Math.max(count * 28 + 60, 90);
 }
 
+const _widthCache = new Map<string, number>();
 function nodeWidth(node: Node): number {
+  const cached = _widthCache.get(node.id);
+  if (cached !== undefined) return cached;
   const data = node.data as ContractTableNodeData;
   const slugPx = data.slug.length * 8.5;
   let maxFieldPx = 0;
@@ -467,7 +470,9 @@ function nodeWidth(node: Node): number {
     const typePx = f.type.length * 6;
     maxFieldPx = Math.max(maxFieldPx, namePx + typePx + 10);
   }
-  return Math.max(Math.ceil(Math.max(slugPx, maxFieldPx) + 60), 220);
+  const w = Math.max(Math.ceil(Math.max(slugPx, maxFieldPx) + 60), 220);
+  _widthCache.set(node.id, w);
+  return w;
 }
 
 export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB" = "LR", connectedFields?: Map<string, Map<string, number>>, viewMode?: "detailed" | "compact", containerWidth?: number): { nodes: Node[]; edges: Edge[] } {
