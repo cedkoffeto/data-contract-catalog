@@ -606,7 +606,7 @@ export default function PolicyForm({
           />
         </div>
 
-        <div className="basis-full sm:basis-auto flex-none self-center">
+        <div className="basis-full sm:basis-auto flex-none self-end">
           {editTarget ? (
             <div className="flex gap-2">
               <Button

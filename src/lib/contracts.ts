@@ -443,7 +443,9 @@ async function buildContractsFromRecords(
 }
 
 async function readLocalContracts(): Promise<ContractFile[]> {
-  const allFiles = (await listYamlFiles(contractsRoot)).sort();
+  const allFiles = (await listYamlFiles(contractsRoot))
+    .filter((fullPath) => !fullPath.includes("/draft/") && !fullPath.includes("\\draft\\"))
+    .sort();
   const records = await Promise.all(
     allFiles.map(async (fullPath) => ({
       path: path.relative(process.cwd(), fullPath).replace(/\\/g, "/"),
@@ -484,7 +486,7 @@ async function getGitLabContracts(client: {
   }
 
   const yamlPaths = [...archiveFiles.keys()].filter(
-    (p) => /\.(yaml|yml)$/i.test(p) && p.startsWith("contracts/"),
+    (p) => /\.(yaml|yml)$/i.test(p) && p.startsWith("contracts/") && !p.includes("/draft/"),
   );
 
   console.info("[gitlab.contracts] Found YAML files in archive:", yamlPaths.length);
