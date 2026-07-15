@@ -27,6 +27,58 @@ export async function saveContractFile(
   return {};
 }
 
+export async function deleteContractFile(
+  filePath: string,
+  actorId: string,
+  commitMessage?: string,
+  sessionId?: string,
+): Promise<void> {
+  if (hasGitLabConfig()) {
+    await deleteFromGitLab(filePath, actorId, commitMessage, sessionId);
+  } else {
+    deleteFromLocal(filePath);
+  }
+}
+
+async function deleteFromGitLab(
+  filePath: string,
+  actorId: string,
+  commitMessage?: string,
+  sessionId?: string,
+): Promise<void> {
+  const { api, config } = getGitLabClient();
+  const branch = config.ref;
+
+  const msg = commitMessage || `Delete ${filePath}\n\n[skip-ci]`;
+
+  const options = {
+    authorEmail: `${actorId}@users.noreply.gitlab.com`,
+    authorName: actorId,
+  };
+
+  await api.RepositoryFiles.remove(config.projectId, filePath, branch, msg, options);
+
+  await writeAuditLog({
+    action: "contract.delete",
+    actorId,
+    targetType: "contract",
+    targetId: filePath,
+    details: { filePath, mode: "gitlab" },
+    sessionId,
+  });
+}
+
+function deleteFromLocal(filePath: string): void {
+  const normalized = path.normalize(filePath.replace(/^contracts\//, ""));
+  const fullPath = path.resolve(contractsRoot, normalized);
+  if (!fullPath.startsWith(path.resolve(contractsRoot))) {
+    throw new Error(`Path traversal detected: ${filePath}`);
+  }
+  if (fs.existsSync(fullPath)) {
+    fs.unlinkSync(fullPath);
+  }
+}
+
 async function saveToGitLab(
   filePath: string,
   content: string,

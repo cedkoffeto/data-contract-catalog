@@ -796,6 +796,9 @@ export function ContractEditorClient({
   const errorPopoverHoverRef = useRef(false);
   const [errorNavIndex, setErrorNavIndex] = useState<number>(-1);
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+
   const [isBottomPanelOpen, setIsBottomPanelOpen] = useState(false);
   const [openFolders, setOpenFolders] = useState<Record<ExplorerFolder, boolean>>({
     workspace: true,
@@ -1370,6 +1373,85 @@ export function ContractEditorClient({
     setWorkspaceMessage("New contract draft created");
   }
 
+  async function handleSaveDraft() {
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      const content = selectedDocument.content;
+      const path = selectedDocument.path;
+      if (!path.startsWith("contracts/draft/")) {
+        setWorkspaceMessage("Not a draft contract");
+        return;
+      }
+      const res = await fetch("/api/editor/draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content, filePath: path, message: "Save draft contract" }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error ?? "Failed to save draft");
+      }
+      updateDocument((document) => ({
+        ...document,
+        isDraft: false,
+        originalContent: content,
+      }));
+      setWorkspaceMessage(`Draft saved to ${path}`);
+    } catch (error) {
+      setWorkspaceMessage(error instanceof Error ? error.message : "Failed to save draft");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handlePublishDraft() {
+    if (isPublishing) return;
+    const maturity = selectedData.asset?.maturity?.trim().toLowerCase();
+    if (!maturity || !["bronze", "silver", "gold"].includes(maturity)) {
+      setWorkspaceMessage("Set maturity to bronze, silver, or gold before publishing");
+      return;
+    }
+    if (hasBlockingErrors) {
+      setWorkspaceMessage("Fix blocking errors before publishing");
+      return;
+    }
+    setIsPublishing(true);
+    try {
+      const content = selectedDocument.content;
+      const sourcePath = selectedDocument.isDraft ? undefined : selectedDocument.path;
+      const assetId = selectedData.asset?.id?.trim();
+      if (!assetId) {
+        setWorkspaceMessage("Set asset.id before publishing");
+        return;
+      }
+      const slug = assetId.toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "") || "new-contract";
+      const targetPath = `contracts/published/${maturity}/${slug}.yaml`;
+
+      const res = await fetch("/api/editor/publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content, targetPath, sourcePath, message: `Publish ${slug} as ${maturity}` }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error ?? "Failed to publish contract");
+      }
+      updateDocument((document) => ({
+        ...document,
+        path: targetPath,
+        maturity,
+        isDraft: false,
+        originalContent: content,
+      }));
+      setWorkspaceMessage(`Published to ${targetPath}`);
+    } catch (error) {
+      setWorkspaceMessage(error instanceof Error ? error.message : "Failed to publish contract");
+    } finally {
+      setIsPublishing(false);
+    }
+  }
+
   function toggleFolder(folder: ExplorerFolder) {
     setOpenFolders((current) => ({ ...current, [folder]: !current[folder] }));
   }
@@ -1836,6 +1918,30 @@ export function ContractEditorClient({
               >
                 Download
               </button>
+
+              {isEditable && selectedDocument.isDraft ? (
+                <button
+                  className="editor-primary-button"
+                  onClick={handleSaveDraft}
+                  disabled={isSaving}
+                  type="button"
+                  title="Save this draft to GitLab"
+                >
+                  {isSaving ? "Saving..." : "Save draft"}
+                </button>
+              ) : null}
+
+              {isEditable && (selectedDocument.isDraft || selectedDocument.path.startsWith("contracts/draft/")) ? (
+                <button
+                  className="editor-primary-button"
+                  onClick={handlePublishDraft}
+                  disabled={isPublishing}
+                  type="button"
+                  title="Publish this draft contract"
+                >
+                  {isPublishing ? "Publishing..." : "Publish"}
+                </button>
+              ) : null}
 
               <button
                 aria-label={isPreviewOpen ? "Hide preview" : "Show preview"}

@@ -5,6 +5,7 @@ export type AuditAction =
   | "subscription.unsubscribe"
   | "contract.create"
   | "contract.update"
+  | "contract.delete"
   | "policy.create"
   | "policy.update"
   | "policy.delete"
