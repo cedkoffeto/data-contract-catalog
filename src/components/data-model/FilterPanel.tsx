@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useCallback, useEffect, memo } from "react";
+import { createPortal } from "react-dom";
 import { Search, Eye, EyeOff, PanelLeftClose } from "lucide-react";
 import type { Node } from "@xyflow/react";
 import type { ContractTableNodeData } from "@/src/lib/data-model";
@@ -31,6 +32,8 @@ const TableListItem = memo(function TableListItem({
   onToggleTable: (id: string) => void;
 }) {
   const d = nodeData(node);
+  const [errHover, setErrHover] = useState(false);
+  const [errPos, setErrPos] = useState<{ top: number; left: number } | null>(null);
   const handleCenter = useCallback(() => onCenterTable(node.id), [onCenterTable, node.id]);
   const handleToggle = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -45,7 +48,33 @@ const TableListItem = memo(function TableListItem({
         className="h-2 w-2 shrink-0 rounded-full"
         style={{ backgroundColor: d.color }}
       />
-      <span className="flex-1 min-w-0 truncate font-medium text-gray-700" title={d.label ?? ""}>{d.slug}</span>
+      <span className="flex-1 min-w-0 truncate font-medium text-gray-700 flex items-center gap-1" title={d.label ?? ""}>
+        <span className="truncate">{d.slug}</span>
+        {d.relationErrors && d.relationErrors.length > 0 && (
+          <>
+            <span
+              className="inline-block h-3 w-3 shrink-0 rounded-full bg-red-500 cursor-pointer"
+              onMouseEnter={(e) => { setErrHover(true); const r = e.currentTarget.getBoundingClientRect(); setErrPos({ top: r.top - 6, left: r.right + 8 }); }}
+              onMouseLeave={() => { setErrHover(false); setErrPos(null); }}
+            />
+            {errHover && errPos && createPortal(
+              <div className="editor-error-popover fixed" style={{ left: errPos.left, top: errPos.top }}>
+                <div className="editor-error-popover-arrow" />
+                <div className="editor-error-popover-header">
+                  <span>Relation errors</span>
+                  <button className="editor-error-popover-close" onClick={() => { setErrHover(false); setErrPos(null); }}>&times;</button>
+                </div>
+                <div className="editor-error-popover-body">
+                  {d.relationErrors!.map((e, i) => (
+                    <pre key={i}>{e.ref}</pre>
+                  ))}
+                </div>
+              </div>,
+              document.body,
+            )}
+          </>
+        )}
+      </span>
       <button
         onClick={handleToggle}
         className="shrink-0 text-gray-400 hover:text-gray-600"
