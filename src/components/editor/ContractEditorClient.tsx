@@ -1137,6 +1137,10 @@ export function ContractEditorClient({
     if (!isContractDocument || selectedDocument.isDraft || !selectedDocument.contractSlug) {
       return;
     }
+    // Skip history for contracts not yet in the registry (newly created drafts)
+    if (selectedDocument.path.startsWith("contracts/draft/")) {
+      return;
+    }
 
     if (activeHistoryStatus !== "idle") {
       return;
@@ -1211,17 +1215,18 @@ export function ContractEditorClient({
           return;
         }
 
-        console.error("[editor.history] Failed to load history", {
-          slug,
-          error
-        });
+        const msg = error instanceof Error ? error.message : "Unable to load repository history";
+        // 404 is expected for new contracts with no history yet
+        if (!msg.includes("not found")) {
+          console.error("[editor.history] Failed to load history", { slug, error });
+        }
 
         setHistoryBySlug((current) => ({
           ...current,
           [slug]: {
             items: [],
-            status: "error",
-            error: error instanceof Error ? error.message : "Unable to load repository history"
+            status: msg.includes("not found") ? "ready" : "error",
+            error: msg.includes("not found") ? null : msg
           }
         }));
       });
@@ -1383,6 +1388,11 @@ export function ContractEditorClient({
         setWorkspaceMessage("Not a draft contract");
         return;
       }
+      const assetId = selectedData.asset?.id?.trim();
+      const computedSlug = assetId
+        ? assetId.toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "") || "new-contract"
+        : selectedDocument.name.replace(/\.(yaml|yml)$/i, "");
+
       const res = await fetch("/api/editor/draft", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1395,6 +1405,7 @@ export function ContractEditorClient({
       updateDocument((document) => ({
         ...document,
         isDraft: false,
+        contractSlug: computedSlug,
         originalContent: content,
       }));
       setWorkspaceMessage(`Draft saved to ${path}`);
@@ -1441,6 +1452,7 @@ export function ContractEditorClient({
         ...document,
         path: targetPath,
         maturity,
+        contractSlug: slug,
         isDraft: false,
         originalContent: content,
       }));
