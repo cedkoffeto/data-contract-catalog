@@ -83,8 +83,9 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
 
   const { getNodes } = useReactFlow();
   const nodes = getNodes();
-  const srcNode = nodes.find((n) => n.id === source);
-  const tgtNode = nodes.find((n) => n.id === target);
+  const nodeMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
+  const srcNode = nodeMap.get(source) as Node | undefined;
+  const tgtNode = nodeMap.get(target) as Node | undefined;
   const srcMeas = srcNode?.measured;
   const tgtMeas = tgtNode?.measured;
 
