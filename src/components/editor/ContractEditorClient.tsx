@@ -16,6 +16,8 @@ import yaml from "js-yaml";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 
 import dynamic from "next/dynamic";
+import { buildSlugIndex, createRefAutocomplete } from "@/src/lib/editor-autocomplete";
+import { RelationRefWidget } from "@/src/components/editor/RelationRefWidget";
 import { ContractBody } from "@/src/components/contract/ContractBody";
 import { ContractHeader } from "@/src/components/contract/ContractHeader";
 import { useT } from "@/src/lib/use-i18n";
@@ -66,6 +68,13 @@ const uiSchema: UiSchema = {
         items: {
           description: { "ui:widget": "textarea" },
           example: { "ui:widget": "textarea" }
+        }
+      },
+      relations: {
+        items: {
+          ref: {
+            "ui:widget": "RelationRefWidget"
+          }
         }
       }
     }
@@ -366,6 +375,75 @@ const rawEditorTheme = EditorView.theme({
   },
   ".cm-error-dot-gutter-marker:hover": {
     transform: "scale(1.4)"
+  },
+  ".cm-tooltip.cm-tooltip-autocomplete": {
+    border: "1px solid #e2e8f0",
+    borderRadius: "0.5rem",
+    backgroundColor: "#ffffff",
+    boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
+    overflow: "hidden",
+    maxHeight: "min(240px, 40vh)",
+    minWidth: "16rem",
+    width: "18rem"
+  },
+  ".cm-tooltip.cm-tooltip-autocomplete .cm-completionList": {
+    padding: "0.25rem 0",
+    maxHeight: "inherit",
+    overflowY: "auto",
+    scrollbarWidth: "thin",
+    scrollbarColor: "#cbd5e1 transparent"
+  },
+  ".cm-tooltip.cm-tooltip-autocomplete .cm-completionList::-webkit-scrollbar": {
+    width: "4px"
+  },
+  ".cm-tooltip.cm-tooltip-autocomplete .cm-completionList::-webkit-scrollbar-track": {
+    background: "transparent"
+  },
+  ".cm-tooltip.cm-tooltip-autocomplete .cm-completionList::-webkit-scrollbar-thumb": {
+    background: "#cbd5e1",
+    borderRadius: "2px"
+  },
+  ".cm-tooltip.cm-tooltip-autocomplete .cm-completionItem": {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+    padding: "0.35rem 1rem",
+    fontSize: "0.8125rem",
+    lineHeight: "1.25rem",
+    color: "#1f2937",
+    borderBottom: "0",
+    transition: "background-color 0.1s"
+  },
+  ".cm-tooltip.cm-tooltip-autocomplete .cm-completionItem:hover": {
+    backgroundColor: "#fff7ed"
+  },
+  ".cm-tooltip.cm-tooltip-autocomplete .cm-completionItem.cm-completionSelected": {
+    backgroundColor: "#fff7ed",
+    color: "#1f2937"
+  },
+  ".cm-tooltip.cm-tooltip-autocomplete .cm-completionIcon": {
+    display: "none"
+  },
+  ".cm-tooltip.cm-tooltip-autocomplete .cm-completionLabel": {
+    flex: "1",
+    fontWeight: 500,
+    fontSize: "0.8125rem",
+    color: "#1f2937",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap"
+  },
+  ".cm-tooltip.cm-tooltip-autocomplete .cm-completionDetail": {
+    marginLeft: "auto",
+    fontSize: "0.68rem",
+    fontWeight: 500,
+    color: "#94a3b8",
+    textTransform: "uppercase",
+    letterSpacing: "0.025em",
+    whiteSpace: "nowrap"
+  },
+  ".cm-tooltip-arrow": {
+    display: "none"
   }
 });
 
@@ -953,23 +1031,38 @@ export function ContractEditorClient({
     };
   }, [validationErrorMap]);
 
+  const slugIndex = useMemo(
+    () => buildSlugIndex(repositoryFiles),
+    [repositoryFiles],
+  );
+
   const codeMirrorExtensions = useMemo(() => [
     ...STATIC_EDITOR_EXTENSIONS,
     ...(validationIssueLines.length > 0 ? [createValidationDecorations(validationIssueLines)] : []),
     ...(validationErrorMap.size > 0 ? [createErrorGutter(validationErrorMap)] : []),
     ...(isCompareYamlView ? [diffLineDecorations] : []),
-    ...(sortedErrorLines.length > 0 ? [errorKeymap] : [])
-  ], [validationIssueLines, validationErrorMap, isCompareYamlView, sortedErrorLines, errorKeymap]);
+    ...(sortedErrorLines.length > 0 ? [errorKeymap] : []),
+    createRefAutocomplete(slugIndex),
+  ], [validationIssueLines, validationErrorMap, isCompareYamlView, sortedErrorLines, errorKeymap, slugIndex]);
 
   const contractsByMaturity = useMemo(() => {
     const groups = new Map<string, WorkspaceDocument[]>();
     documents
       .filter((document) => document.kind === "contract" && !document.isDraft)
       .forEach((document) => {
-        const key = document.maturity ?? "draft";
-        groups.set(key, [...(groups.get(key) ?? []), document]);
+        const isDraftPath = document.path.startsWith("contracts/draft/");
+        const maturity = isDraftPath ? "draft" : document.maturity?.trim();
+        if (!maturity) return;
+        groups.set(maturity, [...(groups.get(maturity) ?? []), document]);
       });
-    return Array.from(groups.entries()).sort(([left], [right]) => left.localeCompare(right));
+    const entries = Array.from(groups.entries()).sort(([left], [right]) => left.localeCompare(right));
+    // Move "draft" to the end if it exists
+    const draftIdx = entries.findIndex(([k]) => k === "draft");
+    if (draftIdx > -1) {
+      const [draft] = entries.splice(draftIdx, 1);
+      entries.push(draft);
+    }
+    return entries;
   }, [documents]);
   const visibleSchemaDocuments = useMemo(
     () =>
@@ -1879,6 +1972,8 @@ export function ContractEditorClient({
                         showErrorList={false}
                         uiSchema={uiSchema}
                         validator={validator}
+                        widgets={{ RelationRefWidget }}
+                        formContext={{ slugIndex }}
                         onChange={handleFormChange}
                       >
                         <div className="editor-submit-row">
