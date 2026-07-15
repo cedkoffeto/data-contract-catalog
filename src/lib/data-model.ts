@@ -261,71 +261,71 @@ export function parseContractsToGraph(
     }
   }
 
-  // Assign offset indices to parallel edges (same source + target) to prevent overlap
+  // ── Offset computation: single pass to count, single pass to assign ──
+
+  // Count
   const pairCount = new Map<string, number>();
-  for (const e of edges) {
-    const key = `${e.source}|${e.target}`;
-    pairCount.set(key, (pairCount.get(key) ?? 0) + 1);
-  }
-  const pairIdx = new Map<string, number>();
-  for (const e of edges) {
-    const key = `${e.source}|${e.target}`;
-    const total = pairCount.get(key)!;
-    const idx = pairIdx.get(key) ?? 0;
-    pairIdx.set(key, idx + 1);
-    e.data = { ...(e.data as object || {}), parallelOffset: idx - (total - 1) / 2 };
-  }
-
-  // Fan-in offset: edges sharing the same target (N→1 convergence) get an extra
-  // vertical offset on the target side so they spread at the target node.
   const tgtCount = new Map<string, number>();
-  for (const e of edges) {
-    tgtCount.set(e.target, (tgtCount.get(e.target) ?? 0) + 1);
-  }
-  const tgtIdx = new Map<string, number>();
-  for (const e of edges) {
-    const total = tgtCount.get(e.target) ?? 1;
-    if (total <= 1) continue;
-    const idx = tgtIdx.get(e.target) ?? 0;
-    tgtIdx.set(e.target, idx + 1);
-    const fanIn = idx - (total - 1) / 2;
-    e.data = { ...(e.data as object || {}), targetParallelOffset: fanIn };
-  }
-
-  // Source field offset: edges sharing the same source field spread apart
   const srcField = new Map<string, number>();
-  for (const e of edges) {
-    if (!e.sourceHandle) continue;
-    const key = `${e.source}|${e.sourceHandle}`;
-    srcField.set(key, (srcField.get(key) ?? 0) + 1);
-  }
-  const srcFIdx = new Map<string, number>();
-  for (const e of edges) {
-    if (!e.sourceHandle) continue;
-    const key = `${e.source}|${e.sourceHandle}`;
-    const total = srcField.get(key)!;
-    if (total <= 1) continue;
-    const idx = srcFIdx.get(key) ?? 0;
-    srcFIdx.set(key, idx + 1);
-    e.data = { ...(e.data as object || {}), sourceFieldOffset: idx - (total - 1) / 2 };
-  }
-
-  // Target field offset: edges sharing the same target field spread apart
   const tgtField = new Map<string, number>();
   for (const e of edges) {
-    if (!e.targetHandle) continue;
-    const key = `${e.target}|${e.targetHandle}`;
-    tgtField.set(key, (tgtField.get(key) ?? 0) + 1);
+    const pairKey = `${e.source}|${e.target}`;
+    pairCount.set(pairKey, (pairCount.get(pairKey) ?? 0) + 1);
+    tgtCount.set(e.target, (tgtCount.get(e.target) ?? 0) + 1);
+    if (e.sourceHandle) {
+      const sfKey = `${e.source}|${e.sourceHandle}`;
+      srcField.set(sfKey, (srcField.get(sfKey) ?? 0) + 1);
+    }
+    if (e.targetHandle) {
+      const tfKey = `${e.target}|${e.targetHandle}`;
+      tgtField.set(tfKey, (tgtField.get(tfKey) ?? 0) + 1);
+    }
   }
+
+  // Assign
+  const pairIdx = new Map<string, number>();
+  const tgtIdx = new Map<string, number>();
+  const srcFIdx = new Map<string, number>();
   const tgtFIdx = new Map<string, number>();
   for (const e of edges) {
-    if (!e.targetHandle) continue;
-    const key = `${e.target}|${e.targetHandle}`;
-    const total = tgtField.get(key)!;
-    if (total <= 1) continue;
-    const idx = tgtFIdx.get(key) ?? 0;
-    tgtFIdx.set(key, idx + 1);
-    e.data = { ...(e.data as object || {}), targetFieldOffset: idx - (total - 1) / 2 };
+    const pairKey = `${e.source}|${e.target}`;
+    const pTotal = pairCount.get(pairKey)!;
+    const pIdx = pairIdx.get(pairKey) ?? 0;
+    pairIdx.set(pairKey, pIdx + 1);
+
+    const tTotal = tgtCount.get(e.target) ?? 1;
+    const tIdx = tgtIdx.get(e.target) ?? 0;
+    tgtIdx.set(e.target, tIdx + 1);
+
+    let sfOffset = 0;
+    if (e.sourceHandle) {
+      const sfKey = `${e.source}|${e.sourceHandle}`;
+      const sfTotal = srcField.get(sfKey)!;
+      if (sfTotal > 1) {
+        const sfIdx = srcFIdx.get(sfKey) ?? 0;
+        srcFIdx.set(sfKey, sfIdx + 1);
+        sfOffset = sfIdx - (sfTotal - 1) / 2;
+      }
+    }
+
+    let tfOffset = 0;
+    if (e.targetHandle) {
+      const tfKey = `${e.target}|${e.targetHandle}`;
+      const tfTotal = tgtField.get(tfKey)!;
+      if (tfTotal > 1) {
+        const tfIdx = tgtFIdx.get(tfKey) ?? 0;
+        tgtFIdx.set(tfKey, tfIdx + 1);
+        tfOffset = tfIdx - (tfTotal - 1) / 2;
+      }
+    }
+
+    e.data = {
+      ...(e.data as object || {}),
+      parallelOffset: pIdx - (pTotal - 1) / 2,
+      targetParallelOffset: tTotal > 1 ? tIdx - (tTotal - 1) / 2 : 0,
+      sourceFieldOffset: sfOffset,
+      targetFieldOffset: tfOffset,
+    };
   }
 
   // Collect relation errors: edges where the referenced field doesn't exist
