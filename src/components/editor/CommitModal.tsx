@@ -29,7 +29,9 @@ export function CommitModal({
 }) {
   const { t, tWith } = useT();
   const id = useId().replace(/:/g, "");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(defaultMessage);
+
+  const messageRows = Math.max(3, (message.match(/\n/g)?.length ?? 0) + 1);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -160,7 +162,7 @@ export function CommitModal({
             id={`commit-msg-${id}`}
             onChange={(e) => setMessage(e.target.value)}
             placeholder={t("describeChanges")}
-            rows={6}
+            rows={messageRows}
             value={message}
           />
         </div>

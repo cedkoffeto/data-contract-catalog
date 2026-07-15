@@ -61,7 +61,6 @@ export function FilterPanel({
   nodes,
   visibleTables,
   onToggleTable,
-  onToggleDomain,
   onToggleAll,
   allVisible,
   onCenterTable,
@@ -73,7 +72,6 @@ export function FilterPanel({
   nodes: Node[];
   visibleTables: Set<string>;
   onToggleTable: (id: string) => void;
-  onToggleDomain: (domain: string, nodeIds: string[]) => void;
   onToggleAll: () => void;
   allVisible: boolean;
   onCenterTable: (slug: string) => void;
@@ -111,75 +109,44 @@ export function FilterPanel({
     };
   }, [resizing]);
 
-  // Group filtered nodes by domain
-  const groupedByDomain = useMemo(() => {
+  // Filter and sort nodes alphabetically
+  const filteredNodes = useMemo(() => {
     const filtered = nodes.filter((n) => {
       const d = nodeData(n);
       const layer = d.maturity || "bronze";
-      const domain = d.domain || "Unknown";
       if (layerFilter && layer !== layerFilter) return false;
       if (query) {
         const q = query.toLowerCase();
-        if (!d.label?.toLowerCase().includes(q) && !d.slug?.toLowerCase().includes(q) && !domain.toLowerCase().includes(q))
+        if (!d.label?.toLowerCase().includes(q) && !d.slug?.toLowerCase().includes(q))
           return false;
       }
       return true;
     });
-
-    const grouped = new Map<string, Node[]>();
-    for (const n of filtered) {
-      const d = nodeData(n);
-      const domain = d.domain || "Unknown";
-      if (!grouped.has(domain)) grouped.set(domain, []);
-      grouped.get(domain)!.push(n);
-    }
-    return Array.from(grouped.entries()).sort(([a], [b]) => a.localeCompare(b));
+    return filtered.sort((a, b) => {
+      const da = nodeData(a);
+      const db = nodeData(b);
+      return (da.slug || da.label || a.id).localeCompare(db.slug || db.label || b.id);
+    });
   }, [nodes, layerFilter, query]);
 
-  const totalFiltered = groupedByDomain.reduce((sum, [, ns]) => sum + ns.length, 0);
-
   const tableListMemoized = useMemo(() => {
-    const groups = groupedByDomain.map(([domain, ns]) => {
-      const allDomainVisible = ns.every((n) => visibleTables.has(n.id));
+    if (filteredNodes.length === 0) {
       return (
-        <div key={domain}>
-          <div className="sticky top-0 flex items-center gap-1.5 border-b border-gray-100 bg-gray-50 px-3 py-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
-              {domain}
-            </span>
-            <span className="rounded-full bg-gray-200 px-1.5 py-[1px] text-[10px] font-medium text-gray-500">
-              {ns.length}/{totalFiltered}
-            </span>
-            <div className="flex-1 min-w-0" />
-            <button
-              onClick={() => onToggleDomain(domain, ns.map((n) => n.id))}
-              className="shrink-0 text-gray-400 hover:text-gray-600"
-              title={allDomainVisible ? "Hide domain" : "Show domain"}
-            >
-              {allDomainVisible ? <Eye size={13} /> : <EyeOff size={13} />}
-            </button>
-          </div>
-          {ns.map((n) => (
-            <TableListItem
-              key={n.id}
-              node={n}
-              isVisible={visibleTables.has(n.id)}
-              onCenterTable={onCenterTable}
-              onToggleTable={onToggleTable}
-            />
-          ))}
-        </div>
-      );
-    });
-    if (totalFiltered === 0) {
-      groups.push(
-        <div key="empty" className="px-3 py-4 text-center text-xs text-gray-400">
+        <div className="px-3 py-4 text-center text-xs text-gray-400">
           No tables match the filter
         </div>
       );
     }
-    return groups;
-  }, [groupedByDomain, visibleTables, totalFiltered, onToggleDomain, onCenterTable, onToggleTable]);
+    return filteredNodes.map((n) => (
+      <TableListItem
+        key={n.id}
+        node={n}
+        isVisible={visibleTables.has(n.id)}
+        onCenterTable={onCenterTable}
+        onToggleTable={onToggleTable}
+      />
+    ));
+  }, [filteredNodes, visibleTables, onCenterTable, onToggleTable]);
 
   return (
     <div
@@ -204,11 +171,16 @@ export function FilterPanel({
       ) : (
         <button
           onClick={() => setOpen(true)}
-          className="m-1.5 shrink-0 rounded-lg border border-gray-200 bg-white p-2 text-gray-500 shadow-sm hover:bg-gray-50 hover:text-gray-700"
+          className="m-1.5 flex shrink-0 flex-col items-center rounded-lg border border-gray-200 bg-white px-2 py-2 text-gray-500 shadow-sm hover:bg-gray-50 hover:text-gray-700"
           title="Open panel"
         >
           <span style={{ display: "inline-block", transform: "scaleX(-1)" }}>
             <PanelLeftClose size={18} />
+          </span>
+          <span className="mt-1 flex flex-col items-center text-[10px] font-semibold leading-tight text-gray-400">
+            <span>{visibleTables.size}</span>
+            <span className="text-gray-300">/</span>
+            <span>{nodes.length}</span>
           </span>
         </button>
       )}
@@ -237,6 +209,10 @@ export function FilterPanel({
                 );
               })}
             </div>
+            <span
+              className="ml-auto inline-flex items-center self-center text-[10px] font-semibold text-gray-500"
+              title={`${filteredNodes.filter((n) => visibleTables.has(n.id)).length} visible / ${filteredNodes.length} total`}
+            >{filteredNodes.filter((n) => visibleTables.has(n.id)).length}/{filteredNodes.length}</span>
           </div>
 
           {/* Search + toggle all row */}

@@ -1156,7 +1156,7 @@ export function DiscussionThread({
                       color: typeFilter === mode ? "#fff" : "#374151",
                     }}
                   >
-                    {mode === "all" ? "Tout" : mode === "comments" ? "Commentaires" : "Issues"}
+                    {mode === "all" ? t("filterAll") : mode === "comments" ? t("filterComments") : t("issuesTitle")}
                   </button>
                 ))}
               </div>
@@ -1183,18 +1183,18 @@ export function DiscussionThread({
                     </>
                   )}
                 </svg>
-                {sortOrder === "newest" ? "Plus récents" : "Plus anciens"}
+                {sortOrder === "newest" ? t("sortNewest") : t("sortOldest")}
               </button>
             </div>
           </div>
           <div className="rounded-2xl border border-dashed bg-white px-4 py-8 text-center text-sm text-gray-600 shadow-sm">
-            {threadItems.length === 0 ? t("noComments") : "Aucun élément ne correspond au filtre"}
+            {threadItems.length === 0 ? t("noComments") : t("noFilterMatch")}
           </div>
         </>
       ) : (
         <>
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-gray-900">Discussion</h2>
+            <h2 className="text-base font-semibold text-gray-900">{t("discussionTitle")}</h2>
             <div className="flex items-center gap-2">
               <div className="inline-flex rounded-lg p-0.5" style={{ backgroundColor: "rgba(0,0,0,0.06)" }}>
                 {(["all", "comments", "issues"] as const).map((mode) => (
@@ -1208,7 +1208,7 @@ export function DiscussionThread({
                       color: typeFilter === mode ? "#fff" : "#374151",
                     }}
                   >
-                    {mode === "all" ? "Tout" : mode === "comments" ? "Commentaires" : "Issues"}
+                    {mode === "all" ? t("filterAll") : mode === "comments" ? t("filterComments") : t("issuesTitle")}
                   </button>
                 ))}
               </div>
@@ -1235,7 +1235,7 @@ export function DiscussionThread({
                     </>
                   )}
                 </svg>
-                {sortOrder === "newest" ? "Plus récents" : "Plus anciens"}
+                {sortOrder === "newest" ? t("sortNewest") : t("sortOldest")}
               </button>
             </div>
           </div>
@@ -1334,7 +1334,7 @@ export function DiscussionThread({
               >
                 <div className="overflow-y-auto bg-white py-1 mention-scroll" style={{ maxHeight: "inherit" }}>
                   <div className="px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                    Champs
+                    {t("fieldsLabel")}
                   </div>
                   {filteredFields.map((field, index) => {
                     const isActive = index === selectedFieldIndex;

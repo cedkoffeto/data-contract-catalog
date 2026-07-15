@@ -202,14 +202,14 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(currentlySubscribed ? { channel: null } : {}),
     });
-    if (!res.ok) { showToast("Erreur lors de la gestion de l'abonnement", "error"); return; }
+    if (!res.ok) {       showToast(t("subscriptionError"), "error"); return; }
     setSubscribedSlugs((prev) => {
       const next = new Set(prev);
       if (currentlySubscribed) next.delete(slug); else next.add(slug);
       return next;
     });
     window.dispatchEvent(new CustomEvent("subscription-changed", { detail: { slug, subscribed: !currentlySubscribed } }));
-    showToast(currentlySubscribed ? "Abonnement supprimé" : "Abonnement activé");
+    showToast(currentlySubscribed ? t("subscriptionRemoved") : t("subscriptionActivated"));
   }, [showToast]);
 
   const accessibleCount = useMemo(() => cards.filter((c) => c.accessible).length, [cards]);

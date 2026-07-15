@@ -1,3 +1,5 @@
+import { useT } from "@/src/lib/use-i18n";
+
 function TableIcon() {
   return (
     <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -44,6 +46,8 @@ export function ServingSection({
   retention?: { type?: string; value?: string | number };
   queryUrl?: string;
 }) {
+  const { t } = useT();
+
   if (!tableName && !storageFormat && (!partitioning || partitioning.length === 0) && !retention && !queryUrl) {
     return null;
   }
@@ -52,7 +56,7 @@ export function ServingSection({
     <section id="servers" className="mt-6">
       <div className="px-4 sm:px-0">
         <h1 className="text-base font-semibold leading-6 text-gray-900">Serving</h1>
-        <p className="text-sm text-gray-500">Service et stockage des données</p>
+        <p className="text-sm text-gray-500">{t("sectionServingDesc")}</p>
       </div>
       <div className="mt-2 overflow-hidden rounded-lg bg-white shadow sm:rounded-lg">
         <div className="px-4 py-5 sm:px-6">
@@ -60,7 +64,7 @@ export function ServingSection({
             <TableIcon />
             <span className="font-mono text-sm font-semibold text-gray-900">{tableName ?? "N/A"}</span>
             <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
-              Actif
+              {t("sectionServingActive")}
             </span>
           </div>
 
@@ -69,7 +73,7 @@ export function ServingSection({
               <div className="sm:col-span-1 flex items-center gap-2">
                 <DiskIcon />
                 <div>
-                  <dt className="text-xs font-medium text-gray-500">Format de stockage</dt>
+                  <dt className="text-xs font-medium text-gray-500">{t("sectionServingStorageFormat")}</dt>
                   <dd className="mt-0.5">
                     <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
                       {storageFormat}
@@ -83,7 +87,7 @@ export function ServingSection({
               <div className="sm:col-span-1 flex items-center gap-2">
                 <FolderIcon />
                 <div>
-                  <dt className="text-xs font-medium text-gray-500">Partitionnement</dt>
+                  <dt className="text-xs font-medium text-gray-500">{t("sectionServingPartitioning")}</dt>
                   <dd className="mt-0.5 font-mono text-sm text-gray-900">{partitioning.join(", ")}</dd>
                 </div>
               </div>
@@ -93,7 +97,7 @@ export function ServingSection({
               <div className="sm:col-span-1 flex items-center gap-2">
                 <ClockIcon />
                 <div>
-                  <dt className="text-xs font-medium text-gray-500">Rétention</dt>
+                  <dt className="text-xs font-medium text-gray-500">{t("sectionServingRetention")}</dt>
                   <dd className="mt-0.5 text-sm text-gray-900">
                     <span className="inline-flex items-center rounded-md bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700 ring-1 ring-inset ring-purple-700/10">
                       {String(retention.value)} ({retention.type})
@@ -115,7 +119,7 @@ export function ServingSection({
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
                 </svg>
-                Ouvrir dans l&apos;outil de requêtage
+                {t("sectionServingOpenQuery")}
               </a>
             </div>
           ) : null}

@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
+import { useT } from "@/src/lib/use-i18n";
 
 export function LoginRedirect({ callbackUrl }: { callbackUrl: string }) {
+  const { t } = useT();
   const [hasAutoStarted, setHasAutoStarted] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
 
@@ -35,10 +37,10 @@ export function LoginRedirect({ callbackUrl }: { callbackUrl: string }) {
         }}
         type="button"
       >
-        {isStarting ? "Redirection..." : "Se connecter avec Keycloak"}
+        {isStarting ? t("loginConnecting") : t("loginButton")}
       </button>
       {hasAutoStarted && !isStarting ? (
-        <p className="login-actions__hint">Si la redirection ne demarre pas, clique sur le bouton.</p>
+        <p className="login-actions__hint">{t("redirectHint")}</p>
       ) : null}
     </div>
   );

@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
+import { useT } from "@/src/lib/use-i18n";
 
 export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
+  const { t } = useT();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -26,7 +28,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
     setIsSubmitting(false);
 
     if (result?.error) {
-      setError("Identifiant ou mot de passe incorrect.");
+      setError(t("loginError"));
       return;
     }
 
@@ -36,19 +38,19 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
   return (
     <form className="login-form" onSubmit={handleSubmit}>
       <label className="login-field">
-        <span>Nom d’utilisateur</span>
+        <span>{t("usernameLabel")}</span>
         <input autoComplete="username" name="username" placeholder="contract.user" required type="text" />
       </label>
 
       <label className="login-field">
-        <span>Mot de passe</span>
+        <span>{t("passwordLabel")}</span>
         <input autoComplete="current-password" name="password" placeholder="••••••••" required type="password" />
       </label>
 
       {error ? <p className="login-form__error">{error}</p> : null}
 
       <button className="login-form__submit" disabled={isSubmitting} type="submit">
-        {isSubmitting ? "Connexion..." : "Se connecter"}
+        {isSubmitting ? t("loginConnecting") : t("loginButton")}
       </button>
     </form>
   );

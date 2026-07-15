@@ -1,4 +1,5 @@
 import type { Asset } from "@/src/lib/types";
+import { useT } from "@/src/lib/use-i18n";
 
 function VersionIcon() {
   return (
@@ -56,6 +57,7 @@ function statusClasses(status?: string) {
 }
 
 export function InfoSection({ asset, slug }: { asset: Asset; slug?: string }) {
+  const { t } = useT();
   const owners = asset.owners ?? {};
   const businessOwner = owners.business_owner ?? {};
   const technicalOwner = owners.technical_owner ?? {};
@@ -67,10 +69,10 @@ export function InfoSection({ asset, slug }: { asset: Asset; slug?: string }) {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-base font-semibold leading-6 text-gray-900" id="info">
-              Informations
+              {t("sectionInfo")}
             </h1>
             <p className="text-sm text-gray-500">
-              Informations sur le contrat de données{slug ? <strong className="font-semibold text-orange-600"> {slug}</strong> : null}
+              {t("sectionInfoDesc")}{slug ? <strong className="font-semibold text-orange-600"> {slug}</strong> : null}
             </p>
           </div>
           <div className="flex items-center gap-2 mt-0.5">
@@ -113,7 +115,7 @@ export function InfoSection({ asset, slug }: { asset: Asset; slug?: string }) {
                   <div className="flex items-center gap-2 pl-3">
                     <BusinessIcon />
                     <div>
-                      <p className="text-xs font-medium text-gray-500">Propriétaire métier</p>
+                      <p className="text-xs font-medium text-gray-500">{t("sectionOwnerBusiness")}</p>
                       <div className="mt-0.5 flex flex-wrap items-center gap-1.5 pr-3">
                         {businessOwner.name ? (
                           <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
@@ -138,7 +140,7 @@ export function InfoSection({ asset, slug }: { asset: Asset; slug?: string }) {
                   <div className="flex items-center gap-2 pl-3">
                     <BusinessIcon />
                     <div>
-                      <p className="text-xs font-medium text-gray-500">Propriétaire technique</p>
+                      <p className="text-xs font-medium text-gray-500">{t("sectionOwnerTechnical")}</p>
                       <div className="mt-0.5 flex flex-wrap items-center gap-1.5 pr-3">
                         {technicalOwner.name ? (
                           <span className="inline-flex items-center rounded-md bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700 ring-1 ring-inset ring-purple-700/10">

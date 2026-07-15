@@ -4,8 +4,9 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { toPng } from "html-to-image";
 import { useReactFlow, useViewport } from "@xyflow/react";
-import { ZoomIn, ZoomOut, Maximize2, Eye, LayoutTemplate, LayoutList, AlignEndHorizontal, AlignEndVertical, Layers, LayoutGrid, Grid3x3, Check, Download } from "lucide-react";
+import { ZoomIn, ZoomOut, Maximize2, Eye, LayoutTemplate, LayoutList, AlignEndHorizontal, AlignEndVertical, Layers, LayoutGrid, Grid3x3, Check, Download, Star } from "lucide-react";
 import type { LayoutMode } from "@/src/lib/data-model";
+import { useT } from "@/src/lib/use-i18n";
 
 const VIEW_MODES: { mode: "detailed" | "compact"; icon: React.ReactNode; label: string; description: string }[] = [
   { mode: "detailed", icon: <LayoutList size={18} />, label: "Detailed", description: "Shows all fields with types and constraints for each table" },
@@ -16,7 +17,7 @@ const LAYOUT_MODES: { mode: LayoutMode; icon: React.ReactNode; label: string; de
   { mode: "LR", icon: <AlignEndHorizontal size={18} />, label: "Left to Right", description: "Organizes tables horizontally from left to right, showing data flow direction" },
   { mode: "TB", icon: <AlignEndVertical size={18} />, label: "Top to Bottom", description: "Organizes tables vertically from top to bottom, emphasizing hierarchy" },
   { mode: "layer", icon: <Layers size={18} />, label: "Layer clustering", description: "Groups tables by maturity layer (Bronze / Silver / Gold) in columns" },
-  { mode: "domain", icon: <LayoutGrid size={18} />, label: "Domain clustering", description: "Groups tables by business domain in columns" },
+  { mode: "star", icon: <Star size={18} />, label: "Star / Snowflake", description: "Radial layout centered on the most connected tables" },
 ];
 
 function Dropdown<T extends string>({
@@ -114,6 +115,7 @@ export function GraphControls({
   totalCount: number;
   className?: string;
 }) {
+  const { t } = useT();
   const [editingZoom, setEditingZoom] = useState(false);
   const [zoomInput, setZoomInput] = useState("");
   const zoomInputRef = useRef<HTMLInputElement>(null);
@@ -121,6 +123,7 @@ export function GraphControls({
   const { zoom } = useViewport();
   const zoomPercent = Math.round(zoom * 100);
   const [exportOpen, setExportOpen] = useState(false);
+  const [fitToggled, setFitToggled] = useState(false);
 
   useEffect(() => {
     if (editingZoom) zoomInputRef.current?.select();
@@ -190,7 +193,7 @@ export function GraphControls({
       <button onClick={() => zoomOut()} className="flex h-7 w-7 items-center justify-center rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Zoom out">
         <ZoomOut size={16} />
       </button>
-      <button onClick={() => { onFitViewVisible(); }} className="flex h-7 w-7 items-center justify-center rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Fit view">
+      <button onClick={() => { setFitToggled(!fitToggled); if (!fitToggled) onFitViewVisible(); else zoomTo(1, { duration: 200 }); }} className={`flex h-7 w-7 items-center justify-center rounded-md hover:bg-gray-50 hover:text-gray-700 ${fitToggled ? "bg-gray-100 text-gray-700" : "text-gray-400"}`} title={fitToggled ? "Zoom 100%" : "Fit view"}>
         <Maximize2 size={16} />
       </button>
       <button
@@ -230,21 +233,21 @@ export function GraphControls({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/50" onClick={() => setExportOpen(false)} />
           <div className="relative z-10 w-full max-w-xs rounded-lg bg-white p-5 shadow-xl">
-            <h3 className="text-sm font-semibold text-gray-900">Export PNG</h3>
+            <h3 className="text-sm font-semibold text-gray-900">{t("exportPngTitle")}</h3>
             <div className="mt-3 flex flex-col gap-2">
               <button
                 onClick={() => doExport("all")}
                 className="w-full rounded-lg border border-gray-200 px-4 py-3 text-left text-xs font-semibold text-gray-900 hover:bg-gray-50"
               >
-                <div className="text-sm">Tout</div>
-                <div className="mt-0.5 text-[11px] font-normal text-gray-500">Exporter l&apos;intégralité du graphe</div>
+                <div className="text-sm">{t("exportAll")}</div>
+                <div className="mt-0.5 text-[11px] font-normal text-gray-500">{t("exportAllDesc")}</div>
               </button>
               <button
                 onClick={() => doExport("visible")}
                 className="w-full rounded-lg border border-gray-200 px-4 py-3 text-left text-xs font-semibold text-gray-900 hover:bg-gray-50"
               >
-                <div className="text-sm">Ce qui est visible</div>
-                <div className="mt-0.5 text-[11px] font-normal text-gray-500">Exporter uniquement la zone visible à l&apos;écran</div>
+                <div className="text-sm">{t("exportVisible")}</div>
+                <div className="mt-0.5 text-[11px] font-normal text-gray-500">{t("exportVisibleDesc")}</div>
               </button>
             </div>
             <div className="mt-3 flex justify-end">
@@ -252,7 +255,7 @@ export function GraphControls({
                 onClick={() => setExportOpen(false)}
                 className="rounded-md px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
               >
-                Annuler
+                {t("close")}
               </button>
             </div>
           </div>

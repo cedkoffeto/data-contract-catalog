@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useT } from "@/src/lib/use-i18n";
 
 function parseCardinality(ref: string): { left: string; sign: string; right: string } | null {
   const m = ref.match(/^(.+?)\s*([><-])\s*(.+)$/);
@@ -129,6 +130,7 @@ export function RelationsSection({
   relations?: Array<{ ref_name: string; ref: string }>;
   incomingRelations?: Array<{ ref_name: string; ref: string; declared_by_slug: string }>;
 }) {
+  const { t } = useT();
   const hasDeclared = relations && relations.length > 0;
   const hasIncoming = incomingRelations && incomingRelations.length > 0;
 
@@ -137,15 +139,15 @@ export function RelationsSection({
   return (
     <section id="relations" className="mt-6">
       <div className="px-4 sm:px-0">
-        <h1 className="text-base font-semibold leading-6 text-gray-900">Relations</h1>
-        <p className="text-sm text-gray-500">Relations avec d'autres contracts de données</p>
+        <h1 className="text-base font-semibold leading-6 text-gray-900">{t("sectionRelations")}</h1>
+        <p className="text-sm text-gray-500">{t("sectionRelationsDesc")}</p>
       </div>
       <div className="mt-2 overflow-hidden rounded-lg bg-white shadow sm:rounded-lg">
         <div className="px-4 py-5 sm:px-6">
           {hasDeclared && (
             <div className="space-y-6">
               {hasIncoming && (
-                <h2 className="text-sm font-semibold text-gray-700">Déclarées</h2>
+                <h2 className="text-sm font-semibold text-gray-700">{t("sectionRelationsDeclared")}</h2>
               )}
               {relations!.map((rel, i) => (
                 <RelationRow key={`decl-${i}`} rel={rel} />
@@ -156,8 +158,8 @@ export function RelationsSection({
           {hasIncoming && (
             <div className={hasDeclared ? "mt-8 space-y-6" : "space-y-6"}>
               <h2 className="text-sm font-semibold text-gray-700">
-                Références reçues
-                <span className="ml-2 text-xs font-normal text-gray-400">(déclarées par d&apos;autres contrats)</span>
+                {t("sectionRelationsIncoming")}
+                <span className="ml-2 text-xs font-normal text-gray-400">{t("sectionRelationsIncomingDesc")}</span>
               </h2>
               {incomingRelations!.map((rel, i) => (
                 <RelationRow key={`inc-${i}`} rel={rel} incoming />

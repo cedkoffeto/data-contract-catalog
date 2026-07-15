@@ -1,4 +1,5 @@
 import type { RolePolicy } from "@/src/lib/types";
+import { useT } from "@/src/lib/use-i18n";
 
 function ShieldIcon() {
   return (
@@ -53,6 +54,8 @@ export function SecuritySection({
   piiNotes?: string;
   roles: RolePolicy[];
 }) {
+  const { t } = useT();
+
   if (!classification && containsPii === undefined && !piiNotes && roles.length === 0) {
     return null;
   }
@@ -62,8 +65,8 @@ export function SecuritySection({
   return (
     <section id="security" className="mt-6">
       <div className="px-4 sm:px-0">
-        <h1 className="text-base font-semibold leading-6 text-gray-900">Sécurité</h1>
-        <p className="text-sm text-gray-500">Classification de sécurité et politiques d&apos;accès</p>
+        <h1 className="text-base font-semibold leading-6 text-gray-900">{t("sectionSecurity")}</h1>
+        <p className="text-sm text-gray-500">{t("sectionSecurityDesc")}</p>
       </div>
 
       <div className="mt-2 overflow-hidden rounded-lg bg-white shadow sm:rounded-lg">
@@ -75,7 +78,7 @@ export function SecuritySection({
                 <div className="sm:col-span-1">
                   <div className="flex items-center gap-1.5">
                     <ShieldIcon />
-                    <dt className="text-xs font-medium text-gray-500">Classification</dt>
+                    <dt className="text-xs font-medium text-gray-500">{t("sectionSecurityClassification")}</dt>
                   </div>
                   <dd className="mt-1">
                     <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${badge.bg} ${badge.text} ${badge.ring}`}>
@@ -90,7 +93,7 @@ export function SecuritySection({
                   <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
                   </svg>
-                  <dt className="text-xs font-medium text-gray-500">Données personnelles (PII)</dt>
+                    <dt className="text-xs font-medium text-gray-500">{t("sectionSecurityPii")}</dt>
                 </div>
                 <dd className="mt-1">
                   {containsPii ? (
@@ -113,7 +116,7 @@ export function SecuritySection({
 
               {piiNotes ? (
                 <div className="sm:col-span-2">
-                  <dt className="text-xs font-medium text-gray-500">Notes PII</dt>
+                  <dt className="text-xs font-medium text-gray-500">{t("sectionSecurityPiiNotes")}</dt>
                   <dd className="mt-1 text-sm text-gray-900">{piiNotes}</dd>
                 </div>
               ) : null}
@@ -124,13 +127,13 @@ export function SecuritySection({
             <div className={classification || containsPii !== undefined || piiNotes ? "mt-6 border-t border-gray-100 pt-6" : ""}>
               <div className="flex items-center gap-1.5 mb-3">
                 <KeyIcon />
-                <h3 className="text-xs font-medium text-gray-500">Contrôle d&apos;accès</h3>
+                <h3 className="text-xs font-medium text-gray-500">{t("sectionSecurityAccessControl")}</h3>
               </div>
               <table className="min-w-full">
                 <thead>
                   <tr>
-                    <th scope="col" className="pb-2 pr-3 text-left text-xs font-semibold text-gray-900">Rôle</th>
-                    <th scope="col" className="pb-2 px-3 text-left text-xs font-semibold text-gray-900">Permissions</th>
+                    <th scope="col" className="pb-2 pr-3 text-left text-xs font-semibold text-gray-900">{t("sectionSecurityRole")}</th>
+                    <th scope="col" className="pb-2 px-3 text-left text-xs font-semibold text-gray-900">{t("sectionSecurityPermissions")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">

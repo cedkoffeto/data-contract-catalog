@@ -73,13 +73,13 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
 
   const { source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style, label, data, animated, id } = props;
 
-  const edgeData = (data ?? {}) as { cardSource?: string; cardTarget?: string; parallelOffset?: number; targetParallelOffset?: number };
+  const edgeData = (data ?? {}) as { cardSource?: string; cardTarget?: string; parallelOffset?: number; targetParallelOffset?: number; sourceFieldOffset?: number; targetFieldOffset?: number };
   const parallelOffset = edgeData.parallelOffset ?? 0;
   const targetParallelOffset = edgeData.targetParallelOffset ?? 0;
-  const sourceOffset = parallelOffset * 16;
-  const targetOffset = (parallelOffset + targetParallelOffset) * 16;
-
-  const hOff = parallelOffset * 8;
+  const sourceFieldOffset = edgeData.sourceFieldOffset ?? 0;
+  const targetFieldOffset = edgeData.targetFieldOffset ?? 0;
+  const sourceOffset = (parallelOffset + sourceFieldOffset) * 16;
+  const targetOffset = (parallelOffset + targetParallelOffset) * 8 + targetFieldOffset * 4;
 
   const { getNodes } = useReactFlow();
   const nodes = getNodes();
@@ -103,16 +103,14 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
     sp = getPortPosition(tcx - scx);
     tp = getPortPosition(scx - tcx);
     sx = portX(sp, srcNode.position.x, srcMeas.width ?? 220);
-    sy = portY(sp, srcNode.position.y, srcMeas.height ?? 40);
     tx = portX(tp, tgtNode.position.x, tgtMeas.width ?? 220);
-    ty = portY(tp, tgtNode.position.y, tgtMeas.height ?? 40);
   }
 
   const [edgePath, labelX, labelY] = getSmoothStepPath({
-    sourceX: sx + hOff,
+    sourceX: sx,
     sourceY: sy + sourceOffset,
     sourcePosition: sp,
-    targetX: tx + hOff,
+    targetX: tx,
     targetY: ty + targetOffset,
     targetPosition: tp,
     borderRadius: 18,
@@ -204,7 +202,7 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
       <g opacity={edgeActive || isEdgeHighlighted ? 1 : 0.2} />
 
       <text
-        x={sx + hOff + edgeOffset(sp, "source", 14).dx}
+        x={sx + edgeOffset(sp, "source", 14).dx}
         y={sy + sourceOffset + edgeOffset(sp, "source", 14).dy - 9}
         textAnchor="middle"
         dominantBaseline="central"
@@ -219,8 +217,8 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
       </text>
       <path
         d={cardinalitySymbolD(
-          sx + hOff + edgeOffset(sp, "source", 6).dx,
-          sy + sourceOffset + edgeOffset(sp, "source", 6).dy,
+          sx,
+          sy + sourceOffset,
           sp,
           cardSource === "many" ? "many" : "one",
         )}
@@ -232,7 +230,7 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
       />
 
       <text
-        x={tx + hOff + edgeOffset(tp, "target", 14).dx}
+        x={tx + edgeOffset(tp, "target", 14).dx}
         y={ty + targetOffset + edgeOffset(tp, "target", 14).dy - 9}
         textAnchor="middle"
         dominantBaseline="central"
@@ -247,8 +245,8 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
       </text>
       <path
         d={cardinalitySymbolD(
-          tx + hOff + edgeOffset(tp, "target", 6).dx,
-          ty + targetOffset + edgeOffset(tp, "target", 6).dy,
+          tx,
+          ty + targetOffset,
           tp,
           cardTarget === "many" ? "many" : "one",
         )}

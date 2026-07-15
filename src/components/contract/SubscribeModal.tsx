@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useToast } from "@/src/components/ui/ToastProvider";
+import { useT } from "@/src/lib/use-i18n";
 
 export function SubscribeButton({
   slug,
@@ -15,6 +16,7 @@ export function SubscribeButton({
   onUnsubscribed: () => void;
 }) {
   const [saving, setSaving] = useState(false);
+  const { t } = useT();
   const { showToast } = useToast();
 
   async function handleToggle() {
@@ -26,12 +28,12 @@ export function SubscribeButton({
         body: isSubscribed ? JSON.stringify({ channel: null }) : JSON.stringify({}),
       });
       if (!res.ok) {
-        showToast("Erreur lors de la gestion de l'abonnement", "error");
+        showToast(t("subscriptionError"), "error");
         return;
       }
       if (isSubscribed) onUnsubscribed(); else onSubscribed();
       window.dispatchEvent(new CustomEvent("subscription-changed", { detail: { slug, subscribed: !isSubscribed } }));
-      showToast(isSubscribed ? "Abonnement supprimé" : "Abonnement activé");
+      showToast(isSubscribed ? t("subscriptionRemoved") : t("subscriptionActivated"));
     } finally {
       setSaving(false);
     }

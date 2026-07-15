@@ -1,4 +1,5 @@
 import type { QualityCheck } from "@/src/lib/types";
+import { useT } from "@/src/lib/use-i18n";
 
 function CheckIcon() {
   return (
@@ -19,6 +20,8 @@ export function QualitySection({
     return null;
   }
 
+  const { t, tWith } = useT();
+
   const total = checks.length;
   const criticalCount = checks.filter((c) => c.critical).length;
   const nonCriticalCount = total - criticalCount;
@@ -26,8 +29,8 @@ export function QualitySection({
   return (
     <section id="quality" className="mt-6">
       <div className="px-4 sm:px-0">
-        <h1 className="text-base font-semibold leading-6 text-gray-900">Qualité</h1>
-        <p className="text-sm text-gray-500">Contrôles de qualité et règles de validation</p>
+        <h1 className="text-base font-semibold leading-6 text-gray-900">{t("sectionQuality")}</h1>
+        <p className="text-sm text-gray-500">{t("sectionQualityDesc")}</p>
       </div>
 
       <div className="mt-2 overflow-hidden rounded-lg bg-white shadow sm:rounded-lg">
@@ -37,18 +40,18 @@ export function QualitySection({
             <div className="mb-4 flex items-center gap-4 text-sm">
               <span className="flex items-center gap-1.5 font-medium text-gray-700">
                 <CheckIcon />
-                {total} contrôle{total !== 1 ? "s" : ""}
+                {tWith("qualityChecksCount", { count: String(total) })}
               </span>
               {criticalCount > 0 && (
                 <span className="flex items-center gap-1.5 text-red-600">
                   <span className="h-2 w-2 rounded-full bg-red-500" />
-                  {criticalCount} critique{criticalCount !== 1 ? "s" : ""}
+                  {tWith("qualityCriticalsCount", { count: String(criticalCount) })}
                 </span>
               )}
               {nonCriticalCount > 0 && (
                 <span className="flex items-center gap-1.5 text-amber-600">
                   <span className="h-2 w-2 rounded-full bg-amber-400" />
-                  {nonCriticalCount} non critique{nonCriticalCount !== 1 ? "s" : ""}
+                  {tWith("qualityNonCriticalsCount", { count: String(nonCriticalCount) })}
                 </span>
               )}
             </div>
@@ -61,13 +64,13 @@ export function QualitySection({
                   <thead>
                     <tr>
                       <th scope="col" className="py-3 pl-4 pr-2 text-left text-sm font-semibold text-gray-900 sm:pl-0">
-                        <span className="sr-only">Criticité</span>
+                        <span className="sr-only">{t("qualityCriticity")}</span>
                       </th>
-                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900">Nom</th>
-                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900">Type</th>
-                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900">Champ</th>
-                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900">Seuil</th>
-                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900">Expression</th>
+                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900">{t("qualityName")}</th>
+                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900">{t("qualityType")}</th>
+                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900">{t("qualityField")}</th>
+                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900">{t("qualityThreshold")}</th>
+                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900">{t("qualityExpression")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -84,7 +87,7 @@ export function QualitySection({
                                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
                                 </svg>
-                                Critique
+                                {t("qualityCriticalLabel")}
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">
@@ -113,11 +116,11 @@ export function QualitySection({
                 <svg className="h-4 w-4 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
                 </svg>
-                <span className="text-xs font-semibold text-red-700">En cas d&apos;échec</span>
+                <span className="text-xs font-semibold text-red-700">{t("qualityOnFailure")}</span>
               </div>
               {onFailure.action ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">Action</span>
+                  <span className="text-xs text-gray-500">{t("qualityAction")}</span>
                   <span className="rounded bg-white px-2 py-0.5 text-xs font-medium text-gray-900 ring-1 ring-inset ring-gray-200">
                     {onFailure.action}
                   </span>
@@ -125,7 +128,7 @@ export function QualitySection({
               ) : null}
               {onFailure.notify && onFailure.notify.length > 0 ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">Notifier</span>
+                  <span className="text-xs text-gray-500">{t("qualityNotifier")}</span>
                   <span className="text-xs text-gray-700">{onFailure.notify.join(", ")}</span>
                 </div>
               ) : null}

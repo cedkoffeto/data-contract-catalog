@@ -18,6 +18,7 @@ import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import dynamic from "next/dynamic";
 import { ContractBody } from "@/src/components/contract/ContractBody";
 import { ContractHeader } from "@/src/components/contract/ContractHeader";
+import { useT } from "@/src/lib/use-i18n";
 
 const CommitModal = dynamic(
   () => import("@/src/components/editor/CommitModal").then((m) => m.CommitModal),
@@ -226,6 +227,7 @@ function ErrorPopover({ lineNumber, message, x, y, onClose, onHoverChange }: {
   onClose: () => void;
   onHoverChange?: (hovering: boolean) => void;
 }) {
+  const { t, tWith } = useT();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -255,8 +257,8 @@ function ErrorPopover({ lineNumber, message, x, y, onClose, onHoverChange }: {
     >
       <div className="editor-error-popover-arrow" />
       <div className="editor-error-popover-header">
-        <span>Ligne {lineNumber}</span>
-        <button className="editor-error-popover-close" onClick={onClose} aria-label="Fermer">&times;</button>
+        <span>{tWith("editorLineNumber", { lineNumber: String(lineNumber) })}</span>
+        <button className="editor-error-popover-close" onClick={onClose} aria-label={t("closeAlt")}>&times;</button>
       </div>
       <div className="editor-error-popover-body">
         <pre>{message}</pre>
@@ -688,6 +690,7 @@ export function ContractEditorClient({
   schema: RJSFSchema;
 }) {
   const [documents, setDocuments] = useState<WorkspaceDocument[]>(() => buildInitialDocuments(initialData, repositoryFiles));
+  const { t } = useT();
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("yaml");
   const [activeBottomTab, setActiveBottomTab] = useState<BottomTab>("validation");
   const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
@@ -863,7 +866,7 @@ export function ContractEditorClient({
         let msg = error.stack || error.message || "";
         const ajvParams = (error as any).params;
         if (ajvParams?.allowedValues) {
-          msg += `\nValeurs autorisées : ${ajvParams.allowedValues.join(", ")}`;
+          msg += `\n${t("allowedValues")} ${ajvParams.allowedValues.join(", ")}`;
         }
         const desc = findSchemaDescription(error.property, schema);
         if (desc) {
@@ -1906,7 +1909,7 @@ export function ContractEditorClient({
                       {activeBottomTab === "validation" ? (
                         <div className="editor-panel-grid">
                           <article className="editor-info-card editor-info-card--validation">
-                            <h3>Validation</h3>
+                            <h3>{t("validationTab")}</h3>
                             {isContractDocument ? (
                               yamlValidationState.parseError ? (
                                 <ul className="editor-list editor-list--validation">
@@ -2134,9 +2137,9 @@ export function ContractEditorClient({
                     onClick={handleSubmitContract}
                     type="button"
                     disabled={hasBlockingErrors}
-                    title={hasBlockingErrors ? "Fix validation errors before submitting" : "Submit contract"}
+                    title={hasBlockingErrors ? t("submitBlocked") : t("submitTitle")}
                   >
-                    Soumettre la modification
+                    {t("submitModification")}
                   </button>
                 </>
               ) : (

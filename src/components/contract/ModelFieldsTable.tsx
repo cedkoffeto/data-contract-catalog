@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
 import type { ContractField } from "@/src/lib/types";
+import { useT } from "@/src/lib/use-i18n";
 
 type FlatField = {
   id: string;
@@ -52,6 +53,7 @@ function flattenFields(fields: ContractField[], depth = 0, parentId: string | nu
 
 export function ModelFieldsTable({ fields, slug, userId, fieldAnnotations, onFieldClick, onAnnotationPosted }: { fields: ContractField[]; slug?: string; userId?: string; fieldAnnotations?: Record<string, number>; onFieldClick?: (fieldName: string) => void; onAnnotationPosted?: () => void }) {
   const rows = useMemo(() => flattenFields(fields), [fields]);
+  const { t } = useT();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [annotating, setAnnotating] = useState<FlatField | null>(null);
   const [annotationText, setAnnotationText] = useState("");
@@ -195,7 +197,7 @@ export function ModelFieldsTable({ fields, slug, userId, fieldAnnotations, onFie
 
                 {row.piiClassification ? (
                   <span className={piiClassName}>
-                    PII : {row.piiClassification}
+                    {t("sectionSecurityPii")} : {row.piiClassification}
                   </span>
                 ) : null}
               </div>
@@ -208,11 +210,11 @@ export function ModelFieldsTable({ fields, slug, userId, fieldAnnotations, onFie
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="fixed inset-0 bg-black/50" onClick={() => { setAnnotating(null); setAnnotationText(""); }} />
         <div className="relative z-10 w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
-          <h3 className="text-base font-semibold text-gray-900">Annotation pour {annotating.name}</h3>
+          <h3 className="text-base font-semibold text-gray-900">{t("annotate")} pour {annotating.name}</h3>
           <textarea
             className="mt-4 w-full rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-orange-500"
             rows={4}
-            placeholder="Écrivez votre annotation..."
+            placeholder={t("annotatePlaceholder")}
             value={annotationText}
             onChange={(e) => setAnnotationText(e.target.value)}
             autoFocus
@@ -223,7 +225,7 @@ export function ModelFieldsTable({ fields, slug, userId, fieldAnnotations, onFie
               onClick={() => { setAnnotating(null); setAnnotationText(""); }}
               className="rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
             >
-              Annuler
+              {t("close")}
             </button>
             <button
               type="button"
@@ -231,7 +233,7 @@ export function ModelFieldsTable({ fields, slug, userId, fieldAnnotations, onFie
               disabled={!annotationText.trim()}
               className="catalog-primary-link"
             >
-              Annoter
+              {t("annotate")}
             </button>
           </div>
         </div>

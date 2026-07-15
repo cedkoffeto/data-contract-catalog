@@ -291,6 +291,42 @@ export function parseContractsToGraph(
     e.data = { ...(e.data as object || {}), targetParallelOffset: fanIn };
   }
 
+  // Source field offset: edges sharing the same source field spread apart
+  const srcField = new Map<string, number>();
+  for (const e of edges) {
+    if (!e.sourceHandle) continue;
+    const key = `${e.source}|${e.sourceHandle}`;
+    srcField.set(key, (srcField.get(key) ?? 0) + 1);
+  }
+  const srcFIdx = new Map<string, number>();
+  for (const e of edges) {
+    if (!e.sourceHandle) continue;
+    const key = `${e.source}|${e.sourceHandle}`;
+    const total = srcField.get(key)!;
+    if (total <= 1) continue;
+    const idx = srcFIdx.get(key) ?? 0;
+    srcFIdx.set(key, idx + 1);
+    e.data = { ...(e.data as object || {}), sourceFieldOffset: idx - (total - 1) / 2 };
+  }
+
+  // Target field offset: edges sharing the same target field spread apart
+  const tgtField = new Map<string, number>();
+  for (const e of edges) {
+    if (!e.targetHandle) continue;
+    const key = `${e.target}|${e.targetHandle}`;
+    tgtField.set(key, (tgtField.get(key) ?? 0) + 1);
+  }
+  const tgtFIdx = new Map<string, number>();
+  for (const e of edges) {
+    if (!e.targetHandle) continue;
+    const key = `${e.target}|${e.targetHandle}`;
+    const total = tgtField.get(key)!;
+    if (total <= 1) continue;
+    const idx = tgtFIdx.get(key) ?? 0;
+    tgtFIdx.set(key, idx + 1);
+    e.data = { ...(e.data as object || {}), targetFieldOffset: idx - (total - 1) / 2 };
+  }
+
   return {
     nodes: Array.from(nodeMap.values()),
     edges,
@@ -380,18 +416,18 @@ function computeEdgePorts(dx: number, dy: number, threshold = 0.8): { sourcePosi
   return { sourcePosition: Position.Top, targetPosition: Position.Bottom };
 }
 
-export type LayoutMode = "LR" | "TB" | "layer" | "domain";
+export type LayoutMode = "LR" | "TB" | "layer" | "domain" | "star";
 
 function nodeFieldCount(node: Node): number {
   const data = node.data as ContractTableNodeData;
   return data.fields ? data.fields.length : 0;
 }
 
-function nodeCompactCount(node: Node, connectedFields: Map<string, Set<string>>): number {
+function nodeCompactCount(node: Node, connectedFields: Map<string, Map<string, number>>): number {
   return connectedFields.get(node.id)?.size ?? 0;
 }
 
-function nodeHeight(node: Node, connectedFields?: Map<string, Set<string>>, viewMode?: "detailed" | "compact"): number {
+function nodeHeight(node: Node, connectedFields?: Map<string, Map<string, number>>, viewMode?: "detailed" | "compact"): number {
   const count = viewMode === "compact" && connectedFields
     ? Math.max(nodeCompactCount(node, connectedFields), 2)
     : nodeFieldCount(node);
@@ -410,7 +446,7 @@ function nodeWidth(node: Node): number {
   return Math.max(Math.ceil(Math.max(slugPx, maxFieldPx) + 60), 220);
 }
 
-export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB" = "LR", connectedFields?: Map<string, Set<string>>, viewMode?: "detailed" | "compact", containerWidth?: number): { nodes: Node[]; edges: Edge[] } {
+export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB" = "LR", connectedFields?: Map<string, Map<string, number>>, viewMode?: "detailed" | "compact", containerWidth?: number): { nodes: Node[]; edges: Edge[] } {
   // Separate isolated nodes (no edges) from connected ones
   const connectedIds = new Set<string>();
   for (const e of edges) {
@@ -421,17 +457,31 @@ export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB"
   const isolated = nodes.filter((n) => !connectedIds.has(n.id));
   const connected = nodes.filter((n) => connectedIds.has(n.id));
 
+  // Count edges between each pair of nodes for dagre weight
+  const pairWeight = new Map<string, number>();
+  for (const e of edges) {
+    const key = e.source < e.target ? `${e.source}|${e.target}` : `${e.target}|${e.source}`;
+    pairWeight.set(key, (pairWeight.get(key) ?? 0) + 1);
+  }
+
   // Layout connected nodes with dagre
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
   const isCompact = viewMode === "compact";
-  g.setGraph({ rankdir: direction, nodesep: isCompact ? 60 : 100, ranksep: isCompact ? 120 : 180, marginx: 80, marginy: 80 });
+  g.setGraph({ rankdir: direction, nodesep: isCompact ? 60 : 100, ranksep: isCompact ? 60 : 60, marginx: 80, marginy: 80 });
 
   for (const node of connected) {
     g.setNode(node.id, { width: nodeWidth(node), height: nodeHeight(node, connectedFields, viewMode) });
   }
-  for (const edge of edges) {
-    g.setEdge(edge.source, edge.target);
+  // Sort edges: group by target, then sort sources by slug to minimize crossings
+  const sortedEdges = [...edges].sort((a, b) => {
+    if (a.target !== b.target) return a.target.localeCompare(b.target);
+    return a.source.localeCompare(b.source);
+  });
+  for (const edge of sortedEdges) {
+    const key = edge.source < edge.target ? `${edge.source}|${edge.target}` : `${edge.target}|${edge.source}`;
+    const weight = 1 + pairWeight.get(key)!;
+    g.setEdge(edge.source, edge.target, { weight });
   }
 
   dagre.layout(g);
@@ -480,7 +530,7 @@ export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB"
   return { nodes: nodes.map((n) => laidOut.get(n.id) || n), edges };
 }
 
-export function layoutLayerGraph(nodes: Node[], edges: Edge[], connectedFields?: Map<string, Set<string>>, viewMode?: "detailed" | "compact"): { nodes: Node[]; edges: Edge[] } {
+export function layoutLayerGraph(nodes: Node[], edges: Edge[], connectedFields?: Map<string, Map<string, number>>, viewMode?: "detailed" | "compact"): { nodes: Node[]; edges: Edge[] } {
   const LAYER_ORDER = ["bronze", "silver", "gold"];
   const COLUMN_WIDTH = 480;
   const VERTICAL_GAP = 60;
@@ -590,7 +640,7 @@ export function layoutLayerGraph(nodes: Node[], edges: Edge[], connectedFields?:
   return { nodes: [...bgNodes, ...laidOut], edges };
 }
 
-export function layoutDomainGraph(nodes: Node[], edges: Edge[], connectedFields?: Map<string, Set<string>>, viewMode?: "detailed" | "compact"): { nodes: Node[]; edges: Edge[] } {
+export function layoutDomainGraph(nodes: Node[], edges: Edge[], connectedFields?: Map<string, Map<string, number>>, viewMode?: "detailed" | "compact"): { nodes: Node[]; edges: Edge[] } {
   const COLUMN_WIDTH = 320;
   const DOMAIN_GAP_X = 160;
   const VERTICAL_GAP = 50;
@@ -668,7 +718,120 @@ export function layoutDomainGraph(nodes: Node[], edges: Edge[], connectedFields?
   return { nodes: laidOut, edges };
 }
 
-export function layoutByMode(nodes: Node[], edges: Edge[], mode: LayoutMode, connectedFields?: Map<string, Set<string>>, viewMode?: "detailed" | "compact", containerWidth?: number): { nodes: Node[]; edges: Edge[] } {
+export function layoutStarGraph(nodes: Node[], edges: Edge[], connectedFields?: Map<string, Map<string, number>>, viewMode?: "detailed" | "compact"): { nodes: Node[]; edges: Edge[] } {
+  // Build undirected adjacency
+  const adj = new Map<string, Set<string>>();
+  for (const n of nodes) adj.set(n.id, new Set());
+  for (const e of edges) {
+    adj.get(e.source)?.add(e.target);
+    adj.get(e.target)?.add(e.source);
+  }
+
+  // Degree centrality
+  const degree = new Map<string, number>();
+  for (const [id, nb] of adj) degree.set(id, nb.size);
+
+  // Connected components via BFS
+  const visited = new Set<string>();
+  const components: string[][] = [];
+  for (const n of nodes) {
+    if (visited.has(n.id)) continue;
+    const comp: string[] = [];
+    const queue = [n.id];
+    visited.add(n.id);
+    while (queue.length) {
+      const id = queue.shift()!;
+      comp.push(id);
+      for (const nb of adj.get(id) ?? []) {
+        if (!visited.has(nb)) { visited.add(nb); queue.push(nb); }
+      }
+    }
+    components.push(comp);
+  }
+
+  const positions = new Map<string, { x: number; y: number }>();
+  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+  const BASE_RADIUS = 100;
+  const RADIUS_STEP = 160;
+
+  for (let ci = 0; ci < components.length; ci++) {
+    const comp = components[ci];
+    if (comp.length === 0) continue;
+
+    // Pick center: highest degree
+    let center = comp[0];
+    for (const id of comp) { if ((degree.get(id) ?? 0) > (degree.get(center) ?? 0)) center = id; }
+
+    // BFS layers from center
+    const layer = new Map<string, number>();
+    const queue = [center];
+    layer.set(center, 0);
+    while (queue.length) {
+      const id = queue.shift()!;
+      for (const nb of adj.get(id) ?? []) {
+        if (!layer.has(nb)) { layer.set(nb, layer.get(id)! + 1); queue.push(nb); }
+      }
+    }
+
+    // Group by layer
+    const byLayer = new Map<number, string[]>();
+    for (const id of comp) {
+      const l = layer.get(id) ?? 0;
+      if (!byLayer.has(l)) byLayer.set(l, []);
+      byLayer.get(l)!.push(id);
+    }
+
+    // Compute radius per layer (enough arc gap to avoid overlap)
+    const radii = new Map<number, number>();
+    let maxR = 0;
+    for (const [l, ids] of byLayer) {
+      const n = ids.length;
+      const maxW = Math.max(...ids.map((id) => nodeWidth(nodeMap.get(id)!)), 220);
+      const minR = (n * (maxW + 40)) / (2 * Math.PI);
+      const r = Math.max(BASE_RADIUS + l * RADIUS_STEP, minR);
+      radii.set(l, r);
+      if (r > maxR) maxR = r;
+    }
+
+    // Component horizontal offset (spread components apart)
+    const compOffsetX = (ci - (components.length - 1) / 2) * (maxR * 2 + 160);
+
+    for (const [l, ids] of byLayer) {
+      const radius = l === 0 ? 0 : radii.get(l)!;
+      const n = ids.length;
+      for (let i = 0; i < n; i++) {
+        const angle = l === 0 ? 0 : (i / n) * Math.PI * 2 - Math.PI / 2;
+        positions.set(ids[i], {
+          x: compOffsetX + radius * Math.cos(angle),
+          y: radius * Math.sin(angle),
+        });
+      }
+    }
+  }
+
+  // Edge ports
+  const starEdges = edges as EdgeWithPorts[];
+  for (const edge of starEdges) {
+    const sp = positions.get(edge.source);
+    const tp = positions.get(edge.target);
+    if (sp && tp) {
+      Object.assign(edge, computeEdgePorts(tp.x - sp.x, tp.y - sp.y));
+    }
+  }
+
+  // Single output pass with node dimensions
+  const laidOut = nodes.map((n) => {
+    const pos = positions.get(n.id);
+    if (!pos) return n;
+    const h = nodeHeight(n, connectedFields, viewMode);
+    const w = nodeWidth(n);
+    return { ...n, position: { x: pos.x - w / 2, y: pos.y - h / 2 } };
+  });
+
+  return { nodes: laidOut, edges };
+}
+
+export function layoutByMode(nodes: Node[], edges: Edge[], mode: LayoutMode, connectedFields?: Map<string, Map<string, number>>, viewMode?: "detailed" | "compact", containerWidth?: number): { nodes: Node[]; edges: Edge[] } {
   switch (mode) {
     case "LR":
     case "TB":
@@ -677,5 +840,7 @@ export function layoutByMode(nodes: Node[], edges: Edge[], mode: LayoutMode, con
       return layoutLayerGraph(nodes, edges, connectedFields, viewMode);
     case "domain":
       return layoutDomainGraph(nodes, edges, connectedFields, viewMode);
+    case "star":
+      return layoutStarGraph(nodes, edges, connectedFields, viewMode);
   }
 }

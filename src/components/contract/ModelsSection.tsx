@@ -1,5 +1,6 @@
 import { ModelFieldsTable } from "@/src/components/contract/ModelFieldsTable";
 import { toArray } from "@/src/lib/format";
+import { useT } from "@/src/lib/use-i18n";
 import type { Asset, ContractField } from "@/src/lib/types";
 
 export function ModelsSection({
@@ -23,6 +24,8 @@ export function ModelsSection({
   onFieldClick?: (fieldName: string) => void;
   onAnnotationPosted?: () => void;
 }) {
+  const { t } = useT();
+
   if (!fields || fields.length === 0) {
     return null;
   }
@@ -33,8 +36,8 @@ export function ModelsSection({
     <section id="models">
       <div className="flex justify-between">
         <div className="px-4 sm:px-0">
-          <h1 className="text-base font-semibold leading-6 text-gray-900">Modèle de données</h1>
-          <p className="text-sm text-gray-500">Le modèle de données logique</p>
+          <h1 className="text-base font-semibold leading-6 text-gray-900">{t("sectionModel")}</h1>
+          <p className="text-sm text-gray-500">{t("sectionModelDesc")}</p>
         </div>
       </div>
 
@@ -61,7 +64,7 @@ export function ModelsSection({
                   <tfoot className="contract-models-table__foot">
                     <tr>
                       <th scope="colgroup" colSpan={3} className="contract-models-table__primary-key">
-                        <span>Clé primaire : {primaryKeyValue}</span>
+                        <span>{t("sectionModelPrimaryKey")} : {primaryKeyValue}</span>
                       </th>
                     </tr>
                   </tfoot>

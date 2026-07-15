@@ -1,3 +1,5 @@
+import { useT } from "@/src/lib/use-i18n";
+
 function SignalIcon() {
   return (
     <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -32,6 +34,7 @@ function TimerIcon() {
 }
 
 function HealthBadge({ value }: { value: number }) {
+  const { t } = useT();
   const ok = value >= 99;
   return (
     <span
@@ -39,7 +42,7 @@ function HealthBadge({ value }: { value: number }) {
         ok ? "bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20" : "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20"
       }`}
     >
-      {ok ? "OK" : "À surveiller"}
+      {ok ? "OK" : t("sectionSlaToWatch")}
     </span>
   );
 }
@@ -59,13 +62,14 @@ export function ServiceLevelsSection({
     return null;
   }
 
+  const { t, tWith } = useT();
   const availabilityNum = typeof availability === "number" ? availability : Number(availability);
 
   return (
     <section id="servicelevels" className="mt-6">
       <div className="px-4 sm:px-0">
         <h1 className="text-base font-semibold leading-6 text-gray-900">SLA</h1>
-        <p className="text-sm text-gray-500">Niveaux de service du contrat de données</p>
+        <p className="text-sm text-gray-500">{t("sectionSlaDesc")}</p>
       </div>
       <div className="mt-2 overflow-hidden rounded-lg bg-white shadow sm:rounded-lg">
         <div className="px-4 py-5 sm:px-6">
@@ -74,7 +78,7 @@ export function ServiceLevelsSection({
               <div className="sm:col-span-1">
                 <div className="flex items-center gap-1.5">
                   <SignalIcon />
-                  <dt className="text-xs font-medium text-gray-500">Disponibilité</dt>
+                  <dt className="text-xs font-medium text-gray-500">{t("sectionSlaAvailability")}</dt>
                 </div>
                 <dd className="mt-1 flex items-center gap-2 text-sm font-semibold text-gray-900">
                   {availability}%
@@ -87,9 +91,9 @@ export function ServiceLevelsSection({
               <div className="sm:col-span-1">
                 <div className="flex items-center gap-1.5">
                   <ClockIcon />
-                  <dt className="text-xs font-medium text-gray-500">Fraîcheur</dt>
+                  <dt className="text-xs font-medium text-gray-500">{t("sectionSlaFreshness")}</dt>
                 </div>
-                <dd className="mt-1 text-sm font-semibold text-gray-900">Prête à {readyBy}</dd>
+                <dd className="mt-1 text-sm font-semibold text-gray-900">{tWith("sectionSlaReadyBy", { readyBy })}</dd>
               </div>
             ) : null}
 
@@ -97,7 +101,7 @@ export function ServiceLevelsSection({
               <div className="sm:col-span-1">
                 <div className="flex items-center gap-1.5">
                   <RefreshIcon />
-                  <dt className="text-xs font-medium text-gray-500">Fréquence</dt>
+                  <dt className="text-xs font-medium text-gray-500">{t("sectionSlaFrequency")}</dt>
                 </div>
                 <dd className="mt-1 text-sm font-semibold text-gray-900">{frequency}</dd>
               </div>
@@ -107,7 +111,7 @@ export function ServiceLevelsSection({
               <div className="sm:col-span-1">
                 <div className="flex items-center gap-1.5">
                   <TimerIcon />
-                  <dt className="text-xs font-medium text-gray-500">Délai maximum</dt>
+                  <dt className="text-xs font-medium text-gray-500">{t("sectionSlaMaxDelay")}</dt>
                 </div>
                 <dd className="mt-1 text-sm font-semibold text-gray-900">{maxDelayMinutes} minutes</dd>
               </div>

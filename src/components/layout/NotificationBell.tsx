@@ -190,12 +190,12 @@ export function NotificationBell() {
           ]);
         }
         window.dispatchEvent(new CustomEvent("subscription-changed", { detail: { slug, subscribed: !currentlySubscribed } }));
-        showToast(currentlySubscribed ? "Abonnement supprimé" : "Abonnement activé");
+        showToast(currentlySubscribed ? t("subscriptionRemoved") : t("subscriptionActivated"));
       } else {
-        showToast("Erreur lors de la gestion de l'abonnement", "error");
+        showToast(t("subscriptionError"), "error");
       }
     } catch {
-      showToast("Erreur réseau", "error");
+      showToast(t("networkError"), "error");
     } finally {
       setSavingSlug(null);
     }

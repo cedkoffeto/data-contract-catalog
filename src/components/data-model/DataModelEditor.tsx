@@ -15,18 +15,20 @@ import { FilterPanel } from "./FilterPanel";
 import { SidePanel } from "./SidePanel";
 import { Position, type Edge, type Node as FlowNode } from "@xyflow/react";
 
-function computeConnectedFields(edges: Edge[]): Map<string, Set<string>> {
-  const map = new Map<string, Set<string>>();
+function computeConnectedFields(edges: Edge[]): Map<string, Map<string, number>> {
+  const map = new Map<string, Map<string, number>>();
   for (const edge of edges) {
     if (edge.sourceHandle) {
       const s = edge.sourceHandle as string;
-      if (!map.has(edge.source)) map.set(edge.source, new Set());
-      map.get(edge.source)!.add(s);
+      if (!map.has(edge.source)) map.set(edge.source, new Map());
+      const inner = map.get(edge.source)!;
+      inner.set(s, (inner.get(s) ?? 0) + 1);
     }
     if (edge.targetHandle) {
       const t = edge.targetHandle as string;
-      if (!map.has(edge.target)) map.set(edge.target, new Set());
-      map.get(edge.target)!.add(t);
+      if (!map.has(edge.target)) map.set(edge.target, new Map());
+      const inner = map.get(edge.target)!;
+      inner.set(t, (inner.get(t) ?? 0) + 1);
     }
   }
   return map;
@@ -223,19 +225,6 @@ export function DataModelEditor({
     setFitKey((k) => k + 1);
   }, [rawNodes, layerFilter, filteredByLayer]);
 
-  const handleToggleDomain = useCallback((_domain: string, nodeIds: string[]) => {
-    setVisibleTablesState((prev) => {
-      const allVisible = nodeIds.every((id) => prev.has(id));
-      const next = new Set(prev);
-      for (const id of nodeIds) {
-        if (allVisible) next.delete(id);
-        else next.add(id);
-      }
-      return next;
-    });
-    setFitKey((k) => k + 1);
-  }, []);
-
   const selectedContract = useMemo(
     () => {
       if (!selectedSlug) return null;
@@ -270,7 +259,6 @@ export function DataModelEditor({
           nodes={rawNodes}
           visibleTables={visibleTablesState}
           onToggleTable={handleToggleTable}
-          onToggleDomain={handleToggleDomain}
           onToggleAll={handleToggleAll}
           allVisible={allFilteredVisible}
           onCenterTable={handleCenterView}
