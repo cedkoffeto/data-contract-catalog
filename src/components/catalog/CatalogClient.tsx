@@ -11,6 +11,41 @@ import type { CatalogCard as CatalogCardType } from "@/src/lib/types";
 
 const ALL_DOMAINS = "__all_domains__";
 
+const FIELD_ALIASES: Record<string, keyof CatalogCardType> = {
+  name: "title",
+  title: "title",
+  slug: "slug",
+  domain: "domain",
+  context: "context",
+  maturity: "maturity",
+  owner: "owner",
+  desc: "description",
+  description: "description",
+  version: "version",
+};
+
+function parseSearchQuery(query: string): { fieldFilters: Record<string, string>; freeText: string } {
+  const tokens = query.trim().toLowerCase().split(/\s+/);
+  const fieldFilters: Record<string, string> = {};
+  const freeTokens: string[] = [];
+
+  for (const token of tokens) {
+    const colonIdx = token.indexOf(":");
+    if (colonIdx > 0) {
+      const key = token.slice(0, colonIdx);
+      const val = token.slice(colonIdx + 1);
+      const field = FIELD_ALIASES[key];
+      if (field && val) {
+        fieldFilters[field] = val;
+        continue;
+      }
+    }
+    freeTokens.push(token);
+  }
+
+  return { fieldFilters, freeText: freeTokens.join(" ") };
+}
+
 function humanize(value: string): string {
   const trimmed = value.trim();
   if (!trimmed) {
@@ -24,6 +59,8 @@ function humanize(value: string): string {
     .join(" ");
 }
 
+const SUGGESTIONS = ["domain:", "owner:", "context:", "maturity:", "slug:", "name:", "desc:"];
+
 export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError, initialSubscriptionSlugs }: { cards: CatalogCardType[]; canRequestUpgrade?: boolean; gitError?: boolean; initialSubscriptionSlugs?: Set<string> }) {
   const { t, tWith } = useT();
   const { showToast } = useToast();
@@ -32,6 +69,8 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
   const cardsRef = useRef(cards);
   cardsRef.current = cards;
   const [search, setSearch] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchWrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (gitError) {
@@ -90,6 +129,24 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
     return () => window.removeEventListener("favorite-changed", onFavoriteChange);
   }, []);
 
+  useEffect(() => {
+    if (!showSuggestions) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setShowSuggestions(false);
+    }
+    function onClickOutside(e: MouseEvent) {
+      if (searchWrapperRef.current && !searchWrapperRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("mousedown", onClickOutside);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("mousedown", onClickOutside);
+    };
+  }, [showSuggestions]);
+
   const domains = useMemo(() => {
     const unique = new Set(cards.map((card) => card.domain.trim()).filter(Boolean));
     return Array.from(unique).sort((a, b) => a.localeCompare(b));
@@ -143,17 +200,22 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
   }, [cards, selectedDomain]);
 
   const visibleCards = useMemo(() => {
-    const query = debouncedSearch.trim().toLowerCase();
+    const query = debouncedSearch.trim();
+    const { fieldFilters, freeText } = parseSearchQuery(query);
 
     return cards
       .filter((card) => {
-        const matchesSearch = !query || card.searchData.includes(query);
+        const matchesFieldFilter = Object.entries(fieldFilters).every(
+          ([field, value]) => (card[field as keyof CatalogCardType] as string)?.toLowerCase().includes(value),
+        );
+        const matchesSearch = !freeText || card.searchData.includes(freeText);
+        if (!matchesFieldFilter || !matchesSearch) return false;
         const matchesDomain = selectedDomain === ALL_DOMAINS || card.domain.trim() === selectedDomain;
         const matchesContext = selectedContexts.size === 0 || selectedContexts.has(card.context.trim());
         const matchesMaturity = selectedMaturities.size === 0 || selectedMaturities.has(card.maturity.trim());
         const matchesAccessible = !showOnlyAccessible || card.accessible;
         const matchesFavorite = !showFavoritesOnly || card.isFavorite;
-        return matchesSearch && matchesDomain && matchesContext && matchesMaturity && matchesAccessible && matchesFavorite;
+        return matchesDomain && matchesContext && matchesMaturity && matchesAccessible && matchesFavorite;
       })
       .sort((a, b) => {
         const aPinned = a.isPinned ? 0 : 1;
@@ -245,23 +307,59 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
       </section>
 
       <section className="catalog-searchbar">
-        <Input
-          id="search"
-          name="q"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder={t("searchPlaceholder")}
-          wrapperClassName="catalog-filters__search"
-          icon={
-            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-              <path
-                fillRule="evenodd"
-                d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z"
-                clipRule="evenodd"
-              />
-            </svg>
-          }
-        />
+        <div className="catalog-searchbar__wrapper" ref={searchWrapperRef}>
+          <Input
+            id="search"
+            name="q"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            onClick={(event) => {
+              if (event.ctrlKey || event.metaKey) {
+                event.preventDefault();
+                setShowSuggestions((v) => !v);
+              }
+            }}
+            placeholder={t("searchPlaceholder")}
+            wrapperClassName="catalog-filters__search"
+            icon={
+              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path
+                  fillRule="evenodd"
+                  d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            }
+          />
+          <button
+            type="button"
+            className="catalog-searchbar__help"
+            title={t("searchHelp")}
+            onClick={() => setShowSuggestions((v) => !v)}
+          >
+            ?
+          </button>
+          {showSuggestions && (
+            <div className="catalog-searchbar__suggestions" role="menu">
+              {SUGGESTIONS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  role="menuitem"
+                  className="catalog-searchbar__suggestion"
+                  onClick={() => {
+                    const space = search && !search.endsWith(" ") ? " " : "";
+                    setSearch(search + space + s + " ");
+                    setShowSuggestions(false);
+                    document.getElementById("search")?.focus();
+                  }}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className="catalog-domain-row">
           <div className="catalog-domain-row__title">
