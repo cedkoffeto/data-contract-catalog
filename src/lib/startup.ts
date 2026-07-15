@@ -1,3 +1,5 @@
+import "./logger";
+
 let started = false;
 
 export function ensureStartup() {

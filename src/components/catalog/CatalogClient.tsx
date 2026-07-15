@@ -265,17 +265,17 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
       </section>
 
       <section className="catalog-searchbar">
-        <div className="catalog-searchbar__tabs">
+        <div className="editor-tabs" role="tablist" aria-label="Search mode">
           <button
             type="button"
-            className={`catalog-searchbar__tab${searchMode === "free" ? " is-active" : ""}`}
+            className={`editor-tabs__item${searchMode === "free" ? " is-active" : ""}`}
             onClick={() => setSearchMode("free")}
           >
             {t("searchFree")}
           </button>
           <button
             type="button"
-            className={`catalog-searchbar__tab${searchMode === "multi" ? " is-active" : ""}`}
+            className={`editor-tabs__item${searchMode === "multi" ? " is-active" : ""}`}
             onClick={() => setSearchMode("multi")}
           >
             {t("searchMulti")}

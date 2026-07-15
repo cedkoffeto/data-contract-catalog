@@ -1200,36 +1200,7 @@ a:has(> .kpi-card) {
   gap: 0.3rem;
 }
 
-.catalog-searchbar__tabs {
-  display: flex;
-  gap: 0.25rem;
-  border-bottom: 1px solid var(--color-border);
-  padding-bottom: 0.4rem;
-}
 
-.catalog-searchbar__tab {
-  padding: 0.3rem 0.7rem;
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--color-text-muted);
-  background: none;
-  border: 1px solid transparent;
-  border-radius: 0.3rem 0.3rem 0 0;
-  cursor: pointer;
-  transition: color 0.12s, border-color 0.12s, background 0.12s;
-}
-
-.catalog-searchbar__tab:hover {
-  color: var(--color-text);
-  background: var(--color-bg-hover);
-}
-
-.catalog-searchbar__tab.is-active {
-  color: var(--color-accent);
-  border-color: var(--color-border) var(--color-border) var(--color-bg);
-  background: var(--color-bg);
-  margin-bottom: -1px;
-}
 
 .catalog-searchbar__multi {
   display: grid;
