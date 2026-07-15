@@ -234,7 +234,7 @@ export function parseContractsToGraph(
       type: "relationEdge",
       style: { stroke: "#94a3b8", strokeWidth: 2 },
       animated: false,
-      data: { ref: refStr, ref_name: refName, cardSource, cardTarget },
+      data: { ref: refStr, ref_name: refName, cardSource, cardTarget, parsed: { left: src, right: tgt } },
       labelStyle: { fontSize: 11, fontWeight: 500, fill: "#475569" },
       labelBgStyle: { fill: "#ffffff", fillOpacity: 0.9, rx: 3 },
       labelBgPadding: [6, 3] as [number, number],
@@ -330,26 +330,23 @@ export function parseContractsToGraph(
 
   // Collect relation errors: edges where the referenced field doesn't exist
   for (const e of edges) {
-    const ref = (e.data as { ref?: string })?.ref;
-    if (!ref) continue;
+    const d = e.data as { ref?: string; parsed?: { left: ResolvedContract; right: ResolvedContract } };
+    const parsed = d?.parsed;
+    if (!parsed) continue;
     if (!e.sourceHandle) {
       const srcNode = nodeMap.get(e.source);
       if (srcNode) {
         const srcData = srcNode.data as ContractTableNodeData;
-        const parsed = parseRef(ref, { layer: "", domain: "", context: "" });
-        const missingField = parsed?.left.field || "";
         srcData.relationErrors = srcData.relationErrors || [];
-        srcData.relationErrors.push({ field: missingField, targetSlug: "", ref });
+        srcData.relationErrors.push({ field: parsed.left.field, targetSlug: "", ref: d.ref ?? "" });
       }
     }
     if (!e.targetHandle) {
       const tgtNode = nodeMap.get(e.target);
       if (tgtNode) {
         const tgtData = tgtNode.data as ContractTableNodeData;
-        const parsed = parseRef(ref, { layer: "", domain: "", context: "" });
-        const missingField = parsed?.right.field || "";
         tgtData.relationErrors = tgtData.relationErrors || [];
-        tgtData.relationErrors.push({ field: missingField, targetSlug: "", ref });
+        tgtData.relationErrors.push({ field: parsed.right.field, targetSlug: "", ref: d.ref ?? "" });
       }
     }
   }

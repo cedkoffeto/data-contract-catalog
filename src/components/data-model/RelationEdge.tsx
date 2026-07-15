@@ -82,10 +82,14 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
   const targetOffset = (parallelOffset + targetParallelOffset) * 8 + targetFieldOffset * 4;
 
   const { getNodes } = useReactFlow();
-  const nodes = getNodes();
-  const nodeMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
-  const srcNode = nodeMap.get(source) as Node | undefined;
-  const tgtNode = nodeMap.get(target) as Node | undefined;
+  const allNodes = getNodes();
+  const nodeMap = useMemo(() => {
+    const map = new Map<string, (typeof allNodes)[number]>();
+    for (const n of allNodes) map.set(n.id, n);
+    return map;
+  }, [allNodes]);
+  const srcNode = nodeMap.get(source);
+  const tgtNode = nodeMap.get(target);
   const srcMeas = srcNode?.measured;
   const tgtMeas = tgtNode?.measured;
 
