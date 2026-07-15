@@ -11,55 +11,26 @@ import type { CatalogCard as CatalogCardType } from "@/src/lib/types";
 
 const ALL_DOMAINS = "__all_domains__";
 
-const FIELD_ALIASES: Record<string, keyof CatalogCardType> = {
-  name: "title",
-  title: "title",
-  slug: "slug",
-  domain: "domain",
-  context: "context",
-  maturity: "maturity",
-  owner: "owner",
-  desc: "description",
-  description: "description",
-  version: "version",
-};
-
-function parseSearchQuery(query: string): { fieldFilters: Record<string, string>; freeText: string } {
-  const tokens = query.trim().toLowerCase().split(/\s+/);
-  const fieldFilters: Record<string, string> = {};
-  const freeTokens: string[] = [];
-
-  for (const token of tokens) {
-    const colonIdx = token.indexOf(":");
-    if (colonIdx > 0) {
-      const key = token.slice(0, colonIdx);
-      const val = token.slice(colonIdx + 1);
-      const field = FIELD_ALIASES[key];
-      if (field && val) {
-        fieldFilters[field] = val;
-        continue;
-      }
-    }
-    freeTokens.push(token);
-  }
-
-  return { fieldFilters, freeText: freeTokens.join(" ") };
-}
+const MULTI_FIELDS: { key: keyof CatalogCardType; label: string; placeholder: string }[] = [
+  { key: "title", label: "name", placeholder: "searchFieldName" },
+  { key: "domain", label: "domain", placeholder: "searchFieldDomain" },
+  { key: "owner", label: "owner", placeholder: "searchFieldOwner" },
+  { key: "context", label: "context", placeholder: "searchFieldContext" },
+  { key: "maturity", label: "maturity", placeholder: "searchFieldMaturity" },
+  { key: "slug", label: "slug", placeholder: "searchFieldSlug" },
+];
 
 function humanize(value: string): string {
   const trimmed = value.trim();
   if (!trimmed) {
     return "Non defini";
   }
-
   return trimmed
     .split(/[\s_-]+/)
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
     .join(" ");
 }
-
-const SUGGESTIONS = ["domain:", "owner:", "context:", "maturity:", "slug:", "name:", "desc:"];
 
 export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError, initialSubscriptionSlugs }: { cards: CatalogCardType[]; canRequestUpgrade?: boolean; gitError?: boolean; initialSubscriptionSlugs?: Set<string> }) {
   const { t, tWith } = useT();
@@ -68,9 +39,12 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
   const [cards, setCards] = useState(initialCards);
   const cardsRef = useRef(cards);
   cardsRef.current = cards;
-  const [search, setSearch] = useState("");
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const searchWrapperRef = useRef<HTMLDivElement>(null);
+  const [searchMode, setSearchMode] = useState<"free" | "multi">("free");
+  const [freeText, setFreeText] = useState("");
+  const [multiFilters, setMultiFilters] = useState<Record<string, string>>({});
+  const [debouncedFreeText, setDebouncedFreeText] = useState("");
+  const [debouncedMulti, setDebouncedMulti] = useState<Record<string, string>>({});
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     if (gitError) {
@@ -79,13 +53,15 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
       return () => clearTimeout(timer);
     }
   }, [gitError]);
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
   useEffect(() => {
     clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => setDebouncedSearch(search), 200);
+    debounceRef.current = setTimeout(() => {
+      setDebouncedFreeText(freeText);
+      setDebouncedMulti(multiFilters);
+    }, 200);
     return () => clearTimeout(debounceRef.current);
-  }, [search]);
+  }, [freeText, multiFilters]);
   const [selectedDomain, setSelectedDomain] = useState(ALL_DOMAINS);
   const [selectedContexts, setSelectedContexts] = useState<Set<string>>(new Set());
   const [selectedMaturities, setSelectedMaturities] = useState<Set<string>>(new Set());
@@ -128,24 +104,6 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
     window.addEventListener("favorite-changed", onFavoriteChange);
     return () => window.removeEventListener("favorite-changed", onFavoriteChange);
   }, []);
-
-  useEffect(() => {
-    if (!showSuggestions) return;
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setShowSuggestions(false);
-    }
-    function onClickOutside(e: MouseEvent) {
-      if (searchWrapperRef.current && !searchWrapperRef.current.contains(e.target as Node)) {
-        setShowSuggestions(false);
-      }
-    }
-    document.addEventListener("keydown", onKeyDown);
-    document.addEventListener("mousedown", onClickOutside);
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      document.removeEventListener("mousedown", onClickOutside);
-    };
-  }, [showSuggestions]);
 
   const domains = useMemo(() => {
     const unique = new Set(cards.map((card) => card.domain.trim()).filter(Boolean));
@@ -200,15 +158,15 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
   }, [cards, selectedDomain]);
 
   const visibleCards = useMemo(() => {
-    const query = debouncedSearch.trim();
-    const { fieldFilters, freeText } = parseSearchQuery(query);
+    const ft = debouncedFreeText.trim().toLowerCase();
+    const mf = debouncedMulti;
 
     return cards
       .filter((card) => {
-        const matchesFieldFilter = Object.entries(fieldFilters).every(
-          ([field, value]) => (card[field as keyof CatalogCardType] as string)?.toLowerCase().includes(value),
+        const matchesFieldFilter = Object.entries(mf).every(
+          ([field, value]) => !value || (card[field as keyof CatalogCardType] as string)?.toLowerCase().includes(value.toLowerCase()),
         );
-        const matchesSearch = !freeText || card.searchData.includes(freeText);
+        const matchesSearch = !ft || card.searchData.includes(ft);
         if (!matchesFieldFilter || !matchesSearch) return false;
         const matchesDomain = selectedDomain === ALL_DOMAINS || card.domain.trim() === selectedDomain;
         const matchesContext = selectedContexts.size === 0 || selectedContexts.has(card.context.trim());
@@ -226,7 +184,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
         if (aFav !== bFav) return aFav - bFav;
         return a.title.localeCompare(b.title);
       });
-  }, [cards, debouncedSearch, selectedDomain, selectedContexts, selectedMaturities, showOnlyAccessible, showFavoritesOnly]);
+  }, [cards, debouncedFreeText, debouncedMulti, selectedDomain, selectedContexts, selectedMaturities, showOnlyAccessible, showFavoritesOnly]);
 
   const handleTogglePin = useCallback(async (slug: string) => {
     const card = cardsRef.current.find((c) => c.slug === slug);
@@ -307,59 +265,56 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
       </section>
 
       <section className="catalog-searchbar">
-        <div className="catalog-searchbar__wrapper" ref={searchWrapperRef}>
-          <Input
-            id="search"
-            name="q"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            onClick={(event) => {
-              if (event.ctrlKey || event.metaKey) {
-                event.preventDefault();
-                setShowSuggestions((v) => !v);
-              }
-            }}
-            placeholder={t("searchPlaceholder")}
-            wrapperClassName="catalog-filters__search"
-            icon={
-              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path
-                  fillRule="evenodd"
-                  d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            }
-          />
+        <div className="catalog-searchbar__tabs">
           <button
             type="button"
-            className="catalog-searchbar__help"
-            title={t("searchHelp")}
-            onClick={() => setShowSuggestions((v) => !v)}
+            className={`catalog-searchbar__tab${searchMode === "free" ? " is-active" : ""}`}
+            onClick={() => setSearchMode("free")}
           >
-            ?
+            {t("searchFree")}
           </button>
-          {showSuggestions && (
-            <div className="catalog-searchbar__suggestions" role="menu">
-              {SUGGESTIONS.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  role="menuitem"
-                  className="catalog-searchbar__suggestion"
-                  onClick={() => {
-                    const space = search && !search.endsWith(" ") ? " " : "";
-                    setSearch(search + space + s + " ");
-                    setShowSuggestions(false);
-                    document.getElementById("search")?.focus();
-                  }}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          )}
+          <button
+            type="button"
+            className={`catalog-searchbar__tab${searchMode === "multi" ? " is-active" : ""}`}
+            onClick={() => setSearchMode("multi")}
+          >
+            {t("searchMulti")}
+          </button>
         </div>
+
+        {searchMode === "free" ? (
+          <div className="catalog-searchbar__wrapper">
+            <Input
+              id="search"
+              name="q"
+              value={freeText}
+              onChange={(event) => setFreeText(event.target.value)}
+              placeholder={t("searchPlaceholder")}
+              wrapperClassName="catalog-filters__search"
+              icon={
+                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path
+                    fillRule="evenodd"
+                    d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              }
+            />
+          </div>
+        ) : (
+          <div className="catalog-searchbar__multi">
+            {MULTI_FIELDS.map((field) => (
+              <Input
+                key={field.key}
+                value={multiFilters[field.key] ?? ""}
+                onChange={(e) => setMultiFilters((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                placeholder={t(field.placeholder as any)}
+                wrapperClassName="catalog-searchbar__multi-field"
+              />
+            ))}
+          </div>
+        )}
 
         <div className="catalog-domain-row">
           <div className="catalog-domain-row__title">
@@ -416,10 +371,11 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
         <aside className="catalog-filters">
           <div className="catalog-filters__heading">
             <h2>{t("filters")}</h2>
-            {(search || selectedDomain !== ALL_DOMAINS || selectedContexts.size > 0 || selectedMaturities.size > 0 || showOnlyAccessible || showFavoritesOnly) && (
+            {(freeText || Object.values(multiFilters).some(Boolean) || selectedDomain !== ALL_DOMAINS || selectedContexts.size > 0 || selectedMaturities.size > 0 || showOnlyAccessible || showFavoritesOnly) && (
               <Button
                 onClick={() => {
-                  setSearch("");
+                  setFreeText("");
+                  setMultiFilters({});
                   setSelectedDomain(ALL_DOMAINS);
                   setSelectedContexts(new Set());
                   setSelectedMaturities(new Set());
