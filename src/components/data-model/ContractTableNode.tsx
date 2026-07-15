@@ -26,6 +26,11 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
   const isConnected = (name: string) => (connectedCount.get(name) ?? 0) > 0;
   const [hoveredField, setHoveredField] = useState<string | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
+  const [errorHover, setErrorHover] = useState(false);
+  const [errorTooltipPos, setErrorTooltipPos] = useState<{ top: number; left: number } | null>(null);
+  const [headerHover, setHeaderHover] = useState(false);
+  const [headerTooltipPos, setHeaderTooltipPos] = useState<{ top: number; left: number } | null>(null);
+  const errors = d.relationErrors;
 
   const collapsed = collapsedTables.has(id);
   const showingDetailed = viewMode === "detailed" ? !collapsed : collapsed;
@@ -84,12 +89,41 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
         {/* Header */}
         <div className="flex min-w-0 cursor-grab active:cursor-grabbing items-center gap-2 px-3 py-2" style={{ background: d.color.replace("hsl(", "hsla(").replace(")", ", 0.1)") }}>
           <span className="flex h-5 cursor-pointer items-center" onClick={(e) => { e.stopPropagation(); window.open(`/contracts/${d.slug}`, "_blank", "noopener,noreferrer"); }} title="Open contract detail"><Table size={14} style={{ color: d.color }} /></span>
-          <span className="flex h-5 min-w-0 items-center text-sm font-semibold tracking-tight text-gray-900" title={`${d.label}\ndomain: ${d.domain}\ncontext: ${d.context ?? ""}\nid: ${id}`}
+          <span className="flex h-5 min-w-0 items-center text-sm font-semibold tracking-tight text-gray-900"
             onClick={(e) => {
               if (e.ctrlKey || e.metaKey) { e.stopPropagation(); window.open(`/contracts/${d.slug}`, "_blank", "noopener,noreferrer"); }
               else onHeaderClick(d.slug);
             }}
-          ><span className="truncate">{d.slug}</span></span>
+            onMouseEnter={(e) => { setHeaderHover(true); const r = e.currentTarget.getBoundingClientRect(); setHeaderTooltipPos({ top: r.top - 6, left: r.right + 8 }); }}
+            onMouseLeave={() => { setHeaderHover(false); setHeaderTooltipPos(null); }}
+          ><span className="truncate">{d.slug}</span>
+          {errors && errors.length > 0 && (
+            <>
+              <span
+                className="inline-block h-3.5 w-3.5 shrink-0 rounded-full bg-red-500 ml-1.5"
+                onMouseEnter={(e) => { setErrorHover(true); const r = e.currentTarget.getBoundingClientRect(); setErrorTooltipPos({ top: r.top - 6, left: r.right + 8 }); }}
+                onMouseLeave={() => { setErrorHover(false); setErrorTooltipPos(null); }}
+              />
+              {errorHover && errorTooltipPos && createPortal(
+                <div
+                  className="editor-error-popover fixed"
+                  style={{ left: errorTooltipPos.left, top: errorTooltipPos.top }}
+                >
+                  <div className="editor-error-popover-arrow" />
+                  <div className="editor-error-popover-header">
+                    <span>Relation errors</span>
+                    <button className="editor-error-popover-close" onClick={() => { setErrorHover(false); setErrorTooltipPos(null); }}>&times;</button>
+                  </div>
+                  <div className="editor-error-popover-body">
+                    {errors.map((e, i) => (
+                      <pre key={i}>{e.ref}</pre>
+                    ))}
+                  </div>
+                </div>,
+                document.body,
+              )}
+            </>
+          )}</span>
           <span className={`ml-auto flex shrink-0 h-5 items-center rounded px-1.5 text-[9px] font-bold uppercase leading-none ${maturityBadge[d.maturity as string] || maturityBadge.bronze}`}>
             {d.maturity as string}
           </span>
@@ -161,10 +195,31 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
 
       {hoveredField && tooltipPos && createPortal(
         <div
-          className="fixed z-[9999] rounded-md bg-white px-2.5 py-1.5 text-[11px] text-gray-700 shadow-lg border border-gray-200 max-w-[260px] break-words pointer-events-none"
-          style={{ top: tooltipPos.top, left: tooltipPos.left }}
+          className="editor-error-popover fixed"
+          style={{ left: tooltipPos.left, top: tooltipPos.top }}
         >
-          {allFields.find((f) => f.name === hoveredField)?.description}
+          <div className="editor-error-popover-arrow" />
+          <div className="editor-error-popover-header">
+            <span>{hoveredField}</span>
+          </div>
+          <div className="editor-error-popover-body">
+            <pre>{allFields.find((f) => f.name === hoveredField)?.description}</pre>
+          </div>
+        </div>,
+        document.body,
+      )}
+      {headerHover && headerTooltipPos && createPortal(
+        <div
+          className="editor-error-popover fixed"
+          style={{ left: headerTooltipPos.left, top: headerTooltipPos.top }}
+        >
+          <div className="editor-error-popover-arrow" />
+          <div className="editor-error-popover-header">
+            <span>{d.slug}</span>
+          </div>
+          <div className="editor-error-popover-body">
+            <pre>{d.label}{'\n'}domain: {d.domain}{'\n'}context: {d.context ?? ''}{'\n'}id: {id}</pre>
+          </div>
         </div>,
         document.body,
       )}

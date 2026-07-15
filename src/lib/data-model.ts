@@ -104,6 +104,7 @@ export type ContractTableNodeData = Record<string, unknown> & {
   context?: string;
   fields: { name: string; type: string; description?: string }[];
   color: string;
+  relationErrors?: { field: string; targetSlug: string; ref: string }[];
 };
 
 export type LoadedModel = {
@@ -227,8 +228,8 @@ export function parseContractsToGraph(
       id: edgeKey,
       source: srcId,
       target: tgtId,
-      sourceHandle: srcFieldOk ? src.field : undefined,
-      targetHandle: tgtFieldOk ? tgt.field : undefined,
+      ...(srcFieldOk ? { sourceHandle: src.field } : {}),
+      ...(tgtFieldOk ? { targetHandle: tgt.field } : {}),
       label: refName || `${src.field} → ${tgt.field}`,
       type: "relationEdge",
       style: { stroke: "#94a3b8", strokeWidth: 2 },
@@ -325,6 +326,32 @@ export function parseContractsToGraph(
     const idx = tgtFIdx.get(key) ?? 0;
     tgtFIdx.set(key, idx + 1);
     e.data = { ...(e.data as object || {}), targetFieldOffset: idx - (total - 1) / 2 };
+  }
+
+  // Collect relation errors: edges where the referenced field doesn't exist
+  for (const e of edges) {
+    const ref = (e.data as { ref?: string })?.ref;
+    if (!ref) continue;
+    if (!e.sourceHandle) {
+      const srcNode = nodeMap.get(e.source);
+      if (srcNode) {
+        const srcData = srcNode.data as ContractTableNodeData;
+        const parsed = parseRef(ref, { layer: "", domain: "", context: "" });
+        const missingField = parsed?.left.field || "";
+        srcData.relationErrors = srcData.relationErrors || [];
+        srcData.relationErrors.push({ field: missingField, targetSlug: "", ref });
+      }
+    }
+    if (!e.targetHandle) {
+      const tgtNode = nodeMap.get(e.target);
+      if (tgtNode) {
+        const tgtData = tgtNode.data as ContractTableNodeData;
+        const parsed = parseRef(ref, { layer: "", domain: "", context: "" });
+        const missingField = parsed?.right.field || "";
+        tgtData.relationErrors = tgtData.relationErrors || [];
+        tgtData.relationErrors.push({ field: missingField, targetSlug: "", ref });
+      }
+    }
   }
 
   return {
