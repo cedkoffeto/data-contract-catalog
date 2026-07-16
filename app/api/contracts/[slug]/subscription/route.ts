@@ -14,7 +14,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
     const { slug } = await params;
     const userId = session?.user?.name;
     if (!userId) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+      return apiError("Authentication required", 401);
     }
 
     const subscription = await getSubscription(userId, slug);
@@ -32,7 +32,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
     const { slug } = await params;
     const userId = session?.user?.name;
     if (!userId) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+      return apiError("Authentication required", 401);
     }
 
     const body = (await req.json()) as { channel?: string | null } | null;

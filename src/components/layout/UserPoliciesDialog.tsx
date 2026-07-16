@@ -19,10 +19,26 @@ function RequestEditorForm({ onDone }: { onDone: () => void }) {
   const contractMap = useRef<Record<string, { domain: string; context: string }>>({});
 
   useEffect(() => {
-    fetch("/api/contracts")
-      .then((r) => r.json())
-      .then((data: { items: { slug: string; title: string; domain: string; context: string }[] }) => {
-        const items = data.items ?? [];
+    type ContractItem = { slug: string; title: string; domain: string; context: string };
+    type PageResponse = { contracts: ContractItem[]; nextCursor: string | null };
+
+    async function fetchAllContracts(): Promise<ContractItem[]> {
+      const all: ContractItem[] = [];
+      let cursor: string | undefined;
+      while (true) {
+        const params = new URLSearchParams({ limit: "200" });
+        if (cursor) params.set("cursor", cursor);
+        const res = await fetch(`/api/contracts?${params}`);
+        const data: PageResponse = await res.json();
+        all.push(...(data.contracts ?? []));
+        if (!data.nextCursor) break;
+        cursor = data.nextCursor;
+      }
+      return all;
+    }
+
+    fetchAllContracts()
+      .then((items) => {
         const map: Record<string, { domain: string; context: string }> = {};
         for (const c of items) {
           map[c.slug] = { domain: c.domain ?? "", context: c.context ?? "" };

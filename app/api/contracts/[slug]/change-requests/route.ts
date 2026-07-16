@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
+import { apiError } from "@/src/lib/api-error";
  
 import { authorize } from "@/src/lib/access-control";
 import { createChangeRequest, listChangeRequests } from "@/src/lib/change-requests";
@@ -15,7 +16,7 @@ import { withErrorHandling } from "@/src/lib/with-error-handling";
 async function ensureCanReadContract(slug: string, session: Session) {
   const contract = await getContractBySlug(slug);
   if (!contract) {
-    return NextResponse.json({ error: `Contract "${slug}" not found` }, { status: 404 });
+    return apiError(`Contract "${slug}" not found`, 404);
   }
 
   const userId = session?.user?.name ?? "";
@@ -31,7 +32,7 @@ async function ensureCanReadContract(slug: string, session: Session) {
   );
 
   if (!allowed) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return apiError("Forbidden", 403);
   }
 
   return null;
@@ -42,7 +43,7 @@ async function GET(_: Request, { params }: { params: Promise<{ slug: string }> }
   if (session instanceof Response) return session;
   const userId = session?.user?.name;
   if (!userId) {
-    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    return apiError("Authentication required", 401);
   }
 
   const { slug } = await params;
@@ -66,29 +67,29 @@ async function POST(request: Request, { params }: { params: Promise<{ slug: stri
     if (session instanceof Response) return session;
     const userId = session?.user?.name;
     if (!userId) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-    }
+    return apiError("Authentication required", 401);
+  }
 
-    const { slug } = await params;
-    const forbidden = await ensureCanReadContract(slug, session);
-    if (forbidden) return forbidden;
+  const { slug } = await params;
+  const forbidden = await ensureCanReadContract(slug, session);
+  if (forbidden) return forbidden;
 
-    let body: { yamlContent?: string; message?: string };
-    try {
-      body = (await request.json()) as { yamlContent?: string; message?: string };
-    } catch {
-      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-    }
+  let body: { yamlContent?: string; message?: string };
+  try {
+    body = (await request.json()) as { yamlContent?: string; message?: string };
+  } catch {
+    return apiError("Invalid JSON body", 400);
+  }
 
-    const yamlContent = body.yamlContent?.trim();
-    const commitMessage = body.message?.trim() || `Update contract ${slug}`;
+  const yamlContent = body.yamlContent?.trim();
+  const commitMessage = body.message?.trim() || `Update contract ${slug}`;
 
-    if (!yamlContent) {
-      return NextResponse.json({ error: "yamlContent is required" }, { status: 400 });
-    }
+  if (!yamlContent) {
+    return apiError("yamlContent is required", 400);
+  }
 
-    if (yamlContent.length > 500000) {
-      return NextResponse.json({ error: "yamlContent too large" }, { status: 400 });
+  if (yamlContent.length > 500000) {
+    return apiError("yamlContent too large", 400);
     }
 
     let originalSha: string;
@@ -137,10 +138,7 @@ async function POST(request: Request, { params }: { params: Promise<{ slug: stri
 
     return NextResponse.json({ changeRequest: cr }, { status: 201 });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Internal server error" },
-      { status: 500 }
-    );
+    return apiError(error instanceof Error ? error.message : "Internal server error", 500);
   }
 }
 

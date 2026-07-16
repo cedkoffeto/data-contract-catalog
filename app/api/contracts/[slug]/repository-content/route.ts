@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
+import { apiError } from "@/src/lib/api-error";
  
 import { getContractBySlug } from "@/src/lib/contracts";
 import { getGitLabFileContent, isGitLabConfigurationError } from "@/src/lib/gitlab";
@@ -15,11 +16,11 @@ async function GET(request: Request, context: { params: Promise<{ slug: string }
 
   const contract = await getContractBySlug(slug);
   if (!contract) {
-    return NextResponse.json({ error: `Contract "${slug}" not found` }, { status: 404 });
+    return apiError(`Contract "${slug}" not found`, 404);
   }
   const userId = session?.user?.name;
   if (!userId) {
-    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    return apiError("Authentication required", 401);
   }
 
   const contractDomain = contract.data.asset?.domain ?? "";
@@ -28,7 +29,7 @@ async function GET(request: Request, context: { params: Promise<{ slug: string }
   if (!permissions.includes("admin")) {
     const allowed = await authorize(userId, contractDomain, contractCtx, "read", slug);
     if (!allowed) {
-      return NextResponse.json({ error: "Forbidden: insufficient permissions on this contract" }, { status: 403 });
+      return apiError("Forbidden: insufficient permissions on this contract", 403);
     }
   }
 
@@ -44,10 +45,7 @@ async function GET(request: Request, context: { params: Promise<{ slug: string }
         return NextResponse.json({ content: null, notFoundAtRef: true });
       }
     }
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Internal server error" },
-      { status: isGitLabConfigurationError(error) ? 503 : 500 }
-    );
+    return apiError(error instanceof Error ? error.message : "Internal server error", isGitLabConfigurationError(error) ? 503 : 500);
   }
 }
 

@@ -6,7 +6,7 @@ const SAFE_MESSAGE_MAP: Record<string, string> = {
 };
 
 export function apiError(error: unknown, status = 500, context?: string): NextResponse {
-  const raw = error instanceof Error ? error.message : "An unexpected error occurred";
+  const raw = error instanceof Error ? error.message : typeof error === "string" ? error : "An unexpected error occurred";
   const safeKey = Object.keys(SAFE_MESSAGE_MAP).find((k) => raw.startsWith(k));
   const message = safeKey ? SAFE_MESSAGE_MAP[safeKey] : status < 500 ? raw : "Internal server error";
   logger.error(`[api-error]${context ? " " + context : ""}:`, raw);

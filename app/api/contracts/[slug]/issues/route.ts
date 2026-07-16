@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { apiError } from "@/src/lib/api-error";
 
 import { createContractIssue, listContractIssues } from "@/src/lib/issues";
 import { getContractBySlug } from "@/src/lib/contracts";
@@ -17,7 +18,7 @@ const IssueCreateSchema = z.object({
 async function ensureCanReadContract(slug: string, session: Session) {
   const contract = await getContractBySlug(slug);
   if (!contract) {
-    return NextResponse.json({ error: `Contract "${slug}" not found` }, { status: 404 });
+    return apiError(`Contract "${slug}" not found`, 404);
   }
 
   const userId = session?.user?.name ?? "";
@@ -35,7 +36,7 @@ async function ensureCanReadContract(slug: string, session: Session) {
   );
 
   if (!allowed) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return apiError("Forbidden", 403);
   }
 
   return null;
@@ -46,7 +47,7 @@ async function GET(_: Request, { params }: { params: Promise<{ slug: string }> }
   if (session instanceof Response) return session;
   const userId = session?.user?.name;
   if (!userId) {
-    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    return apiError("Authentication required", 401);
   }
 
   const { slug } = await params;
@@ -62,7 +63,7 @@ async function POST(request: Request, { params }: { params: Promise<{ slug: stri
   if (session instanceof Response) return session;
   const userId = session?.user?.name;
   if (!userId) {
-    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    return apiError("Authentication required", 401);
   }
 
   const { slug } = await params;
@@ -71,7 +72,7 @@ async function POST(request: Request, { params }: { params: Promise<{ slug: stri
 
   const parsed = IssueCreateSchema.safeParse(await request.json());
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+    return apiError(parsed.error.issues[0].message, 400);
   }
 
   const issue = await createContractIssue({

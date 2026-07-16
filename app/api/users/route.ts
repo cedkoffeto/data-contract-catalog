@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
+import { apiError } from "@/src/lib/api-error";
 
 import { listUserProfiles, upsertUserProfile } from "@/src/lib/users";
 import { requireApiAuth, getGlobalPermissions } from "@/src/lib/require-auth";
@@ -10,7 +11,7 @@ async function GET(request: Request) {
   if (session instanceof Response) return session;
   const userId = session?.user?.name;
   if (!userId) {
-    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    return apiError("Authentication required", 401);
   }
 
   const extra = session.user as Record<string, unknown>;
@@ -20,7 +21,7 @@ async function GET(request: Request) {
 
   const permissions = await getGlobalPermissions(session);
   if (!permissions.includes("admin")) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return apiError("Forbidden", 403);
   }
 
   const url = new URL(request.url);

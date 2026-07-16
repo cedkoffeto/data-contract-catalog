@@ -8,10 +8,9 @@ import { foldGutter, indentUnit } from "@codemirror/language";
 import { RangeSet, RangeSetBuilder, StateField } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import { Decoration, gutter, GutterMarker } from "@codemirror/view";
-import Form from "@rjsf/shadcn";
-import validator from "@rjsf/validator-ajv8";
+
 import type { RJSFSchema, RJSFValidationError, UiSchema } from "@rjsf/utils";
-import CodeMirror from "@uiw/react-codemirror";
+
 import yaml from "js-yaml";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 
@@ -26,6 +25,14 @@ import { logger } from "@/src/lib/logger";
 const CommitModal = dynamic(
   () => import("@/src/components/editor/CommitModal").then((m) => m.CommitModal),
   { ssr: false },
+);
+const CodeMirror = dynamic(
+  () => import("@uiw/react-codemirror").then((m) => m.default),
+  { ssr: false, loading: () => <div className="editor-code-loading">Loading editor…</div> },
+);
+const Form = dynamic(
+  () => import("@rjsf/shadcn").then((m) => m.default),
+  { ssr: false, loading: () => <div className="editor-form-loading">Loading form…</div> },
 );
 import { computeDiff, createUnifiedDiffText } from "@/src/lib/diff";
 import type { DiffResult } from "@/src/lib/diff";
@@ -799,6 +806,7 @@ export function ContractEditorClient({
 
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [validatorInstance, setValidatorInstance] = useState<any>(null);
 
   const [isBottomPanelOpen, setIsBottomPanelOpen] = useState(false);
   const [openFolders, setOpenFolders] = useState<Record<ExplorerFolder, boolean>>({
@@ -829,6 +837,12 @@ export function ContractEditorClient({
     const timer = setTimeout(() => setDebouncedContent(selectedDocument.content), 300);
     return () => clearTimeout(timer);
   }, [selectedDocument.content]);
+
+  useEffect(() => {
+    import("@rjsf/validator-ajv8").then((m) => {
+      setValidatorInstance(() => m.default);
+    });
+  }, []);
 
   const selectedIndex = documents.findIndex((document) => document.id === selectedDocument.id);
   const selectedData = selectedDocument.data ?? initialData;
@@ -867,9 +881,12 @@ export function ContractEditorClient({
     if (!yamlValidationState.data) {
       return null;
     }
+    if (!validatorInstance) {
+      return null;
+    }
 
-    return validator.validateFormData(yamlValidationState.data, schema);
-  }, [isContractDocument, schema, yamlValidationState.data]);
+    return validatorInstance.validateFormData(yamlValidationState.data, schema);
+  }, [isContractDocument, schema, yamlValidationState.data, validatorInstance]);
 
   const validationErrors = (validationResult?.errors ?? []) as RJSFValidationError[];
 
@@ -880,7 +897,7 @@ export function ContractEditorClient({
   }, [validationErrors, yamlValidationState.parseError]);
   const hasBlockingErrors = isContractDocument && (!!yamlValidationState.parseError || validationErrors.length > 0);
 
-  const codeMirrorRef = useRef<React.ComponentRef<typeof CodeMirror>>(null);
+  const codeMirrorRef = useRef<any>(null);
 
   const scrollToLine = useCallback((lineNumber: number | null) => {
     if (!lineNumber || lineNumber < 1) return;
@@ -2088,7 +2105,7 @@ export function ContractEditorClient({
 
                 {activeTab === "form" ? (
                   <div className="editor-form-surface">
-                    {isContractDocument ? (
+                    {isContractDocument && validatorInstance ? (
                       <Form
                         formData={selectedData}
                         noHtml5Validate
@@ -2096,7 +2113,7 @@ export function ContractEditorClient({
                         schema={schema}
                         showErrorList={false}
                         uiSchema={uiSchema}
-                        validator={validator}
+                        validator={validatorInstance}
                         widgets={{ RelationRefWidget }}
                         formContext={{ slugIndex }}
                         onChange={handleFormChange}
@@ -2107,6 +2124,10 @@ export function ContractEditorClient({
                           </button>
                         </div>
                       </Form>
+                    ) : isContractDocument ? (
+                      <div className="editor-placeholder">
+                        <h3>Loading form…</h3>
+                      </div>
                     ) : (
                       <div className="editor-placeholder">
                         <h3>Form mode only for contract files.</h3>

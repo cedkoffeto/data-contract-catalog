@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { apiError } from "@/src/lib/api-error";
 
 import { auth } from "@/src/auth";
 import { createContractComment, deleteContractComment, extractMentionedUserIds, listContractComments, notifyMentionedUsers, recordCommentMentions } from "@/src/lib/comments";
@@ -24,7 +25,7 @@ const CommentDeleteSchema = z.object({
 async function ensureCanReadContract(slug: string, session: Session) {
   const contract = await getContractBySlug(slug);
   if (!contract) {
-    return NextResponse.json({ error: `Contract "${slug}" not found` }, { status: 404 });
+    return apiError(`Contract "${slug}" not found`, 404);
   }
 
   const userId = session?.user?.name ?? "";
@@ -42,7 +43,7 @@ async function ensureCanReadContract(slug: string, session: Session) {
   );
 
   if (!allowed) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return apiError("Forbidden", 403);
   }
 
   return null;
@@ -53,7 +54,7 @@ async function GET(request: Request, { params }: { params: Promise<{ slug: strin
   if (session instanceof Response) return session;
   const userId = session?.user?.name;
   if (!userId) {
-    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    return apiError("Authentication required", 401);
   }
 
   const { slug } = await params;
@@ -70,13 +71,13 @@ async function GET(request: Request, { params }: { params: Promise<{ slug: strin
 async function DELETE(request: Request) {
   const session = await auth();
   if (!session?.user?.name) {
-    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    return apiError("Authentication required", 401);
   }
   const userId = session.user.name;
 
   const parsed = CommentDeleteSchema.safeParse(await request.json());
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+    return apiError(parsed.error.issues[0].message, 400);
   }
 
   await deleteContractComment(parsed.data.commentId, userId);
@@ -88,7 +89,7 @@ async function POST(request: Request, { params }: { params: Promise<{ slug: stri
   if (session instanceof Response) return session;
   const userId = session?.user?.name;
   if (!userId) {
-    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    return apiError("Authentication required", 401);
   }
 
   const { slug } = await params;
@@ -97,7 +98,7 @@ async function POST(request: Request, { params }: { params: Promise<{ slug: stri
 
   const parsed = CommentCreateSchema.safeParse(await request.json());
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+    return apiError(parsed.error.issues[0].message, 400);
   }
 
   const { body: commentBody, parentId, targetFields } = parsed.data;

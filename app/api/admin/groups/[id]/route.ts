@@ -14,7 +14,7 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
   const groupId = parseInt(id, 10);
 
   if (isNaN(groupId)) {
-    return NextResponse.json({ error: "Invalid group id" }, { status: 400 });
+    return apiError("Invalid group id", 400);
   }
 
   try {

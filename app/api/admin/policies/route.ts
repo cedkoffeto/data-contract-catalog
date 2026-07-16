@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { apiError } from "@/src/lib/api-error";
 import { requireAdmin } from "@/src/lib/require-admin";
 import { auth } from "@/src/auth";
 import {
@@ -41,16 +42,16 @@ async function POST(request: Request) {
 
   const parsed = PolicyCreateSchema.safeParse(await request.json());
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+    return apiError(parsed.error.issues[0].message, 400);
   }
 
   const { userId, groupId, permissionId, domainScope, contextScope, dataContractScope, force } = parsed.data;
 
   if (!userId && !groupId) {
-    return NextResponse.json({ error: "Either userId or groupId is required" }, { status: 400 });
+    return apiError("Either userId or groupId is required", 400);
   }
   if (userId && groupId) {
-    return NextResponse.json({ error: "Provide either userId or groupId, not both" }, { status: 400 });
+    return apiError("Provide either userId or groupId, not both", 400);
   }
 
   const conflict = await checkPolicyConflicts({

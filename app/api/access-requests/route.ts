@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
+import { apiError } from "@/src/lib/api-error";
 import { prisma } from "@/src/lib/prisma";
 import { auth } from "@/src/auth";
 import { createNotification } from "@/src/lib/notifications";
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
   const session = await auth();
   const userId = session?.user?.name;
   if (!userId) {
-    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    return apiError("Authentication required", 401);
   }
 
   try {
@@ -30,11 +31,11 @@ export async function POST(request: Request) {
     const requestedPermission = normalizeRequestedPermission(requestedPermissionValue);
 
     if (!domain && !context && !dataContract) {
-      return NextResponse.json({ error: "Specify at least a domain, context, or data contract" }, { status: 400 });
+      return apiError("Specify at least a domain, context, or data contract", 400);
     }
 
     if (requestedPermissionValue && !ACCESS_REQUEST_PERMISSIONS.has(requestedPermissionValue as AccessRequestPermission)) {
-      return NextResponse.json({ error: "Invalid requested permission" }, { status: 400 });
+      return apiError("Invalid requested permission", 400);
     }
 
     const created = await prisma.accessRequest.create({
@@ -80,7 +81,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ id: created.id }, { status: 201 });
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Failed to create access request";
-    return NextResponse.json({ error: msg }, { status: 400 });
+    return apiError(msg, 400);
   }
 }
 
@@ -88,11 +89,11 @@ async function GET() {
   const session = await auth();
   const userId = session?.user?.name;
   if (!userId) {
-    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    return apiError("Authentication required", 401);
   }
 
   if (!await isAdmin(userId)) {
-    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+    return apiError("Admin access required", 403);
   }
 
   const rows = await prisma.accessRequest.findMany({

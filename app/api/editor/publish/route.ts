@@ -21,12 +21,12 @@ export async function POST(req: Request) {
 
     const userId = session?.user?.name;
     if (!userId) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+      return apiError("Authentication required", 401);
     }
 
     const parsed = PublishSchema.safeParse(await req.json());
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+      return apiError(parsed.error.issues[0].message, 400);
     }
 
     const { content, targetPath, sourcePath, message } = parsed.data;

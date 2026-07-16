@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
+import { apiError } from "@/src/lib/api-error";
 
 import { getDiscussionSummary } from "@/src/lib/comments";
 import { getContractBySlug } from "@/src/lib/contracts";
@@ -12,7 +13,7 @@ import { withErrorHandling } from "@/src/lib/with-error-handling";
 async function ensureCanReadContract(slug: string, session: Session) {
   const contract = await getContractBySlug(slug);
   if (!contract) {
-    return NextResponse.json({ error: `Contract "${slug}" not found` }, { status: 404 });
+    return apiError(`Contract "${slug}" not found`, 404);
   }
 
   const userId = session?.user?.name ?? "";
@@ -30,7 +31,7 @@ async function ensureCanReadContract(slug: string, session: Session) {
   );
 
   if (!allowed) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return apiError("Forbidden", 403);
   }
 
   return null;
@@ -41,7 +42,7 @@ async function GET(_: Request, { params }: { params: Promise<{ slug: string }> }
   if (session instanceof Response) return session;
   const userId = session?.user?.name;
   if (!userId) {
-    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    return apiError("Authentication required", 401);
   }
 
   const { slug } = await params;

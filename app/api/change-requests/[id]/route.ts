@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
+import { apiError } from "@/src/lib/api-error";
 
 import { mergeChangeRequest, getChangeRequest, rejectChangeRequest } from "@/src/lib/change-requests";
 import { createNotification } from "@/src/lib/notifications";
@@ -14,13 +15,13 @@ async function PATCH(request: Request, { params }: { params: Promise<{ id: strin
 
   const permissions = await getGlobalPermissions(session);
   if (!permissions.includes("admin")) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return apiError("Forbidden", 403);
   }
 
   const { id } = await params;
   const changeRequestId = Number(id);
   if (!Number.isFinite(changeRequestId)) {
-    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+    return apiError("Invalid id", 400);
   }
 
   const body = (await request.json()) as { action: string; rejectionReason?: string };
@@ -29,13 +30,13 @@ async function PATCH(request: Request, { params }: { params: Promise<{ id: strin
   if (action === "merge") {
     const cr = await getChangeRequest(changeRequestId);
     if (!cr) {
-      return NextResponse.json({ error: "Change request not found" }, { status: 404 });
+      return apiError("Change request not found", 404);
     }
 
     const result = await mergeChangeRequest(changeRequestId, userId);
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error ?? "Merge failed" }, { status: 409 });
+      return apiError(result.error ?? "Merge failed", 409);
     }
 
     // Notify the editor
@@ -67,18 +68,18 @@ async function PATCH(request: Request, { params }: { params: Promise<{ id: strin
 
   if (action === "reject") {
     if (!rejectionReason || rejectionReason.trim().length < 3) {
-      return NextResponse.json({ error: "Rejection reason is required (min. 3 characters)" }, { status: 400 });
+      return apiError("Rejection reason is required (min. 3 characters)", 400);
     }
 
     const cr = await getChangeRequest(changeRequestId);
     if (!cr) {
-      return NextResponse.json({ error: "Change request not found" }, { status: 404 });
+      return apiError("Change request not found", 404);
     }
 
     const result = await rejectChangeRequest(changeRequestId, userId, rejectionReason.trim());
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error ?? "Rejection failed" }, { status: 500 });
+      return apiError(result.error ?? "Rejection failed", 500);
     }
 
     await createNotification({
@@ -93,7 +94,7 @@ async function PATCH(request: Request, { params }: { params: Promise<{ id: strin
     return NextResponse.json({ success: true });
   }
 
-  return NextResponse.json({ error: "Invalid action. Must be 'merge' or 'reject'." }, { status: 400 });
+  return apiError("Invalid action. Must be 'merge' or 'reject'.", 400);
 }
 
 export const PATCH_handler = withErrorHandling(PATCH);

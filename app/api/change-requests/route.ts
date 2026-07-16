@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
+import { apiError } from "@/src/lib/api-error";
 
 import { listChangeRequests } from "@/src/lib/change-requests";
 import { requireApiAuth, getGlobalPermissions } from "@/src/lib/require-auth";
@@ -10,7 +11,7 @@ async function GET() {
   if (session instanceof Response) return session;
   const userId = session?.user?.name;
   if (!userId) {
-    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    return apiError("Authentication required", 401);
   }
 
   const permissions = await getGlobalPermissions(session);

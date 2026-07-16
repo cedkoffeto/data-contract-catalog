@@ -21,12 +21,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
     const { slug } = await params;
     const userId = session?.user?.name;
     if (!userId) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+      return apiError("Authentication required", 401);
     }
 
     const contract = await getContractBySlug(slug);
     if (!contract) {
-      return NextResponse.json({ error: `Contract "${slug}" not found` }, { status: 404 });
+      return apiError(`Contract "${slug}" not found`, 404);
     }
 
     const permissions = await getGlobalPermissions(session);
@@ -35,14 +35,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
       const ctx = contract.data.asset?.context ?? "";
       const allowed = await authorize(userId, domain, ctx, "write", slug);
       if (!allowed) {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        return apiError("Forbidden", 403);
       }
     }
 
     const body = (await req.json()) as { content?: string; commitMessage?: string } | null;
     const content = body?.content;
     if (!content) {
-      return NextResponse.json({ error: "Missing content" }, { status: 400 });
+      return apiError("Missing content", 400);
     }
 
     const sessionId = extractSessionId(req);

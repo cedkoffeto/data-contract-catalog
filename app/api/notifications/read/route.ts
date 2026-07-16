@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     if (session instanceof Response) return session;
     const userId = session?.user?.name;
     if (!userId) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+      return apiError("Authentication required", 401);
     }
 
     const body = (await req.json()) as { ids?: number[] } | null;

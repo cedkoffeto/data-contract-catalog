@@ -12,7 +12,7 @@ export async function GET() {
     if (session instanceof Response) return session;
     const userId = session?.user?.name;
     if (!userId) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+      return apiError("Authentication required", 401);
     }
 
     const pref = await getUserPreference(userId);
@@ -30,14 +30,14 @@ export async function PUT(req: Request) {
     if (session instanceof Response) return session;
     const userId = session?.user?.name;
     if (!userId) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+      return apiError("Authentication required", 401);
     }
 
     const body = (await req.json()) as { notificationChannel?: string } | null;
     const channel = body?.notificationChannel;
 
     if (!channel || !["in_app", "email", "both"].includes(channel)) {
-      return NextResponse.json({ error: "Invalid notification channel" }, { status: 400 });
+      return apiError("Invalid notification channel", 400);
     }
 
     await setUserPreference(userId, channel as NotificationChannel);

@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
+import { apiError } from "@/src/lib/api-error";
 
 import { getContractBySlug } from "@/src/lib/contracts";
 import { authorize } from "@/src/lib/access-control";
@@ -99,11 +100,11 @@ async function GET(request: Request, { params }: { params: Promise<{ slug: strin
   const session = await requireApiAuth();
   if (session instanceof Response) return session;
   const userId = session?.user?.name;
-  if (!userId) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+  if (!userId) return apiError("Authentication required", 401);
 
   const { slug } = await params;
   const contract = await ensureCanRead(slug, session);
-  if (!contract) return NextResponse.json({ error: `Contract "${slug}" not found` }, { status: 404 });
+  if (!contract) return apiError(`Contract "${slug}" not found`, 404);
 
   const url = new URL(request.url);
   const type = url.searchParams.get("type") ?? "csv";

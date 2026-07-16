@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
+import { apiError } from "@/src/lib/api-error";
 import { auth } from "@/src/auth";
 import { insertExternalChangeRequest, listChangeRequests, updateChangeRequestStatus } from "@/src/lib/change-requests";
 import { findGitLabMergeRequestByBranch, getGitLabClient, getGitLabMergeRequest } from "@/src/lib/gitlab";
@@ -19,12 +20,12 @@ async function POST() {
   const session = await auth();
   const userId = session?.user?.name;
   if (!userId) {
-    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    return apiError("Authentication required", 401);
   }
 
   const permissions = await getGlobalPermissions(session);
   if (!permissions.includes("admin")) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return apiError("Forbidden", 403);
   }
 
   const results: Array<{ id: number; action: string }> = [];

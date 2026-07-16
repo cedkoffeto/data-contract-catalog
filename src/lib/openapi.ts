@@ -25,7 +25,10 @@ const CatalogItemSchema = registry.register(
 
 const CatalogListResponseSchema = registry.register(
   "CatalogListResponse",
-  z.object({ items: z.array(CatalogItemSchema) })
+  z.object({
+    contracts: z.array(CatalogItemSchema),
+    nextCursor: z.string().nullable(),
+  })
 );
 
 const ContractDetailResponseSchema = registry.register(
@@ -331,7 +334,13 @@ registry.registerPath({
   path: "/api/contracts",
   tags: ["Catalog"],
   summary: "List contracts",
-  description: "Returns the data contract metadata used by the catalog page, filtered by the caller's access.",
+  description: "Returns the data contract metadata used by the catalog page, filtered by the caller's access. Supports cursor-based pagination.",
+  request: {
+    query: z.object({
+      limit: z.coerce.number().int().min(1).max(200).optional().openapi({ example: 50, description: "Max contracts to return (default 50, max 200)." }),
+      cursor: z.string().optional().openapi({ description: "Slug of the last contract from the previous page." }),
+    }),
+  },
   responses: {
     200: { description: "Contracts list", content: { "application/json": { schema: CatalogListResponseSchema } } },
   },

@@ -22,7 +22,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const policyId = parseInt(id, 10);
 
   if (isNaN(policyId)) {
-    return NextResponse.json({ error: "Invalid policy id" }, { status: 400 });
+    return apiError("Invalid policy id", 400);
   }
 
   try {
@@ -31,12 +31,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const sessionId = extractSessionId(request);
 
     if (!permissionId) {
-      return NextResponse.json({ error: "permissionId is required" }, { status: 400 });
+      return apiError("permissionId is required", 400);
     }
 
     const current = await getAccessPolicy(policyId);
     if (!current) {
-      return NextResponse.json({ error: "Policy not found" }, { status: 404 });
+      return apiError("Policy not found", 404);
     }
 
     const conflict = await checkPolicyConflicts({
@@ -118,7 +118,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   const sessionId = extractSessionId(request);
 
   if (isNaN(policyId)) {
-    return NextResponse.json({ error: "Invalid policy id" }, { status: 400 });
+    return apiError("Invalid policy id", 400);
   }
 
   try {

@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
+import { apiError } from "@/src/lib/api-error";
 import { prisma } from "@/src/lib/prisma";
 import { auth } from "@/src/auth";
 import { getAdminUserIds } from "@/src/lib/rbac";
@@ -20,12 +21,12 @@ async function PATCH(request: Request, { params }: { params: Promise<{ id: strin
   const session = await auth();
   const userId = session?.user?.name;
   if (!userId) {
-    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    return apiError("Authentication required", 401);
   }
 
   const adminIds = await getAdminUserIds();
   if (!adminIds.includes(userId)) {
-    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+    return apiError("Admin access required", 403);
   }
 
   const { id } = await params;
@@ -34,7 +35,7 @@ async function PATCH(request: Request, { params }: { params: Promise<{ id: strin
   const sessionId = extractSessionId(request);
 
   if (!["pending", "approved", "rejected"].includes(status)) {
-    return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+    return apiError("Invalid status", 400);
   }
 
   const requestedAccessRequest = await prisma.accessRequest.findUnique({

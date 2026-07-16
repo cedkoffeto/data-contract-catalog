@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
+import { apiError } from "@/src/lib/api-error";
 import { prisma } from "@/src/lib/prisma";
 import { auth } from "@/src/auth";
 import { withErrorHandling } from "@/src/lib/with-error-handling";
@@ -9,7 +10,7 @@ async function GET(request: Request) {
   const session = await auth();
   const userId = session?.user?.name;
   if (!userId) {
-    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    return apiError("Authentication required", 401);
   }
 
   const { searchParams } = new URL(request.url);

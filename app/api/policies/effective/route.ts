@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
+import { apiError } from "@/src/lib/api-error";
 
 import { auth } from "@/src/auth";
 import { getEffectivePoliciesForUser } from "@/src/lib/access-control";
@@ -10,7 +11,7 @@ async function GET(request: Request) {
   const userId = session?.user?.name;
 
   if (!userId) {
-    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    return apiError("Authentication required", 401);
   }
 
   const { searchParams } = new URL(request.url);
@@ -19,7 +20,7 @@ async function GET(request: Request) {
   // Users can only view their own policies unless they're admins
   const userPerms = (session.user as Record<string, unknown>).permissions as string[] | undefined;
   if (targetUserId !== userId && !userPerms?.includes("admin")) {
-    return NextResponse.json({ error: "Can only view own policies" }, { status: 403 });
+    return apiError("Can only view own policies", 403);
   }
 
   const items = await getEffectivePoliciesForUser(targetUserId);

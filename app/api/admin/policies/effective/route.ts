@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
+import { apiError } from "@/src/lib/api-error";
 import { requireAdmin } from "@/src/lib/require-admin";
 import { getEffectivePoliciesForUser } from "@/src/lib/access-control";
 import { withErrorHandling } from "@/src/lib/with-error-handling";
@@ -12,7 +13,7 @@ async function GET(request: Request) {
   const userId = searchParams.get("userId");
 
   if (!userId) {
-    return NextResponse.json({ error: "userId query parameter is required" }, { status: 400 });
+    return apiError("userId query parameter is required", 400);
   }
 
   const items = await getEffectivePoliciesForUser(userId);

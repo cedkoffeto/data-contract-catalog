@@ -11,13 +11,13 @@ export async function POST(req: Request) {
     if (session instanceof Response) return session;
     const userId = session?.user?.name;
     if (!userId) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+      return apiError("Authentication required", 401);
     }
 
     const body = (await req.json()) as { ids?: number[] } | null;
     const ids = body?.ids;
     if (!ids || ids.length === 0) {
-      return NextResponse.json({ error: "Missing ids" }, { status: 400 });
+      return apiError("Missing ids", 400);
     }
 
     await markAsUnread(ids, userId);

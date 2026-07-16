@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
+import { apiError } from "@/src/lib/api-error";
 
 import { searchCatalogCards } from "@/src/lib/contracts";
 import { requireApiAuth, getGlobalPermissions } from "@/src/lib/require-auth";
@@ -11,7 +12,7 @@ async function GET(request: Request) {
   if (session instanceof Response) return session;
   const userId = session?.user?.name;
   if (!userId) {
-    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    return apiError("Authentication required", 401);
   }
 
   const permissions = await getGlobalPermissions(session);
@@ -29,7 +30,7 @@ async function GET(request: Request) {
   });
 
   const filtered = await filterCatalogCards(userId, cards, permissions);
-  const items = filtered.map((card) => ({
+  const contracts = filtered.map((card) => ({
     slug: card.slug,
     title: card.title,
     version: card.version,
@@ -40,7 +41,7 @@ async function GET(request: Request) {
     url: card.href
   }));
 
-  return NextResponse.json({ items });
+  return NextResponse.json({ contracts, nextCursor: null });
 }
 
 export const GET_handler = withErrorHandling(GET);

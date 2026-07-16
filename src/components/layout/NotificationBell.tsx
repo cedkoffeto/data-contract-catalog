@@ -157,12 +157,21 @@ export function NotificationBell() {
     if (subsLoadedRef.current) return;
     setLoading(true);
     try {
-      const res = await fetch("/api/contracts");
-      if (res.ok) {
-        const data = (await res.json()) as { items: ContractItem[] };
-        setContracts(data.items);
-        subsLoadedRef.current = true;
+      type PageResponse = { contracts: ContractItem[]; nextCursor: string | null };
+      const all: ContractItem[] = [];
+      let cursor: string | undefined;
+      while (true) {
+        const params = new URLSearchParams({ limit: "200" });
+        if (cursor) params.set("cursor", cursor);
+        const res = await fetch(`/api/contracts?${params}`);
+        if (!res.ok) break;
+        const data: PageResponse = await res.json();
+        all.push(...(data.contracts ?? []));
+        if (!data.nextCursor) break;
+        cursor = data.nextCursor;
       }
+      setContracts(all);
+      subsLoadedRef.current = true;
     } catch {
       // silent
     } finally {
