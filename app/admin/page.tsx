@@ -86,8 +86,8 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="space-y-6 px-6 lg:px-8">
-      <div className="rounded-lg border bg-white p-6">
+    <div className="w-full space-y-6 px-6 lg:px-8">
+      <div className="w-full rounded-lg border bg-white p-6">
         <div className="grid grid-cols-4 max-lg:grid-cols-3 max-md:grid-cols-2 max-sm:grid-cols-1 gap-4">
           {cards.map((c) => {
             const inner = (
@@ -106,7 +106,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="flex">
+      <div className="flex w-full">
         {(["access", "changes", "audit"] as const).map((tab, i) => {
           const isActive = activeTab === tab;
           const isFirst = i === 0;
@@ -145,10 +145,10 @@ export default function AdminDashboard() {
         })}
       </div>
 
-      <div className="relative w-full" style={{ minHeight: "600px" }}>
-        <div className={activeTab === "access" ? "w-full" : "pointer-events-none absolute inset-0 invisible h-full w-full"} aria-hidden={activeTab !== "access"}><AccessRequestsSection onPendingCount={setPendingAccess} /></div>
-        <div className={activeTab === "changes" ? "w-full" : "pointer-events-none absolute inset-0 invisible h-full w-full"} aria-hidden={activeTab !== "changes"}><ChangeRequestsSection highlightId={highlightId} onPendingCount={setPendingChanges} /></div>
-        <div className={activeTab === "audit" ? "w-full" : "pointer-events-none absolute inset-0 invisible h-full w-full"} aria-hidden={activeTab !== "audit"}><AuditLogSection /></div>
+      <div className="w-full" style={{ minHeight: "600px" }}>
+        {activeTab === "access" && <AccessRequestsSection onPendingCount={setPendingAccess} />}
+        {activeTab === "changes" && <ChangeRequestsSection highlightId={highlightId} onPendingCount={setPendingChanges} />}
+        {activeTab === "audit" && <AuditLogSection />}
       </div>
     </div>
   );
@@ -337,8 +337,8 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
             <button onClick={() => setMergeError(null)} className="text-red-400 hover:text-red-600" type="button">&times;</button>
           </div>
         ) : null}
-        <div className="w-full overflow-x-auto rounded-lg border shadow-lg">
-          <table className="w-full divide-y divide-gray-200 bg-white text-sm">
+        <div className="w-full min-w-full overflow-x-auto rounded-lg border shadow-lg">
+          <table className="w-full min-w-full divide-y divide-gray-200 bg-white text-sm">
               <thead className="bg-gray-50">
                 <tr>
                   {[{ label: t("tblId"), key: "id" }, { label: t("tblContract"), key: "contractSlug" }, { label: t("tblEditor"), key: "editorId" }, { label: t("tblStatus"), key: "status" }, { label: t("sourceColumn"), key: "source" }, { label: t("tblMrUrl"), key: "gitlabMrUrl" }, { label: t("tblRejection"), key: "rejectionReason" }, { label: t("tblCreated"), key: "createdAt" }, { label: t("tblUpdated"), key: "updatedAt" }, { label: t("tblActions"), key: null }].map(({ label, key }) => (
@@ -662,8 +662,8 @@ function AuditLogSection() {
           {loading ? "\u2026" : tWith("entriesCount", { count: String(total) })}
         </span>
       </div>
-      <div className="w-full overflow-x-auto rounded-lg border shadow-lg">
-          <table className="w-full divide-y divide-gray-200 bg-white text-sm">
+      <div className="w-full min-w-full overflow-x-auto rounded-lg border shadow-lg">
+          <table className="w-full min-w-full divide-y divide-gray-200 bg-white text-sm">
             <thead className="bg-gray-50">
               <tr>
                 {[{ key: "created_at", label: t("tblDate") }, { key: "action", label: t("tblAction") }, { key: "target_id", label: t("tblActor") }, { key: "details", label: t("tblDetails") }].map(({ key, label }) => (
@@ -839,8 +839,8 @@ function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number)
           {filtered.length} / {requests.length}
         </span>
       </div>
-      <div className="w-full overflow-x-auto rounded-lg border shadow-lg">
-          <table className="w-full divide-y divide-gray-200 bg-white text-sm">
+      <div className="w-full min-w-full overflow-x-auto rounded-lg border shadow-lg">
+          <table className="w-full min-w-full divide-y divide-gray-200 bg-white text-sm">
             <thead className="bg-gray-50">
               <tr>
                 {[{ label: t("tblId"), key: "id" }, { label: t("userColumn"), key: "user_id" }, { label: t("domain"), key: "domain" }, { label: t("context"), key: "context" }, { label: t("tblContract"), key: "data_contract" }, { label: t("permissionLabel"), key: "requested_permission" }, { label: t("message"), key: null }, { label: t("tblCreated"), key: "created_at" }, { label: t("tblUpdated"), key: "updated_at" }, { label: t("tblStatus"), key: "status" }, { label: t("tblActions"), key: null }].map(({ label, key }) => (
