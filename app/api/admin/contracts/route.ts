@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/src/lib/require-admin";
 import { getContracts } from "@/src/lib/contracts";
+import { withErrorHandling } from "@/src/lib/with-error-handling";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
+async function GET(request: Request) {
   const unauthorized = await requireAdmin();
   if (unauthorized) return unauthorized;
 
@@ -30,3 +31,6 @@ export async function GET(request: Request) {
 
   return NextResponse.json({ items });
 }
+
+export const GET_handler = withErrorHandling(GET);
+export { GET_handler as GET };

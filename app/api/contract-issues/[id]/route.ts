@@ -6,8 +6,9 @@ import { getContractIssue } from "@/src/lib/issues";
 import { getContractBySlug } from "@/src/lib/contracts";
 import { authorize } from "@/src/lib/access-control";
 import { requireApiAuth, getGlobalPermissions } from "@/src/lib/require-auth";
+import { withErrorHandling } from "@/src/lib/with-error-handling";
 
-export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireApiAuth();
   if (session instanceof Response) return session;
   const userId = session?.user?.name;
@@ -54,3 +55,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const updated = await updateContractIssueStatus(id, status as IssueStatus);
   return NextResponse.json({ issue: updated });
 }
+
+export const PATCH_handler = withErrorHandling(PATCH);
+export { PATCH_handler as PATCH };

@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
-import { apiError } from "@/src/lib/api-error";
+import { z } from "zod";
 import { requireAdmin } from "@/src/lib/require-admin";
 import { auth } from "@/src/auth";
 import {
@@ -12,8 +12,19 @@ import {
   listPermissions,
 } from "@/src/lib/access-control";
 import { extractSessionId } from "@/src/lib/audit-session";
+import { withErrorHandling } from "@/src/lib/with-error-handling";
 
-export async function GET() {
+const PolicyCreateSchema = z.object({
+  userId: z.string().max(200).nullable().optional(),
+  groupId: z.number().int().nullable().optional(),
+  permissionId: z.number().int().positive(),
+  domainScope: z.string().max(200).nullable().optional(),
+  contextScope: z.string().max(200).nullable().optional(),
+  dataContractScope: z.string().max(200).nullable().optional(),
+  force: z.boolean().optional(),
+});
+
+async function GET() {
   const unauthorized = await requireAdmin();
   if (unauthorized) return unauthorized;
 
@@ -21,93 +32,95 @@ export async function GET() {
   return NextResponse.json({ items });
 }
 
-export async function POST(request: Request) {
+async function POST(request: Request) {
   const unauthorized = await requireAdmin();
   if (unauthorized) return unauthorized;
 
   const session = await auth();
   const sessionId = extractSessionId(request);
 
-  try {
-    const body = await request.json();
-    const { userId, groupId, permissionId, domainScope, contextScope, dataContractScope, force } = body;
-
-    if (!userId && !groupId) {
-      return NextResponse.json({ error: "Either userId or groupId is required" }, { status: 400 });
-    }
-    if (userId && groupId) {
-      return NextResponse.json({ error: "Provide either userId or groupId, not both" }, { status: 400 });
-    }
-    if (!permissionId) {
-      return NextResponse.json({ error: "permissionId (number) is required" }, { status: 400 });
-    }
-
-    const conflict = await checkPolicyConflicts({
-      userId: userId ?? null,
-      groupId: groupId ?? null,
-      permissionId,
-      domainScope: domainScope ?? null,
-      contextScope: contextScope ?? null,
-      dataContractScope: dataContractScope ?? null,
-    });
-
-    if (conflict) {
-      if (force && (conflict.type === "overlap" || conflict.type === "broader")) {
-        const policy = await createAccessPolicy({
-          userId: userId ?? null,
-          groupId: groupId ?? null,
-          permissionId,
-          domainScope: domainScope ?? null,
-          contextScope: contextScope ?? null,
-          dataContractScope: dataContractScope ?? null,
-          actorId: session!.user!.email!,
-          force: true,
-          sessionId,
-        });
-        return NextResponse.json(policy, { status: 200 });
-      }
-
-      let affectedPolicies: Array<{ id: number; domain_scope: string | null; context_scope: string | null; data_contract_scope: string | null; permission_name: string }> = [];
-      if (conflict.type === "broader") {
-        const ids = await findNarrowerPolicies(
-          userId ?? null, groupId ?? null,
-          domainScope ?? null, contextScope ?? null, dataContractScope ?? null,
-          conflict.existing.id,
-        );
-        for (const id of ids) {
-          const p = await getAccessPolicy(id);
-          if (p) affectedPolicies.push(p);
-        }
-        affectedPolicies.push(conflict.existing);
-      }
-
-      return NextResponse.json({
-        conflict,
-        affectedPolicies,
-        newPolicy: {
-          assignTo: userId ?? `group:${groupId}`,
-          permissionId,
-          permissionName: (await listPermissions()).find((p) => p.id === permissionId)?.name ?? "unknown",
-          domainScope: domainScope ?? null,
-          contextScope: contextScope ?? null,
-          dataContractScope: dataContractScope ?? null,
-        },
-      }, { status: 409 });
-    }
-
-    const policy = await createAccessPolicy({
-      userId: userId ?? null,
-      groupId: groupId ?? null,
-      permissionId,
-      domainScope: domainScope ?? null,
-      contextScope: contextScope ?? null,
-      dataContractScope: dataContractScope ?? null,
-      actorId: session!.user!.email!,
-      sessionId,
-    });
-
-    return NextResponse.json(policy, { status: 201 });
-  } catch (error) {
-    return apiError(error, 400);
+  const parsed = PolicyCreateSchema.safeParse(await request.json());
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
+
+  const { userId, groupId, permissionId, domainScope, contextScope, dataContractScope, force } = parsed.data;
+
+  if (!userId && !groupId) {
+    return NextResponse.json({ error: "Either userId or groupId is required" }, { status: 400 });
+  }
+  if (userId && groupId) {
+    return NextResponse.json({ error: "Provide either userId or groupId, not both" }, { status: 400 });
+  }
+
+  const conflict = await checkPolicyConflicts({
+    userId: userId ?? null,
+    groupId: groupId ?? null,
+    permissionId,
+    domainScope: domainScope ?? null,
+    contextScope: contextScope ?? null,
+    dataContractScope: dataContractScope ?? null,
+  });
+
+  if (conflict) {
+    if (force && (conflict.type === "overlap" || conflict.type === "broader")) {
+      const policy = await createAccessPolicy({
+        userId: userId ?? null,
+        groupId: groupId ?? null,
+        permissionId,
+        domainScope: domainScope ?? null,
+        contextScope: contextScope ?? null,
+        dataContractScope: dataContractScope ?? null,
+        actorId: session!.user!.email!,
+        force: true,
+        sessionId,
+      });
+      return NextResponse.json(policy, { status: 200 });
+    }
+
+    let affectedPolicies: Array<{ id: number; domain_scope: string | null; context_scope: string | null; data_contract_scope: string | null; permission_name: string }> = [];
+    if (conflict.type === "broader") {
+      const ids = await findNarrowerPolicies(
+        userId ?? null, groupId ?? null,
+        domainScope ?? null, contextScope ?? null, dataContractScope ?? null,
+        conflict.existing.id,
+      );
+      for (const id of ids) {
+        const p = await getAccessPolicy(id);
+        if (p) affectedPolicies.push(p);
+      }
+      affectedPolicies.push(conflict.existing);
+    }
+
+    return NextResponse.json({
+      conflict,
+      affectedPolicies,
+      newPolicy: {
+        assignTo: userId ?? `group:${groupId}`,
+        permissionId,
+        permissionName: (await listPermissions()).find((p) => p.id === permissionId)?.name ?? "unknown",
+        domainScope: domainScope ?? null,
+        contextScope: contextScope ?? null,
+        dataContractScope: dataContractScope ?? null,
+      },
+    }, { status: 409 });
+  }
+
+  const policy = await createAccessPolicy({
+    userId: userId ?? null,
+    groupId: groupId ?? null,
+    permissionId,
+    domainScope: domainScope ?? null,
+    contextScope: contextScope ?? null,
+    dataContractScope: dataContractScope ?? null,
+    actorId: session!.user!.email!,
+    sessionId,
+  });
+
+  return NextResponse.json(policy, { status: 201 });
 }
+
+export const GET_handler = withErrorHandling(GET);
+export { GET_handler as GET };
+export const POST_handler = withErrorHandling(POST);
+export { POST_handler as POST };

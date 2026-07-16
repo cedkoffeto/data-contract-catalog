@@ -823,6 +823,12 @@ export function ContractEditorClient({
     documents.find((document) => document.id === selectedDocumentId) ??
     documents.find((document) => document.id === "draft-contract-1")!;
 
+  const [debouncedContent, setDebouncedContent] = useState(selectedDocument.content);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedContent(selectedDocument.content), 300);
+    return () => clearTimeout(timer);
+  }, [selectedDocument.content]);
+
   const selectedIndex = documents.findIndex((document) => document.id === selectedDocument.id);
   const selectedData = selectedDocument.data ?? initialData;
   const isContractDocument = selectedDocument.kind === "contract";
@@ -837,7 +843,7 @@ export function ContractEditorClient({
     }
 
     try {
-      const parsed = (yaml.load(selectedDocument.content) as DataContract) ?? {};
+      const parsed = (yaml.load(debouncedContent) as DataContract) ?? {};
       return {
         data: parsed,
         parseError: null as string | null,
@@ -851,7 +857,7 @@ export function ContractEditorClient({
         parseLineNumber: typeof markedError.mark?.line === "number" ? markedError.mark.line + 1 : null
       };
     }
-  }, [isContractDocument, selectedDocument.content]);
+  }, [isContractDocument, debouncedContent]);
 
   const validationResult = useMemo(() => {
     if (!isContractDocument) {

@@ -8,6 +8,7 @@ import { createAccessPolicy } from "@/src/lib/access-control";
 import { createNotification } from "@/src/lib/notifications";
 import { writeAuditLog } from "@/src/lib/audit";
 import { extractSessionId } from "@/src/lib/audit-session";
+import { withErrorHandling } from "@/src/lib/with-error-handling";
 
 type AccessRequestPermission = "reader" | "editor";
 
@@ -15,7 +16,7 @@ function permissionNameToPermissionIdName(permission: AccessRequestPermission) {
   return permission === "editor" ? "editor" : "reader";
 }
 
-export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   const userId = session?.user?.name;
   if (!userId) {
@@ -103,3 +104,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   return NextResponse.json({ success: true });
 }
+
+export const PATCH_handler = withErrorHandling(PATCH);
+export { PATCH_handler as PATCH };

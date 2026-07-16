@@ -7,13 +7,14 @@ import { findGitLabMergeRequestByBranch, getGitLabClient, getGitLabMergeRequest 
 import { createNotification } from "@/src/lib/notifications";
 import { getGlobalPermissions } from "@/src/lib/require-auth";
 import { getSubscribers } from "@/src/lib/subscriptions";
+import { withErrorHandling } from "@/src/lib/with-error-handling";
 
 function extractContractSlug(filePath: string): string | null {
   const match = filePath.match(/^contracts\/(.+)\.(yaml|yml)$/i);
   return match ? match[1] : null;
 }
 
-export async function POST() {
+async function POST() {
   const session = await auth();
   const userId = session?.user?.name;
   if (!userId) {
@@ -159,3 +160,6 @@ export async function POST() {
 
   return NextResponse.json({ synced: results.length, results });
 }
+
+export const POST_handler = withErrorHandling(POST);
+export { POST_handler as POST };

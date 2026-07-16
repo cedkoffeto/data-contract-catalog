@@ -1,8 +1,13 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { DataModelEditor } from "@/src/components/data-model/DataModelEditor";
+import dynamic from "next/dynamic";
 import type { DataModelContract, LoadedModel } from "@/src/lib/data-model";
+
+const DataModelEditor = dynamic(
+  () => import("@/src/components/data-model/DataModelEditor").then((m) => m.DataModelEditor),
+  { ssr: false },
+);
 
 function LoadingSkeleton() {
   return (

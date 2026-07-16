@@ -5,8 +5,9 @@ import { mergeChangeRequest, getChangeRequest, rejectChangeRequest } from "@/src
 import { createNotification } from "@/src/lib/notifications";
 import { getSubscribers } from "@/src/lib/subscriptions";
 import { requireApiAuth, getGlobalPermissions } from "@/src/lib/require-auth";
+import { withErrorHandling } from "@/src/lib/with-error-handling";
 
-export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireApiAuth();
   if (session instanceof Response) return session;
   const userId = session?.user?.name ?? "";
@@ -94,3 +95,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   return NextResponse.json({ error: "Invalid action. Must be 'merge' or 'reject'." }, { status: 400 });
 }
+
+export const PATCH_handler = withErrorHandling(PATCH);
+export { PATCH_handler as PATCH };

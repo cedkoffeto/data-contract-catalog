@@ -1,9 +1,10 @@
 import { requireAdmin } from "@/src/lib/require-admin";
 import { countAuditLogs, listAuditLogs, cleanupAuditLogs } from "@/src/lib/audit";
+import { withErrorHandling } from "@/src/lib/with-error-handling";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
+async function GET(request: Request) {
   const unauthorized = await requireAdmin();
   if (unauthorized) return unauthorized;
 
@@ -23,3 +24,6 @@ export async function GET(request: Request) {
 
   return Response.json({ items, total });
 }
+
+export const GET_handler = withErrorHandling(GET);
+export { GET_handler as GET };

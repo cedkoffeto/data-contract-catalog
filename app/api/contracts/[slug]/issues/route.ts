@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
 import { createContractIssue, listContractIssues } from "@/src/lib/issues";
 import { getContractBySlug } from "@/src/lib/contracts";
@@ -7,6 +8,11 @@ import { authorize } from "@/src/lib/access-control";
 import type { Session } from "next-auth";
 
 import { requireApiAuth, getGlobalPermissions } from "@/src/lib/require-auth";
+import { withErrorHandling } from "@/src/lib/with-error-handling";
+
+const IssueCreateSchema = z.object({
+  body: z.string().min(1, "Issue body is required").max(4000),
+});
 
 async function ensureCanReadContract(slug: string, session: Session) {
   const contract = await getContractBySlug(slug);
@@ -35,7 +41,7 @@ async function ensureCanReadContract(slug: string, session: Session) {
   return null;
 }
 
-export async function GET(_: Request, { params }: { params: Promise<{ slug: string }> }) {
+async function GET(_: Request, { params }: { params: Promise<{ slug: string }> }) {
   const session = await requireApiAuth();
   if (session instanceof Response) return session;
   const userId = session?.user?.name;
@@ -51,7 +57,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
   return NextResponse.json({ issues });
 }
 
-export async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
+async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const session = await requireApiAuth();
   if (session instanceof Response) return session;
   const userId = session?.user?.name;
@@ -63,22 +69,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
   const forbidden = await ensureCanReadContract(slug, session);
   if (forbidden) return forbidden;
 
-  const body = (await request.json()) as { body?: string };
-  const issueBody = body.body?.trim();
-
-  if (!issueBody) {
-    return NextResponse.json({ error: "Issue body is required" }, { status: 400 });
-  }
-
-  if (issueBody.length > 4000) {
-    return NextResponse.json({ error: "Issue body is too long" }, { status: 400 });
+  const parsed = IssueCreateSchema.safeParse(await request.json());
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
   const issue = await createContractIssue({
     contractSlug: slug,
     userId,
-    body: issueBody,
+    body: parsed.data.body,
   });
 
   return NextResponse.json({ issue }, { status: 201 });
 }
+
+export const GET_handler = withErrorHandling(GET);
+export { GET_handler as GET };
+export const POST_handler = withErrorHandling(POST);
+export { POST_handler as POST };

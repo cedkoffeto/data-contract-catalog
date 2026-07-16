@@ -2,10 +2,11 @@ import { prisma } from "@/src/lib/prisma";
 import { requireAdmin } from "@/src/lib/require-admin";
 import { getContracts } from "@/src/lib/contracts";
 import { auth } from "@/src/auth";
+import { withErrorHandling } from "@/src/lib/with-error-handling";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+async function GET() {
   const unauthorized = await requireAdmin();
   if (unauthorized) return unauthorized;
 
@@ -47,3 +48,6 @@ export async function GET() {
     auditCount,
   });
 }
+
+export const GET_handler = withErrorHandling(GET);
+export { GET_handler as GET };

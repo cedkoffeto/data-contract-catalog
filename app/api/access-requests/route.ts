@@ -7,6 +7,7 @@ import { createNotification } from "@/src/lib/notifications";
 import { getAdminUserIds, isAdmin } from "@/src/lib/rbac";
 import { writeAuditLog } from "@/src/lib/audit";
 import { extractSessionId } from "@/src/lib/audit-session";
+import { withErrorHandling } from "@/src/lib/with-error-handling";
 
 type AccessRequestPermission = "reader" | "editor";
 
@@ -83,7 +84,7 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
+async function GET() {
   const session = await auth();
   const userId = session?.user?.name;
   if (!userId) {
@@ -125,3 +126,6 @@ export async function GET() {
 
   return NextResponse.json({ items });
 }
+
+export const GET_handler = withErrorHandling(GET);
+export { GET_handler as GET };

@@ -1,19 +1,17 @@
 import { NextResponse } from "next/server";
-import { apiError } from "@/src/lib/api-error";
 import { loadDataModel } from "@/src/lib/data-model-sync";
 import { requireApiAuth } from "@/src/lib/require-auth";
+import { withErrorHandling } from "@/src/lib/with-error-handling";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+async function GET() {
   const session = await requireApiAuth();
   if (session instanceof Response) return session;
 
-  try {
-    const data = await loadDataModel();
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error("[api/data-model] Failed to load data model:", error);
-    return apiError(error);
-  }
+  const data = await loadDataModel();
+  return NextResponse.json(data);
 }
+
+export const GET_handler = withErrorHandling(GET);
+export { GET_handler as GET };

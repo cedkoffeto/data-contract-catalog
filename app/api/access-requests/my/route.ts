@@ -3,8 +3,9 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { prisma } from "@/src/lib/prisma";
 import { auth } from "@/src/auth";
+import { withErrorHandling } from "@/src/lib/with-error-handling";
 
-export async function GET(request: Request) {
+async function GET(request: Request) {
   const session = await auth();
   const userId = session?.user?.name;
   if (!userId) {
@@ -22,3 +23,6 @@ export async function GET(request: Request) {
 
   return NextResponse.json({ status: row?.status ?? null });
 }
+
+export const GET_handler = withErrorHandling(GET);
+export { GET_handler as GET };

@@ -3,8 +3,9 @@ import { NextResponse } from "next/server";
 
 import { requireAdmin } from "@/src/lib/require-admin";
 import { searchAllUsers } from "@/src/lib/rbac";
+import { withErrorHandling } from "@/src/lib/with-error-handling";
 
-export async function GET(request: Request) {
+async function GET(request: Request) {
   const unauthorized = await requireAdmin();
   if (unauthorized) return unauthorized;
 
@@ -13,3 +14,6 @@ export async function GET(request: Request) {
   const users = await searchAllUsers(q);
   return NextResponse.json({ items: users });
 }
+
+export const GET_handler = withErrorHandling(GET);
+export { GET_handler as GET };

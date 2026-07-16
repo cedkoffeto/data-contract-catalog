@@ -6,6 +6,17 @@ import { getGitLabClient } from "@/src/lib/gitlab";
 
 const contractsRoot = process.env.CONTRACTS_PATH ?? path.join(process.cwd(), "contracts");
 
+function validateContractPath(filePath: string): void {
+  const normalized = filePath.replace(/\\/g, "/");
+  if (normalized.includes("..") || normalized.includes("\0")) {
+    throw new Error("Path traversal detected");
+  }
+  if (!/^contracts\/(draft\/|published\/)?(bronze|silver|gold)\//.test(normalized) &&
+      !/^contracts\/(draft\/|published\/)?[a-zA-Z0-9_-]+\//.test(normalized)) {
+    throw new Error("Path must be under contracts/{maturity}/ or contracts/draft/{maturity}/");
+  }
+}
+
 function hasGitLabConfig() {
   return Boolean(
     process.env.GITLAB_BASE_URL?.trim() && process.env.GITLAB_PROJECT_ID?.trim() && process.env.GITLAB_TOKEN?.trim()
@@ -46,6 +57,7 @@ async function deleteFromGitLab(
   commitMessage?: string,
   sessionId?: string,
 ): Promise<void> {
+  validateContractPath(filePath);
   const { api, config } = getGitLabClient();
   const branch = config.ref;
 
@@ -69,11 +81,9 @@ async function deleteFromGitLab(
 }
 
 function deleteFromLocal(filePath: string): void {
+  validateContractPath(filePath);
   const normalized = path.normalize(filePath.replace(/^contracts\//, ""));
   const fullPath = path.resolve(contractsRoot, normalized);
-  if (!fullPath.startsWith(path.resolve(contractsRoot))) {
-    throw new Error(`Path traversal detected: ${filePath}`);
-  }
   if (fs.existsSync(fullPath)) {
     fs.unlinkSync(fullPath);
   }
@@ -86,6 +96,7 @@ async function saveToGitLab(
   commitMessage?: string,
   sessionId?: string,
 ): Promise<{ commitId?: string }> {
+  validateContractPath(filePath);
   const { api, config } = getGitLabClient();
   const branch = config.ref;
 
@@ -118,11 +129,9 @@ async function saveToGitLab(
 }
 
 function saveToLocal(filePath: string, content: string): void {
+  validateContractPath(filePath);
   const normalized = path.normalize(filePath.replace(/^contracts\//, ""));
   const fullPath = path.resolve(contractsRoot, normalized);
-  if (!fullPath.startsWith(path.resolve(contractsRoot))) {
-    throw new Error(`Path traversal detected: ${filePath}`);
-  }
   fs.mkdirSync(path.dirname(fullPath), { recursive: true });
   fs.writeFileSync(fullPath, content, "utf-8");
 }

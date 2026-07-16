@@ -6,6 +6,7 @@ import { authorize } from "@/src/lib/access-control";
 import type { Session } from "next-auth";
 
 import { requireApiAuth, getGlobalPermissions } from "@/src/lib/require-auth";
+import { withErrorHandling } from "@/src/lib/with-error-handling";
 
 function escapeHtml(value: string): string {
   return value
@@ -94,7 +95,7 @@ async function ensureCanRead(slug: string, session: Session) {
   return allowed ? contract : null;
 }
 
-export async function GET(request: Request, { params }: { params: Promise<{ slug: string }> }) {
+async function GET(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const session = await requireApiAuth();
   if (session instanceof Response) return session;
   const userId = session?.user?.name;
@@ -142,3 +143,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
     },
   });
 }
+
+export const GET_handler = withErrorHandling(GET);
+export { GET_handler as GET };

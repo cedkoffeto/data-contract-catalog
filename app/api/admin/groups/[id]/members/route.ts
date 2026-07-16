@@ -1,11 +1,11 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
-import { apiError } from "@/src/lib/api-error";
 import { requireAdmin } from "@/src/lib/require-admin";
 import { auth } from "@/src/auth";
 import { addUserToGroup, listGroupMembers, removeUserFromGroup } from "@/src/lib/access-control";
+import { withErrorHandling } from "@/src/lib/with-error-handling";
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const unauthorized = await requireAdmin();
   if (unauthorized) return unauthorized;
 
@@ -20,7 +20,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   return NextResponse.json({ members });
 }
 
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const unauthorized = await requireAdmin();
   if (unauthorized) return unauthorized;
 
@@ -32,20 +32,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Invalid group id" }, { status: 400 });
   }
 
-  try {
-    const body = await request.json();
-    const { userId } = body;
-    if (!userId?.trim()) {
-      return NextResponse.json({ error: "userId (string) is required" }, { status: 400 });
-    }
-    await addUserToGroup({ userId: userId.trim(), groupId, actorId: session!.user!.email! });
-    return NextResponse.json({ success: true }, { status: 201 });
-  } catch (error) {
-    return apiError(error, 400);
+  const body = await request.json();
+  const { userId } = body;
+  if (!userId?.trim()) {
+    return NextResponse.json({ error: "userId (string) is required" }, { status: 400 });
   }
+  await addUserToGroup({ userId: userId.trim(), groupId, actorId: session!.user!.email! });
+  return NextResponse.json({ success: true }, { status: 201 });
 }
 
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const unauthorized = await requireAdmin();
   if (unauthorized) return unauthorized;
 
@@ -57,15 +53,18 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     return NextResponse.json({ error: "Invalid group id" }, { status: 400 });
   }
 
-  try {
-    const body = await request.json();
-    const { userId } = body;
-    if (!userId?.trim()) {
-      return NextResponse.json({ error: "userId (string) is required" }, { status: 400 });
-    }
-    await removeUserFromGroup({ userId: userId.trim(), groupId, actorId: session!.user!.email! });
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    return apiError(error, 400);
+  const body = await request.json();
+  const { userId } = body;
+  if (!userId?.trim()) {
+    return NextResponse.json({ error: "userId (string) is required" }, { status: 400 });
   }
+  await removeUserFromGroup({ userId: userId.trim(), groupId, actorId: session!.user!.email! });
+  return NextResponse.json({ success: true });
 }
+
+export const GET_handler = withErrorHandling(GET);
+export { GET_handler as GET };
+export const POST_handler = withErrorHandling(POST);
+export { POST_handler as POST };
+export const DELETE_handler = withErrorHandling(DELETE);
+export { DELETE_handler as DELETE };

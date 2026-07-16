@@ -4,8 +4,9 @@ import { NextResponse } from "next/server";
 import { getContractBySlug } from "@/src/lib/contracts";
 import { requireApiAuth, getGlobalPermissions } from "@/src/lib/require-auth";
 import { authorize } from "@/src/lib/access-control";
+import { withErrorHandling } from "@/src/lib/with-error-handling";
 
-export async function GET(_: Request, { params }: { params: Promise<{ slug: string }> }) {
+async function GET(_: Request, { params }: { params: Promise<{ slug: string }> }) {
   const session = await requireApiAuth();
   if (session instanceof Response) return session;
 
@@ -39,3 +40,6 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
     data: contract.data
   });
 }
+
+export const GET_handler = withErrorHandling(GET);
+export { GET_handler as GET };

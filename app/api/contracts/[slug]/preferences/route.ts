@@ -3,8 +3,9 @@ import { NextResponse } from "next/server";
 
 import { getUserContractPreferences, updateUserContractPreferences } from "@/src/lib/preferences";
 import { requireApiAuth } from "@/src/lib/require-auth";
+import { withErrorHandling } from "@/src/lib/with-error-handling";
 
-export async function GET(_: Request, { params }: { params: Promise<{ slug: string }> }) {
+async function GET(_: Request, { params }: { params: Promise<{ slug: string }> }) {
   const session = await requireApiAuth();
   if (session instanceof Response) return session;
   const userId = session?.user?.name;
@@ -15,7 +16,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
   return NextResponse.json({ isFavorite });
 }
 
-export async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
+async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const session = await requireApiAuth();
   if (session instanceof Response) return session;
   const userId = session?.user?.name;
@@ -26,3 +27,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
 
   return NextResponse.json({ preferences });
 }
+
+export const GET_handler = withErrorHandling(GET);
+export { GET_handler as GET };
+export const POST_handler = withErrorHandling(POST);
+export { POST_handler as POST };

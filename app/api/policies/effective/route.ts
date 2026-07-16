@@ -3,8 +3,9 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/src/auth";
 import { getEffectivePoliciesForUser } from "@/src/lib/access-control";
+import { withErrorHandling } from "@/src/lib/with-error-handling";
 
-export async function GET(request: Request) {
+async function GET(request: Request) {
   const session = await auth();
   const userId = session?.user?.name;
 
@@ -24,3 +25,6 @@ export async function GET(request: Request) {
   const items = await getEffectivePoliciesForUser(targetUserId);
   return NextResponse.json({ items });
 }
+
+export const GET_handler = withErrorHandling(GET);
+export { GET_handler as GET };

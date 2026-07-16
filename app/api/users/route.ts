@@ -3,8 +3,9 @@ import { NextResponse } from "next/server";
 
 import { listUserProfiles, upsertUserProfile } from "@/src/lib/users";
 import { requireApiAuth, getGlobalPermissions } from "@/src/lib/require-auth";
+import { withErrorHandling } from "@/src/lib/with-error-handling";
 
-export async function GET(request: Request) {
+async function GET(request: Request) {
   const session = await requireApiAuth();
   if (session instanceof Response) return session;
   const userId = session?.user?.name;
@@ -28,3 +29,6 @@ export async function GET(request: Request) {
 
   return NextResponse.json({ users });
 }
+
+export const GET_handler = withErrorHandling(GET);
+export { GET_handler as GET };

@@ -1,13 +1,13 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
-import { apiError } from "@/src/lib/api-error";
  
 import { getContractBySlug } from "@/src/lib/contracts";
 import { getGitLabFileContent, isGitLabConfigurationError } from "@/src/lib/gitlab";
 import { requireApiAuth, getGlobalPermissions } from "@/src/lib/require-auth";
 import { authorize } from "@/src/lib/access-control";
+import { withErrorHandling } from "@/src/lib/with-error-handling";
 
-export async function GET(request: Request, context: { params: Promise<{ slug: string }> }) {
+async function GET(request: Request, context: { params: Promise<{ slug: string }> }) {
   const session = await requireApiAuth();
   if (session instanceof Response) return session;
 
@@ -44,6 +44,12 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
         return NextResponse.json({ content: null, notFoundAtRef: true });
       }
     }
-    return apiError(error, isGitLabConfigurationError(error) ? 503 : 500);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Internal server error" },
+      { status: isGitLabConfigurationError(error) ? 503 : 500 }
+    );
   }
 }
+
+export const GET_handler = withErrorHandling(GET);
+export { GET_handler as GET };

@@ -1,6 +1,5 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
-import { apiError } from "@/src/lib/api-error";
  
 import { authorize } from "@/src/lib/access-control";
 import { createChangeRequest, listChangeRequests } from "@/src/lib/change-requests";
@@ -11,6 +10,7 @@ import type { Session } from "next-auth";
 
 import { requireApiAuth, getGlobalPermissions } from "@/src/lib/require-auth";
 import { getAdminUserIds } from "@/src/lib/rbac";
+import { withErrorHandling } from "@/src/lib/with-error-handling";
 
 async function ensureCanReadContract(slug: string, session: Session) {
   const contract = await getContractBySlug(slug);
@@ -37,7 +37,7 @@ async function ensureCanReadContract(slug: string, session: Session) {
   return null;
 }
 
-export async function GET(_: Request, { params }: { params: Promise<{ slug: string }> }) {
+async function GET(_: Request, { params }: { params: Promise<{ slug: string }> }) {
   const session = await requireApiAuth();
   if (session instanceof Response) return session;
   const userId = session?.user?.name;
@@ -60,7 +60,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
   return NextResponse.json({ items });
 }
 
-export async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
+async function POST(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   try {
     const session = await requireApiAuth();
     if (session instanceof Response) return session;
@@ -137,6 +137,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ slu
 
     return NextResponse.json({ changeRequest: cr }, { status: 201 });
   } catch (error) {
-    return apiError(error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Internal server error" },
+      { status: 500 }
+    );
   }
 }
+
+export const GET_handler = withErrorHandling(GET);
+export { GET_handler as GET };
+export const POST_handler = withErrorHandling(POST);
+export { POST_handler as POST };
