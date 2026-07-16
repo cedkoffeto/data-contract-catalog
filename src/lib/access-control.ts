@@ -5,6 +5,7 @@ import { createNotification } from "@/src/lib/notifications";
 export type PermissionName = "admin" | "editor" | "reader";
 
 const CACHE_TTL = 60_000;
+const CACHE_MAX_SIZE = 500;
 
 function effectivePermissionsCacheKey(userId: string, domain: string, context: string, dataContract?: string) {
   return `${userId}|${domain}|${context}|${dataContract ?? ""}`;
@@ -20,6 +21,9 @@ function getCachedPermissions(key: string): Promise<PermissionName[]> | undefine
 }
 
 function setCachedPermissions(key: string, promise: Promise<PermissionName[]>): void {
+  if (effectivePermissionsCache.size >= CACHE_MAX_SIZE) {
+    effectivePermissionsCache.clear();
+  }
   effectivePermissionsCache.set(key, { promise, ts: Date.now() });
 }
 

@@ -39,6 +39,17 @@ function addSecurityHeaders(response: NextResponse): void {
     "Strict-Transport-Security",
     "max-age=63072000; includeSubDomains; preload"
   );
+  response.headers.set(
+    "Content-Security-Policy",
+    [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob:",
+      "connect-src 'self'",
+      "frame-ancestors 'none'",
+    ].join("; ")
+  );
 }
 
 const AUTH_COOKIE_NAMES = [

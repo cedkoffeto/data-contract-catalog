@@ -235,8 +235,15 @@ export function NotificationBell() {
     const contractSlug = typeof metadata.contractSlug === "string" && metadata.contractSlug ? metadata.contractSlug : n.contractSlug;
     const commentId = typeof metadata.commentId === "number" ? metadata.commentId : null;
 
-    if (typeof metadata.path === "string" && metadata.path.startsWith("/")) {
-      window.location.href = metadata.path;
+    const safePath =
+      typeof metadata.path === "string" &&
+      metadata.path.startsWith("/") &&
+      !metadata.path.startsWith("//")
+        ? metadata.path
+        : null;
+
+    if (safePath) {
+      window.location.href = safePath;
     } else if (n.type === "mention" && contractSlug && commentId) {
       window.location.href = `/contracts/${contractSlug}#comment-${commentId}`;
     } else if (n.type === "change_request_created") {
