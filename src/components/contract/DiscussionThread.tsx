@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import getCaretCoordinates from "textarea-caret";
 
 import type { ContractComment, ContractField, ContractIssue, UserProfile } from "@/src/lib/types";
@@ -106,7 +106,7 @@ function Avatar({ name, displayName }: { name: string; displayName?: string }) {
   );
 }
 
-function CommentItem({
+const CommentItem = memo(function CommentItem({
   comment,
   parentUser,
   isCurrentUser,
@@ -228,7 +228,7 @@ function CommentItem({
       </div>
     </div>
   );
-}
+});
 
 function InlineReplyForm({
   comment,

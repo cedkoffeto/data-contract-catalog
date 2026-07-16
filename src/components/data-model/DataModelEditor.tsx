@@ -10,7 +10,9 @@ import {
   type LayoutMode,
   type ContractTableNodeData,
 } from "@/src/lib/data-model";
-import { ModelGraph } from "./ModelGraph";
+import dynamic from "next/dynamic";
+
+const ModelGraph = dynamic(() => import("./ModelGraph").then((m) => m.ModelGraph), { ssr: false });
 import { FilterPanel } from "./FilterPanel";
 import { SidePanel } from "./SidePanel";
 import { Position, type Edge, type Node as FlowNode } from "@xyflow/react";

@@ -459,8 +459,10 @@ function nodeHeight(node: Node, connectedFields?: Map<string, Map<string, number
   return Math.max(count * 28 + 60, 90);
 }
 
+const WIDTH_CACHE_MAX = 100;
 const _widthCache = new Map<string, number>();
 function nodeWidth(node: Node): number {
+  if (_widthCache.size >= WIDTH_CACHE_MAX) _widthCache.clear();
   const cached = _widthCache.get(node.id);
   if (cached !== undefined) return cached;
   const data = node.data as ContractTableNodeData;

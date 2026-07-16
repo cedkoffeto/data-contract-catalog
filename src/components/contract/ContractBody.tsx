@@ -7,9 +7,10 @@ import { RelationsSection } from "@/src/components/contract/RelationsSection";
 import { SecuritySection } from "@/src/components/contract/SecuritySection";
 import { ServiceLevelsSection } from "@/src/components/contract/ServiceLevelsSection";
 import { ServingSection } from "@/src/components/contract/ServingSection";
+import React from "react";
 import type { DataContract } from "@/src/lib/types";
 
-export function ContractBody({ data, slug, userId, fieldAnnotations, onFieldClick, onAnnotationPosted, incomingRelations }: { data: DataContract; slug?: string; userId?: string; fieldAnnotations?: Record<string, number>; onFieldClick?: (fieldName: string) => void; onAnnotationPosted?: () => void; incomingRelations?: Array<{ ref_name: string; ref: string; declared_by_slug: string }> }) {
+export const ContractBody = React.memo(function ContractBody({ data, slug, userId, fieldAnnotations, onFieldClick, onAnnotationPosted, incomingRelations }: { data: DataContract; slug?: string; userId?: string; fieldAnnotations?: Record<string, number>; onFieldClick?: (fieldName: string) => void; onAnnotationPosted?: () => void; incomingRelations?: Array<{ ref_name: string; ref: string; declared_by_slug: string }> }) {
   const asset = data.asset ?? {};
   const contract = data.contract ?? {};
   const schema = contract.schema ?? {};
@@ -63,4 +64,4 @@ export function ContractBody({ data, slug, userId, fieldAnnotations, onFieldClic
       ) : null}
     </div>
   );
-}
+});

@@ -1,9 +1,12 @@
+import { clsx as clsxFn, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+
 export function clsx(...values: Array<string | false | undefined>): string {
   return values.filter(Boolean).join(" ");
 }
 
-export function cn(...values: Array<string | false | undefined>): string {
-  return clsx(...values);
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsxFn(inputs));
 }
 
 export function toArray<T>(value: T | T[] | undefined): T[] {
