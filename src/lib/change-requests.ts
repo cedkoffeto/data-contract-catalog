@@ -1,6 +1,7 @@
 import { prisma } from "@/src/lib/prisma";
 import { getGitLabClient, getGitLabContractFilePath } from "@/src/lib/gitlab";
 import type { ContractChangeRequest } from "@/src/lib/types";
+import { logger } from "@/src/lib/logger";
 
 
 function toChangeRequest(row: {
@@ -90,7 +91,7 @@ export async function createChangeRequest(params: {
   } catch (error) {
     // If MR creation fails, keep the CR in DB for logging but mark as rejected
     const msg = error instanceof Error ? error.message : "Unknown error";
-    console.error("[change-requests] MR creation failed:", msg);
+    logger.error("[change-requests] MR creation failed:", msg);
     await updateChangeRequestStatus({
       id: cr.id,
       status: "rejected",
@@ -185,7 +186,7 @@ export async function mergeChangeRequest(
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Unknown error during merge";
     const isConflict = msg.toLowerCase().includes("conflict") || msg.toLowerCase().includes("merge conflict");
-    console.error("[change-requests] Merge failed:", msg);
+    logger.error("[change-requests] Merge failed:", msg);
 
     if (isConflict) {
       await updateChangeRequestStatus({
@@ -218,7 +219,7 @@ export async function rejectChangeRequest(
       await gitlab.MergeRequests.edit(config.projectId, cr.gitlabMrId, { stateEvent: "close" });
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Unknown error";
-      console.error("[change-requests] Failed to close MR:", msg);
+      logger.error("[change-requests] Failed to close MR:", msg);
     }
   }
 

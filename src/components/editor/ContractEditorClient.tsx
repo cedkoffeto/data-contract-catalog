@@ -21,6 +21,7 @@ import { RelationRefWidget } from "@/src/components/editor/RelationRefWidget";
 import { ContractBody } from "@/src/components/contract/ContractBody";
 import { ContractHeader } from "@/src/components/contract/ContractHeader";
 import { useT } from "@/src/lib/use-i18n";
+import { logger } from "@/src/lib/logger";
 
 const CommitModal = dynamic(
   () => import("@/src/components/editor/CommitModal").then((m) => m.CommitModal),
@@ -1164,7 +1165,7 @@ export function ContractEditorClient({
       }
     }));
 
-    console.info("[editor.history] Fetching contract history", {
+    logger.info("[editor.history] Fetching contract history", {
       slug,
       selectedDocumentId: selectedDocument.id,
       path: selectedDocument.path
@@ -1173,7 +1174,7 @@ export function ContractEditorClient({
     void fetch(`/api/contracts/${slug}/history`, { cache: "no-store" })
       .then(async (response) => {
         const payload = (await response.json()) as RepositoryHistoryResponse | { error?: string };
-        console.info("[editor.history] History API response", {
+        logger.info("[editor.history] History API response", {
           slug,
           ok: response.ok,
           status: response.status,
@@ -1201,7 +1202,7 @@ export function ContractEditorClient({
           author: entry.authorName
         }));
 
-        console.info("[editor.history] Mapped history items", {
+        logger.info("[editor.history] Mapped history items", {
           slug,
           count: mappedItems.length,
           firstItem: mappedItems[0] ?? null
@@ -1224,7 +1225,7 @@ export function ContractEditorClient({
         const msg = error instanceof Error ? error.message : "Unable to load repository history";
         // 404 is expected for new contracts with no history yet
         if (!msg.includes("not found")) {
-          console.error("[editor.history] Failed to load history", { slug, error });
+          logger.error("[editor.history] Failed to load history", { slug, error });
         }
 
         setHistoryBySlug((current) => ({
@@ -1247,7 +1248,7 @@ export function ContractEditorClient({
       return;
     }
 
-    console.info("[editor.history] Render state", {
+    logger.info("[editor.history] Render state", {
       selectedDocumentId: selectedDocument.id,
       slug: selectedDocument.contractSlug ?? null,
       isDraft: !!selectedDocument.isDraft,

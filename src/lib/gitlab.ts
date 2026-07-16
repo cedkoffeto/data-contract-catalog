@@ -5,6 +5,7 @@ import { Gitlab } from "@gitbeaker/rest";
 import { getContractBySlug } from "@/src/lib/contracts";
 import { getGitSourceRef } from "@/src/lib/git-source";
 import type { ContractHistoryEntry } from "@/src/lib/types";
+import { logger } from "@/src/lib/logger";
 
 type GitLabCommitResponse = {
   id: string;
@@ -174,7 +175,7 @@ export async function getGitLabFileHistory(slug: string, limit = 10, filePath?: 
     filePath = await getGitLabContractFilePath(slug);
   }
 
-  console.info("[gitlab.history] Request", {
+  logger.info("[gitlab.history] Request", {
     slug,
     projectId: config.projectId,
     ref: config.ref,
@@ -189,7 +190,7 @@ export async function getGitLabFileHistory(slug: string, limit = 10, filePath?: 
       perPage: Math.max(limit, 20)
     })) as GitLabCommitResponse[];
 
-    console.info("[gitlab.history] Success", {
+    logger.info("[gitlab.history] Success", {
       slug,
       projectId: config.projectId,
       ref: config.ref,
@@ -211,7 +212,7 @@ export async function getGitLabFileHistory(slug: string, limit = 10, filePath?: 
       };
     });
   } catch (error) {
-    console.error("[gitlab.history] Failed", {
+    logger.error("[gitlab.history] Failed", {
       slug,
       projectId: config.projectId,
       ref: config.ref,
@@ -263,7 +264,7 @@ export async function getGitLabFileContent(slug: string, ref?: string) {
   const filePath = await getGitLabContractFilePath(slug);
   const resolvedRef = ref || config.ref;
 
-  console.info("[gitlab.content] Request", {
+  logger.info("[gitlab.content] Request", {
     slug,
     projectId: config.projectId,
     ref: resolvedRef,
@@ -273,7 +274,7 @@ export async function getGitLabFileContent(slug: string, ref?: string) {
   try {
     const decodedContent = await readRepositoryFileAtRef(config.projectId, filePath, resolvedRef, api);
 
-    console.info("[gitlab.content] Success", {
+    logger.info("[gitlab.content] Success", {
       slug,
       projectId: config.projectId,
       ref: resolvedRef,
@@ -292,7 +293,7 @@ export async function getGitLabFileContent(slug: string, ref?: string) {
       try {
         const candidatePaths = await resolveHistoricalFilePath(api, config.projectId, filePath, resolvedRef);
 
-        console.info("[gitlab.content] Historical path fallback", {
+        logger.info("[gitlab.content] Historical path fallback", {
           slug,
           projectId: config.projectId,
           ref: resolvedRef,
@@ -304,7 +305,7 @@ export async function getGitLabFileContent(slug: string, ref?: string) {
           try {
             const decodedContent = await readRepositoryFileAtRef(config.projectId, candidatePath, resolvedRef, api);
 
-            console.info("[gitlab.content] Historical path success", {
+            logger.info("[gitlab.content] Historical path success", {
               slug,
               projectId: config.projectId,
               ref: resolvedRef,
@@ -323,7 +324,7 @@ export async function getGitLabFileContent(slug: string, ref?: string) {
           }
         }
       } catch (fallbackError) {
-        console.error("[gitlab.content] Historical path resolution failed", {
+        logger.error("[gitlab.content] Historical path resolution failed", {
           slug,
           projectId: config.projectId,
           ref: resolvedRef,
@@ -333,7 +334,7 @@ export async function getGitLabFileContent(slug: string, ref?: string) {
       }
     }
 
-    console.error("[gitlab.content] Failed", {
+    logger.error("[gitlab.content] Failed", {
       slug,
       projectId: config.projectId,
       ref: resolvedRef,

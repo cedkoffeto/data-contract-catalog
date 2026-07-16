@@ -5,6 +5,7 @@ import { getUserPermissions } from "@/src/lib/rbac";
 import { getPinnedSlugs, getUserFavoriteSlugs } from "@/src/lib/preferences";
 import { getUserSubscriptions } from "@/src/lib/subscriptions";
 import { writeAuditLog } from "@/src/lib/audit";
+import { logger } from "@/src/lib/logger";
 
 type KeycloakTokenResponse = {
   access_token?: string;
@@ -111,7 +112,7 @@ export const authOptions: NextAuthOptions = {
         try {
           return await authenticateWithKeycloak(username, password);
         } catch (error) {
-          console.error("[auth.credentials] Keycloak login failed", {
+          logger.error("[auth.credentials] Keycloak login failed", {
             message: error instanceof Error ? error.message : "Unknown authentication error"
           });
           writeAuditLog({
@@ -178,7 +179,7 @@ export const authOptions: NextAuthOptions = {
           token.favoriteSlugs = favoriteSlugs;
           token.subscriptionSlugs = subscriptions.map((s) => s.contract_slug);
         } catch (error) {
-          console.error("[auth.jwt] Failed to fetch user data:", error);
+          logger.error("[auth.jwt] Failed to fetch user data:", error);
           token.permissions = [];
           token.pinnedSlugs = [];
           token.subscriptionSlugs = [];
@@ -215,7 +216,7 @@ export const authOptions: NextAuthOptions = {
           targetType: "user",
           targetId: user.name,
         });
-      } catch { console.warn("[auth] Failed to write audit log (signIn)"); }
+      } catch { logger.warn("[auth] Failed to write audit log (signIn)"); }
     },
     async signOut({ session }) {
       const userId = session?.user?.name;
@@ -227,7 +228,7 @@ export const authOptions: NextAuthOptions = {
           targetType: "user",
           targetId: userId,
         });
-      } catch { console.warn("[auth] Failed to write audit log (signOut)"); }
+      } catch { logger.warn("[auth] Failed to write audit log (signOut)"); }
     },
   },
 };

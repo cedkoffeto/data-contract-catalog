@@ -1,4 +1,5 @@
 import { Position, type Node, type Edge } from "@xyflow/react";
+import { logger } from "@/src/lib/logger";
 
 export type EdgeWithPorts = Edge & { sourcePosition?: Position; targetPosition?: Position };
 
@@ -205,7 +206,7 @@ export function parseContractsToGraph(
     const tgtFieldOk = tgtContract.fields.some((f) => f.name === tgt.field);
     if (!srcFieldOk || !tgtFieldOk) {
       if (process.env.NODE_ENV === "development") {
-        console.warn(`[data-model] Edge "${refStr}": field "${!srcFieldOk ? src.field : tgt.field}" not found in ${!srcFieldOk ? srcContract.slug : tgtContract.slug} — creating edge without handle`);
+        logger.warn(`[data-model] Edge "${refStr}": field "${!srcFieldOk ? src.field : tgt.field}" not found in ${!srcFieldOk ? srcContract.slug : tgtContract.slug} — creating edge without handle`);
       }
     }
 

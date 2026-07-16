@@ -8,6 +8,7 @@ import { listContractIssues } from "@/src/lib/issues";
 import { authorize } from "@/src/lib/access-control";
 import { requireApiAuth, getGlobalPermissions } from "@/src/lib/require-auth";
 import { listUserProfiles, upsertUserProfile } from "@/src/lib/users";
+import { logger } from "@/src/lib/logger";
 
 export async function GET(_: Request, { params }: { params: Promise<{ slug: string }> }) {
   try {
@@ -52,7 +53,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
 
     return NextResponse.json({ comments, issues, users });
   } catch (error) {
-    console.error("[discussion-data] Failed to load discussion:", error);
+    logger.error("[discussion-data] Failed to load discussion:", error);
     return apiError(error);
   }
 }

@@ -1,6 +1,7 @@
 import { gunzipSync } from "node:zlib";
 import { Gitlab, GitbeakerTimeoutError } from "@gitbeaker/rest";
 import { getGitSourceRef } from "@/src/lib/git-source";
+import { logger } from "@/src/lib/logger";
 
 const TAR_HEADER_SIZE = 512;
 
@@ -83,7 +84,7 @@ export function getGitLabClient(): { api: InstanceType<typeof Gitlab>; projectId
 }
 
 export async function downloadGitLabArchive(client: { projectId: string; ref: string; api: InstanceType<typeof Gitlab> }): Promise<Map<string, Buffer>> {
-  console.info("[gitlab.archive] Downloading archive for", {
+  logger.info("[gitlab.archive] Downloading archive for", {
     projectId: client.projectId,
     ref: client.ref,
   });

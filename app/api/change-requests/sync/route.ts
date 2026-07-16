@@ -8,6 +8,7 @@ import { createNotification } from "@/src/lib/notifications";
 import { getGlobalPermissions } from "@/src/lib/require-auth";
 import { getSubscribers } from "@/src/lib/subscriptions";
 import { withErrorHandling } from "@/src/lib/with-error-handling";
+import { logger } from "@/src/lib/logger";
 
 function extractContractSlug(filePath: string): string | null {
   const match = filePath.match(/^contracts\/(.+)\.(yaml|yml)$/i);
@@ -68,7 +69,7 @@ async function POST() {
         await updateChangeRequestStatus({ id: cr.id, status: "rejected", resolvedBy: "sync", gitlabMrId: mr.iid, gitlabMrUrl: mr.web_url, rejectionReason: "MR was closed without merge" });
         results.push({ id: cr.id, action: "rejected" });
       }
-      } catch { console.warn("[sync] Failed to sync MR for CR", cr.id); }
+      } catch { logger.warn("[sync] Failed to sync MR for CR", cr.id); }
   }
 
   // ── Step 2: Scan external MRs not tracked in DB ──
@@ -88,7 +89,7 @@ async function POST() {
     let changes: Array<{ new_path: string }>;
     try {
       changes = (await api.MergeRequests.showChanges(config.projectId, mr.iid)).changes as Array<{ new_path: string }>;
-    } catch { console.warn("[sync] Failed to get changes for MR", mr.iid);
+    } catch { logger.warn("[sync] Failed to get changes for MR", mr.iid);
       return;
     }
 
@@ -126,7 +127,7 @@ async function POST() {
               }))
           );
         }
-      } catch { console.warn("[sync] Failed to insert external CR for", slug); }
+      } catch { logger.warn("[sync] Failed to insert external CR for", slug); }
     }
   }
 
@@ -156,7 +157,7 @@ async function POST() {
     for (const mr of openedMrs) {
       await processMr(api, config, mr, "pending");
     }
-  } catch { console.warn("[sync] GitLab API unavailable, skip external scan"); }
+  } catch { logger.warn("[sync] GitLab API unavailable, skip external scan"); }
 
   return NextResponse.json({ synced: results.length, results });
 }

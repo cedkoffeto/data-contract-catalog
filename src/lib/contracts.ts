@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import yaml from "js-yaml";
+import { logger } from "@/src/lib/logger";
 
 export function safeYamlLoad<T = unknown>(raw: string): T | null {
   const maxDepth = 50;
@@ -13,7 +14,7 @@ export function safeYamlLoad<T = unknown>(raw: string): T | null {
       const currentDepth = Math.floor(indent / 2);
       depth = Math.max(depth, currentDepth);
       if (depth > maxDepth) {
-        console.warn(`[yaml] Exceeded max depth ${maxDepth}, rejecting`);
+        logger.warn(`[yaml] Exceeded max depth ${maxDepth}, rejecting`);
         return null;
       }
     }
@@ -124,7 +125,7 @@ async function readGitLabTextFile(filePath: string): Promise<string | null> {
   }
 
   try {
-    console.info("[gitlab.file] Request", {
+    logger.info("[gitlab.file] Request", {
       projectId: client.projectId,
       ref: client.ref,
       path: filePath
@@ -132,7 +133,7 @@ async function readGitLabTextFile(filePath: string): Promise<string | null> {
     const file = (await client.api.RepositoryFiles.show(client.projectId, filePath, client.ref)) as GitLabRepositoryFile;
     const rawContent = file.content ?? "";
     const content = file.encoding === "base64" ? Buffer.from(rawContent, "base64").toString("utf-8") : rawContent;
-    console.info("[gitlab.file] Success", {
+    logger.info("[gitlab.file] Success", {
       projectId: client.projectId,
       ref: client.ref,
       path: filePath,
@@ -140,7 +141,7 @@ async function readGitLabTextFile(filePath: string): Promise<string | null> {
     });
     return content;
   } catch (error) {
-    console.error("[gitlab.file] Failed", {
+    logger.error("[gitlab.file] Failed", {
       projectId: client.projectId,
       ref: client.ref,
       path: filePath,
@@ -228,7 +229,7 @@ async function readGitLabTree(
 
     treeCache.set(folderPath, { items, ts: Date.now() });
   } catch (error) {
-    console.error("[gitlab.tree] Failed", {
+      logger.error("[gitlab.tree] Failed", {
       projectId,
       ref,
       path: folderPath,
@@ -270,13 +271,13 @@ async function getRepositoryFolderFilesUncached(folderPath: string): Promise<Rep
 
   if (client) {
     try {
-      console.info("[gitlab.tree] Request", {
+      logger.info("[gitlab.tree] Request", {
         projectId: client.projectId,
         ref: client.ref,
         path: folderPath
       });
       const tree = await readGitLabTree(client.projectId, client.ref, folderPath);
-      console.info("[gitlab.tree] Success", {
+      logger.info("[gitlab.tree] Success", {
         projectId: client.projectId,
         ref: client.ref,
         path: folderPath,
@@ -300,7 +301,7 @@ async function getRepositoryFolderFilesUncached(folderPath: string): Promise<Rep
         return records.sort((left, right) => left.path.localeCompare(right.path));
       }
     } catch (error) {
-      console.error("[gitlab.tree] Failed", {
+    logger.error("[gitlab.tree] Failed", {
         projectId: client.projectId,
         ref: client.ref,
         path: folderPath,
@@ -416,7 +417,7 @@ async function buildContractsFromRecords(
       try {
         data = safeYamlLoad<DataContract>(record.yamlRaw) ?? {};
       } catch {
-        console.warn(`[contracts] Skipping malformed contract: ${record.path}`);
+        logger.warn(`[contracts] Skipping malformed contract: ${record.path}`);
         continue;
       }
 
@@ -477,7 +478,7 @@ async function getGitLabContracts(client: {
   ref: string;
   api: InstanceType<typeof Gitlab>;
 }): Promise<ContractFile[]> {
-  console.info("[gitlab.contracts] Downloading archive");
+  logger.info("[gitlab.contracts] Downloading archive");
 
   const archiveFiles = await downloadGitLabArchive(client);
 
@@ -489,7 +490,7 @@ async function getGitLabContracts(client: {
     (p) => /\.(yaml|yml)$/i.test(p) && p.startsWith("contracts/") && !p.includes("/draft/"),
   );
 
-  console.info("[gitlab.contracts] Found YAML files in archive:", yamlPaths.length);
+  logger.info("[gitlab.contracts] Found YAML files in archive:", yamlPaths.length);
 
   const records: Array<{ path: string; fullPath: string; yamlRaw: string }> = [];
 
@@ -508,7 +509,7 @@ async function getGitLabContracts(client: {
   }
 
   const contracts = await buildContractsFromRecords(records);
-  console.info("[gitlab.contracts] Parsed contracts:", contracts.length);
+  logger.info("[gitlab.contracts] Parsed contracts:", contracts.length);
 
   return contracts;
 }
@@ -615,7 +616,7 @@ export async function getContracts(): Promise<ContractFile[]> {
 
     let latestSha = "";
     try {
-      console.info("[gitlab.commit] Checking branch SHA", {
+      logger.info("[gitlab.commit] Checking branch SHA", {
         projectId: client.projectId,
         ref: client.ref,
       });
@@ -650,7 +651,7 @@ export async function getContracts(): Promise<ContractFile[]> {
     return contracts;
     } catch {
       gitLabContractsError = true;
-      console.warn("[gitlab.contracts] Failed, falling back to local contracts");
+      logger.warn("[gitlab.contracts] Failed, falling back to local contracts");
       pendingContractsPromise = readLocalContracts();
       const contracts = await pendingContractsPromise;
       pendingContractsPromise = null;

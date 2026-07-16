@@ -6,6 +6,7 @@ import { getGitLabContractFilePath, getGitLabFileHistory, isGitLabConfigurationE
 import { requireApiAuth, getGlobalPermissions } from "@/src/lib/require-auth";
 import { authorize } from "@/src/lib/access-control";
 import { withErrorHandling } from "@/src/lib/with-error-handling";
+import { logger } from "@/src/lib/logger";
 
 function toErrorLogPayload(error: unknown) {
   if (error instanceof Error) {
@@ -49,7 +50,7 @@ async function GET(_request: Request, context: { params: Promise<{ slug: string 
 
   try {
     const items = await getGitLabFileHistory(slug);
-    console.info("[contracts.history] Loaded contract history", {
+    logger.info("[contracts.history] Loaded contract history", {
       slug,
       count: items.length,
       firstItem: items[0] ?? null
@@ -65,7 +66,7 @@ async function GET(_request: Request, context: { params: Promise<{ slug: string 
       contractPath = null;
     }
 
-    console.error("[contracts.history] Git history lookup failed", {
+    logger.error("[contracts.history] Git history lookup failed", {
       slug,
       filePath,
       contractPath,

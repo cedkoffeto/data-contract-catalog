@@ -7,6 +7,7 @@ import type { CatalogCard } from "@/src/lib/types";
 import { auth } from "@/src/auth";
 import { getUserSubscriptions } from "@/src/lib/subscriptions";
 import { getPinnedSlugs, getUserFavoriteSlugs } from "@/src/lib/preferences";
+import { logger } from "@/src/lib/logger";
 
 export default async function HomePage() {
   const session = await auth();
@@ -20,7 +21,7 @@ export default async function HomePage() {
   // Fetch cards and user-specific data in parallel
   const [cards] = await Promise.all([
     getCatalogCards().catch((err) => {
-      console.error("[home] Failed to fetch catalog cards:", err);
+      logger.error("[home] Failed to fetch catalog cards:", err);
       return [] as CatalogCard[];
     }),
   ]);
