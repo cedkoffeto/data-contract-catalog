@@ -15,7 +15,7 @@ export function getCaretCoordinates(textarea: HTMLTextAreaElement, position: num
   ] as const;
 
   for (const p of props) {
-    (mirror.style as Record<string, string>)[p] = (style as Record<string, string>)[p];
+    (mirror.style as unknown as Record<string, string>)[p] = (style as unknown as Record<string, string>)[p];
   }
 
   mirror.style.position = "absolute";

@@ -125,7 +125,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
       const c = card.context.trim();
       if (!d || !c) continue;
       if (!map.has(d)) map.set(d, new Set());
-      map.get(d)!.add(c);
+      map.get(d)?.add(c);
     }
     return map;
   }, [cards]);

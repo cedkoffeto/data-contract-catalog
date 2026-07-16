@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 
-type RouteHandler = (req: Request, ctx?: { params?: Record<string, string> }) => Promise<Response | NextResponse>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RouteHandler = (req: Request, ctx?: any) => Promise<Response | NextResponse>;
 
-export function withErrorHandling(handler: RouteHandler): RouteHandler {
-  return async (req, ctx) => {
+export function withErrorHandling<T extends RouteHandler>(handler: T): T {
+  return (async (req: Request, ctx?: unknown) => {
     try {
       return await handler(req, ctx);
     } catch (e) {
@@ -13,5 +14,5 @@ export function withErrorHandling(handler: RouteHandler): RouteHandler {
         { status: 500 }
       );
     }
-  };
+  }) as T;
 }

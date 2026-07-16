@@ -154,7 +154,7 @@ export function RelationsSection({
               {hasIncoming && (
                 <h2 className="text-sm font-semibold text-gray-700">{t("sectionRelationsDeclared")}</h2>
               )}
-              {relations!.filter(Boolean).map((rel, i) => (
+              {(relations ?? []).filter(Boolean).map((rel, i) => (
                 <RelationRow key={`decl-${i}`} rel={rel} />
               ))}
             </div>
@@ -166,7 +166,7 @@ export function RelationsSection({
                 {t("sectionRelationsIncoming")}
                 <span className="ml-2 text-xs font-normal text-gray-400">{t("sectionRelationsIncomingDesc")}</span>
               </h2>
-              {incomingRelations!.filter(Boolean).map((rel, i) => (
+              {(incomingRelations ?? []).filter(Boolean).map((rel, i) => (
                 <RelationRow key={`inc-${i}`} rel={rel} incoming />
               ))}
             </div>

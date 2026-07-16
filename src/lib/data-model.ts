@@ -396,7 +396,7 @@ function layoutOrphanGrid(
     let maxH = 0;
     for (let c = 0; c < cols; c++) {
       const idx = r * cols + c;
-      if (idx < sorted.length) maxH = Math.max(maxH, heights.get(sorted[idx].id)!);
+      if (idx < sorted.length) maxH = Math.max(maxH, heights.get(sorted[idx].id) ?? 0);
     }
     rowHeights.push(maxH);
   }
@@ -543,7 +543,9 @@ export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB"
       : -gridWidth / 2;
 
     for (const [id, pos] of positions) {
-      laidOut.set(id, { ...(nodes.find((n) => n.id === id)!), position: { x: pos.x + gridLeft, y: pos.y } });
+      const node = nodes.find((n) => n.id === id);
+      if (!node) continue;
+      laidOut.set(id, { ...node, position: { x: pos.x + gridLeft, y: pos.y } });
     }
   }
 
@@ -698,7 +700,7 @@ export function layoutDomainGraph(nodes: Node[], edges: Edge[], connectedFields?
   for (const n of connected) {
     const domain = (n.data as ContractTableNodeData).domain || "Unknown";
     if (!byDomain.has(domain)) byDomain.set(domain, []);
-    byDomain.get(domain)!.push(n);
+    byDomain.get(domain)?.push(n);
   }
 
   const positions = new Map<string, { x: number; y: number }>();
@@ -811,7 +813,7 @@ export function layoutStarGraph(nodes: Node[], edges: Edge[], connectedFields?: 
     for (const id of comp) {
       const l = layer.get(id) ?? 0;
       if (!byLayer.has(l)) byLayer.set(l, []);
-      byLayer.get(l)!.push(id);
+      byLayer.get(l)?.push(id);
     }
 
     // Compute radius per layer (enough arc gap to avoid overlap)
@@ -819,7 +821,7 @@ export function layoutStarGraph(nodes: Node[], edges: Edge[], connectedFields?: 
     let maxR = 0;
     for (const [l, ids] of byLayer) {
       const n = ids.length;
-      const maxW = Math.max(...ids.map((id) => nodeWidth(nodeMap.get(id)!)), 220);
+      const maxW = Math.max(...ids.map((id) => { const node = nodeMap.get(id); return node ? nodeWidth(node) : 0; }), 220);
       const minR = (n * (maxW + 40)) / (2 * Math.PI);
       const r = Math.max(BASE_RADIUS + l * RADIUS_STEP, minR);
       radii.set(l, r);

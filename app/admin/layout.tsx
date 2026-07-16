@@ -13,7 +13,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect("/login?callbackUrl=/admin");
   }
 
-  const permissions = await getUserPermissions(session.user.name ?? session.user.email!);
+  const permissions = await getUserPermissions(session.user.name ?? session.user.email ?? "");
 
   if (!permissions.includes("admin")) {
     redirect("/");

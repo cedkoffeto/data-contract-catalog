@@ -33,7 +33,7 @@ export async function listUserProfiles(search: string): Promise<UserProfile[]> {
 
   const userIds = [...new Set([
     ...userGroupIds.map((u) => u.userId),
-    ...policyIds.map((u) => u.userId!),
+    ...policyIds.map((u) => u.userId ?? ""),
     ...notifIds.map((u) => u.userId),
     ...commentIds.map((u) => u.userId),
     ...subIds.map((u) => u.userId),

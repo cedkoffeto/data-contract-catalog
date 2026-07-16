@@ -708,6 +708,8 @@ a:has(> .kpi-card) {
 
 .kpi-card {
   display: flex;
+  width: 100%;
+  min-height: 120px;
   align-items: flex-start;
   justify-content: space-between;
   border-radius: var(--ui-radius-lg);

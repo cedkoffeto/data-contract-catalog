@@ -88,9 +88,11 @@ function parseCommentsToTree(flatComments: ContractComment[]): CommentNode[] {
     map.set(c.id, { ...c, replies: [] });
   }
   for (const c of flatComments) {
-    const node = map.get(c.id)!;
+    const node = map.get(c.id);
+    if (!node) continue;
     if (c.parentId && map.has(c.parentId)) {
-      map.get(c.parentId)!.replies.push(node);
+      const parent = map.get(c.parentId);
+      if (parent) parent.replies.push(node);
     } else {
       roots.push(node);
     }

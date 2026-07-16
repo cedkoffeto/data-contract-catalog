@@ -207,9 +207,9 @@ export function ModelGraph({
     const map = new Map<string, Set<string>>();
     for (const e of edges) {
       if (!map.has(e.source)) map.set(e.source, new Set());
-      map.get(e.source)!.add(e.target);
+      map.get(e.source)?.add(e.target);
       if (!map.has(e.target)) map.set(e.target, new Set());
-      map.get(e.target)!.add(e.source);
+      map.get(e.target)?.add(e.source);
     }
     return map;
   }, [edges]);

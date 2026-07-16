@@ -73,7 +73,7 @@ describe("RBAC admin policies API", () => {
     mockAccessControl({ listAccessPolicies });
 
     const route = await import("../../app/api/admin/policies/route");
-    const response = await route.GET(new Request("http://localhost/api/test"));
+    const response = await route.GET();
 
     expect(response.status).toBe(403);
     expect(await readJson(response)).toEqual({ error: "Admin privileges required" });
@@ -99,7 +99,7 @@ describe("RBAC admin policies API", () => {
     mockAccessControl({ listAccessPolicies });
 
     const route = await import("../../app/api/admin/policies/route");
-    const response = await route.GET(new Request("http://localhost/api/test"));
+    const response = await route.GET();
 
     expect(response.status).toBe(200);
     expect(await readJson(response)).toEqual({
@@ -406,7 +406,7 @@ describe("RBAC admin groups API", () => {
     mockAccessControl({ listGroups });
 
     const route = await import("../../app/api/admin/groups/route");
-    const response = await route.GET(new Request("http://localhost/api/test"));
+    const response = await route.GET();
 
     expect(response.status).toBe(200);
     expect(await readJson(response)).toEqual({ items: [{ id: 1, name: "Data owners" }] });
@@ -533,7 +533,7 @@ describe("RBAC admin groups API", () => {
     }));
 
     const route = await import("../../app/api/admin/groups/memberships/route");
-    const response = await route.GET(new Request("http://localhost/api/test"));
+    const response = await route.GET();
 
     expect(response.status).toBe(200);
     expect(await readJson(response)).toEqual({
@@ -555,7 +555,7 @@ describe("RBAC admin lookup APIs", () => {
     });
 
     const route = await import("../../app/api/admin/permissions/route");
-    const response = await route.GET(new Request("http://localhost/api/test"));
+    const response = await route.GET();
 
     expect(response.status).toBe(200);
     expect(await readJson(response)).toEqual({
@@ -606,7 +606,7 @@ describe("RBAC admin lookup APIs", () => {
     }));
 
     const route = await import("../../app/api/admin/scopes/route");
-    const response = await route.GET(new Request("http://localhost/api/test"));
+    const response = await route.GET();
 
     expect(response.status).toBe(200);
     expect(await readJson(response)).toEqual({ items: [{ domain: "crm", context: "claims" }] });

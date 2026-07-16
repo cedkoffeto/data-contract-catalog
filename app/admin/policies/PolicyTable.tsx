@@ -130,7 +130,7 @@ export default function PolicyTable({
                       <div className="flex items-center justify-end gap-2">
                         {p.user_id ? (
                           <button
-                            onClick={() => onViewUser(p.user_id!)}
+                            onClick={() => onViewUser(p.user_id ?? "")}
                             className="editor-soft-button"
                           >
                             <EyeIcon />

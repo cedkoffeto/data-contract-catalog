@@ -145,10 +145,10 @@ export default function AdminDashboard() {
         })}
       </div>
 
-      <div>
-        <div className={activeTab !== "access" ? "hidden" : ""} aria-hidden={activeTab !== "access"}><AccessRequestsSection onPendingCount={setPendingAccess} /></div>
-        <div className={activeTab !== "changes" ? "hidden" : ""} aria-hidden={activeTab !== "changes"}><ChangeRequestsSection highlightId={highlightId} onPendingCount={setPendingChanges} /></div>
-        <div className={activeTab !== "audit" ? "hidden" : ""} aria-hidden={activeTab !== "audit"}><AuditLogSection /></div>
+      <div className="relative w-full" style={{ minHeight: "600px" }}>
+        <div className={activeTab === "access" ? "w-full" : "pointer-events-none absolute inset-0 invisible h-full w-full"} aria-hidden={activeTab !== "access"}><AccessRequestsSection onPendingCount={setPendingAccess} /></div>
+        <div className={activeTab === "changes" ? "w-full" : "pointer-events-none absolute inset-0 invisible h-full w-full"} aria-hidden={activeTab !== "changes"}><ChangeRequestsSection highlightId={highlightId} onPendingCount={setPendingChanges} /></div>
+        <div className={activeTab === "audit" ? "w-full" : "pointer-events-none absolute inset-0 invisible h-full w-full"} aria-hidden={activeTab !== "audit"}><AuditLogSection /></div>
       </div>
     </div>
   );

@@ -65,7 +65,7 @@ const TableListItem = memo(function TableListItem({
                   <button className="editor-error-popover-close" onClick={() => { setErrHover(false); setErrPos(null); }}>&times;</button>
                 </div>
                 <div className="editor-error-popover-body">
-                  {d.relationErrors!.map((e, i) => (
+                  {(d.relationErrors ?? []).map((e, i) => (
                     <pre key={i}>{e.ref}</pre>
                   ))}
                 </div>

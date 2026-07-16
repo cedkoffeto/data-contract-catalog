@@ -11,12 +11,26 @@ import PolicyTable from "./PolicyTable";
 import ConflictDialog from "./ConflictDialog";
 import type { ConflictDialog as ConflictDialogType, Policy, ViewGroupMembers, ViewUserPolicies } from "./types";
 
-async function safeJson(res: Response): Promise<unknown> {
+async function safeJson(res: Response): Promise<Record<string, unknown> | null> {
   try {
-    return await res.json();
+    const data = await res.json();
+    return typeof data === "object" && data !== null ? (data as Record<string, unknown>) : null;
   } catch {
     return null;
   }
+}
+
+function getConflictInfo(data: Record<string, unknown> | null) {
+  if (!data) return null;
+  const conflict = data.conflict as Record<string, unknown> | undefined;
+  if (!conflict) return null;
+  return {
+    type: conflict.type as string,
+    message: conflict.message as string,
+    affectedPolicies: (data.affectedPolicies ?? []) as Array<unknown>,
+    newPolicy: data.newPolicy ?? null,
+    id: data.id ?? null,
+  };
 }
 
 export default function PoliciesPage() {
@@ -66,7 +80,7 @@ export default function PoliciesPage() {
   const minAdminUserId = useMemo(() => {
     const adminUserIds = policies
       .filter((p) => p.permission_name === "admin" && p.user_id)
-      .map((p) => p.user_id!);
+      .map((p) => p.user_id ?? "");
     const unique = [...new Set(adminUserIds)];
     return unique.length > 0 ? unique.sort()[0] : null;
   }, [policies]);
@@ -160,11 +174,12 @@ export default function PoliciesPage() {
 
     if (res.status === 409) {
       const data = await safeJson(res);
-      if (data?.conflict?.type === "overlap" || data?.conflict?.type === "broader") {
-        conflictId = data.id ?? null;
-        setConflictDialog({ body, message: data.conflict.message, mode: "create", type: data.conflict.type, affectedPolicies: data.affectedPolicies ?? [], newPolicy: data.newPolicy ?? null });
+      const info = getConflictInfo(data);
+      if (info && (info.type === "overlap" || info.type === "broader")) {
+        conflictId = info.id as number | null;
+        setConflictDialog({ body, message: info.message, mode: "create", type: info.type, affectedPolicies: info.affectedPolicies as ConflictDialogType["affectedPolicies"], newPolicy: info.newPolicy as ConflictDialogType["newPolicy"] });
       } else {
-        setError(data?.conflict?.message ?? t("conflictingPolicy"));
+        setError((data?.conflict as Record<string, unknown>)?.message as string ?? t("conflictingPolicy"));
       }
       setSaving(false);
       return;
@@ -172,7 +187,7 @@ export default function PoliciesPage() {
 
     if (!res.ok) {
       const data = await safeJson(res);
-      setError(data?.error ?? t("failedToCreatePolicy"));
+      setError(String(data?.error ?? t("failedToCreatePolicy")));
       setSaving(false);
       return;
     }
@@ -210,10 +225,11 @@ export default function PoliciesPage() {
 
     if (res.status === 409) {
       const data = await safeJson(res);
-      if (data?.conflict?.type === "overlap" || data?.conflict?.type === "broader") {
-        setConflictDialog({ body, message: data.conflict.message, mode: "edit", type: data.conflict.type, affectedPolicies: data.affectedPolicies ?? [], newPolicy: data.newPolicy ?? null });
+      const info = getConflictInfo(data);
+      if (info && (info.type === "overlap" || info.type === "broader")) {
+        setConflictDialog({ body, message: info.message, mode: "edit", type: info.type, affectedPolicies: info.affectedPolicies as ConflictDialogType["affectedPolicies"], newPolicy: info.newPolicy as ConflictDialogType["newPolicy"] });
       } else {
-        setError(data?.conflict?.message ?? t("conflictingPolicy"));
+        setError((data?.conflict as Record<string, unknown>)?.message as string ?? t("conflictingPolicy"));
       }
       setSaving(false);
       return;
@@ -221,7 +237,7 @@ export default function PoliciesPage() {
 
     if (!res.ok) {
       const data = await safeJson(res);
-      setError(data?.error ?? t("failedToUpdatePolicy"));
+      setError(String(data?.error ?? t("failedToUpdatePolicy")));
       setSaving(false);
       return;
     }
@@ -241,7 +257,7 @@ export default function PoliciesPage() {
 
     if (!res.ok) {
       const data = await safeJson(res);
-      setError(data?.error ?? t("failedToDeletePolicy"));
+      setError(String(data?.error ?? t("failedToDeletePolicy")));
       return;
     }
 
