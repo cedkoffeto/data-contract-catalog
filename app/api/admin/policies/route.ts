@@ -38,6 +38,11 @@ async function POST(request: Request) {
   if (unauthorized) return unauthorized;
 
   const session = await auth();
+  if (!session?.user?.email) {
+    return apiError("Authentication required", 401);
+  }
+  const actorId = session.user.email;
+
   const sessionId = extractSessionId(request);
 
   const parsed = PolicyCreateSchema.safeParse(await request.json());
@@ -72,7 +77,7 @@ async function POST(request: Request) {
         domainScope: domainScope ?? null,
         contextScope: contextScope ?? null,
         dataContractScope: dataContractScope ?? null,
-        actorId: session!.user!.email!,
+        actorId,
         force: true,
         sessionId,
       });
@@ -114,7 +119,7 @@ async function POST(request: Request) {
     domainScope: domainScope ?? null,
     contextScope: contextScope ?? null,
     dataContractScope: dataContractScope ?? null,
-    actorId: session!.user!.email!,
+    actorId,
     sessionId,
   });
 

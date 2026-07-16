@@ -8,11 +8,12 @@ import { Input } from "@/src/components/ui/Input";
 import { SearchableMultiSelect } from "@/src/components/ui/SearchableMultiSelect";
 import { useToast } from "@/src/components/ui/ToastProvider";
 import { useT } from "@/src/lib/use-i18n";
+import { dictionaries } from "@/src/lib/i18n";
 import type { CatalogCard as CatalogCardType } from "@/src/lib/types";
 
 const ALL_DOMAINS = "__all_domains__";
 
-const MULTI_FIELDS: { key: keyof CatalogCardType; label: string; placeholder: string }[] = [
+const MULTI_FIELDS: { key: keyof CatalogCardType; label: string; placeholder: keyof (typeof dictionaries)["en"] }[] = [
   { key: "domain", label: "domain", placeholder: "searchFieldDomain" },
   { key: "owner", label: "owner", placeholder: "searchFieldOwner" },
   { key: "context", label: "context", placeholder: "searchFieldContext" },
@@ -339,7 +340,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
                   value={multiFilters[field.key] ?? []}
                   onChange={(values) => setMultiFilters((prev) => ({ ...prev, [field.key]: values }))}
                   options={multiOptions[field.key] ?? []}
-                  placeholder={t(field.placeholder as any)}
+                  placeholder={t(field.placeholder)}
                 />
               ))}
             </div>

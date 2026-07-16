@@ -10,6 +10,11 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
   if (unauthorized) return unauthorized;
 
   const session = await auth();
+  if (!session?.user?.email) {
+    return apiError("Authentication required", 401);
+  }
+  const actorId = session.user.email;
+
   const { id } = await params;
   const groupId = parseInt(id, 10);
 
@@ -18,7 +23,7 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
   }
 
   try {
-    await deleteGroup({ id: groupId, actorId: session!.user!.email! });
+    await deleteGroup({ id: groupId, actorId });
     return NextResponse.json({ success: true });
   } catch (error) {
     return apiError(error, 400);

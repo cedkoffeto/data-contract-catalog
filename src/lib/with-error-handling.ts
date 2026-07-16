@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-type RouteHandler = (req: Request, ctx?: any) => Promise<Response | NextResponse>;
+type RouteHandler = (req: Request, ctx?: { params?: Record<string, string> }) => Promise<Response | NextResponse>;
 
 export function withErrorHandling(handler: RouteHandler): RouteHandler {
   return async (req, ctx) => {

@@ -586,8 +586,9 @@ export function layoutLayerGraph(nodes: Node[], edges: Edge[], connectedFields?:
   const byLayer = new Map<string, Node[]>();
   for (const n of connected) {
     const maturity = (n.data as ContractTableNodeData).maturity || "bronze";
-    if (!byLayer.has(maturity)) byLayer.set(maturity, []);
-    byLayer.get(maturity)!.push(n);
+    let arr = byLayer.get(maturity);
+    if (!arr) { arr = []; byLayer.set(maturity, arr); }
+    arr.push(n);
   }
 
   const positions = new Map<string, { x: number; y: number }>();
@@ -597,14 +598,14 @@ export function layoutLayerGraph(nodes: Node[], edges: Edge[], connectedFields?:
     if (!ns) continue;
 
     let totalHeight = 0;
-    for (const n of ns) totalHeight += heights.get(n.id)!;
+    for (const n of ns) totalHeight += heights.get(n.id) ?? 0;
     totalHeight += (ns.length - 1) * VERTICAL_GAP;
 
     let y = -totalHeight / 2;
     const x = colIdx * COLUMN_WIDTH;
 
     for (const n of ns) {
-      const h = heights.get(n.id)!;
+      const h = heights.get(n.id) ?? 0;
       positions.set(n.id, { x, y: y + h / 2 });
       y += h + VERTICAL_GAP;
     }
@@ -645,7 +646,7 @@ export function layoutLayerGraph(nodes: Node[], edges: Edge[], connectedFields?:
 
     bgNodes.push({
       id: `__bg_${layer}`,
-      type: "layerBackground" as any,
+      type: "layerBackground",
       position: { x: cx, y: (minY + maxY) / 2 },
       data: { label: layer, width: bw, height: bh },
       draggable: false,

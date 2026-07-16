@@ -8,6 +8,7 @@ import type { Session } from "next-auth";
 
 import { requireApiAuth, getGlobalPermissions } from "@/src/lib/require-auth";
 import { withErrorHandling } from "@/src/lib/with-error-handling";
+import type { DataContract } from "@/src/lib/types";
 
 function escapeHtml(value: string): string {
   return value
@@ -18,7 +19,18 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#039;");
 }
 
-function flattenFields(fields: any[], prefix = ""): any[] {
+type ExportField = {
+  name?: string;
+  type?: string;
+  description?: string;
+  required?: boolean;
+  pii_classification?: string;
+  business_rules?: string[];
+  example?: unknown;
+  fields?: ExportField[];
+};
+
+function flattenFields(fields: ExportField[], prefix = ""): Array<Record<string, string>> {
   return fields.flatMap((field) => {
     const name = `${prefix}${field.name ?? ""}`;
     const row = {
@@ -41,7 +53,7 @@ function toCsv(rows: Array<Record<string, string>>) {
   return [headers.join(","), ...rows.map((row) => headers.map((header) => escape(row[header] ?? "")).join(","))].join("\n");
 }
 
-function toPrintHtml(contract: { slug: string; yamlRaw: string; data: any }) {
+function toPrintHtml(contract: { slug: string; yamlRaw: string; data: DataContract }) {
   const asset = contract.data.asset ?? {};
   const fields = flattenFields(contract.data.contract?.schema?.fields ?? []);
   const rows = fields.map((field) => `<tr><td>${escapeHtml(field.field)}</td><td>${escapeHtml(field.type)}</td><td>${escapeHtml(field.description)}</td></tr>`).join("");

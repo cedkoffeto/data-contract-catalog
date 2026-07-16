@@ -20,6 +20,10 @@ async function POST(request: Request) {
   if (unauthorized) return unauthorized;
 
   const session = await auth();
+  if (!session?.user?.email) {
+    return apiError("Authentication required", 401);
+  }
+  const actorId = session.user.email;
 
   const body = await request.json();
   const { name } = body;
@@ -27,7 +31,7 @@ async function POST(request: Request) {
     return apiError("name (string) is required", 400);
   }
   const sessionId = extractSessionId(request);
-  const group = await createGroup({ name: name.trim(), actorId: session!.user!.email!, sessionId });
+  const group = await createGroup({ name: name.trim(), actorId, sessionId });
   return NextResponse.json(group, { status: 201 });
 }
 

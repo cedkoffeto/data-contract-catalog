@@ -18,6 +18,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (unauthorized) return unauthorized;
 
   const session = await auth();
+  if (!session?.user?.email) {
+    return apiError("Authentication required", 401);
+  }
+  const actorId = session.user.email;
+
   const { id } = await params;
   const policyId = parseInt(id, 10);
 
@@ -51,14 +56,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     if (conflict) {
       if (conflict.type === "overlap" && force) {
-        await deleteAccessPolicy({ id: conflict.existing.id, actorId: session!.user!.email!, sessionId });
+        await deleteAccessPolicy({ id: conflict.existing.id, actorId, sessionId });
         const policy = await updateAccessPolicy({
           id: policyId,
           permissionId,
           domainScope: domainScope ?? null,
           contextScope: contextScope ?? null,
           dataContractScope: dataContractScope ?? null,
-          actorId: session!.user!.email!,
+          actorId,
           sessionId,
         });
         return NextResponse.json(policy);
@@ -98,7 +103,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       domainScope: domainScope ?? null,
       contextScope: contextScope ?? null,
       dataContractScope: dataContractScope ?? null,
-      actorId: session!.user!.email!,
+      actorId,
       sessionId,
     });
 
@@ -113,6 +118,11 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   if (unauthorized) return unauthorized;
 
   const session = await auth();
+  if (!session?.user?.email) {
+    return apiError("Authentication required", 401);
+  }
+  const actorId = session.user.email;
+
   const { id } = await params;
   const policyId = parseInt(id, 10);
   const sessionId = extractSessionId(request);
@@ -122,7 +132,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   }
 
   try {
-    await deleteAccessPolicy({ id: policyId, actorId: session!.user!.email!, sessionId });
+    await deleteAccessPolicy({ id: policyId, actorId, sessionId });
     return NextResponse.json({ success: true });
   } catch (error) {
     return apiError(error, 400);

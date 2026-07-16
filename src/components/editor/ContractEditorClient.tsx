@@ -9,7 +9,7 @@ import { RangeSet, RangeSetBuilder, StateField } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import { Decoration, gutter, GutterMarker } from "@codemirror/view";
 
-import type { RJSFSchema, RJSFValidationError, UiSchema } from "@rjsf/utils";
+import type { RJSFSchema, RJSFValidationError, UiSchema, ValidatorType } from "@rjsf/utils";
 
 import yaml from "js-yaml";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
@@ -806,7 +806,7 @@ export function ContractEditorClient({
 
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
-  const [validatorInstance, setValidatorInstance] = useState<any>(null);
+  const [validatorInstance, setValidatorInstance] = useState<ValidatorType | null>(null);
 
   const [isBottomPanelOpen, setIsBottomPanelOpen] = useState(false);
   const [openFolders, setOpenFolders] = useState<Record<ExplorerFolder, boolean>>({
@@ -897,7 +897,7 @@ export function ContractEditorClient({
   }, [validationErrors, yamlValidationState.parseError]);
   const hasBlockingErrors = isContractDocument && (!!yamlValidationState.parseError || validationErrors.length > 0);
 
-  const codeMirrorRef = useRef<any>(null);
+  const codeMirrorRef = useRef<{ view: EditorView } | null>(null);
 
   const scrollToLine = useCallback((lineNumber: number | null) => {
     if (!lineNumber || lineNumber < 1) return;
@@ -969,7 +969,7 @@ export function ContractEditorClient({
       const line = findYamlLineForPath(selectedDocument.content, error.property ?? "");
       if (line != null) {
         let msg = error.stack || error.message || "";
-        const ajvParams = (error as any).params;
+        const ajvParams = error.params;
         if (ajvParams?.allowedValues) {
           msg += `\n${t("allowedValues")} ${ajvParams.allowedValues.join(", ")}`;
         }

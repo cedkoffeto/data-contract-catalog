@@ -11,7 +11,7 @@ import PolicyTable from "./PolicyTable";
 import ConflictDialog from "./ConflictDialog";
 import type { ConflictDialog as ConflictDialogType, Policy, ViewGroupMembers, ViewUserPolicies } from "./types";
 
-async function safeJson(res: Response): Promise<any> {
+async function safeJson(res: Response): Promise<unknown> {
   try {
     return await res.json();
   } catch {

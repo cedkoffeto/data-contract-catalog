@@ -26,6 +26,11 @@ async function POST(request: Request, { params }: { params: Promise<{ id: string
   if (unauthorized) return unauthorized;
 
   const session = await auth();
+  if (!session?.user?.email) {
+    return apiError("Authentication required", 401);
+  }
+  const actorId = session.user.email;
+
   const { id } = await params;
   const groupId = parseInt(id, 10);
 
@@ -38,7 +43,7 @@ async function POST(request: Request, { params }: { params: Promise<{ id: string
   if (!userId?.trim()) {
     return apiError("userId (string) is required", 400);
   }
-  await addUserToGroup({ userId: userId.trim(), groupId, actorId: session!.user!.email! });
+  await addUserToGroup({ userId: userId.trim(), groupId, actorId });
   return NextResponse.json({ success: true }, { status: 201 });
 }
 
@@ -47,6 +52,11 @@ async function DELETE(request: Request, { params }: { params: Promise<{ id: stri
   if (unauthorized) return unauthorized;
 
   const session = await auth();
+  if (!session?.user?.email) {
+    return apiError("Authentication required", 401);
+  }
+  const actorId = session.user.email;
+
   const { id } = await params;
   const groupId = parseInt(id, 10);
 
@@ -59,7 +69,7 @@ async function DELETE(request: Request, { params }: { params: Promise<{ id: stri
   if (!userId?.trim()) {
     return apiError("userId (string) is required", 400);
   }
-  await removeUserFromGroup({ userId: userId.trim(), groupId, actorId: session!.user!.email! });
+  await removeUserFromGroup({ userId: userId.trim(), groupId, actorId });
   return NextResponse.json({ success: true });
 }
 

@@ -629,9 +629,9 @@ function AuditLogSection() {
       case "access_request.create":
         return [d.domain ? `Domain: ${d.domain}` : "", d.context ? `Context: ${d.context}` : "", d.requestedPermission ? `Permission: ${d.requestedPermission}` : ""].filter(Boolean).join(", ");
       case "access_request.approve":
-        return `Approved as ${(d as any).requestedPermission ?? "?"}`;
+        return `Approved as ${String(d.requestedPermission ?? "?")}`;
       case "access_request.deny":
-        return `Denied (was ${(d as any).requestedPermission ?? "?"})`;
+        return `Denied (was ${String(d.requestedPermission ?? "?")})`;
       default:
         return JSON.stringify(d, null, 2);
     }
