@@ -17,10 +17,12 @@ import { FilterPanel } from "./FilterPanel";
 import { SidePanel } from "./SidePanel";
 import { Position, type Edge, type Node as FlowNode } from "@xyflow/react";
 
+type ParsedRelation = { left?: { field?: string }; right?: { field?: string } };
+
 function computeConnectedFields(edges: Edge[]): Map<string, Map<string, number>> {
   const map = new Map<string, Map<string, number>>();
   for (const edge of edges) {
-    const data = edge.data as { parsed?: Array<{ left?: { field?: string }; right?: { field?: string }> } };
+    const data = edge.data as { parsed?: ParsedRelation[] };
     if (data?.parsed) {
       for (const p of data.parsed) {
         if (p.left?.field) {
