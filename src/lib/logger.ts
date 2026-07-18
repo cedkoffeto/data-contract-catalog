@@ -38,6 +38,14 @@ function writeErr(formatted: string) {
   }
 }
 
+function writeWarn(formatted: string) {
+  if (hasStderr) {
+    process.stderr.write(formatted + "\n");
+  } else {
+    console.warn(formatted);
+  }
+}
+
 const RED = "\x1b[31m";
 const YELLOW = "\x1b[33m";
 const BLUE = "\x1b[34m";
@@ -48,7 +56,7 @@ export const logger = {
   info: (...args: unknown[]) =>
     writeOut(format("INFO", args, BLUE, RESET)),
   warn: (...args: unknown[]) =>
-    writeErr(format("WARN", args, YELLOW, RESET)),
+    writeWarn(format("WARN", args, YELLOW, RESET)),
   error: (...args: unknown[]) =>
     writeErr(format("ERROR", args, RED, RESET)),
   debug: (...args: unknown[]) =>

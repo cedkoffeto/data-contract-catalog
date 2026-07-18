@@ -66,7 +66,7 @@ const TableListItem = memo(function TableListItem({
                 </div>
                 <div className="editor-error-popover-body">
                   {(d.relationErrors ?? []).map((e, i) => (
-                    <pre key={i}>{e.ref}</pre>
+                    <pre key={i}>{e.message || e.ref}</pre>
                   ))}
                 </div>
               </div>,

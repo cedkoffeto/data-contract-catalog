@@ -1,5 +1,4 @@
 import { Position, type Node, type Edge } from "@xyflow/react";
-import { logger } from "@/src/lib/logger";
 
 export type EdgeWithPorts = Edge & { sourcePosition?: Position; targetPosition?: Position };
 
@@ -105,7 +104,7 @@ export type ContractTableNodeData = Record<string, unknown> & {
   context?: string;
   fields: { name: string; type: string; description?: string }[];
   color: string;
-  relationErrors?: { field: string; targetSlug: string; ref: string }[];
+  relationErrors?: { field: string; targetSlug: string; ref: string; message: string }[];
 };
 
 export type LoadedModel = {
@@ -204,11 +203,6 @@ export function parseContractsToGraph(
 
     const srcFieldOk = srcContract.fields.some((f) => f.name === src.field);
     const tgtFieldOk = tgtContract.fields.some((f) => f.name === tgt.field);
-    if (!srcFieldOk || !tgtFieldOk) {
-      if (process.env.NODE_ENV === "development") {
-        logger.warn(`[data-model] Edge "${refStr}": field "${!srcFieldOk ? src.field : tgt.field}" not found in ${!srcFieldOk ? srcContract.slug : tgtContract.slug} — creating edge without handle`);
-      }
-    }
 
     const srcId = slugToId(srcContract.slug, srcContract.maturity);
     const tgtId = slugToId(tgtContract.slug, tgtContract.maturity);
@@ -338,16 +332,18 @@ export function parseContractsToGraph(
       const srcNode = nodeMap.get(e.source);
       if (srcNode) {
         const srcData = srcNode.data as ContractTableNodeData;
+        const msg = `${d.ref ?? ""}: field "${parsed.left.field}" not found in ${parsed.left.slug}`;
         srcData.relationErrors = srcData.relationErrors || [];
-        srcData.relationErrors.push({ field: parsed.left.field, targetSlug: "", ref: d.ref ?? "" });
+        srcData.relationErrors.push({ field: parsed.left.field, targetSlug: parsed.right.slug, ref: d.ref ?? "", message: msg });
       }
     }
     if (!e.targetHandle) {
       const tgtNode = nodeMap.get(e.target);
       if (tgtNode) {
         const tgtData = tgtNode.data as ContractTableNodeData;
+        const msg = `${d.ref ?? ""}: field "${parsed.right.field}" not found in ${parsed.right.slug}`;
         tgtData.relationErrors = tgtData.relationErrors || [];
-        tgtData.relationErrors.push({ field: parsed.right.field, targetSlug: "", ref: d.ref ?? "" });
+        tgtData.relationErrors.push({ field: parsed.right.field, targetSlug: parsed.left.slug, ref: d.ref ?? "", message: msg });
       }
     }
   }

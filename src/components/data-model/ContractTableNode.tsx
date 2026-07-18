@@ -116,7 +116,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
                   </div>
                   <div className="editor-error-popover-body">
                     {errors.map((e, i) => (
-                      <pre key={i}>{e.ref}</pre>
+                      <pre key={i}>{e.message || e.ref}</pre>
                     ))}
                   </div>
                 </div>,
