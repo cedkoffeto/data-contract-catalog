@@ -65,10 +65,10 @@ const TableListItem = memo(function TableListItem({
                   <button className="editor-error-popover-close" onClick={() => { setErrHover(false); setErrPos(null); }}>&times;</button>
                 </div>
                 <div className="editor-error-popover-body">
-                  {(d.relationErrors ?? []).map((e, i) => (
-                    <div key={i} className="border-b border-gray-100 last:border-b-0 pb-1.5 last:pb-0 mb-1.5 last:mb-0">
-                      <pre className="text-[10px] text-gray-400 break-all whitespace-pre-wrap">{e.ref}</pre>
-                      <pre className="text-[11px] text-red-600 break-all whitespace-pre-wrap">{e.message}</pre>
+                  {(d.relationErrors ?? []).map((e, i, arr) => (
+                    <div key={i} className={i < arr.length - 1 ? "border-b border-gray-100 pb-2 mb-2" : ""}>
+                      <div className="text-[11px] font-semibold text-red-600">Erreur #{i + 1}: {e.message}</div>
+                      <div className="text-[10px] text-gray-400 mt-0.5">ref: {e.ref}</div>
                     </div>
                   ))}
                 </div>
