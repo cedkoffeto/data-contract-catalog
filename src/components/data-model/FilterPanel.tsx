@@ -53,10 +53,12 @@ const TableListItem = memo(function TableListItem({
         {d.relationErrors && d.relationErrors.length > 0 && (
           <>
             <span
-              className="inline-block h-3 w-3 shrink-0 rounded-full bg-red-500 cursor-pointer"
-              onMouseEnter={(e) => { setErrHover(true); const r = e.currentTarget.getBoundingClientRect(); setErrPos({ top: r.top - 6, left: r.right + 8 }); }}
+              className="relative inline-flex h-5 w-5 shrink-0 items-center justify-center cursor-pointer"
+              onMouseEnter={(e) => { setErrHover(true); const r = e.currentTarget.getBoundingClientRect(); setErrPos({ top: r.top - 6, left: r.right + 4 }); }}
               onMouseLeave={() => { setErrHover(false); setErrPos(null); }}
-            />
+            >
+              <span className="h-3 w-3 rounded-full bg-red-500" />
+            </span>
             {errHover && errPos && createPortal(
               <div className="editor-error-popover fixed" style={{ left: errPos.left, top: errPos.top }}>
                 <div className="editor-error-popover-arrow" />
@@ -67,8 +69,7 @@ const TableListItem = memo(function TableListItem({
                 <div className="editor-error-popover-body">
                   {(d.relationErrors ?? []).map((e, i, arr) => (
                     <div key={i} className={i < arr.length - 1 ? "border-b border-gray-100 pb-2 mb-2" : ""}>
-                      <div className="text-[11px] font-semibold text-red-600">Erreur #{i + 1}: {e.message}</div>
-                      <div className="text-[10px] text-gray-400 mt-0.5">ref: {e.ref}</div>
+                      <div className="text-[11px] font-semibold text-red-600">{e.message}</div>
                     </div>
                   ))}
                 </div>

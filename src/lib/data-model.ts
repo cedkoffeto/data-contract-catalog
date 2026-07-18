@@ -439,20 +439,23 @@ function computeEdgePorts(dx: number, dy: number, threshold = 0.8): { sourcePosi
 
 export type LayoutMode = "LR" | "TB" | "layer" | "domain" | "star";
 
-function nodeFieldCount(node: Node): number {
-  const data = node.data as ContractTableNodeData;
-  return data.fields ? data.fields.length : 0;
-}
-
-function nodeCompactCount(node: Node, connectedFields: Map<string, Map<string, number>>): number {
-  return connectedFields.get(node.id)?.size ?? 0;
-}
-
 function nodeHeight(node: Node, connectedFields?: Map<string, Map<string, number>>, viewMode?: "detailed" | "compact"): number {
-  const count = viewMode === "compact" && connectedFields
-    ? Math.max(nodeCompactCount(node, connectedFields), 2)
-    : nodeFieldCount(node);
-  return Math.max(count * 28 + 60, 90);
+  const data = node.data as ContractTableNodeData;
+  const fields = data.fields ?? [];
+  const fieldEdges = connectedFields?.get(node.id);
+
+  let totalFieldH = 0;
+  for (const f of fields) {
+    if (viewMode === "compact" && !(fieldEdges?.has(f.name))) continue;
+    const edgeCount = fieldEdges?.get(f.name) ?? 0;
+    const extraTop = edgeCount > 1 ? (edgeCount + 1) * 6 : 0;
+    const extraBottom = edgeCount > 1 ? (edgeCount + 3) * 6 : 0;
+    totalFieldH += 14 + extraTop + extraBottom; // 7px top + 7px bottom base
+  }
+
+  // color strip 3px + header ~36px + separator 2px + button ~24px + borders 4px
+  const chromeH = 3 + 36 + 2 + 24 + 4;
+  return Math.max(totalFieldH + chromeH, 90);
 }
 
 const WIDTH_CACHE_MAX = 100;
@@ -462,14 +465,16 @@ function nodeWidth(node: Node): number {
   const cached = _widthCache.get(node.id);
   if (cached !== undefined) return cached;
   const data = node.data as ContractTableNodeData;
-  const slugPx = data.slug.length * 8.5;
-  let maxFieldPx = 0;
+  // Header: icon(14) + gap(8) + slug(font-semibold ~8px/char) + maturity(~34) + chevron(~20) + px-3(24)
+  const headerW = data.slug.length * 8 + 100;
+  // Fields: key(10) + gap(8) + name(mono-11 ~6.5px/char) + info+w-4(27) + type(~5.8px/char) + px-3(24)
+  let maxFieldW = 0;
   for (const f of data.fields) {
-    const namePx = f.name.length * 6.6;
-    const typePx = f.type.length * 6;
-    maxFieldPx = Math.max(maxFieldPx, namePx + typePx + 10);
+    const fieldW = f.name.length * 6.5 + f.type.length * 5.8 + 69;
+    if (fieldW > maxFieldW) maxFieldW = fieldW;
   }
-  const w = Math.max(Math.ceil(Math.max(slugPx, maxFieldPx) + 60), 220);
+  // +4 for outer+inner border
+  const w = Math.max(Math.ceil(Math.max(headerW, maxFieldW) + 4), 220);
   _widthCache.set(node.id, w);
   return w;
 }

@@ -113,8 +113,7 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
     tx = portX(tp, tgtNode.position.x, tgtMeas.width ?? 220);
   }
 
-  // Push path endpoints outward past the cardinality symbols
-  const pathPad = 6;
+  const pathPad = 0;
   const spDirX = sp === Position.Left ? -pathPad : sp === Position.Right ? pathPad : 0;
   const spDirY = sp === Position.Top ? -pathPad : sp === Position.Bottom ? pathPad : 0;
   const tpDirX = tp === Position.Left ? -pathPad : tp === Position.Right ? pathPad : 0;
@@ -225,7 +224,7 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
 
       <text
         x={sx + edgeOffset(sp, "source", 14).dx}
-        y={sy + sourceOffset + edgeOffset(sp, "source", 14).dy - 9}
+        y={sy + sourceOffset + edgeOffset(sp, "source", 14).dy - 6}
         textAnchor="middle"
         dominantBaseline="central"
         fill={edgeColor}
@@ -233,7 +232,8 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
         fontWeight={edgeActive ? 800 : 600}
         fontFamily="monospace"
         pointerEvents="none"
-        style={{ transition: "fill 0.2s, font-size 0.2s, font-weight 0.2s" }}
+        opacity={isEdgeHighlighted ? 1 : 0.15}
+        style={{ transition: "fill 0.2s, font-size 0.2s, font-weight 0.2s, opacity 0.2s" }}
       >
         {cardSource === "many" ? "*" : "1"}
       </text>
@@ -248,12 +248,13 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
         strokeWidth={edgeActive ? 2 : 1.5}
         strokeLinecap="round"
         pointerEvents="none"
-        style={{ transition: "stroke 0.2s, stroke-width 0.2s" }}
+        opacity={isEdgeHighlighted ? 1 : 0.15}
+        style={{ transition: "stroke 0.2s, stroke-width 0.2s, opacity 0.2s" }}
       />
 
       <text
         x={tx + edgeOffset(tp, "target", 14).dx}
-        y={ty + targetOffset + edgeOffset(tp, "target", 14).dy - 9}
+        y={ty + targetOffset + edgeOffset(tp, "target", 14).dy - 6}
         textAnchor="middle"
         dominantBaseline="central"
         fill={edgeColor}
@@ -261,7 +262,8 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
         fontWeight={edgeActive ? 800 : 600}
         fontFamily="monospace"
         pointerEvents="none"
-        style={{ transition: "fill 0.2s, font-size 0.2s, font-weight 0.2s" }}
+        opacity={isEdgeHighlighted ? 1 : 0.15}
+        style={{ transition: "fill 0.2s, font-size 0.2s, font-weight 0.2s, opacity 0.2s" }}
       >
         {cardTarget === "many" ? "*" : "1"}
       </text>
@@ -276,7 +278,8 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
         strokeWidth={edgeActive ? 2 : 1.5}
         strokeLinecap="round"
         pointerEvents="none"
-        style={{ transition: "stroke 0.2s, stroke-width 0.2s" }}
+        opacity={isEdgeHighlighted ? 1 : 0.15}
+        style={{ transition: "stroke 0.2s, stroke-width 0.2s, opacity 0.2s" }}
       />
 
       <EdgeLabelRenderer>
@@ -298,6 +301,7 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
             padding: "2px 8px",
             lineHeight: "1.2",
             boxShadow: edgeActive ? "0 1px 4px rgba(59,130,246,0.15)" : "0 1px 2px rgba(0,0,0,0.06)",
+            zIndex: edgeActive ? 9999 : 0,
           }}
         >
           {label as string}

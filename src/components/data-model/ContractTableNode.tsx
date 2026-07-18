@@ -67,10 +67,12 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
           {errors && errors.length > 0 && (
             <>
               <span
-                className="inline-block h-3 w-3 shrink-0 rounded-full bg-red-500 ml-1.5"
-                onMouseEnter={(e) => { e.stopPropagation(); setErrorHover(true); setHeaderHover(false); setHeaderTooltipPos(null); const r = e.currentTarget.getBoundingClientRect(); setErrorTooltipPos({ top: r.top - 6, left: r.right + 8 }); }}
+                className="relative inline-flex h-5 w-5 shrink-0 items-center justify-center cursor-pointer"
+                onMouseEnter={(e) => { e.stopPropagation(); setErrorHover(true); setHeaderHover(false); setHeaderTooltipPos(null); const r = e.currentTarget.getBoundingClientRect(); setErrorTooltipPos({ top: r.top - 6, left: r.right + 4 }); }}
                 onMouseLeave={(e) => { e.stopPropagation(); setErrorHover(false); setErrorTooltipPos(null); }}
-              />
+              >
+                <span className="h-3 w-3 rounded-full bg-red-500" />
+              </span>
               {errorHover && errorTooltipPos && createPortal(
                 <div
                   className="editor-error-popover fixed"
@@ -84,8 +86,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
                   <div className="editor-error-popover-body">
                     {errors.map((e, i) => (
                       <div key={i} className={i < errors.length - 1 ? "border-b border-gray-100 pb-2 mb-2" : ""}>
-                        <div className="text-[11px] font-semibold text-red-600">Erreur #{i + 1}: {e.message}</div>
-                        <div className="text-[10px] text-gray-400 mt-0.5">ref: {e.ref}</div>
+                        <div className="text-[11px] font-semibold text-red-600">{e.message}</div>
                       </div>
                     ))}
                   </div>
