@@ -1,14 +1,12 @@
 "use client";
 
-import { memo, useContext, useEffect, useMemo, useState } from "react";
+import { memo, useContext, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import type { NodeProps } from "@xyflow/react";
 import { Handle, Position } from "@xyflow/react";
 import { Table, Key, ChevronUp, ChevronDown, Info } from "lucide-react";
 import { ViewModeCtx } from "./ModelGraph";
 import type { ContractTableNodeData } from "@/src/lib/data-model";
-
-const STYLE_ID = "dcc-turbo-spinner";
 
 const maturityBadge: Record<string, string> = {
   bronze: "bg-amber-100 text-amber-700",
@@ -40,54 +38,23 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
     return allFields.filter((f) => isConnected(f.name));
   }, [allFields, showingDetailed, connectedCount]);
 
-  // Inject spinner keyframes once
-  useEffect(() => {
-    if (typeof document !== "undefined" && !document.getElementById(STYLE_ID)) {
-      const s = document.createElement("style");
-      s.id = STYLE_ID;
-      s.textContent = `
-        @keyframes dcc-turbo-spin {
-          100% { transform: translate(-50%, -50%) rotate(-360deg); }
-        }
-      `;
-      document.head.appendChild(s);
-    }
-  }, []);
-
-  return (<>
+  return (<>  
     <div
-      className={`overflow-hidden rounded-2xl border border-gray-200 shadow-md transition-shadow hover:shadow-lg ${
-        selected ? "ring-2 ring-blue-500" : isSearchMatch ? "ring-2 ring-green-500" : ""
+      className={`overflow-hidden rounded-xl border border-gray-200 transition-shadow ${
+        selected ? "ring-2 ring-blue-500 shadow-[0_4px_16px_rgba(0,0,0,0.1)]" : isSearchMatch ? "ring-2 ring-green-500 shadow-[0_4px_16px_rgba(0,0,0,0.1)]" : "shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.1)]"
       }`}
       style={{
         minWidth: 220,
         maxWidth: 480,
-        padding: 2,
         position: "relative",
       }}
     >
-      {/* Gradient disc — larger than container, circular, clipped by overflow-hidden */}
-      <div
-        className="pointer-events-none absolute"
-        style={{
-          left: "50%",
-          top: "50%",
-          width: "calc(100% * 1.41421356237)",
-          paddingBottom: "calc(100% * 1.41421356237)",
-          borderRadius: "100%",
-          background: `conic-gradient(from -160deg at 50% 50%, ${d.color}, ${d.color}aa, ${d.color}44, ${d.color}aa, ${d.color})`,
-          transform: selected ? "translate(-50%, -50%)" : "translate(-50%, -50%)",
-          animation: selected ? "dcc-turbo-spin 4s linear infinite" : "none",
-        }}
-      />
-
-      {/* Inner content — masks the gradient core so only the 2px padding shows it */}
-      <div className="relative overflow-hidden rounded-[14px] bg-white">
+      <div className="relative overflow-hidden rounded-xl bg-white">
         {/* Color accent strip */}
-        <div style={{ height: 4, backgroundColor: d.color }} />
+        <div style={{ height: 3, backgroundColor: d.color }} />
 
         {/* Header */}
-        <div className="flex min-w-0 cursor-grab active:cursor-grabbing items-center gap-2 px-3 py-2" style={{ background: d.color.replace("hsl(", "hsla(").replace(")", ", 0.1)") }}>
+        <div className="flex min-w-0 cursor-grab active:cursor-grabbing items-center gap-2 px-3 py-2" style={{ background: d.color.replace("hsl(", "hsla(").replace(")", ", 0.1)"), borderBottom: `2px solid ${d.color}40` }}>
           <span className="flex h-5 cursor-pointer items-center" onClick={(e) => { e.stopPropagation(); window.open(`/contracts/${d.slug}`, "_blank", "noopener,noreferrer"); }} title="Open contract detail"><Table size={14} style={{ color: d.color }} /></span>
           <span className="flex h-5 min-w-0 items-center text-sm font-semibold tracking-tight text-gray-900"
             onClick={(e) => {
@@ -130,10 +97,16 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
           <span className={`flex shrink-0 h-5 items-center rounded px-1.5 text-[9px] font-bold uppercase leading-none ${maturityBadge[d.maturity as string] || maturityBadge.bronze}`}>
             {d.maturity as string}
           </span>
+          <button
+            className="flex shrink-0 h-5 cursor-pointer items-center text-gray-400 hover:text-gray-600 transition-colors"
+            onClick={(e) => { e.stopPropagation(); onToggleCollapse(id); }}
+            title={showingDetailed ? "Collapse table" : "Expand table"}
+          >
+            {showingDetailed ? <ChevronUp size={12} strokeWidth={1.5} /> : <ChevronDown size={12} strokeWidth={1.5} />}
+          </button>
         </div>
 
-        {/* Separator between header and fields */}
-        <div className="mx-3" style={{ height: 1, backgroundColor: d.color, opacity: 0.3 }} />
+
 
         {/* Fields */}
         <div>
@@ -181,17 +154,8 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
               </div>
             );
           })}
-          <button
-            className="flex w-full cursor-pointer items-center justify-end border-t border-gray-100 py-1 pr-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
-            onClick={(e) => { e.stopPropagation(); onToggleCollapse(id); }}
-            title={showingDetailed ? "Collapse table" : "Expand table"}
-          >
-            {showingDetailed ? <ChevronUp size={12} strokeWidth={1.5} /> : <ChevronDown size={12} strokeWidth={1.5} />}
-          </button>
         </div>
-
       </div>
-
       {hoveredField && tooltipPos && createPortal(
         <div
           className="editor-error-popover fixed"
