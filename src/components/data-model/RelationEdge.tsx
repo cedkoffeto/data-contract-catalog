@@ -13,17 +13,19 @@ import { HighlightCtx } from "./ModelGraph";
 const animStyleId = "dcc-edge-flow";
 
 function edgeOffset(position: Position, side: "source" | "target", distance: number): { dx: number; dy: number } {
+  const pad = 6;
+  const d = distance + pad;
   if (side === "source") {
-    if (position === Position.Right)  return { dx:  distance, dy: 0 };
-    if (position === Position.Left)   return { dx: -distance, dy: 0 };
-    if (position === Position.Top)    return { dx: 0, dy: -distance };
-    if (position === Position.Bottom) return { dx: 0, dy:  distance };
+    if (position === Position.Right)  return { dx:  d, dy: 0 };
+    if (position === Position.Left)   return { dx: -d, dy: 0 };
+    if (position === Position.Top)    return { dx: 0, dy: -d };
+    if (position === Position.Bottom) return { dx: 0, dy:  d };
   }
-  if (position === Position.Left)   return { dx: -distance, dy: 0 };
-  if (position === Position.Right)  return { dx:  distance, dy: 0 };
-  if (position === Position.Bottom) return { dx: 0, dy:  distance };
-  if (position === Position.Top)    return { dx: 0, dy: -distance };
-  return { dx: distance, dy: 0 };
+  if (position === Position.Left)   return { dx: -d, dy: 0 };
+  if (position === Position.Right)  return { dx:  d, dy: 0 };
+  if (position === Position.Bottom) return { dx: 0, dy:  d };
+  if (position === Position.Top)    return { dx: 0, dy: -d };
+  return { dx: d, dy: 0 };
 }
 
 function cardinalitySymbolD(
@@ -111,12 +113,19 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
     tx = portX(tp, tgtNode.position.x, tgtMeas.width ?? 220);
   }
 
+  // Push path endpoints outward past the cardinality symbols
+  const pathPad = 20;
+  const spDirX = sp === Position.Left ? -pathPad : sp === Position.Right ? pathPad : 0;
+  const spDirY = sp === Position.Top ? -pathPad : sp === Position.Bottom ? pathPad : 0;
+  const tpDirX = tp === Position.Left ? -pathPad : tp === Position.Right ? pathPad : 0;
+  const tpDirY = tp === Position.Top ? -pathPad : tp === Position.Bottom ? pathPad : 0;
+
   const [edgePath, labelX, labelY] = getSmoothStepPath({
-    sourceX: sx,
-    sourceY: sy + sourceOffset,
+    sourceX: sx + spDirX,
+    sourceY: sy + sourceOffset + spDirY,
     sourcePosition: sp,
-    targetX: tx,
-    targetY: ty + targetOffset,
+    targetX: tx + tpDirX,
+    targetY: ty + targetOffset + tpDirY,
     targetPosition: tp,
     borderRadius: 18,
   });
@@ -166,6 +175,13 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
     opacity: isEdgeHighlighted ? 1 : 0.15,
     transition: "stroke 0.2s, filter 0.2s, opacity 0.2s",
   }), [style, isAnimated, edgeActive, isEdgeHighlighted]);
+
+  // Offset to push cardinality symbols outside the node boundary
+  const cardPad = 4;
+  const spDx = sp === Position.Left ? -cardPad : sp === Position.Right ? cardPad : 0;
+  const spDy = sp === Position.Top ? -cardPad : sp === Position.Bottom ? cardPad : 0;
+  const tpDx = tp === Position.Left ? -cardPad : tp === Position.Right ? cardPad : 0;
+  const tpDy = tp === Position.Top ? -cardPad : tp === Position.Bottom ? cardPad : 0;
 
   return (
     <g
@@ -222,8 +238,8 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
       </text>
       <path
         d={cardinalitySymbolD(
-          sx,
-          sy + sourceOffset,
+          sx + spDx,
+          sy + sourceOffset + spDy,
           sp,
           cardSource === "many" ? "many" : "one",
         )}
@@ -250,8 +266,8 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
       </text>
       <path
         d={cardinalitySymbolD(
-          tx,
-          ty + targetOffset,
+          tx + tpDx,
+          ty + targetOffset + tpDy,
           tp,
           cardTarget === "many" ? "many" : "one",
         )}
@@ -271,10 +287,6 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
             fontWeight: edgeActive ? 700 : 600,
             fontFamily: "monospace",
             color: edgeActive ? "#1e293b" : "#334155",
-            background: edgeActive ? "#f0f9ff" : "#ffffff",
-            border: edgeActive ? "1px solid #93c5fd" : "1px solid #e2e8f0",
-            borderRadius: 4,
-            padding: "2px 6px",
             pointerEvents: "none",
             whiteSpace: "nowrap",
             opacity: edgeActive ? (isEdgeHighlighted ? 1 : 0.6) : 0,

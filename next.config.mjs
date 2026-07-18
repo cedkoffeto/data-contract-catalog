@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  turbopack: {
+    watchUsePolling: true,
+  },
   async redirects() {
     return [
       {

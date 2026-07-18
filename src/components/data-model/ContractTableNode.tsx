@@ -100,7 +100,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
           {errors && errors.length > 0 && (
             <>
               <span
-                className="inline-block h-3.5 w-3.5 shrink-0 rounded-full bg-red-500 ml-1.5"
+                className="inline-block h-3 w-3 shrink-0 rounded-full bg-red-500 ml-1.5"
                 onMouseEnter={(e) => { setErrorHover(true); const r = e.currentTarget.getBoundingClientRect(); setErrorTooltipPos({ top: r.top - 6, left: r.right + 8 }); }}
                 onMouseLeave={() => { setErrorHover(false); setErrorTooltipPos(null); }}
               />
@@ -116,7 +116,10 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
                   </div>
                   <div className="editor-error-popover-body">
                     {errors.map((e, i) => (
-                      <pre key={i}>{e.message || e.ref}</pre>
+                      <div key={i} className="border-b border-gray-100 last:border-b-0 pb-1.5 last:pb-0 mb-1.5 last:mb-0">
+                        <pre className="text-[10px] text-gray-400 break-all whitespace-pre-wrap">{e.ref}</pre>
+                        <pre className="text-[11px] text-red-600 break-all whitespace-pre-wrap">{e.message}</pre>
+                      </div>
                     ))}
                   </div>
                 </div>,
@@ -124,7 +127,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
               )}
             </>
           )}</span>
-          <span className={`ml-auto flex shrink-0 h-5 items-center rounded px-1.5 text-[9px] font-bold uppercase leading-none ${maturityBadge[d.maturity as string] || maturityBadge.bronze}`}>
+          <span className={`flex shrink-0 h-5 items-center rounded px-1.5 text-[9px] font-bold uppercase leading-none ${maturityBadge[d.maturity as string] || maturityBadge.bronze}`}>
             {d.maturity as string}
           </span>
         </div>
@@ -178,19 +181,15 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
               </div>
             );
           })}
+          <button
+            className="flex w-full cursor-pointer items-center justify-end border-t border-gray-100 py-1 pr-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+            onClick={(e) => { e.stopPropagation(); onToggleCollapse(id); }}
+            title={showingDetailed ? "Collapse table" : "Expand table"}
+          >
+            {showingDetailed ? <ChevronUp size={12} strokeWidth={1.5} /> : <ChevronDown size={12} strokeWidth={1.5} />}
+          </button>
         </div>
 
-        {/* Collapse toggle footer */}
-        <div
-          className="flex cursor-pointer items-center justify-center border-t border-gray-100 py-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleCollapse(id);
-          }}
-          title={showingDetailed ? "Collapse table" : "Expand table"}
-        >
-          {showingDetailed ? <ChevronUp size={14} strokeWidth={1.5} /> : <ChevronDown size={14} strokeWidth={1.5} />}
-        </div>
       </div>
 
       {hoveredField && tooltipPos && createPortal(
