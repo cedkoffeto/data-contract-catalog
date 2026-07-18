@@ -219,8 +219,8 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
       <g opacity={edgeActive || isEdgeHighlighted ? 1 : 0.2} />
 
       <text
-        x={sx + edgeOffset(sp, "source", 14).dx}
-        y={sy + sourceOffset + edgeOffset(sp, "source", 14).dy - 6}
+        x={sx + edgeOffset(sp, "source", 4).dx}
+        y={sy + sourceOffset + edgeOffset(sp, "source", 4).dy - 6}
         textAnchor="middle"
         dominantBaseline="central"
         fill={edgeColor}
@@ -249,8 +249,8 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
       />
 
       <text
-        x={tx + edgeOffset(tp, "target", 14).dx}
-        y={ty + targetOffset + edgeOffset(tp, "target", 14).dy - 6}
+        x={tx + edgeOffset(tp, "target", 4).dx}
+        y={ty + targetOffset + edgeOffset(tp, "target", 4).dy - 6}
         textAnchor="middle"
         dominantBaseline="central"
         fill={edgeColor}

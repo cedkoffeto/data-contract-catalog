@@ -293,10 +293,9 @@ export function parseContractsToGraph(
       existingEd.parsed = [...(existingEd.parsed ?? []), ed.parsed];
       existing.label = [existing.label, e.label].filter(Boolean).join(", ");
     } else {
+      const { sourceHandle, targetHandle, ...rest } = e;
       mergeMap.set(mergeKey, {
-        ...e,
-        sourceHandle: undefined,
-        targetHandle: undefined,
+        ...rest,
         data: {
           ...ed,
           refs: [ed.ref_name ?? ed.ref ?? ""],
@@ -413,25 +412,10 @@ function nodeHeight(node: Node, connectedFields?: Map<string, Map<string, number
   return Math.max(fieldCount * 16 + chromeH, 90);
 }
 
-const WIDTH_CACHE_MAX = 100;
-const _widthCache = new Map<string, number>();
-function nodeWidth(node: Node): number {
-  if (_widthCache.size >= WIDTH_CACHE_MAX) _widthCache.clear();
-  const cached = _widthCache.get(node.id);
-  if (cached !== undefined) return cached;
-  const data = node.data as ContractTableNodeData;
-  // Header: icon(14) + gap(8) + slug(font-semibold ~8px/char) + maturity(~34) + chevron(~20) + px-3(24)
-  const headerW = data.slug.length * 8 + 100;
-  // Fields: key(10) + gap(8) + name(mono-11 ~6.5px/char) + info+w-4(27) + type(~5.8px/char) + px-3(24)
-  let maxFieldW = 0;
-  for (const f of data.fields) {
-    const fieldW = f.name.length * 6.5 + f.type.length * 5.8 + 69;
-    if (fieldW > maxFieldW) maxFieldW = fieldW;
-  }
-  // +4 for outer+inner border
-  const w = Math.max(Math.ceil(Math.max(headerW, maxFieldW) + 4), 220);
-  _widthCache.set(node.id, w);
-  return w;
+const NODE_WIDTH = 260;
+
+function nodeWidth(_node: Node): number {
+  return NODE_WIDTH;
 }
 
 export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB" = "LR", connectedFields?: Map<string, Map<string, number>>, viewMode?: "detailed" | "compact", containerWidth?: number): { nodes: Node[]; edges: Edge[] } {

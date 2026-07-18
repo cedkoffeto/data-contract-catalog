@@ -2,15 +2,15 @@
 
 import { memo, useContext, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import type { NodeProps } from "@xyflow/react";
+import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { Table, Key, ChevronUp, ChevronDown, Info } from "lucide-react";
 import { ViewModeCtx } from "./ModelGraph";
 import type { ContractTableNodeData } from "@/src/lib/data-model";
 
-const maturityBadge: Record<string, string> = {
-  bronze: "bg-amber-100 text-amber-700",
-  silver: "bg-slate-100 text-slate-600",
-  gold:   "bg-yellow-100 text-yellow-700",
+const layerBorderColor: Record<string, string> = {
+  bronze: "#d97706",
+  silver: "#64748b",
+  gold:   "#ca8a04",
 };
 
 export const ContractTableNode = memo(function ContractTableNode({ selected, id, data }: NodeProps) {
@@ -37,23 +37,20 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
     return allFields.filter((f) => isConnected(f.name));
   }, [allFields, showingDetailed, connectedCount]);
 
-  return (<>  
+  return (
     <div
-      className={`overflow-hidden rounded-xl border-2 transition-shadow ${
+      className={`rounded-xl border-2 transition-shadow ${
         selected ? "border-blue-500 shadow-[0_4px_16px_rgba(0,0,0,0.1)]" : isSearchMatch ? "border-green-500 shadow-[0_4px_16px_rgba(0,0,0,0.1)]" : "border-gray-200 shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.1)]"
       }`}
-      style={{
-        minWidth: 220,
-        maxWidth: 480,
-        position: "relative",
-      }}
+      style={{ width: 260, position: "relative" }}
     >
-      <div className="relative overflow-hidden bg-white">
-        {/* Color accent strip */}
-        <div style={{ height: 3, backgroundColor: d.color }} />
-
+      <Handle type="source" position={Position.Right} className="!w-0 !h-0 !border-0 !bg-transparent !opacity-0" />
+      <Handle type="target" position={Position.Left} className="!w-0 !h-0 !border-0 !bg-transparent !opacity-0" />
+      <Handle type="source" position={Position.Bottom} id="bottom" className="!w-0 !h-0 !border-0 !bg-transparent !opacity-0" />
+      <Handle type="target" position={Position.Top} id="top" className="!w-0 !h-0 !border-0 !bg-transparent !opacity-0" />
+      <div className="relative overflow-hidden rounded-xl bg-white">
         {/* Header */}
-        <div className="flex min-w-0 cursor-grab active:cursor-grabbing items-center gap-2 px-3 py-2" style={{ background: d.color.replace("hsl(", "hsla(").replace(")", ", 0.1)"), borderBottom: `2px solid ${d.color}40` }}>
+        <div className="flex min-w-0 cursor-grab active:cursor-grabbing items-center gap-2 py-2 pl-4 pr-3" style={{ background: d.color.replace("hsl(", "hsla(").replace(")", ", 0.1)"), borderBottom: `2px solid ${d.color}40`, borderLeft: `4px solid ${layerBorderColor[d.maturity as string] || layerBorderColor.bronze}` }}>
           <span className="flex h-5 cursor-pointer items-center" onClick={(e) => { e.stopPropagation(); window.open(`/contracts/${d.slug}`, "_blank", "noopener,noreferrer"); }} title="Open contract detail"><Table size={14} style={{ color: d.color }} /></span>
           <span className="flex h-5 min-w-0 items-center text-sm font-semibold tracking-tight text-gray-900"
             onClick={(e) => {
@@ -62,7 +59,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
             }}
             onMouseEnter={(e) => { setHeaderHover(true); const r = e.currentTarget.getBoundingClientRect(); setHeaderTooltipPos({ top: r.top - 6, left: r.right + 8 }); }}
             onMouseLeave={() => { setHeaderHover(false); setHeaderTooltipPos(null); }}
-          ><span className="truncate">{d.slug}</span>
+          ><span className="break-all leading-snug">{d.slug}</span>
           {errors && errors.length > 0 && (
             <>
               <span
@@ -94,9 +91,6 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
               )}
             </>
           )}</span>
-          <span className={`flex shrink-0 h-5 items-center rounded px-1.5 text-[9px] font-bold uppercase leading-none ${maturityBadge[d.maturity as string] || maturityBadge.bronze}`}>
-            {d.maturity as string}
-          </span>
           <button
             className="flex shrink-0 h-5 cursor-pointer items-center text-gray-400 hover:text-gray-600 transition-colors"
             onClick={(e) => { e.stopPropagation(); onToggleCollapse(id); }}
@@ -131,7 +125,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
                 ) : (
                   <span className="w-[10px] shrink-0" />
                 )}
-                <span className={`min-w-0 font-mono text-[11px] leading-none ${edgeCount > 0 ? "font-bold text-gray-900" : "text-gray-600"}`}>{f.name}</span>
+                <span className={`min-w-0 font-mono text-[11px] leading-none break-all ${edgeCount > 0 ? "font-bold text-gray-900" : "text-gray-600"}`}>{f.name}</span>
                 <span className="w-4 shrink-0 flex items-center justify-center">
                   {f.description && (
                     <Info
@@ -160,6 +154,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
           <div className="editor-error-popover-arrow" />
           <div className="editor-error-popover-header">
             <span>{hoveredField}</span>
+            <span className="ml-auto font-mono text-[10px] text-gray-400">{allFields.find((f) => f.name === hoveredField)?.type}</span>
           </div>
           <div className="editor-error-popover-body">
             <pre>{allFields.find((f) => f.name === hoveredField)?.description}</pre>
@@ -177,13 +172,13 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
             <span>{d.slug}</span>
           </div>
           <div className="editor-error-popover-body">
-            <pre>{d.label}{'\n'}domain: {d.domain}{'\n'}context: {d.context ?? ''}{'\n'}id: {id}</pre>
+            <pre>{d.label}{'\n'}layer: {d.maturity}{'\n'}domain: {d.domain}{'\n'}context: {d.context ?? ''}{'\n'}id: {id}</pre>
           </div>
         </div>,
         document.body,
       )}
     </div>
-  </>);
+  );
 }, (prev, next) => {
   return prev.selected === next.selected && prev.id === next.id && prev.data === next.data;
 });
