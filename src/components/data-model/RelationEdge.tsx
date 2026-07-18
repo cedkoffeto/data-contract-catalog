@@ -114,7 +114,7 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
   }
 
   // Push path endpoints outward past the cardinality symbols
-  const pathPad = 20;
+  const pathPad = 6;
   const spDirX = sp === Position.Left ? -pathPad : sp === Position.Right ? pathPad : 0;
   const spDirY = sp === Position.Top ? -pathPad : sp === Position.Bottom ? pathPad : 0;
   const tpDirX = tp === Position.Left ? -pathPad : tp === Position.Right ? pathPad : 0;

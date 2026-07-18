@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --turbo",
     "build": "next build",
     "start": "npx prisma generate --no-engine && npx prisma migrate deploy && npx tsx prisma/seed.ts && next start",
     "typecheck": "tsc --noEmit",
@@ -84,6 +84,8 @@
     "@prisma/engines@6.19.3": true,
     "esbuild@0.27.7": true,
     "prisma@6.19.3": true,
-    "sharp@0.34.5": true
+    "sharp@0.34.5": true,
+    "@prisma/client@6.19.3": true,
+    "esbuild@0.28.1": true
   }
 }
