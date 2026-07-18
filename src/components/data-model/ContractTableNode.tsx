@@ -40,8 +40,8 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
 
   return (<>  
     <div
-      className={`overflow-hidden rounded-xl border border-gray-200 transition-shadow ${
-        selected ? "ring-2 ring-blue-500 shadow-[0_4px_16px_rgba(0,0,0,0.1)]" : isSearchMatch ? "ring-2 ring-green-500 shadow-[0_4px_16px_rgba(0,0,0,0.1)]" : "shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.1)]"
+      className={`overflow-hidden rounded-xl border-2 transition-shadow ${
+        selected ? "border-blue-500 shadow-[0_4px_16px_rgba(0,0,0,0.1)]" : isSearchMatch ? "border-green-500 shadow-[0_4px_16px_rgba(0,0,0,0.1)]" : "border-gray-200 shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.1)]"
       }`}
       style={{
         minWidth: 220,
@@ -49,7 +49,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
         position: "relative",
       }}
     >
-      <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white">
+      <div className="relative overflow-hidden bg-white">
         {/* Color accent strip */}
         <div style={{ height: 3, backgroundColor: d.color }} />
 
