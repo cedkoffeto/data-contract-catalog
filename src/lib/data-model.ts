@@ -256,73 +256,6 @@ export function parseContractsToGraph(
     }
   }
 
-  // ── Offset computation: single pass to count, single pass to assign ──
-
-  // Count
-  const pairCount = new Map<string, number>();
-  const tgtCount = new Map<string, number>();
-  const srcField = new Map<string, number>();
-  const tgtField = new Map<string, number>();
-  for (const e of edges) {
-    const pairKey = `${e.source}|${e.target}`;
-    pairCount.set(pairKey, (pairCount.get(pairKey) ?? 0) + 1);
-    tgtCount.set(e.target, (tgtCount.get(e.target) ?? 0) + 1);
-    if (e.sourceHandle) {
-      const sfKey = `${e.source}|${e.sourceHandle}`;
-      srcField.set(sfKey, (srcField.get(sfKey) ?? 0) + 1);
-    }
-    if (e.targetHandle) {
-      const tfKey = `${e.target}|${e.targetHandle}`;
-      tgtField.set(tfKey, (tgtField.get(tfKey) ?? 0) + 1);
-    }
-  }
-
-  // Assign
-  const pairIdx = new Map<string, number>();
-  const tgtIdx = new Map<string, number>();
-  const srcFIdx = new Map<string, number>();
-  const tgtFIdx = new Map<string, number>();
-  for (const e of edges) {
-    const pairKey = `${e.source}|${e.target}`;
-    const pTotal = pairCount.get(pairKey)!;
-    const pIdx = pairIdx.get(pairKey) ?? 0;
-    pairIdx.set(pairKey, pIdx + 1);
-
-    const tTotal = tgtCount.get(e.target) ?? 1;
-    const tIdx = tgtIdx.get(e.target) ?? 0;
-    tgtIdx.set(e.target, tIdx + 1);
-
-    let sfOffset = 0;
-    if (e.sourceHandle) {
-      const sfKey = `${e.source}|${e.sourceHandle}`;
-      const sfTotal = srcField.get(sfKey)!;
-      if (sfTotal > 1) {
-        const sfIdx = srcFIdx.get(sfKey) ?? 0;
-        srcFIdx.set(sfKey, sfIdx + 1);
-        sfOffset = sfIdx - (sfTotal - 1) / 2;
-      }
-    }
-
-    let tfOffset = 0;
-    if (e.targetHandle) {
-      const tfKey = `${e.target}|${e.targetHandle}`;
-      const tfTotal = tgtField.get(tfKey)!;
-      if (tfTotal > 1) {
-        const tfIdx = tgtFIdx.get(tfKey) ?? 0;
-        tgtFIdx.set(tfKey, tfIdx + 1);
-        tfOffset = tfIdx - (tfTotal - 1) / 2;
-      }
-    }
-
-    e.data = {
-      ...(e.data as object || {}),
-      parallelOffset: pIdx - (pTotal - 1) / 2,
-      targetParallelOffset: tTotal > 1 ? tIdx - (tTotal - 1) / 2 : 0,
-      sourceFieldOffset: sfOffset,
-      targetFieldOffset: tfOffset,
-    };
-  }
-
   // Collect relation errors: edges where the referenced field doesn't exist
   for (const e of edges) {
     const d = e.data as { ref?: string; parsed?: { left: ResolvedContract; right: ResolvedContract } };
@@ -348,9 +281,34 @@ export function parseContractsToGraph(
     }
   }
 
+  // Merge edges by table pair + cardinality direction (one edge per direction)
+  const mergeMap = new Map<string, Edge>();
+  for (const e of edges) {
+    const ed = e.data as { cardSource?: string; cardTarget?: string; ref_name?: string; ref?: string; parsed?: any };
+    const mergeKey = `${e.source}|${e.target}|${ed.cardSource}|${ed.cardTarget}`;
+    const existing = mergeMap.get(mergeKey);
+    if (existing) {
+      const existingEd = existing.data as { refs?: string[]; parsed?: any[] };
+      existingEd.refs = [...(existingEd.refs ?? []), ed.ref_name ?? ed.ref ?? ""];
+      existingEd.parsed = [...(existingEd.parsed ?? []), ed.parsed];
+      existing.label = [existing.label, e.label].filter(Boolean).join(", ");
+    } else {
+      mergeMap.set(mergeKey, {
+        ...e,
+        sourceHandle: undefined,
+        targetHandle: undefined,
+        data: {
+          ...ed,
+          refs: [ed.ref_name ?? ed.ref ?? ""],
+          parsed: ed.parsed ? [ed.parsed] : [],
+        },
+      });
+    }
+  }
+
   return {
     nodes: Array.from(nodeMap.values()),
-    edges,
+    edges: Array.from(mergeMap.values()),
     orphanRefs,
   };
 }
@@ -444,18 +402,15 @@ function nodeHeight(node: Node, connectedFields?: Map<string, Map<string, number
   const fields = data.fields ?? [];
   const fieldEdges = connectedFields?.get(node.id);
 
-  let totalFieldH = 0;
+  let fieldCount = 0;
   for (const f of fields) {
     if (viewMode === "compact" && !(fieldEdges?.has(f.name))) continue;
-    const edgeCount = fieldEdges?.get(f.name) ?? 0;
-    const extraTop = edgeCount > 1 ? (edgeCount + 1) * 6 : 0;
-    const extraBottom = edgeCount > 1 ? (edgeCount + 3) * 6 : 0;
-    totalFieldH += 14 + extraTop + extraBottom; // 7px top + 7px bottom base
+    fieldCount++;
   }
 
-  // color strip 3px + header ~36px + separator 2px + button ~24px + borders 4px
-  const chromeH = 3 + 36 + 2 + 24 + 4;
-  return Math.max(totalFieldH + chromeH, 90);
+  // color strip 3px + header ~36px + fields (py-2=16px each) + button ~24px + borders 4px
+  const chromeH = 3 + 36 + 24 + 4;
+  return Math.max(fieldCount * 16 + chromeH, 90);
 }
 
 const WIDTH_CACHE_MAX = 100;

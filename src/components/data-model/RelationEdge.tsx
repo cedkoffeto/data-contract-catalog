@@ -75,13 +75,9 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
 
   const { source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style, label, data, animated, id } = props;
 
-  const edgeData = (data ?? {}) as { cardSource?: string; cardTarget?: string; parallelOffset?: number; targetParallelOffset?: number; sourceFieldOffset?: number; targetFieldOffset?: number };
-  const parallelOffset = edgeData.parallelOffset ?? 0;
-  const targetParallelOffset = edgeData.targetParallelOffset ?? 0;
-  const sourceFieldOffset = edgeData.sourceFieldOffset ?? 0;
-  const targetFieldOffset = edgeData.targetFieldOffset ?? 0;
-  const sourceOffset = (parallelOffset + sourceFieldOffset) * 16;
-  const targetOffset = (parallelOffset + targetParallelOffset) * 8 + targetFieldOffset * 4;
+  const edgeData = (data ?? {}) as { cardSource?: string; cardTarget?: string };
+  const sourceOffset = 0;
+  const targetOffset = 0;
 
   const { getNodes } = useReactFlow();
   const allNodes = getNodes();

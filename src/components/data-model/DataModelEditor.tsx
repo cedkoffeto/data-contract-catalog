@@ -20,17 +20,20 @@ import { Position, type Edge, type Node as FlowNode } from "@xyflow/react";
 function computeConnectedFields(edges: Edge[]): Map<string, Map<string, number>> {
   const map = new Map<string, Map<string, number>>();
   for (const edge of edges) {
-    if (edge.sourceHandle) {
-      const s = edge.sourceHandle as string;
-      if (!map.has(edge.source)) map.set(edge.source, new Map());
-      const inner = map.get(edge.source)!;
-      inner.set(s, (inner.get(s) ?? 0) + 1);
-    }
-    if (edge.targetHandle) {
-      const t = edge.targetHandle as string;
-      if (!map.has(edge.target)) map.set(edge.target, new Map());
-      const inner = map.get(edge.target)!;
-      inner.set(t, (inner.get(t) ?? 0) + 1);
+    const data = edge.data as { parsed?: Array<{ left?: { field?: string }; right?: { field?: string }> } };
+    if (data?.parsed) {
+      for (const p of data.parsed) {
+        if (p.left?.field) {
+          if (!map.has(edge.source)) map.set(edge.source, new Map());
+          const inner = map.get(edge.source)!;
+          inner.set(p.left.field, (inner.get(p.left.field) ?? 0) + 1);
+        }
+        if (p.right?.field) {
+          if (!map.has(edge.target)) map.set(edge.target, new Map());
+          const inner = map.get(edge.target)!;
+          inner.set(p.right.field, (inner.get(p.right.field) ?? 0) + 1);
+        }
+      }
     }
   }
   return map;

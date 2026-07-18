@@ -3,7 +3,6 @@
 import { memo, useContext, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import type { NodeProps } from "@xyflow/react";
-import { Handle, Position } from "@xyflow/react";
 import { Table, Key, ChevronUp, ChevronDown, Info } from "lucide-react";
 import { ViewModeCtx } from "./ModelGraph";
 import type { ContractTableNodeData } from "@/src/lib/data-model";
@@ -122,14 +121,11 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
           {fields.map((f) => {
             const c = connectedCount.get(f.name) ?? 0;
             const edgeCount = c > 0 ? c : 0;
-            const extraPyTop = edgeCount > 1 ? (edgeCount + 1) * 6 : 0;
-            const extraPyBottom = edgeCount > 1 ? (edgeCount + 3) * 6 : 0;
             return (
-              <div key={f.name} className="group relative flex min-w-0 cursor-pointer items-center gap-2 border-t border-gray-50 px-3 text-xs text-gray-700 hover:bg-gray-50" style={{ paddingTop: 7 + extraPyTop, paddingBottom: 7 + extraPyBottom }} onClick={(e) => {
+              <div key={f.name} className="group relative flex min-w-0 cursor-pointer items-center gap-2 border-t border-gray-50 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50" onClick={(e) => {
                 if (e.ctrlKey || e.metaKey) { e.stopPropagation(); window.open(`/contracts/${d.slug}`, "_blank", "noopener,noreferrer"); }
                 else onFieldClick?.(d.slug);
               }}>
-                {edgeCount > 0 && <Handle type="target" position={Position.Left} id={f.name} className="!opacity-0 !pointer-events-none" />}
                 {edgeCount > 0 ? (
                   <Key size={10} className="shrink-0 text-amber-500" />
                 ) : (
@@ -151,7 +147,6 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
                   )}
                 </span>
                 <span className="ml-auto whitespace-nowrap text-[10px] leading-none text-gray-400">{f.type}</span>
-                {edgeCount > 0 && <Handle type="source" position={Position.Right} id={f.name} className="!opacity-0 !pointer-events-none" />}
               </div>
             );
           })}
