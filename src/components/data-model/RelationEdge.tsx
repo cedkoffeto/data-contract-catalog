@@ -164,10 +164,11 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
   const isConnectedToHoveredNode = highlightedNode !== null && (source === highlightedNode || target === highlightedNode);
   const isSelected = selectedEdge === id;
   const edgeActive = hovered || isConnectedToHoveredNode || isSelected;
+  const edgeColor = edgeActive ? "#3b82f6" : ((style as React.CSSProperties)?.stroke as string) || "#94a3b8";
 
   const pathStyle: React.CSSProperties = useMemo(() => ({
     ...(style as React.CSSProperties),
-    stroke: edgeActive ? "#3b82f6" : (style as React.CSSProperties)?.stroke || "#94a3b8",
+    stroke: edgeColor,
     strokeDasharray: undefined,
     animation: isAnimated
       ? `dcc-flow ${edgeActive ? "0.3s" : "0.8s"} linear infinite`
@@ -227,7 +228,7 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
         y={sy + sourceOffset + edgeOffset(sp, "source", 14).dy - 9}
         textAnchor="middle"
         dominantBaseline="central"
-        fill={edgeActive ? "#3b82f6" : "#cbd5e1"}
+        fill={edgeColor}
         fontSize={edgeActive ? 14 : 10}
         fontWeight={edgeActive ? 800 : 600}
         fontFamily="monospace"
@@ -243,7 +244,7 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
           sp,
           cardSource === "many" ? "many" : "one",
         )}
-        stroke={edgeActive ? "#3b82f6" : "#cbd5e1"}
+        stroke={edgeColor}
         strokeWidth={edgeActive ? 2 : 1.5}
         strokeLinecap="round"
         pointerEvents="none"
@@ -255,7 +256,7 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
         y={ty + targetOffset + edgeOffset(tp, "target", 14).dy - 9}
         textAnchor="middle"
         dominantBaseline="central"
-        fill={edgeActive ? "#3b82f6" : "#cbd5e1"}
+        fill={edgeColor}
         fontSize={edgeActive ? 14 : 10}
         fontWeight={edgeActive ? 800 : 600}
         fontFamily="monospace"
@@ -271,7 +272,7 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
           tp,
           cardTarget === "many" ? "many" : "one",
         )}
-        stroke={edgeActive ? "#3b82f6" : "#cbd5e1"}
+        stroke={edgeColor}
         strokeWidth={edgeActive ? 2 : 1.5}
         strokeLinecap="round"
         pointerEvents="none"
@@ -282,15 +283,21 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
         <div
           style={{
             position: "absolute",
-            transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+            transform: `translate(-50%, -100%) translate(${labelX}px,${labelY}px) translateY(-6px)`,
             fontSize: edgeActive ? 11 : 10,
             fontWeight: edgeActive ? 700 : 600,
             fontFamily: "monospace",
-            color: edgeActive ? "#1e293b" : "#334155",
+            color: edgeActive ? "#1e293b" : "#475569",
             pointerEvents: "none",
             whiteSpace: "nowrap",
             opacity: edgeActive ? (isEdgeHighlighted ? 1 : 0.6) : 0,
             transition: "opacity 120ms ease",
+            background: edgeActive ? "rgba(219,234,254,0.95)" : "rgba(241,245,249,0.9)",
+            border: `1px solid ${edgeActive ? "rgba(59,130,246,0.3)" : "rgba(148,163,184,0.3)"}`,
+            borderRadius: 6,
+            padding: "2px 8px",
+            lineHeight: "1.2",
+            boxShadow: edgeActive ? "0 1px 4px rgba(59,130,246,0.15)" : "0 1px 2px rgba(0,0,0,0.06)",
           }}
         >
           {label as string}

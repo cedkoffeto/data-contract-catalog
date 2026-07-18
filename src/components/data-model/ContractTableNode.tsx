@@ -49,7 +49,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
         position: "relative",
       }}
     >
-      <div className="relative overflow-hidden rounded-xl bg-white">
+      <div className="relative overflow-hidden rounded-xl border border-gray-200 bg-white">
         {/* Color accent strip */}
         <div style={{ height: 3, backgroundColor: d.color }} />
 
