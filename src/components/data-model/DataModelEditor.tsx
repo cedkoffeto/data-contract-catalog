@@ -200,7 +200,7 @@ export function DataModelEditor({
     });
   }, [rawNodes, layerFilter]);
 
-  const allFilteredVisible = filteredByLayer.every((n) => visibleTablesState.has(n.id));
+  const allFilteredVisible = useMemo(() => filteredByLayer.every((n) => visibleTablesState.has(n.id)), [filteredByLayer, visibleTablesState]);
 
   const handleToggleTable = useCallback((id: string) => {
     setVisibleTablesState((prev) => {
