@@ -320,9 +320,102 @@ export function createRawDiff(base: string, next: string): { sign: string; text:
 }
 
 export function computeDiff(base: string, next: string, baseData?: Record<string, unknown>, nextData?: Record<string, unknown>): DiffResult {
+  const rawChanges = diffLinesLCS(base, next);
   return {
-    unified: createUnifiedDiff(base, next),
-    sideBySide: createSideBySideDiff(base, next),
+    unified: buildUnifiedFromRawChanges(rawChanges),
+    sideBySide: buildSideBySideFromRawChanges(rawChanges),
     structural: baseData && nextData ? createStructuralDiff(baseData, nextData) : []
   };
+}
+
+function buildUnifiedFromRawChanges(rawChanges: ReturnType<typeof diffLinesLCS>): DiffChange[] {
+  const result: DiffChange[] = [];
+
+  for (let i = 0; i < rawChanges.length; i++) {
+    const change = rawChanges[i];
+    const lines = change.value.replace(/\n$/, "").split("\n");
+
+    if (change.removed && !change.added) {
+      const nextChange = rawChanges[i + 1];
+      if (nextChange && nextChange.added && !nextChange.removed) {
+        const nextLines = nextChange.value.replace(/\n$/, "").split("\n");
+        const pairCount = Math.min(lines.length, nextLines.length);
+        for (let j = 0; j < pairCount; j++) {
+          result.push({ type: "modified", oldValue: lines[j], newValue: nextLines[j] });
+        }
+        for (let j = pairCount; j < lines.length; j++) {
+          result.push({ type: "removed", value: lines[j] });
+        }
+        for (let j = pairCount; j < nextLines.length; j++) {
+          result.push({ type: "added", value: nextLines[j] });
+        }
+        i++;
+      } else {
+        for (const line of lines) {
+          result.push({ type: "removed", value: line });
+        }
+      }
+    } else if (change.added && !change.removed) {
+      for (const line of lines) {
+        result.push({ type: "added", value: line });
+      }
+    } else {
+      for (const line of lines) {
+        result.push({ type: "unchanged", value: line });
+      }
+    }
+  }
+
+  return result;
+}
+
+function buildSideBySideFromRawChanges(rawChanges: ReturnType<typeof diffLinesLCS>): SideBySideLine[] {
+  const result: SideBySideLine[] = [];
+  let leftLine = 1;
+  let rightLine = 1;
+
+  for (let i = 0; i < rawChanges.length; i++) {
+    const change = rawChanges[i];
+    const lines = change.value.replace(/\n$/, "").split("\n");
+
+    if (change.removed && !change.added) {
+      const nextChange = rawChanges[i + 1];
+      if (nextChange && nextChange.added && !nextChange.removed) {
+        const nextLines = nextChange.value.replace(/\n$/, "").split("\n");
+        const pairCount = Math.min(lines.length, nextLines.length);
+        for (let j = 0; j < pairCount; j++) {
+          result.push({ type: "modified", left: { text: lines[j], lineNumber: leftLine }, right: { text: nextLines[j], lineNumber: rightLine } });
+          leftLine += 1;
+          rightLine += 1;
+        }
+        for (let j = pairCount; j < lines.length; j++) {
+          result.push({ type: "removed", left: { text: lines[j], lineNumber: leftLine }, right: null });
+          leftLine += 1;
+        }
+        for (let j = pairCount; j < nextLines.length; j++) {
+          result.push({ type: "added", left: null, right: { text: nextLines[j], lineNumber: rightLine } });
+          rightLine += 1;
+        }
+        i++;
+      } else {
+        for (const line of lines) {
+          result.push({ type: "removed", left: { text: line, lineNumber: leftLine }, right: null });
+          leftLine += 1;
+        }
+      }
+    } else if (change.added && !change.removed) {
+      for (const line of lines) {
+        result.push({ type: "added", left: null, right: { text: line, lineNumber: rightLine } });
+        rightLine += 1;
+      }
+    } else {
+      for (const line of lines) {
+        result.push({ type: "unchanged", left: { text: line, lineNumber: leftLine }, right: { text: line, lineNumber: rightLine } });
+        leftLine += 1;
+        rightLine += 1;
+      }
+    }
+  }
+
+  return result;
 }
