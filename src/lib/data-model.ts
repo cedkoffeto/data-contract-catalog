@@ -479,6 +479,7 @@ function nodeWidth(node: Node): number {
 }
 
 export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB" = "LR", connectedFields?: Map<string, Map<string, number>>, viewMode?: "detailed" | "compact", containerWidth?: number): { nodes: Node[]; edges: Edge[] } {
+  const nodeById = new Map(nodes.map((n) => [n.id, n]));
   // Separate isolated nodes (no edges) from connected ones
   const connectedIds = new Set<string>();
   for (const e of edges) {
@@ -543,7 +544,7 @@ export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB"
       : -gridWidth / 2;
 
     for (const [id, pos] of positions) {
-      const node = nodes.find((n) => n.id === id);
+      const node = nodeById.get(id);
       if (!node) continue;
       laidOut.set(id, { ...node, position: { x: pos.x + gridLeft, y: pos.y } });
     }
@@ -552,8 +553,8 @@ export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB"
   // Compute optimal edge port sides based on final node positions
   const edgesWithPorts = edges as EdgeWithPorts[];
   for (const edge of edgesWithPorts) {
-    const src = laidOut.get(edge.source) ?? nodes.find((n) => n.id === edge.source);
-    const tgt = laidOut.get(edge.target) ?? nodes.find((n) => n.id === edge.target);
+    const src = laidOut.get(edge.source) ?? nodeById.get(edge.source);
+    const tgt = laidOut.get(edge.target) ?? nodeById.get(edge.target);
     if (src && tgt) {
       const dx = tgt.position.x - src.position.x;
       const dy = tgt.position.y - src.position.y;
@@ -565,6 +566,7 @@ export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB"
 }
 
 export function layoutLayerGraph(nodes: Node[], edges: Edge[], connectedFields?: Map<string, Map<string, number>>, viewMode?: "detailed" | "compact"): { nodes: Node[]; edges: Edge[] } {
+  const nodeById = new Map(nodes.map((n) => [n.id, n]));
   const LAYER_ORDER = ["bronze", "silver", "gold"];
   const COLUMN_WIDTH = 480;
   const VERTICAL_GAP = 60;
@@ -665,8 +667,8 @@ export function layoutLayerGraph(nodes: Node[], edges: Edge[], connectedFields?:
   // Compute optimal edge ports
   const layerEdges = edges as EdgeWithPorts[];
   for (const edge of layerEdges) {
-    const src = positions.get(edge.source) ?? nodes.find((n) => n.id === edge.source)?.position;
-    const tgt = positions.get(edge.target) ?? nodes.find((n) => n.id === edge.target)?.position;
+    const src = positions.get(edge.source) ?? nodeById.get(edge.source)?.position;
+    const tgt = positions.get(edge.target) ?? nodeById.get(edge.target)?.position;
     if (src && tgt) {
       Object.assign(edge, computeEdgePorts(tgt.x - src.x, tgt.y - src.y));
     }
@@ -676,6 +678,7 @@ export function layoutLayerGraph(nodes: Node[], edges: Edge[], connectedFields?:
 }
 
 export function layoutDomainGraph(nodes: Node[], edges: Edge[], connectedFields?: Map<string, Map<string, number>>, viewMode?: "detailed" | "compact"): { nodes: Node[]; edges: Edge[] } {
+  const nodeById = new Map(nodes.map((n) => [n.id, n]));
   const COLUMN_WIDTH = 320;
   const DOMAIN_GAP_X = 160;
   const VERTICAL_GAP = 50;
@@ -737,8 +740,8 @@ export function layoutDomainGraph(nodes: Node[], edges: Edge[], connectedFields?
   // Compute optimal edge ports
   const domainEdges = edges as EdgeWithPorts[];
   for (const edge of domainEdges) {
-    const src = positions.get(edge.source) ?? nodes.find((n) => n.id === edge.source)?.position;
-    const tgt = positions.get(edge.target) ?? nodes.find((n) => n.id === edge.target)?.position;
+    const src = positions.get(edge.source) ?? nodeById.get(edge.source)?.position;
+    const tgt = positions.get(edge.target) ?? nodeById.get(edge.target)?.position;
     if (src && tgt) {
       Object.assign(edge, computeEdgePorts(tgt.x - src.x, tgt.y - src.y));
     }
