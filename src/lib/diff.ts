@@ -224,26 +224,28 @@ function flattenObjectKeys(obj: unknown, prefix = ""): string[] {
 }
 
 function filterStructuralChanges(changes: StructuralChange[]): StructuralChange[] {
-  return changes.filter((c) => {
+  const sorted = [...changes].sort((a, b) => a.path.length - b.path.length || a.path.localeCompare(b.path));
+
+  const modifiedPrefixes = new Set<string>();
+  const addedRemovedPrefixes = new Set<string>();
+  const kept: StructuralChange[] = [];
+
+  for (const c of sorted) {
     if (c.type === "modified") {
-      // Hide modified parents that have any deeper change
-      return !changes.some(
-        (other) =>
-          other.path !== c.path &&
-          (other.path.startsWith(c.path + ".") || other.path.startsWith(c.path + "["))
-      );
+      if (modifiedPrefixes.has(c.path)) continue;
+      kept.push(c);
+      modifiedPrefixes.add(c.path);
+      addedRemovedPrefixes.add(c.path);
+    } else if (c.type === "added" || c.type === "removed") {
+      if (addedRemovedPrefixes.has(c.path)) continue;
+      kept.push(c);
+      addedRemovedPrefixes.add(c.path);
+    } else {
+      kept.push(c);
     }
-    if (c.type === "added" || c.type === "removed") {
-      // Hide deeper changes of same type if a shallower one exists
-      return !changes.some(
-        (other) =>
-          other.path !== c.path &&
-          other.type === c.type &&
-          (c.path.startsWith(other.path + ".") || c.path.startsWith(other.path + "["))
-      );
-    }
-    return true;
-  });
+  }
+
+  return kept;
 }
 
 export function createStructuralDiff(base: Record<string, unknown>, next: Record<string, unknown>): StructuralChange[] {
