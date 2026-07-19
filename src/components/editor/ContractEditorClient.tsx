@@ -1064,7 +1064,9 @@ export function ContractEditorClient({
         const isDraftPath = document.path.startsWith("contracts/draft/");
         const maturity = isDraftPath ? "draft" : document.maturity?.trim();
         if (!maturity) return;
-        groups.set(maturity, [...(groups.get(maturity) ?? []), document]);
+        let arr = groups.get(maturity);
+        if (!arr) { arr = []; groups.set(maturity, arr); }
+        arr.push(document);
       });
     const entries = Array.from(groups.entries()).sort(([left], [right]) => left.localeCompare(right));
     // Move "draft" to the end if it exists
