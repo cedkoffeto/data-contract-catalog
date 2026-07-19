@@ -139,10 +139,15 @@ export function GraphControls({
     const el = document.querySelector(".react-flow") as HTMLElement | null;
     if (!el) return;
 
-    // Fit view to visible nodes before capturing "visible" scope
-    if (scope === "visible") fitView({ duration: 0 });
+    // For "all" scope: save current viewport, fit ALL nodes, capture, then restore
+    const allNodes = getNodes().map((n) => ({ id: n.id }));
+    if (scope === "all") {
+      await fitView({ nodes: allNodes, duration: 0 });
+    } else {
+      fitView({ duration: 0 });
+    }
 
-    // Wait one frame for React Flow to re-render after fitView
+    // Wait for React Flow to re-render after fitView
     await new Promise((r) => requestAnimationFrame(r));
     await new Promise((r) => requestAnimationFrame(r));
 
@@ -158,7 +163,7 @@ export function GraphControls({
     } catch {}
     if (minimap) minimap.style.display = "";
     setExportOpen(false);
-  }, [fitView]);
+  }, [fitView, getNodes]);
 
   return (
     <div className={`flex flex-row items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 shadow-md ${className ?? ""}`}>
