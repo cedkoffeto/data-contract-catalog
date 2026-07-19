@@ -33,6 +33,17 @@ function WordDiffView({ segments }: { segments: WordDiffSegment[] }) {
 }
 
 export function DiffStructural({ changes }: { changes: StructuralChange[] }) {
+  const wordDiffCache = useMemo(() => {
+    const cache = new Map<string, [WordDiffSegment[], WordDiffSegment[]]>();
+    for (const change of changes) {
+      if (change.type === "modified" && typeof change.oldValue === "string" && typeof change.newValue === "string") {
+        const key = `${change.oldValue}\0${change.newValue}`;
+        if (!cache.has(key)) cache.set(key, computeWordDiff(change.oldValue, change.newValue));
+      }
+    }
+    return cache;
+  }, [changes]);
+
   const grouped = useMemo(() => {
     const sections: Record<string, StructuralChange[]> = {};
 
@@ -70,7 +81,7 @@ export function DiffStructural({ changes }: { changes: StructuralChange[] }) {
                 const oldText = typeof change.oldValue === "string" ? change.oldValue : formatValue(change.oldValue);
                 const newText = typeof change.newValue === "string" ? change.newValue : formatValue(change.newValue);
                 const wordDiff = change.type === "modified" && typeof change.oldValue === "string" && typeof change.newValue === "string"
-                  ? computeWordDiff(change.oldValue, change.newValue)
+                  ? (wordDiffCache.get(`${change.oldValue}\0${change.newValue}`) ?? null)
                   : null;
                 return (
                 <tr key={index} className={`diff-structural__row diff-structural__row--${change.type}`}>
