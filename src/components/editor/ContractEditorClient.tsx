@@ -932,33 +932,27 @@ export function ContractEditorClient({
   const isCompareYamlView = mainViewMode === "compare" && !!selectedHistoryEntry && !!selectedHistoryContent;
   const activeHistoryState = selectedDocument.contractSlug ? historyBySlug[selectedDocument.contractSlug] : undefined;
   const activeHistoryStatus = activeHistoryState?.status ?? "idle";
+  const validationErrorLineMap = useMemo(() => {
+    const map = new Map<string, number | null>();
+    if (!isContractDocument || activeTab !== "yaml" || isHistoryYamlView || isCompareYamlView) return map;
+    if (yamlValidationState.parseLineNumber) return map;
+    for (const error of validationErrors) {
+      const prop = error.property ?? "";
+      if (!map.has(prop)) {
+        map.set(prop, findYamlLineForPath(selectedDocument.content, prop));
+      }
+    }
+    return map;
+  }, [activeTab, isCompareYamlView, isContractDocument, isHistoryYamlView, selectedDocument.content, validationErrors, yamlValidationState.parseLineNumber]);
+
   const validationIssueLines = useMemo(() => {
-    if (!isContractDocument || activeTab !== "yaml" || isHistoryYamlView || isCompareYamlView) {
-      return [];
-    }
-
-    if (yamlValidationState.parseLineNumber) {
-      return [yamlValidationState.parseLineNumber];
-    }
-
-    return validationErrors
-      .map((error) => findYamlLineForPath(selectedDocument.content, error.property ?? ""))
-      .filter((lineNumber): lineNumber is number => typeof lineNumber === "number");
-  }, [
-    activeTab,
-    isCompareYamlView,
-    isContractDocument,
-    isHistoryYamlView,
-    selectedDocument.content,
-    validationErrors,
-    yamlValidationState.parseLineNumber
-  ]);
+    if (yamlValidationState.parseLineNumber) return [yamlValidationState.parseLineNumber];
+    return Array.from(validationErrorLineMap.values()).filter((lineNumber): lineNumber is number => typeof lineNumber === "number");
+  }, [validationErrorLineMap, yamlValidationState.parseLineNumber]);
 
   const validationErrorMap = useMemo(() => {
     const map = new Map<number, string>();
-    if (!isContractDocument || activeTab !== "yaml" || isHistoryYamlView || isCompareYamlView) {
-      return map;
-    }
+    if (!isContractDocument || activeTab !== "yaml" || isHistoryYamlView || isCompareYamlView) return map;
 
     if (yamlValidationState.parseLineNumber && yamlValidationState.parseError) {
       map.set(yamlValidationState.parseLineNumber, yamlValidationState.parseError);
@@ -966,7 +960,7 @@ export function ContractEditorClient({
     }
 
     for (const error of validationErrors) {
-      const line = findYamlLineForPath(selectedDocument.content, error.property ?? "");
+      const line = validationErrorLineMap.get(error.property ?? "");
       if (line != null) {
         let msg = error.stack || error.message || "";
         const ajvParams = error.params;
@@ -981,17 +975,7 @@ export function ContractEditorClient({
       }
     }
     return map;
-  }, [
-    activeTab,
-    isCompareYamlView,
-    isContractDocument,
-    isHistoryYamlView,
-    selectedDocument.content,
-    validationErrors,
-    yamlValidationState.parseLineNumber,
-    yamlValidationState.parseError,
-    schema
-  ]);
+  }, [activeTab, isCompareYamlView, isContractDocument, isHistoryYamlView, selectedDocument.content, validationErrors, yamlValidationState.parseLineNumber, yamlValidationState.parseError, schema, validationErrorLineMap]);
 
   const sortedErrorLines = useMemo(
     () => Array.from(validationErrorMap.keys()).sort((a, b) => a - b),
@@ -2178,7 +2162,7 @@ export function ContractEditorClient({
                                         if (existing) {
                                           existing.messages.push(msg);
                                         } else {
-                                          const lineNumber = findYamlLineForPath(selectedDocument.content, property);
+                                          const lineNumber = validationErrorLineMap.get(property) ?? null;
                                           grouped.set(property, { property, messages: [msg], lineNumber });
                                         }
                                       }
