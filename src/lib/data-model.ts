@@ -770,8 +770,9 @@ export function layoutStarGraph(nodes: Node[], edges: Edge[], connectedFields?: 
     const comp: string[] = [];
     const queue = [n.id];
     visited.add(n.id);
-    while (queue.length) {
-      const id = queue.shift()!;
+    let head = 0;
+    while (head < queue.length) {
+      const id = queue[head++];
       comp.push(id);
       for (const nb of adj.get(id) ?? []) {
         if (!visited.has(nb)) { visited.add(nb); queue.push(nb); }
@@ -797,8 +798,9 @@ export function layoutStarGraph(nodes: Node[], edges: Edge[], connectedFields?: 
     const layer = new Map<string, number>();
     const queue = [center];
     layer.set(center, 0);
-    while (queue.length) {
-      const id = queue.shift()!;
+    let head = 0;
+    while (head < queue.length) {
+      const id = queue[head++];
       for (const nb of adj.get(id) ?? []) {
         if (!layer.has(nb)) { layer.set(nb, layer.get(id)! + 1); queue.push(nb); }
       }
