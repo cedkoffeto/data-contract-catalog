@@ -1,14 +1,14 @@
 "use client";
 
-import { memo, useState, useEffect, useMemo, useContext } from "react";
+import { memo, useState, useEffect, useMemo, useCallback, useContext } from "react";
 import {
   getSmoothStepPath,
   EdgeLabelRenderer,
   Position,
-  useReactFlow,
   type EdgeProps,
 } from "@xyflow/react";
-import { HighlightCtx } from "./ModelGraph";
+import { HighlightCtx, ViewModeCtx } from "./ModelGraph";
+import type { ContractTableNodeData } from "@/src/lib/data-model";
 
 const animStyleId = "dcc-edge-flow";
 
@@ -71,29 +71,73 @@ function portY(pos: Position, ny: number, nh: number): number {
 
 export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
   const [hovered, setHovered] = useState(false);
-  const { highlightedNode, highlightedNeighbors, selectedEdge } = useContext(HighlightCtx);
+  const { highlightedNode, highlightedNeighbors, selectedEdge, nodeMap } = useContext(HighlightCtx);
+  const { viewMode, collapsedTables, connectedFields } = useContext(ViewModeCtx);
 
   const { source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style, label, data, animated, id } = props;
 
-  const edgeData = (data ?? {}) as { cardSource?: string; cardTarget?: string; parallelOffset?: number; targetParallelOffset?: number; sourceFieldOffset?: number; targetFieldOffset?: number };
-  const parallelOffset = edgeData.parallelOffset ?? 0;
-  const targetParallelOffset = edgeData.targetParallelOffset ?? 0;
-  const sourceFieldOffset = edgeData.sourceFieldOffset ?? 0;
-  const targetFieldOffset = edgeData.targetFieldOffset ?? 0;
-  const sourceOffset = (parallelOffset + sourceFieldOffset) * 16;
-  const targetOffset = (parallelOffset + targetParallelOffset) * 8 + targetFieldOffset * 4;
+  const edgeData = (data ?? {}) as { cardSource?: string; cardTarget?: string; parsed?: any };
 
-  const { getNodes } = useReactFlow();
-  const allNodes = getNodes();
-  const nodeMap = useMemo(() => {
-    const map = new Map<string, (typeof allNodes)[number]>();
-    for (const n of allNodes) map.set(n.id, n);
-    return map;
-  }, [allNodes]);
   const srcNode = nodeMap.get(source);
   const tgtNode = nodeMap.get(target);
   const srcMeas = srcNode?.measured;
   const tgtMeas = tgtNode?.measured;
+
+  const HEADER_H = 39;
+  const FIELD_H = 29;
+  const SUMMARY_ROW_H = 23;
+
+  // Replicate ContractTableNode's visible-field logic to get correct index
+  const getVisibleFieldIndex = useCallback((nodeId: string, fieldName: string): number => {
+    const node = nodeMap.get(nodeId);
+    if (!node) return -1;
+    const allFields = (node.data as ContractTableNodeData).fields;
+    const collapsed = collapsedTables.has(nodeId);
+    const showingDetailed = viewMode === "detailed" ? !collapsed : collapsed;
+    if (showingDetailed) return allFields.findIndex((f) => f.name === fieldName);
+    const nodeConnected = connectedFields.get(nodeId);
+    const visibleFields = allFields.filter((f) => (nodeConnected?.get(f.name) ?? 0) > 0);
+    return visibleFields.findIndex((f) => f.name === fieldName);
+  }, [nodeMap, collapsedTables, viewMode, connectedFields]);
+
+  // Whether the "X connected · Y hidden" summary row is shown
+  const hasSummaryRow = useCallback((nodeId: string): boolean => {
+    const node = nodeMap.get(nodeId);
+    if (!node) return false;
+    const allFields = (node.data as ContractTableNodeData).fields;
+    const collapsed = collapsedTables.has(nodeId);
+    const showingDetailed = viewMode === "detailed" ? !collapsed : collapsed;
+    if (showingDetailed) return false;
+    const nodeConnected = connectedFields.get(nodeId);
+    const visibleCount = allFields.filter((f) => (nodeConnected?.get(f.name) ?? 0) > 0).length;
+    return allFields.length > visibleCount;
+  }, [nodeMap, collapsedTables, viewMode, connectedFields]);
+
+  const sourceOffset = useMemo(() => {
+    if (!srcNode || !srcMeas) return 0;
+    const parsed = edgeData.parsed;
+    const first = Array.isArray(parsed) ? parsed[0] : parsed;
+    const fieldName = first?.left?.field;
+    if (!fieldName) return 0;
+    const idx = getVisibleFieldIndex(source, fieldName);
+    if (idx < 0) return 0;
+    const summaryOffset = hasSummaryRow(source) ? SUMMARY_ROW_H : 0;
+    const fieldCenterY = HEADER_H + summaryOffset + idx * FIELD_H + FIELD_H / 2;
+    return fieldCenterY - (srcMeas.height ?? 100) / 2;
+  }, [srcNode, srcMeas, edgeData.parsed, getVisibleFieldIndex, hasSummaryRow, source]);
+
+  const targetOffset = useMemo(() => {
+    if (!tgtNode || !tgtMeas) return 0;
+    const parsed = edgeData.parsed;
+    const first = Array.isArray(parsed) ? parsed[0] : parsed;
+    const fieldName = first?.right?.field;
+    if (!fieldName) return 0;
+    const idx = getVisibleFieldIndex(target, fieldName);
+    if (idx < 0) return 0;
+    const summaryOffset = hasSummaryRow(target) ? SUMMARY_ROW_H : 0;
+    const fieldCenterY = HEADER_H + summaryOffset + idx * FIELD_H + FIELD_H / 2;
+    return fieldCenterY - (tgtMeas.height ?? 100) / 2;
+  }, [tgtNode, tgtMeas, edgeData.parsed, getVisibleFieldIndex, hasSummaryRow, target]);
 
   let sp = sourcePosition;
   let tp = targetPosition;
@@ -113,8 +157,7 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
     tx = portX(tp, tgtNode.position.x, tgtMeas.width ?? 220);
   }
 
-  // Push path endpoints outward past the cardinality symbols
-  const pathPad = 6;
+  const pathPad = 0;
   const spDirX = sp === Position.Left ? -pathPad : sp === Position.Right ? pathPad : 0;
   const spDirY = sp === Position.Top ? -pathPad : sp === Position.Bottom ? pathPad : 0;
   const tpDirX = tp === Position.Left ? -pathPad : tp === Position.Right ? pathPad : 0;
@@ -164,10 +207,11 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
   const isConnectedToHoveredNode = highlightedNode !== null && (source === highlightedNode || target === highlightedNode);
   const isSelected = selectedEdge === id;
   const edgeActive = hovered || isConnectedToHoveredNode || isSelected;
+  const edgeColor = edgeActive ? "#3b82f6" : ((style as React.CSSProperties)?.stroke as string) || "#94a3b8";
 
   const pathStyle: React.CSSProperties = useMemo(() => ({
     ...(style as React.CSSProperties),
-    stroke: edgeActive ? "#3b82f6" : (style as React.CSSProperties)?.stroke || "#94a3b8",
+    stroke: edgeColor,
     strokeDasharray: undefined,
     animation: isAnimated
       ? `dcc-flow ${edgeActive ? "0.3s" : "0.8s"} linear infinite`
@@ -223,16 +267,17 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
       <g opacity={edgeActive || isEdgeHighlighted ? 1 : 0.2} />
 
       <text
-        x={sx + edgeOffset(sp, "source", 14).dx}
-        y={sy + sourceOffset + edgeOffset(sp, "source", 14).dy - 9}
+        x={sx + edgeOffset(sp, "source", 4).dx}
+        y={sy + sourceOffset + edgeOffset(sp, "source", 4).dy - 10}
         textAnchor="middle"
         dominantBaseline="central"
-        fill={edgeActive ? "#3b82f6" : "#cbd5e1"}
+        fill={edgeColor}
         fontSize={edgeActive ? 14 : 10}
         fontWeight={edgeActive ? 800 : 600}
         fontFamily="monospace"
         pointerEvents="none"
-        style={{ transition: "fill 0.2s, font-size 0.2s, font-weight 0.2s" }}
+        opacity={isEdgeHighlighted ? 1 : 0.15}
+        style={{ transition: "fill 0.2s, font-size 0.2s, font-weight 0.2s, opacity 0.2s" }}
       >
         {cardSource === "many" ? "*" : "1"}
       </text>
@@ -243,24 +288,26 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
           sp,
           cardSource === "many" ? "many" : "one",
         )}
-        stroke={edgeActive ? "#3b82f6" : "#cbd5e1"}
+        stroke={edgeColor}
         strokeWidth={edgeActive ? 2 : 1.5}
         strokeLinecap="round"
         pointerEvents="none"
-        style={{ transition: "stroke 0.2s, stroke-width 0.2s" }}
+        opacity={isEdgeHighlighted ? 1 : 0.15}
+        style={{ transition: "stroke 0.2s, stroke-width 0.2s, opacity 0.2s" }}
       />
 
       <text
-        x={tx + edgeOffset(tp, "target", 14).dx}
-        y={ty + targetOffset + edgeOffset(tp, "target", 14).dy - 9}
+        x={tx + edgeOffset(tp, "target", 4).dx}
+        y={ty + targetOffset + edgeOffset(tp, "target", 4).dy - 10}
         textAnchor="middle"
         dominantBaseline="central"
-        fill={edgeActive ? "#3b82f6" : "#cbd5e1"}
+        fill={edgeColor}
         fontSize={edgeActive ? 14 : 10}
         fontWeight={edgeActive ? 800 : 600}
         fontFamily="monospace"
         pointerEvents="none"
-        style={{ transition: "fill 0.2s, font-size 0.2s, font-weight 0.2s" }}
+        opacity={isEdgeHighlighted ? 1 : 0.15}
+        style={{ transition: "fill 0.2s, font-size 0.2s, font-weight 0.2s, opacity 0.2s" }}
       >
         {cardTarget === "many" ? "*" : "1"}
       </text>
@@ -271,26 +318,34 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
           tp,
           cardTarget === "many" ? "many" : "one",
         )}
-        stroke={edgeActive ? "#3b82f6" : "#cbd5e1"}
+        stroke={edgeColor}
         strokeWidth={edgeActive ? 2 : 1.5}
         strokeLinecap="round"
         pointerEvents="none"
-        style={{ transition: "stroke 0.2s, stroke-width 0.2s" }}
+        opacity={isEdgeHighlighted ? 1 : 0.15}
+        style={{ transition: "stroke 0.2s, stroke-width 0.2s, opacity 0.2s" }}
       />
 
       <EdgeLabelRenderer>
         <div
           style={{
             position: "absolute",
-            transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+            transform: `translate(-50%, -100%) translate(${labelX}px,${labelY}px) translateY(-6px)`,
             fontSize: edgeActive ? 11 : 10,
             fontWeight: edgeActive ? 700 : 600,
             fontFamily: "monospace",
-            color: edgeActive ? "#1e293b" : "#334155",
+            color: edgeActive ? "#1e293b" : "#475569",
             pointerEvents: "none",
             whiteSpace: "nowrap",
             opacity: edgeActive ? (isEdgeHighlighted ? 1 : 0.6) : 0,
             transition: "opacity 120ms ease",
+            background: edgeActive ? "rgba(219,234,254,0.95)" : "rgba(241,245,249,0.9)",
+            border: `1px solid ${edgeActive ? "rgba(59,130,246,0.3)" : "rgba(148,163,184,0.3)"}`,
+            borderRadius: 6,
+            padding: "2px 8px",
+            lineHeight: "1.2",
+            boxShadow: edgeActive ? "0 1px 4px rgba(59,130,246,0.15)" : "0 1px 2px rgba(0,0,0,0.06)",
+            zIndex: edgeActive ? 9999 : 0,
           }}
         >
           {label as string}
