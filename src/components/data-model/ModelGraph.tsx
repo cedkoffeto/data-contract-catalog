@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useMemo, useCallback, useState, useEffect, useLayoutEffect, useRef, memo, useContext, type RefObject } from "react";
+import { createPortal } from "react-dom";
 import {
   ReactFlow,
   Background,
@@ -30,6 +31,38 @@ const layerColors: Record<string, { bg: string; border: string; text: string }> 
   silver: { bg: "rgba(100,116,139,0.06)", border: "rgba(100,116,139,0.25)", text: "rgba(71,85,105,0.5)" },
   gold:   { bg: "rgba(234,179,8,0.06)",  border: "rgba(234,179,8,0.25)",  text: "rgba(160,120,0,0.5)" },
 };
+
+function BrokenRefBadge({ orphanRefs }: { orphanRefs: string[] }) {
+  const [hover, setHover] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  return (
+    <>
+      <div
+        className="relative inline-flex h-5 cursor-pointer items-center rounded-md bg-amber-50 border border-amber-200 px-3 text-xs text-amber-700 shadow-sm"
+        onMouseEnter={(e) => { setHover(true); const r = e.currentTarget.getBoundingClientRect(); setPos({ top: r.bottom + 6, left: r.left }); }}
+        onMouseLeave={() => { setHover(false); setPos(null); }}
+      >
+        {orphanRefs.length} broken reference{orphanRefs.length !== 1 ? "s" : ""}
+      </div>
+      {hover && pos && createPortal(
+        <div className="editor-error-popover fixed" style={{ left: pos.left, top: pos.top }}>
+          <div className="editor-error-popover-arrow" />
+          <div className="editor-error-popover-header">
+            <span>Broken references</span>
+          </div>
+          <div className="editor-error-popover-body">
+            {orphanRefs.map((ref, i) => (
+              <div key={i} className={i < orphanRefs.length - 1 ? "border-b border-gray-100 pb-2 mb-2" : ""}>
+                <div className="text-[11px] font-semibold text-amber-600">{ref}</div>
+              </div>
+            ))}
+          </div>
+        </div>,
+        document.body,
+      )}
+    </>
+  );
+}
 
 const LayerBackgroundNode = memo(function LayerBackgroundNode({ data }: NodeProps) {
   const d = data as { label: string; width: number; height: number };
@@ -334,9 +367,7 @@ export function ModelGraph({
           </Panel>
           {orphanRefs && orphanRefs.length > 0 ? (
             <Panel position="top-right" className="!m-0" style={{ top: 12, right: 12 }}>
-              <div className="rounded-md bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs text-amber-700 shadow-sm" title={orphanRefs.join("\n")}>
-                {orphanRefs.length} broken reference{orphanRefs.length !== 1 ? "s" : ""}
-              </div>
+              <BrokenRefBadge orphanRefs={orphanRefs} />
             </Panel>
           ) : null}
           <MiniMap

@@ -50,7 +50,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
       <Handle type="target" position={Position.Top} id="top" className="!w-0 !h-0 !border-0 !bg-transparent !opacity-0" />
       <div className="relative overflow-hidden rounded-xl bg-white">
         {/* Header */}
-        <div className="flex min-w-0 cursor-grab active:cursor-grabbing items-center gap-2 py-2 pl-4 pr-2" style={{ background: d.color.replace("hsl(", "hsla(").replace(")", ", 0.1)"), borderBottom: `2px solid ${d.color}40`, borderLeft: `4px solid ${layerBorderColor[d.maturity as string] || layerBorderColor.bronze}` }}>
+        <div className="flex min-w-0 cursor-grab active:cursor-grabbing items-center gap-2 py-2 pl-4 pr-3" style={{ background: d.color.replace("hsl(", "hsla(").replace(")", ", 0.1)"), borderBottom: `2px solid ${d.color}40`, borderLeft: `4px solid ${layerBorderColor[d.maturity as string] || layerBorderColor.bronze}` }}>
           <span className="flex h-5 cursor-pointer items-center" onClick={(e) => { e.stopPropagation(); window.open(`/contracts/${d.slug}`, "_blank", "noopener,noreferrer"); }} title="Open contract detail"><Table size={14} style={{ color: d.color }} /></span>
           <span className="flex h-5 min-w-0 items-center text-sm font-semibold tracking-tight text-gray-900"
             onClick={(e) => {
@@ -59,15 +59,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
             }}
             onMouseEnter={(e) => { setHeaderHover(true); const r = e.currentTarget.getBoundingClientRect(); setHeaderTooltipPos({ top: r.top - 6, left: r.right + 8 }); }}
             onMouseLeave={() => { setHeaderHover(false); setHeaderTooltipPos(null); }}
-          ><span className="break-all leading-snug">{d.slug}</span></span>
-          <button
-            className="ml-auto flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded transition-all opacity-70 hover:opacity-100 hover:brightness-[.65] hover:bg-black/[0.08]"
-            style={{ color: d.color }}
-            onClick={(e) => { e.stopPropagation(); onToggleCollapse(id); }}
-            title={showingDetailed ? "Collapse table" : "Expand table"}
-          >
-            {showingDetailed ? <ChevronUp size={11} strokeWidth={1.5} /> : <ChevronDown size={11} strokeWidth={1.5} />}
-          </button>
+          ><span className="break-all leading-snug">{d.slug}</span>
           {errors && errors.length > 0 && (
             <>
               <span
@@ -99,6 +91,13 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
               )}
             </>
           )}
+          <button
+            className="flex shrink-0 h-5 cursor-pointer items-center text-gray-400 hover:text-gray-600 transition-colors"
+            onClick={(e) => { e.stopPropagation(); onToggleCollapse(id); }}
+            title={showingDetailed ? "Collapse table" : "Expand table"}
+          >
+            {showingDetailed ? <ChevronUp size={12} strokeWidth={1.5} /> : <ChevronDown size={12} strokeWidth={1.5} />}
+          </button>
         </div>
 
 
