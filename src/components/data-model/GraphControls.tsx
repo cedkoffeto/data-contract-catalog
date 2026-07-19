@@ -148,24 +148,36 @@ export function GraphControls({
 
     await new Promise((r) => requestAnimationFrame(r));
     await new Promise((r) => requestAnimationFrame(r));
-    await new Promise((r) => requestAnimationFrame(r));
 
-    // Hide ALL panels (controls, minimap, attribution, toolbar, GraphControls…)
+    // Hide ALL panels aggressively — display:none + visibility:hidden + position:absolute
     const panels = el.querySelectorAll<HTMLElement>(".react-flow__panel");
     const hidden: HTMLElement[] = [];
-    panels.forEach((p) => { p.style.display = "none"; hidden.push(p); });
+    panels.forEach((p) => {
+      hidden.push(p);
+      p.dataset._exportPrev = p.style.cssText;
+      p.style.cssText = "display:none !important; visibility:hidden !important; position:absolute !important; pointer-events:none !important;";
+    });
 
     try {
       const dataUrl = await toPng(el, {
         backgroundColor: "#f8f9fa",
-        pixelRatio: 6,
+        pixelRatio: 4,
+        cacheBust: true,
+        filter: (node: Element) => {
+          // Belt-and-suspenders: also exclude via filter for nodes html-to-image resolves differently
+          if (node instanceof HTMLElement) {
+            if (node.classList?.contains("react-flow__panel")) return false;
+            if (node.closest?.(".react-flow__panel")) return false;
+          }
+          return true;
+        },
       });
       const a = document.createElement("a");
       a.download = "data-model-graph.png";
       a.href = dataUrl;
       a.click();
     } catch {}
-    hidden.forEach((p) => { p.style.display = ""; });
+    hidden.forEach((p) => { p.style.cssText = p.dataset._exportPrev ?? ""; delete p.dataset._exportPrev; });
     setExportOpen(false);
   }, [fitView, getNodes]);
 
