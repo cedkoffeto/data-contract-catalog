@@ -230,8 +230,7 @@ export function DataModelEditor({
   const selectedContract = useMemo(
     () => {
       if (!selectedSlug) return null;
-      const map = new Map(contracts.map((c) => [c.slug, c]));
-      return map.get(selectedSlug) ?? null;
+      return contracts.find((c) => c.slug === selectedSlug) ?? null;
     },
     [selectedSlug, contracts],
   );
