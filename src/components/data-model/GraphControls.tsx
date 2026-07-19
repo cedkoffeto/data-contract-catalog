@@ -139,29 +139,43 @@ export function GraphControls({
     const el = document.querySelector(".react-flow") as HTMLElement | null;
     if (!el) return;
 
-    // For "all" scope: save current viewport, fit ALL nodes, capture, then restore
     const allNodes = getNodes().map((n) => ({ id: n.id }));
     if (scope === "all") {
-      await fitView({ nodes: allNodes, duration: 0 });
+      await fitView({ nodes: allNodes, duration: 0, padding: 0.1 });
     } else {
       fitView({ duration: 0 });
     }
 
-    // Wait for React Flow to re-render after fitView
+    // Wait for React Flow to fully re-render after fitView
+    await new Promise((r) => requestAnimationFrame(r));
     await new Promise((r) => requestAnimationFrame(r));
     await new Promise((r) => requestAnimationFrame(r));
 
     const minimap = el.querySelector(".react-flow__minimap") as HTMLElement | null;
+    const controls = el.querySelector(".react-flow__controls") as HTMLElement | null;
+    const attribution = el.querySelector(".react-flow__attribution") as HTMLElement | null;
     if (minimap) minimap.style.display = "none";
+    if (controls) controls.style.display = "none";
+    if (attribution) attribution.style.display = "none";
 
     try {
-      const dataUrl = await toPng(el, { backgroundColor: "#f8f9fa", pixelRatio: 2 });
+      const dataUrl = await toPng(el, {
+        backgroundColor: "#f8f9fa",
+        pixelRatio: 4,
+        filter: (node: Element) => {
+          // Exclude toolbar overlay from the capture
+          if (node instanceof HTMLElement && node.classList?.contains("react-flow__panel")) return false;
+          return true;
+        },
+      });
       const a = document.createElement("a");
       a.download = "data-model-graph.png";
       a.href = dataUrl;
       a.click();
     } catch {}
     if (minimap) minimap.style.display = "";
+    if (controls) controls.style.display = "";
+    if (attribution) attribution.style.display = "";
     setExportOpen(false);
   }, [fitView, getNodes]);
 
