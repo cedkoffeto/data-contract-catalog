@@ -812,19 +812,18 @@ export async function getContractPageData(slug: string): Promise<{
     return null;
   }
 
-  // Scan all other contracts for relations referencing this slug
+  // Build reverse-relation index: target_slug → list of referencing relations
   const allContracts = await getContracts();
-  const incomingRelations: Array<{ ref_name: string; ref: string; declared_by_slug: string }> = [];
+  const reverseIndex = new Map<string, Array<{ ref_name: string; ref: string; declared_by_slug: string }>>();
   for (const other of allContracts) {
-    if (other.slug === slug) continue;
     const rels = other.data.contract?.schema?.relations ?? [];
     for (const rel of rels) {
-      if (rel.ref.includes(`@${slug}.`)) {
-        incomingRelations.push({
-          ref_name: rel.ref_name,
-          ref: rel.ref,
-          declared_by_slug: other.slug,
-        });
+      const match = rel.ref.match(/@([^.]+)\./);
+      if (match) {
+        const targetSlug = match[1];
+        let arr = reverseIndex.get(targetSlug);
+        if (!arr) { arr = []; reverseIndex.set(targetSlug, arr); }
+        arr.push({ ref_name: rel.ref_name, ref: rel.ref, declared_by_slug: other.slug });
       }
     }
   }
@@ -834,7 +833,7 @@ export async function getContractPageData(slug: string): Promise<{
     yamlRaw: contract.yamlRaw,
     data: contract.data,
     fullPath: contract.fullPath,
-    incomingRelations,
+    incomingRelations: reverseIndex.get(slug) ?? [],
   };
 }
 
