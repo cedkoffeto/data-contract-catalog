@@ -525,11 +525,13 @@ export const dictionaries = {
     loginError: "Incorrect username or password.",
 
     // Data model / Graph export
-    exportPngTitle: "Export PNG",
+    exportPngTitle: "Export Graph",
     exportAll: "All",
     exportVisible: "What is visible",
-    exportAllDesc: "Export the entire graph",
-    exportVisibleDesc: "Export only the visible area",
+    exportAllDesc: "Export the entire graph as PNG (8K resolution)",
+    exportVisibleDesc: "Export only the visible area as PNG",
+    exportSvg: "SVG (vector)",
+    exportSvgDesc: "Infinite zoom, perfect quality at any size",
 
     // Annotation
     annotate: "Annotate",
@@ -1040,11 +1042,13 @@ export const dictionaries = {
     loginError: "Identifiant ou mot de passe incorrect.",
 
     // Data model / Graph export
-    exportPngTitle: "Export PNG",
+    exportPngTitle: "Exporter le graphe",
     exportAll: "Tout",
     exportVisible: "Ce qui est visible",
-    exportAllDesc: "Exporter l'intégralité du graphe",
-    exportVisibleDesc: "Exporter uniquement la zone visible à l'écran",
+    exportAllDesc: "Exporter l'intégralité du graphe en PNG (résolution 8K)",
+    exportVisibleDesc: "Exporter uniquement la zone visible à l'écran en PNG",
+    exportSvg: "SVG (vectoriel)",
+    exportSvgDesc: "Zoom infini, qualité parfaite à toute taille",
 
     // Annotation
     annotate: "Annoter",

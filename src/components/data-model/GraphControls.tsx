@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { toPng } from "html-to-image";
+import { toPng, toSvg } from "html-to-image";
 import { useReactFlow, useViewport } from "@xyflow/react";
 import { ZoomIn, ZoomOut, Maximize2, Eye, LayoutTemplate, LayoutList, AlignEndHorizontal, AlignEndVertical, Layers, LayoutGrid, Grid3x3, Check, Download, Star } from "lucide-react";
 import type { LayoutMode } from "@/src/lib/data-model";
@@ -135,7 +135,7 @@ export function GraphControls({
     if (!isNaN(val) && val > 0) zoomTo(val / 100, { duration: 0 });
   }, [zoomInput, zoomTo]);
 
-  const doExport = useCallback(async (scope: "all" | "visible") => {
+  const doExport = useCallback(async (scope: "all" | "visible", format: "png" | "svg" = "png") => {
     const el = document.querySelector(".react-flow") as HTMLElement | null;
     if (!el) return;
 
@@ -159,21 +159,34 @@ export function GraphControls({
     });
 
     try {
-      const dataUrl = await toPng(el, {
-        backgroundColor: "#f8f9fa",
-        pixelRatio: 4,
-        cacheBust: true,
-        filter: (node: Element) => {
-          // Belt-and-suspenders: also exclude via filter for nodes html-to-image resolves differently
-          if (node instanceof HTMLElement) {
-            if (node.classList?.contains("react-flow__panel")) return false;
-            if (node.closest?.(".react-flow__panel")) return false;
-          }
-          return true;
-        },
-      });
+      const isSvg = format === "svg";
+      const dataUrl = isSvg
+        ? await toSvg(el, {
+            backgroundColor: "#f8f9fa",
+            cacheBust: true,
+            filter: (node: Element) => {
+              if (node instanceof HTMLElement) {
+                if (node.classList?.contains("react-flow__panel")) return false;
+                if (node.closest?.(".react-flow__panel")) return false;
+              }
+              return true;
+            },
+          })
+        : await toPng(el, {
+            backgroundColor: "#f8f9fa",
+            pixelRatio: 8,
+            cacheBust: true,
+            filter: (node: Element) => {
+              if (node instanceof HTMLElement) {
+                if (node.classList?.contains("react-flow__panel")) return false;
+                if (node.closest?.(".react-flow__panel")) return false;
+              }
+              return true;
+            },
+          });
+      const ext = isSvg ? "svg" : "png";
       const a = document.createElement("a");
-      a.download = "data-model-graph.png";
+      a.download = `data-model-graph.${ext}`;
       a.href = dataUrl;
       a.click();
     } catch {}
@@ -269,6 +282,14 @@ export function GraphControls({
               >
                 <div className="text-sm">{t("exportAll")}</div>
                 <div className="mt-0.5 text-[11px] font-normal text-gray-500">{t("exportAllDesc")}</div>
+              </button>
+              <div className="my-1 border-t border-gray-100" />
+              <button
+                onClick={() => doExport("all", "svg")}
+                className="w-full rounded-lg border border-dashed border-blue-200 bg-blue-50/50 px-4 py-3 text-left text-xs font-semibold text-blue-900 hover:bg-blue-50"
+              >
+                <div className="text-sm">{t("exportSvg")}</div>
+                <div className="mt-0.5 text-[11px] font-normal text-blue-600">{t("exportSvgDesc")}</div>
               </button>
             </div>
             <div className="mt-3 flex justify-end">
