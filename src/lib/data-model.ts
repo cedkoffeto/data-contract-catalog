@@ -158,14 +158,16 @@ export function parseContractsToGraph(
   contracts: DataModelContract[],
   models: LoadedModel[] = [],
 ): GraphData {
-  // Build lookup: key → contract + slug → contract fallback
+  // Build lookup: key → contract + slug → contract fallback + field name sets
   const contractMap = new Map<ContractKey, DataModelContract>();
   const slugMap = new Map<string, DataModelContract>();
+  const fieldNamesBySlug = new Map<string, Set<string>>();
   for (const c of contracts) {
     const key = `${c.maturity}.${c.domain}.${c.context}.${c.slug}`;
     contractMap.set(key, c);
     // Keep first occurrence for slug-only lookups
     if (!slugMap.has(c.slug)) slugMap.set(c.slug, c);
+    if (!fieldNamesBySlug.has(c.slug)) fieldNamesBySlug.set(c.slug, new Set(c.fields.map((f) => f.name)));
   }
 
   const nodeMap = new Map<string, Node>();
@@ -201,8 +203,10 @@ export function parseContractsToGraph(
       return null;
     }
 
-    const srcFieldOk = srcContract.fields.some((f) => f.name === src.field);
-    const tgtFieldOk = tgtContract.fields.some((f) => f.name === tgt.field);
+    const srcFieldNames = fieldNamesBySlug.get(srcContract.slug);
+    const tgtFieldNames = fieldNamesBySlug.get(tgtContract.slug);
+    const srcFieldOk = srcFieldNames?.has(src.field) ?? false;
+    const tgtFieldOk = tgtFieldNames?.has(tgt.field) ?? false;
 
     const srcId = slugToId(srcContract.slug, srcContract.maturity);
     const tgtId = slugToId(tgtContract.slug, tgtContract.maturity);
