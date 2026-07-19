@@ -241,18 +241,18 @@ export function GraphControls({
             <h3 className="text-sm font-semibold text-gray-900">{t("exportPngTitle")}</h3>
             <div className="mt-3 flex flex-col gap-2">
               <button
-                onClick={() => doExport("all")}
-                className="w-full rounded-lg border border-gray-200 px-4 py-3 text-left text-xs font-semibold text-gray-900 hover:bg-gray-50"
-              >
-                <div className="text-sm">{t("exportAll")}</div>
-                <div className="mt-0.5 text-[11px] font-normal text-gray-500">{t("exportAllDesc")}</div>
-              </button>
-              <button
                 onClick={() => doExport("visible")}
                 className="w-full rounded-lg border border-gray-200 px-4 py-3 text-left text-xs font-semibold text-gray-900 hover:bg-gray-50"
               >
                 <div className="text-sm">{t("exportVisible")}</div>
                 <div className="mt-0.5 text-[11px] font-normal text-gray-500">{t("exportVisibleDesc")}</div>
+              </button>
+              <button
+                onClick={() => doExport("all")}
+                className="w-full rounded-lg border border-gray-200 px-4 py-3 text-left text-xs font-semibold text-gray-900 hover:bg-gray-50"
+              >
+                <div className="text-sm">{t("exportAll")}</div>
+                <div className="mt-0.5 text-[11px] font-normal text-gray-500">{t("exportAllDesc")}</div>
               </button>
             </div>
             <div className="mt-3 flex justify-end">
