@@ -146,36 +146,26 @@ export function GraphControls({
       fitView({ duration: 0 });
     }
 
-    // Wait for React Flow to fully re-render after fitView
     await new Promise((r) => requestAnimationFrame(r));
     await new Promise((r) => requestAnimationFrame(r));
     await new Promise((r) => requestAnimationFrame(r));
 
-    const minimap = el.querySelector(".react-flow__minimap") as HTMLElement | null;
-    const controls = el.querySelector(".react-flow__controls") as HTMLElement | null;
-    const attribution = el.querySelector(".react-flow__attribution") as HTMLElement | null;
-    if (minimap) minimap.style.display = "none";
-    if (controls) controls.style.display = "none";
-    if (attribution) attribution.style.display = "none";
+    // Hide ALL panels (controls, minimap, attribution, toolbar, GraphControls…)
+    const panels = el.querySelectorAll<HTMLElement>(".react-flow__panel");
+    const hidden: HTMLElement[] = [];
+    panels.forEach((p) => { p.style.display = "none"; hidden.push(p); });
 
     try {
       const dataUrl = await toPng(el, {
         backgroundColor: "#f8f9fa",
-        pixelRatio: 4,
-        filter: (node: Element) => {
-          // Exclude toolbar overlay from the capture
-          if (node instanceof HTMLElement && node.classList?.contains("react-flow__panel")) return false;
-          return true;
-        },
+        pixelRatio: 6,
       });
       const a = document.createElement("a");
       a.download = "data-model-graph.png";
       a.href = dataUrl;
       a.click();
     } catch {}
-    if (minimap) minimap.style.display = "";
-    if (controls) controls.style.display = "";
-    if (attribution) attribution.style.display = "";
+    hidden.forEach((p) => { p.style.display = ""; });
     setExportOpen(false);
   }, [fitView, getNodes]);
 
