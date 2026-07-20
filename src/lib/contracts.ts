@@ -31,6 +31,7 @@ const contractsCache: { expiresAt: number; value: ContractFile[]; commitSha: str
 let pendingContractsPromise: Promise<ContractFile[]> | null = null;
 const cardsCache: { expiresAt: number; value: CatalogCard[]; commitSha: string } = { expiresAt: 0, value: [], commitSha: "" };
 const slugToPathCache: { expiresAt: number; map: Map<string, string> } = { expiresAt: 0, map: new Map() };
+const reverseRelationCache: { expiresAt: number; map: Map<string, Array<{ ref_name: string; ref: string; declared_by_slug: string }>> } = { expiresAt: 0, map: new Map() };
 const CONTRACTS_CACHE_TTL_MS = 3_600_000;
 const CARDS_CACHE_TTL_MS = 3_600_000;
 const TREE_CACHE_TTL = 300_000;
@@ -385,6 +386,23 @@ function yieldToEventLoop(): Promise<void> {
   return new Promise((resolve) => setImmediate(resolve));
 }
 
+function buildReverseRelationIndex(contracts: ContractFile[]): Map<string, Array<{ ref_name: string; ref: string; declared_by_slug: string }>> {
+  const index = new Map<string, Array<{ ref_name: string; ref: string; declared_by_slug: string }>>();
+  for (const contract of contracts) {
+    const rels = contract.data.contract?.schema?.relations ?? [];
+    for (const rel of rels) {
+      const match = rel.ref.match(/@([^.]+)\./);
+      if (match) {
+        const targetSlug = match[1];
+        let arr = index.get(targetSlug);
+        if (!arr) { arr = []; index.set(targetSlug, arr); }
+        arr.push({ ref_name: rel.ref_name, ref: rel.ref, declared_by_slug: contract.slug });
+      }
+    }
+  }
+  return index;
+}
+
 function getPathMaturity(filePath: string): string {
   const parts = filePath.split("/");
   // Supports: contracts/{maturity}/file.yaml  OR  contracts/published/{maturity}/file.yaml
@@ -648,6 +666,8 @@ export async function getContracts(): Promise<ContractFile[]> {
     if (contracts.length > 0) {
       populateSlugToPathCache(contracts.map((c) => ({ fullPath: c.fullPath })));
     }
+    reverseRelationCache.map = buildReverseRelationIndex(contracts);
+    reverseRelationCache.expiresAt = now + CONTRACTS_CACHE_TTL_MS;
     return contracts;
     } catch {
       gitLabContractsError = true;
@@ -670,6 +690,8 @@ export async function getContracts(): Promise<ContractFile[]> {
   if (contracts.length > 0) {
     populateSlugToPathCache(contracts.map((c) => ({ fullPath: c.fullPath })));
   }
+  reverseRelationCache.map = buildReverseRelationIndex(contracts);
+  reverseRelationCache.expiresAt = now + CONTRACTS_CACHE_TTL_MS;
   return contracts;
 }
 
@@ -721,6 +743,7 @@ export async function getCatalogCards(): Promise<CatalogCard[]> {
       const maturity = (asset.maturity ?? contract.maturity ?? "").toString().trim();
       const domain = (asset.domain ?? "").toString().trim();
       const context = (asset.context ?? "").toString().trim();
+      const assetType = (asset.type ?? "").toString().trim();
       return {
         slug: contract.slug,
         title,
@@ -730,8 +753,9 @@ export async function getCatalogCards(): Promise<CatalogCard[]> {
         maturity,
         domain,
         context,
+        assetType,
         accessible: true,
-        searchData: `${title} ${version} ${owner} ${description} ${maturity} ${domain} ${context} ${contract.fullPath}`.toLowerCase(),
+        searchData: `${title} ${version} ${owner} ${description} ${maturity} ${domain} ${context} ${assetType} ${contract.fullPath}`.toLowerCase(),
         href: `/contracts/${contract.slug}`
       } satisfies CatalogCard;
     })
@@ -812,20 +836,12 @@ export async function getContractPageData(slug: string): Promise<{
     return null;
   }
 
-  // Build reverse-relation index: target_slug → list of referencing relations
-  const allContracts = await getContracts();
-  const reverseIndex = new Map<string, Array<{ ref_name: string; ref: string; declared_by_slug: string }>>();
-  for (const other of allContracts) {
-    const rels = other.data.contract?.schema?.relations ?? [];
-    for (const rel of rels) {
-      const match = rel.ref.match(/@([^.]+)\./);
-      if (match) {
-        const targetSlug = match[1];
-        let arr = reverseIndex.get(targetSlug);
-        if (!arr) { arr = []; reverseIndex.set(targetSlug, arr); }
-        arr.push({ ref_name: rel.ref_name, ref: rel.ref, declared_by_slug: other.slug });
-      }
-    }
+  // Use cached reverse-relation index (built when contracts are loaded)
+  const now = Date.now();
+  if (reverseRelationCache.map.size === 0 || reverseRelationCache.expiresAt <= now) {
+    const allContracts = await getContracts();
+    reverseRelationCache.map = buildReverseRelationIndex(allContracts);
+    reverseRelationCache.expiresAt = now + CONTRACTS_CACHE_TTL_MS;
   }
 
   return {
@@ -833,7 +849,7 @@ export async function getContractPageData(slug: string): Promise<{
     yamlRaw: contract.yamlRaw,
     data: contract.data,
     fullPath: contract.fullPath,
-    incomingRelations: reverseIndex.get(slug) ?? [],
+    incomingRelations: reverseRelationCache.map.get(slug) ?? [],
   };
 }
 
