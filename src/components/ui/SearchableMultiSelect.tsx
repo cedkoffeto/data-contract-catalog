@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { cn } from "@/src/lib/format";
 
 type Option = {
   value: string;
   label: string;
+  sublabel?: string;
 };
 
 export function SearchableMultiSelect({
@@ -69,12 +70,15 @@ export function SearchableMultiSelect({
   }
 
   const filtered = query
-    ? options.filter((o) => o.label.toLowerCase().includes(query.toLowerCase()))
+    ? options.filter((o) => o.label.toLowerCase().includes(query.toLowerCase()) || (o.sublabel && o.sublabel.toLowerCase().includes(query.toLowerCase())))
     : options;
 
-  const selectedLabels = value
-    .map((v) => options.find((o) => o.value === v))
-    .filter(Boolean) as Option[];
+  const selectedLabels = useMemo(() => {
+    const optMap = new Map(options.map((o) => [o.value, o]));
+    return value.map((v) => optMap.get(v)).filter(Boolean) as Option[];
+  }, [value, options]);
+
+  const selectedSet = useMemo(() => new Set(value), [value]);
 
   const hasOptions = options.length > 0;
 
@@ -88,7 +92,7 @@ export function SearchableMultiSelect({
           <div className="ss-multi__chips">
             {selectedLabels.map((opt) => (
               <span key={opt.value} className="ss-multi__chip">
-                <span className="ss-multi__chip-label">{opt.label}</span>
+                <span className="ss-multi__chip-label">{opt.sublabel ? `${opt.label} — ${opt.sublabel}` : opt.label}</span>
                 <button
                   type="button"
                   className="ss-multi__chip-remove"
@@ -101,7 +105,7 @@ export function SearchableMultiSelect({
             ))}
           </div>
         ) : (
-          <span className="ss-multi__placeholder">{placeholder ?? "Select..."}</span>
+          <span className="ss-multi__placeholder">{placeholder ?? "Data Contract"}</span>
         )}
         <svg className="ss-multi__arrow" width="12" height="12" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
           <path d="M10 14a1 1 0 01-.707-.293l-5-5a1 1 0 011.414-1.414L10 11.586l4.293-4.293a1 1 0 011.414 1.414l-5 5A1 1 0 0110 14z" />
@@ -125,7 +129,7 @@ export function SearchableMultiSelect({
               <div className="ss-multi__empty">{emptyLabel ?? "No options"}</div>
             ) : (
               filtered.map((option) => {
-                const checked = value.includes(option.value);
+                const checked = selectedSet.has(option.value);
                 return (
                   <button
                     key={option.value}
@@ -136,7 +140,10 @@ export function SearchableMultiSelect({
                     <span className={cn("ss-multi__checkbox", checked && "ss-multi__checkbox--checked")}>
                       {checked && <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="2 6 5 9 10 3" /></svg>}
                     </span>
-                    <span className="ss-multi__option-label">{option.label}</span>
+                    <span className="ss-multi__option-label">
+                      {option.label}
+                      {option.sublabel && <span className="ss-multi__option-sublabel">{option.sublabel}</span>}
+                    </span>
                   </button>
                 );
               })
