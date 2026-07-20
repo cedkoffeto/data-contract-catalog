@@ -202,6 +202,56 @@ export async function getEditableSlugs(
   return getMatchingSlugs(userId, permissions, cards, ["admin", "editor"]);
 }
 
+export async function getAccessibleAndEditableSlugs(
+  userId: string,
+  permissions: Permission[],
+  cards: CatalogCard[],
+): Promise<{ accessible: Set<string>; editable: Set<string> }> {
+  if (permissions.includes("admin")) {
+    const all = new Set(cards.map((c) => c.slug));
+    return { accessible: all, editable: all };
+  }
+
+  const [allPolicies, editPolicies] = await Promise.all([
+    fetchUserPolicies(userId),
+    fetchUserPolicies(userId, ["admin", "editor"]),
+  ]);
+
+  const globalAccess = allPolicies.length === 0 && await userHasGlobalAccess();
+  if (globalAccess) {
+    const all = new Set(cards.map((c) => c.slug));
+    return { accessible: all, editable: all };
+  }
+
+  const accessible = matchCardsToPolicies(cards, allPolicies);
+  const editable = matchCardsToPolicies(cards, editPolicies);
+  return { accessible, editable };
+}
+
+function matchCardsToPolicies(cards: CatalogCard[], policies: PolicyRow[]): Set<string> {
+  if (policies.length === 0) return new Set();
+  const lookup = normalizePolicies(policies);
+  if (lookup.hasWildcard) return new Set(cards.map((c) => c.slug));
+
+  const matching = new Set<string>();
+  for (const card of cards) {
+    const domain = card.domain?.toLowerCase().trim() ?? "";
+    const context = card.context?.toLowerCase().trim() ?? "";
+    const slug = card.slug.toLowerCase();
+
+    const bySlug = lookup.bySlug.get(slug);
+    if (bySlug?.some((np) => policyMatches(np, domain, context, slug))) { matching.add(card.slug); continue; }
+
+    const dcKey = `${domain}||${context}`;
+    const byDomainContext = lookup.byDomainContext.get(dcKey);
+    if (byDomainContext?.some((np) => policyMatches(np, domain, context, slug))) { matching.add(card.slug); continue; }
+
+    const byDomain = lookup.byDomain.get(domain);
+    if (byDomain?.some((np) => policyMatches(np, domain, context, slug))) { matching.add(card.slug); continue; }
+  }
+  return matching;
+}
+
 async function getMatchingSlugs(
   userId: string,
   permissions: Permission[],
