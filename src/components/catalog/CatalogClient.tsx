@@ -13,16 +13,24 @@ import type { CatalogCard as CatalogCardType } from "@/src/lib/types";
 
 const ALL_DOMAINS = "__all_domains__";
 
-const MULTI_FIELDS: { key: keyof CatalogCardType; label: string; placeholder: keyof (typeof dictionaries)["en"] }[] = [
+const MULTI_FIELDS: { key: string; label: string; placeholder: keyof (typeof dictionaries)["en"] }[] = [
   { key: "domain", label: "domain", placeholder: "searchFieldDomain" },
   { key: "owner", label: "owner", placeholder: "searchFieldOwner" },
   { key: "context", label: "context", placeholder: "searchFieldContext" },
   { key: "maturity", label: "maturity", placeholder: "searchFieldMaturity" },
-  { key: "slug", label: "id", placeholder: "searchFieldSlug" },
-  { key: "title", label: "name", placeholder: "searchFieldName" },
+  { key: "assetType", label: "assetType", placeholder: "searchFieldAssetType" },
+  { key: "contract", label: "contract", placeholder: "searchFieldContract" },
 ];
 
-const MULTI_KEYS: (keyof CatalogCardType)[] = ["domain", "owner", "context", "maturity", "slug", "title"];
+function matchesMultiFilter(card: CatalogCardType, field: string, values: string[]): boolean {
+  if (field === "contract") {
+    const slug = card.slug.toLowerCase();
+    const title = card.title.toLowerCase();
+    return values.some((v) => slug.includes(v.toLowerCase()) || title.includes(v.toLowerCase()));
+  }
+  const cardValue = (card[field as keyof CatalogCardType] as string)?.toLowerCase() ?? "";
+  return values.some((v) => cardValue.includes(v.toLowerCase()));
+}
 
 function humanize(value: string): string {
   const trimmed = value.trim();
@@ -135,30 +143,67 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
     return Array.from(unique).sort((a, b) => a.localeCompare(b));
   }, [cards]);
 
-  const [domainCounts, contextCounts, maturityCounts] = useMemo(() => {
+  const [domainCounts, contextCounts, maturityCounts, contextCountsFiltered] = useMemo(() => {
+    const ft = debouncedFreeText.trim().toLowerCase();
+    const mfEntries = Object.entries(appliedMultiFilters);
+
+    function matchMultiSkip(card: CatalogCardType, skipField: string | null): boolean {
+      for (const [field, values] of mfEntries) {
+        if (!values?.length || field === skipField) continue;
+        if (!matchesMultiFilter(card, field, values)) return false;
+      }
+      return true;
+    }
+
     const dc: Record<string, number> = {};
     const cc: Record<string, number> = {};
     const mc: Record<string, number> = {};
-    for (const card of cards) {
-      const d = card.domain.trim();
-      if (d) dc[d] = (dc[d] ?? 0) + 1;
-      const c = card.context.trim();
-      if (c) cc[c] = (cc[c] ?? 0) + 1;
-      const m = card.maturity.trim();
-      if (m) mc[m] = (mc[m] ?? 0) + 1;
-    }
-    return [dc, cc, mc];
-  }, [cards]);
+    const ccf: Record<string, number> = {};
 
-  const contextCountsFiltered = useMemo(() => {
-    const cc: Record<string, number> = {};
     for (const card of cards) {
-      if (selectedDomain !== ALL_DOMAINS && card.domain.trim() !== selectedDomain) continue;
-      const c = card.context.trim();
-      if (c) cc[c] = (cc[c] ?? 0) + 1;
+      if (ft && !card.searchData.includes(ft)) continue;
+      if (showOnlyAccessible && !card.accessible) continue;
+      if (showFavoritesOnly && !card.isFavorite) continue;
+
+      if (matchMultiSkip(card, "domain")) {
+        if (selectedContexts.size === 0 || selectedContexts.has(card.context.trim())) {
+          if (selectedMaturities.size === 0 || selectedMaturities.has(card.maturity.trim())) {
+            const d = card.domain.trim();
+            if (d) dc[d] = (dc[d] ?? 0) + 1;
+          }
+        }
+      }
+
+      if (matchMultiSkip(card, "context")) {
+        if (selectedDomain === ALL_DOMAINS || card.domain.trim() === selectedDomain) {
+          if (selectedMaturities.size === 0 || selectedMaturities.has(card.maturity.trim())) {
+            const c = card.context.trim();
+            if (c) cc[c] = (cc[c] ?? 0) + 1;
+          }
+        }
+      }
+
+      if (matchMultiSkip(card, "maturity")) {
+        if (selectedDomain === ALL_DOMAINS || card.domain.trim() === selectedDomain) {
+          if (selectedContexts.size === 0 || selectedContexts.has(card.context.trim())) {
+            const m = card.maturity.trim();
+            if (m) mc[m] = (mc[m] ?? 0) + 1;
+          }
+        }
+      }
+
+      if (matchMultiSkip(card, null)) {
+        if (selectedDomain === ALL_DOMAINS || card.domain.trim() === selectedDomain) {
+          if (selectedMaturities.size === 0 || selectedMaturities.has(card.maturity.trim())) {
+            const c2 = card.context.trim();
+            if (c2) ccf[c2] = (ccf[c2] ?? 0) + 1;
+          }
+        }
+      }
     }
-    return cc;
-  }, [cards, selectedDomain]);
+
+    return [dc, cc, mc, ccf];
+  }, [cards, debouncedFreeText, appliedMultiFilters, selectedDomain, selectedContexts, selectedMaturities, showOnlyAccessible, showFavoritesOnly]);
 
   const visibleCards = useMemo(() => {
     const ft = debouncedFreeText.trim().toLowerCase();
@@ -167,11 +212,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
     return cards
       .filter((card) => {
         const matchesFieldFilter = Object.entries(mf).every(
-          ([field, values]) => {
-            if (!values || values.length === 0) return true;
-            const cardValue = (card[field as keyof CatalogCardType] as string)?.toLowerCase() ?? "";
-            return values.some((v) => cardValue.includes(v.toLowerCase()));
-          },
+          ([field, values]) => !values || values.length === 0 || matchesMultiFilter(card, field, values),
         );
         const matchesSearch = !ft || card.searchData.includes(ft);
         if (!matchesFieldFilter || !matchesSearch) return false;
@@ -253,12 +294,22 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
   );
 
   const multiOptions = useMemo(() => {
-    const opts: Record<string, { value: string; label: string }[]> = {};
-    for (const field of MULTI_KEYS) {
-      const unique = new Set(cards.map((card) => (card[field] as string)?.trim()).filter(Boolean));
-      opts[field] = Array.from(unique)
-        .sort((a, b) => a.localeCompare(b))
-        .map((v) => ({ value: v, label: v }));
+    const opts: Record<string, { value: string; label: string; sublabel?: string }[]> = {};
+    for (const field of MULTI_FIELDS) {
+      if (field.key === "contract") {
+        const seen = new Map<string, { value: string; label: string; sublabel: string }>();
+        for (const card of cards) {
+          const slug = card.slug.trim();
+          if (!slug || seen.has(slug)) continue;
+          seen.set(slug, { value: slug, label: slug, sublabel: card.title.trim() });
+        }
+        opts[field.key] = Array.from(seen.values()).sort((a, b) => a.label.localeCompare(b.label));
+      } else {
+        const unique = new Set(cards.map((card) => (card[field.key as keyof CatalogCardType] as string)?.trim()).filter(Boolean));
+        opts[field.key] = Array.from(unique)
+          .sort((a, b) => a.localeCompare(b))
+          .map((v) => ({ value: v, label: v }));
+      }
     }
     return opts;
   }, [cards]);
@@ -294,21 +345,28 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
       </section>
 
       <section className="catalog-searchbar">
-        <div className="editor-tabs" role="tablist" aria-label="Search mode">
-          <button
-            type="button"
-            className={`editor-tabs__item${searchMode === "free" ? " is-active" : ""}`}
-            onClick={() => setSearchMode("free")}
-          >
-            {t("searchFree")}
-          </button>
-          <button
-            type="button"
-            className={`editor-tabs__item${searchMode === "multi" ? " is-active" : ""}`}
-            onClick={() => setSearchMode("multi")}
-          >
-            {t("searchMulti")}
-          </button>
+        <div className="catalog-searchbar__top-row">
+          <div className="editor-tabs" role="tablist" aria-label="Search mode">
+            <button
+              type="button"
+              className={`editor-tabs__item${searchMode === "free" ? " is-active" : ""}`}
+              onClick={() => setSearchMode("free")}
+            >
+              {t("searchFree")}
+            </button>
+            <button
+              type="button"
+              className={`editor-tabs__item${searchMode === "multi" ? " is-active" : ""}`}
+              onClick={() => setSearchMode("multi")}
+            >
+              {t("searchMulti")}
+            </button>
+          </div>
+          {searchMode === "multi" && hasActiveMultiFilters && (
+            <Button variant="outline" onClick={handleResetMultiSearch}>
+              {t("reset")}
+            </Button>
+          )}
         </div>
 
         {searchMode === "free" ? (
@@ -343,16 +401,15 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
                   placeholder={t(field.placeholder)}
                 />
               ))}
-            </div>
-            <div className="catalog-searchbar__multi-actions">
-              <Button onClick={handleApplyMultiSearch} disabled={!hasActiveMultiFilters}>
-                {t("searchButton")}
+              <Button
+                onClick={handleApplyMultiSearch}
+                disabled={!hasActiveMultiFilters}
+                className="catalog-searchbar__search-btn"
+              >
+                <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
+                </svg>
               </Button>
-              {hasActiveMultiFilters && (
-                <Button variant="outline" onClick={handleResetMultiSearch}>
-                  {t("reset")}
-                </Button>
-              )}
             </div>
           </>
         )}
