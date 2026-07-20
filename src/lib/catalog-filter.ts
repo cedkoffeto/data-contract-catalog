@@ -103,7 +103,7 @@ function policyMatches(np: NormalizedPolicy, domain: string, context: string, sl
 }
 
 const policiesCache = new Map<string, { promise: Promise<PolicyRow[]>; ts: number }>();
-const POLICIES_CACHE_TTL = 5_000;
+const POLICIES_CACHE_TTL = 60_000;
 
 async function fetchUserPolicies(
   userId: string,
