@@ -4,7 +4,13 @@ import path from "node:path";
 import yaml from "js-yaml";
 import { logger } from "@/src/lib/logger";
 
+const MAX_YAML_SIZE = 1_048_576; // 1MB
+
 export function safeYamlLoad<T = unknown>(raw: string): T | null {
+  if (raw.length > MAX_YAML_SIZE) {
+    logger.warn(`[yaml] Input exceeds ${MAX_YAML_SIZE} bytes, rejecting`);
+    return null;
+  }
   const maxDepth = 50;
   let depth = 0;
   for (const line of raw.split("\n")) {
@@ -39,6 +45,13 @@ const REPO_FOLDER_CACHE_TTL = 300_000;
 
 const treeCache = new Map<string, { items: GitLabTreeItem[]; ts: number }>();
 const repoFolderCache = new Map<string, { promise: Promise<RepositoryFolderFile[]>; ts: number }>();
+const CACHE_MAX_ENTRIES = 1_000;
+
+function evictOldestCache<K, V>(map: Map<K, V>) {
+  if (map.size <= CACHE_MAX_ENTRIES) return;
+  const oldest = map.keys().next().value;
+  if (oldest !== undefined) map.delete(oldest);
+}
 
 type GitLabTreeItem = {
   id?: string;
@@ -228,6 +241,7 @@ async function readGitLabTree(
       page += 1;
     }
 
+    evictOldestCache(treeCache);
     treeCache.set(folderPath, { items, ts: Date.now() });
   } catch (error) {
       logger.error("[gitlab.tree] Failed", {
@@ -263,6 +277,7 @@ export async function getRepositoryFolderFiles(folderPath: string): Promise<Repo
   repoFolderCache.delete(folderPath);
 
   const promise = getRepositoryFolderFilesUncached(folderPath);
+  evictOldestCache(repoFolderCache);
   repoFolderCache.set(folderPath, { promise, ts: now });
   return promise;
 }

@@ -91,10 +91,14 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
               )}
             </>
           )}
+          </span>
           <button
-            className="flex shrink-0 h-5 cursor-pointer items-center text-gray-400 hover:text-gray-600 transition-colors"
+            className="ml-auto flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded text-gray-400 transition-colors"
+            style={{ ["--btn-hover-bg" as string]: d.color.replace("hsl(", "hsla(").replace(")", ", 0.2)") }}
             onClick={(e) => { e.stopPropagation(); onToggleCollapse(id); }}
             title={showingDetailed ? "Collapse table" : "Expand table"}
+            onMouseEnter={(e) => { e.currentTarget.style.background = e.currentTarget.style.getPropertyValue("--btn-hover-bg"); e.currentTarget.style.color = d.color; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = ""; e.currentTarget.style.color = ""; }}
           >
             {showingDetailed ? <ChevronUp size={12} strokeWidth={1.5} /> : <ChevronDown size={12} strokeWidth={1.5} />}
           </button>

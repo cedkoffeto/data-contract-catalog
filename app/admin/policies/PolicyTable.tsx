@@ -59,7 +59,7 @@ export default function PolicyTable({
     <div>
       <div className="mb-3 flex items-center gap-3">
         <input
-          className="flex-1 rounded-md border bg-white px-3 py-2 text-sm text-gray-900"
+          className="flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder={t("filterPolicies")}
@@ -70,15 +70,15 @@ export default function PolicyTable({
       </div>
 
       {policies.length === 0 ? (
-        <div className="rounded-lg border bg-white py-12 text-center text-sm text-gray-400">
-          {t("noPoliciesYet")}
-        </div>
-      ) : filteredPolicies.length === 0 ? (
-        <div className="rounded-lg border bg-white py-12 text-center text-sm text-gray-400">
-          {t("noPoliciesMatch")}
-        </div>
-      ) : (
-        <div className="w-full overflow-x-auto rounded-lg border shadow-lg">
+          <div className="rounded-lg border border-gray-300 bg-white py-12 text-center text-sm text-gray-400 shadow-lg">
+            {t("noPoliciesYet")}
+          </div>
+        ) : filteredPolicies.length === 0 ? (
+          <div className="rounded-lg border border-gray-300 bg-white py-12 text-center text-sm text-gray-400 shadow-lg">
+            {t("noPoliciesMatch")}
+          </div>
+        ) : (
+          <div className="w-full overflow-x-auto rounded-lg border border-gray-300 shadow-lg">
           <table className="w-full divide-y divide-gray-200 bg-white text-sm">
             <thead className="bg-gray-50">
               <tr>

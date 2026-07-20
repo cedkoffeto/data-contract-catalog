@@ -43,6 +43,10 @@ async function PATCH(request: Request, { params }: { params: Promise<{ id: strin
     select: { userId: true, domain: true, context: true, dataContract: true, requestedPermission: true },
   });
 
+  if (!requestedAccessRequest) {
+    return apiError("Access request not found", 404);
+  }
+
   // Update status immediately (fast path)
   await prisma.accessRequest.update({
     where: { id: parseInt(id, 10) },

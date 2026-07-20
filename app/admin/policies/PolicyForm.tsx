@@ -249,9 +249,6 @@ function DataContractSelect({
 
   return (
     <div ref={ref} className="relative w-full">
-      <label className="mb-1 block text-xs font-medium text-gray-500">
-        Data Contract <span className="text-gray-400">(empty = all in context)</span>
-      </label>
       <button
         type="button"
         className="flex w-full items-center justify-between rounded-md border bg-white px-3 py-2 text-sm text-gray-900 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
@@ -409,7 +406,7 @@ function PermissionSelect({
       <button
         type="button"
         className="flex w-full items-center justify-between rounded-md border bg-white px-3 py-2 text-sm text-gray-900"
-        style={{ borderColor: value ? "#22c55e" : "#ef4444" }}
+        style={{ borderColor: "#d1d5db" }}
         onClick={() => setOpen(!open)}
       >
         <span>{selected ? selected.name : "Select\u2026"}</span>
@@ -498,7 +495,7 @@ export default function PolicyForm({
   const { t, tWith } = useT();
 
   return (
-    <div className="rounded-lg border bg-white p-6 mb-6">
+    <div className="rounded-lg border border-gray-300 bg-white p-6 shadow-lg mb-6">
       <h2 className="mb-4 text-base font-semibold text-gray-900">
         {editTarget ? tWith("editPolicy", { id: String(editTarget.id) }) : t("createAccessPolicy")}
       </h2>
@@ -528,11 +525,11 @@ export default function PolicyForm({
 
       <div className="flex flex-wrap items-end gap-3">
         {assignMode === "user" ? (
-          <div className="min-w-0 grow shrink basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5">
+          <div className="min-w-0 grow shrink basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/6">
             <UserAutocomplete value={newUserId} onChange={setNewUserId} validUsers={allUsers} />
           </div>
         ) : (
-          <div className="min-w-0 grow shrink basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5">
+          <div className="min-w-0 grow shrink basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/6">
             <label className="mb-1 block text-xs font-medium text-gray-500" title={t("requiredField")}>
               {t("groupLabel")} <span className="text-red-500">*</span>
             </label>
@@ -544,7 +541,7 @@ export default function PolicyForm({
           </div>
         )}
 
-        <div className="min-w-0 grow shrink basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5">
+        <div className="min-w-0 grow shrink basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/6">
           <label className="mb-1 block text-xs font-medium text-gray-500" title={t("requiredField")}>
             {t("permissionLabel")} <span className="text-red-500">*</span>
           </label>
@@ -555,7 +552,7 @@ export default function PolicyForm({
           />
         </div>
 
-        <div className="min-w-0 grow shrink basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5">
+        <div className="min-w-0 grow shrink basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/6">
           <label className="mb-1 block text-xs font-medium text-gray-500">
             {t("domain")} <span className="text-gray-400">{t("emptyAll")}</span>
           </label>
@@ -577,7 +574,7 @@ export default function PolicyForm({
           />
         </div>
 
-        <div className="min-w-0 grow shrink basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5">
+        <div className="min-w-0 grow shrink basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/6">
           <label className="mb-1 block text-xs font-medium text-gray-500">
             {t("context")} <span className="text-gray-400">{t("emptyAll")}</span>
           </label>
@@ -593,9 +590,9 @@ export default function PolicyForm({
           />
         </div>
 
-        <div className="min-w-0 grow shrink basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5">
+        <div className="min-w-0 grow shrink basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/6">
           <label className="mb-1 block text-xs font-medium text-gray-500">
-            {t("dataContractLabel")}
+            {t("dataContractLabel")} <span className="text-gray-400">{t("emptyAll")}</span>
           </label>
           <DataContractSelect
             value={newDataContractScope}

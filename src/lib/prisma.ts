@@ -9,3 +9,9 @@ export const prisma =
   });
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+
+function disconnectOnExit() {
+  prisma.$disconnect().catch(() => {});
+}
+process.on("SIGTERM", disconnectOnExit);
+process.on("SIGINT", disconnectOnExit);

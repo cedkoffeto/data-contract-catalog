@@ -6,6 +6,7 @@ const PUBLIC_PATHS = new Set(["/login", "/api/healthz"]);
 const RATE_LIMIT_WINDOW = 60_000;
 const RATE_LIMIT_MAX_API = 100;
 const RATE_LIMIT_MAX_AUTH = 200;
+const RATE_LIMIT_MAX_ENTRIES = 10_000;
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 
 function rateLimit(request: NextRequest): boolean {
@@ -17,6 +18,14 @@ function rateLimit(request: NextRequest): boolean {
   const now = Date.now();
   const entry = rateLimitMap.get(ip);
   if (!entry || now > entry.resetAt) {
+    if (rateLimitMap.size >= RATE_LIMIT_MAX_ENTRIES) {
+      let oldestKey = "";
+      let oldestReset = Infinity;
+      for (const [k, v] of rateLimitMap) {
+        if (v.resetAt < oldestReset) { oldestReset = v.resetAt; oldestKey = k; }
+      }
+      if (oldestKey) rateLimitMap.delete(oldestKey);
+    }
     rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
     return false;
   }

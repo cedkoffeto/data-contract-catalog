@@ -361,7 +361,7 @@ export default function PoliciesPage() {
   });
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 px-6 lg:px-8">
+    <div className="w-full space-y-6 px-4 lg:px-6">
       {error && (
         <div className="rounded-lg border border-red-500 bg-red-50 p-3 text-sm text-destructive">
           {error}

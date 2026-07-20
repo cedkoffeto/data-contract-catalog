@@ -183,7 +183,7 @@ export function UserPoliciesDialog({
               {t("policiesForUser")} <span className="font-mono">{userId}</span>
             </h3>
             <p className="text-[11px] text-gray-400">
-              {tWith("policyCount", { count: String(policies.length) })}
+              {tWith("policyCount", { count: String(policies.length), y: policies.length === 1 ? "y" : "ies", e: policies.length === 1 ? "e" : "es" })}
             </p>
           </div>
           <button onClick={onClose} className="editor-close-button" aria-label="Close" type="button">
@@ -254,7 +254,7 @@ export function UserPoliciesDialog({
           {showRequest ? <RequestEditorForm onDone={() => setShowRequest(false)} /> : null}
         </div>
 
-        <div className="flex items-center justify-between border-t border-gray-100 px-4 py-2">
+        <div className="flex items-center justify-end border-t border-gray-100 px-4 py-2">
           <button
             type="button"
             onClick={() => setShowRequest(!showRequest)}
@@ -265,12 +265,6 @@ export function UserPoliciesDialog({
               <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 119 0v3.75M3.75 21.75h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H3.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
             </svg>
             {showRequest ? t("hide") : t("requestEditorAccess")}
-          </button>
-          <button
-            onClick={onClose}
-            className="rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
-          >
-            {t("close")}
           </button>
         </div>
       </div>

@@ -202,8 +202,8 @@ export default function GroupsPage() {
   if (loading) {
     return (
       <div className="space-y-6 px-6 lg:px-8">
-        <div className="h-28 rounded-lg border bg-gray-50" />
-        <div className="h-64 rounded-lg border bg-gray-50" />
+        <div className="h-28 rounded-lg border border-gray-300 bg-gray-50 shadow-lg" />
+        <div className="h-64 rounded-lg border border-gray-300 bg-gray-50 shadow-lg" />
       </div>
     );
   }
@@ -216,7 +216,7 @@ export default function GroupsPage() {
         </div>
       )}
 
-      <div className="rounded-lg border bg-white p-6">
+      <div className="rounded-lg border border-gray-300 bg-white p-6 shadow-lg">
         <h2 className="mb-4 text-base font-semibold text-gray-900">{t("createNewGroup")}</h2>
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex-1" style={{ minWidth: "400px" }}>
@@ -253,7 +253,7 @@ export default function GroupsPage() {
       <div>
         <div className="mb-3 flex items-center gap-3">
           <input
-            className="flex-1 rounded-md border bg-white px-3 py-2 text-sm text-gray-900"
+            className="flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t("filterByGroupOrMember")}
@@ -264,15 +264,15 @@ export default function GroupsPage() {
         </div>
 
         {groups.length === 0 ? (
-          <div className="rounded-lg border bg-white py-12 text-center text-sm text-gray-400">
+          <div className="rounded-lg border border-gray-300 bg-white py-12 text-center text-sm text-gray-400 shadow-lg">
             {t("noGroupsYet")}
           </div>
         ) : filteredGroups.length === 0 ? (
-          <div className="rounded-lg border bg-white py-12 text-center text-sm text-gray-400">
+          <div className="rounded-lg border border-gray-300 bg-white py-12 text-center text-sm text-gray-400 shadow-lg">
             {t("noGroupsMatch")}
           </div>
         ) : (
-          <div className="w-full overflow-x-auto rounded-lg border bg-white">
+          <div className="w-full overflow-x-auto rounded-lg border border-gray-300 bg-white shadow-lg">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
@@ -341,7 +341,7 @@ export default function GroupsPage() {
                           </button>
                           <button
                             onClick={() => setDeleteTarget(group)}
-                            className="rounded-md px-3 py-1.5 text-sm font-bold text-white"
+                            className="cursor-pointer rounded-md px-3 py-1.5 text-sm font-bold text-white"
                             style={{ backgroundColor: "#dc2626" }}
                           >
                             {t("deleteGroup")}

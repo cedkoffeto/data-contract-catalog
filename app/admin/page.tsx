@@ -87,7 +87,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="w-full space-y-6 px-4 lg:px-6">
-      <div className="w-full overflow-hidden rounded-lg border bg-white p-4 lg:p-6">
+      <div className="w-full overflow-hidden rounded-lg border border-gray-300 bg-white p-4 shadow-lg lg:p-6">
         <div className="grid grid-cols-8 max-xl:grid-cols-4 max-md:grid-cols-2 max-sm:grid-cols-1 gap-3 lg:gap-4">
           {cards.map((c) => {
             const inner = (
@@ -322,7 +322,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
         </div>
         <div className="mb-3 flex items-center gap-3">
           <input
-            className="flex-1 rounded-md border bg-white px-2 py-1.5 text-xs text-gray-900"
+            className="flex-1 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(0); }}
             placeholder={t("filterByContractEditorStatus")}
@@ -337,7 +337,7 @@ function ChangeRequestsSection({ highlightId: initialHighlightId, onPendingCount
             <button onClick={() => setMergeError(null)} className="text-red-400 hover:text-red-600" type="button">&times;</button>
           </div>
         ) : null}
-        <div className="w-full min-w-full overflow-x-auto rounded-lg border shadow-lg">
+        <div className="w-full min-w-full overflow-x-auto rounded-lg border border-gray-300 shadow-lg">
           <table className="w-full min-w-full divide-y divide-gray-200 bg-white text-sm">
               <thead className="bg-gray-50">
                 <tr>
@@ -664,7 +664,7 @@ function AuditLogSection() {
       <h2 className="mb-3 text-base font-semibold text-gray-900">{t("auditLog")}</h2>
       <div className="mb-3 flex items-center gap-3">
         <input
-          className="flex-1 rounded-md border bg-white px-2 py-1.5 text-xs text-gray-900"
+          className="flex-1 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(0); }}
           placeholder={t("filterAudit")}
@@ -673,7 +673,7 @@ function AuditLogSection() {
           {loading ? "\u2026" : tWith("entriesCount", { count: String(total) })}
         </span>
       </div>
-      <div className="w-full min-w-full overflow-x-auto rounded-lg border shadow-lg">
+      <div className="w-full min-w-full overflow-x-auto rounded-lg border border-gray-300 shadow-lg">
           <table className="w-full min-w-full divide-y divide-gray-200 bg-white text-sm">
             <thead className="bg-gray-50">
               <tr>
@@ -841,7 +841,7 @@ function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number)
       </h2>
       <div className="mb-3 flex items-center gap-3">
         <input
-          className="flex-1 rounded-md border bg-white px-2 py-1.5 text-xs text-gray-900"
+          className="flex-1 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(0); }}
           placeholder={t("filterByUserDomainContract")}
@@ -850,7 +850,7 @@ function AccessRequestsSection({ onPendingCount }: { onPendingCount: (n: number)
           {filtered.length} / {requests.length}
         </span>
       </div>
-      <div className="w-full min-w-full overflow-x-auto rounded-lg border shadow-lg">
+      <div className="w-full min-w-full overflow-x-auto rounded-lg border border-gray-300 shadow-lg">
           <table className="w-full min-w-full divide-y divide-gray-200 bg-white text-sm">
             <thead className="bg-gray-50">
               <tr>

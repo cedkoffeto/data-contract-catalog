@@ -127,11 +127,13 @@ export async function insertExternalChangeRequest(params: {
 
 export async function listChangeRequests(
   status?: ContractChangeRequest["status"],
+  limit = 200,
 ): Promise<ContractChangeRequest[]> {
   const where = status ? { status } : {};
   const rows = await prisma.contractChangeRequest.findMany({
     where,
     orderBy: { createdAt: "desc" },
+    take: Math.min(Math.max(1, limit), 500),
   });
   return rows.map(toChangeRequest);
 }

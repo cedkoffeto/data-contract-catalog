@@ -4,6 +4,7 @@ import { getGitSourceRef } from "@/src/lib/git-source";
 import { logger } from "@/src/lib/logger";
 
 const TAR_HEADER_SIZE = 512;
+const MAX_TAR_FILES = 5_000;
 
 export function parseTar(buffer: Buffer): Map<string, Buffer> {
   const files = new Map<string, Buffer>();
@@ -26,8 +27,10 @@ export function parseTar(buffer: Buffer): Map<string, Buffer> {
     const isFile = typeFlag === 0 || typeFlag === 48;
 
     if (isFile && name) {
+      if (offset + size > buffer.length) break;
       const data = buffer.subarray(offset, offset + size);
       files.set(name, Buffer.from(data));
+      if (files.size > MAX_TAR_FILES) break;
     }
 
     offset += Math.ceil(size / TAR_HEADER_SIZE) * TAR_HEADER_SIZE;

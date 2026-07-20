@@ -95,3 +95,12 @@ export async function createNotification(params: {
     },
   });
 }
+
+export async function deleteOldReadNotifications(olderThanDays = 30): Promise<number> {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - olderThanDays);
+  const { count } = await prisma.notification.deleteMany({
+    where: { isRead: true, createdAt: { lt: cutoff } },
+  });
+  return count;
+}

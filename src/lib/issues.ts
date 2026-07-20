@@ -25,10 +25,11 @@ export async function getContractIssue(id: number): Promise<ContractIssue | null
   return row ? toContractIssue(row) : null;
 }
 
-export async function listContractIssues(contractSlug: string): Promise<ContractIssue[]> {
+export async function listContractIssues(contractSlug: string, limit = 200): Promise<ContractIssue[]> {
   const rows = await prisma.contractIssue.findMany({
     where: { contractSlug },
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    take: Math.min(Math.max(1, limit), 500),
   });
 
   const statusOrder: Record<string, number> = { open: 0, fixed: 1 };
