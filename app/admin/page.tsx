@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useT } from "@/src/lib/use-i18n";
 
@@ -86,9 +86,9 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="w-full space-y-6 px-6 lg:px-8">
-      <div className="w-full rounded-lg border bg-white p-6">
-        <div className="grid grid-cols-4 max-lg:grid-cols-3 max-md:grid-cols-2 max-sm:grid-cols-1 gap-4">
+    <div className="w-full space-y-6 px-4 lg:px-6">
+      <div className="w-full overflow-hidden rounded-lg border bg-white p-4 lg:p-6">
+        <div className="grid grid-cols-8 max-xl:grid-cols-4 max-md:grid-cols-2 max-sm:grid-cols-1 gap-3 lg:gap-4">
           {cards.map((c) => {
             const inner = (
               <div className="kpi-card" style={{ borderLeft: "4px solid #f97316", backgroundColor: "rgba(249,115,22,0.08)" }}>
@@ -145,7 +145,7 @@ export default function AdminDashboard() {
         })}
       </div>
 
-      <div className="w-full" style={{ minHeight: "600px" }}>
+      <div className="w-full overflow-hidden" style={{ minHeight: "600px" }}>
         {activeTab === "access" && <AccessRequestsSection onPendingCount={setPendingAccess} />}
         {activeTab === "changes" && <ChangeRequestsSection highlightId={highlightId} onPendingCount={setPendingChanges} />}
         {activeTab === "audit" && <AuditLogSection />}
@@ -553,6 +553,8 @@ function AuditLogSection() {
   const [sortKey, setSortKey] = useState("created_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [expandedIds, setExpandedIds] = useState<Record<number, boolean>>({});
@@ -570,10 +572,19 @@ function AuditLogSection() {
     setPage(0);
   };
 
+  useEffect(() => {
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(0);
+    }, 300);
+    return () => clearTimeout(debounceRef.current);
+  }, [search]);
+
   const fetchLogs = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize), sortKey, sortDir, search });
+      const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize), sortKey, sortDir, search: debouncedSearch });
       const res = await fetch(`/api/admin/audit?${params}`);
       if (res.ok) {
         const data = await res.json();
@@ -583,7 +594,7 @@ function AuditLogSection() {
     } catch { /* silent */ } finally {
       setLoading(false);
     }
-  }, [page, pageSize, sortKey, sortDir, search]);
+  }, [page, pageSize, sortKey, sortDir, debouncedSearch]);
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
