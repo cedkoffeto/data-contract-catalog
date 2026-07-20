@@ -206,7 +206,10 @@ export function ModelGraph({
 
   // Toggle visibility — preserves dragged positions (uses callback form)
   useEffect(() => {
-    setNodes((nds) => nds.map((n) => ({ ...n, hidden: n.id.startsWith("__bg_") ? false : !visibleTables.has(n.id) })));
+    setNodes((nds) => nds.map((n) => {
+      const shouldHide = n.id.startsWith("__bg_") ? false : !visibleTables.has(n.id);
+      return n.hidden === shouldHide ? n : { ...n, hidden: shouldHide };
+    }));
   }, [initialNodes, visibleTables, setNodes]);
 
   // Sync collapse state into node data so React Flow re-renders ContractTableNode
@@ -267,10 +270,11 @@ export function ModelGraph({
   // Update highlight when search changes
   useEffect(() => {
     if (searchMatchSet && searchMatchSet.size > 0) {
-      setNodes((nds) => nds.map((n) => ({
-        ...n,
-        className: searchMatchSet.has(n.id) ? "search-match" : undefined,
-      })));
+      setNodes((nds) => nds.map((n) => {
+        const shouldMatch = searchMatchSet.has(n.id);
+        const className = shouldMatch ? "search-match" : undefined;
+        return n.className === className ? n : { ...n, className };
+      }));
     } else {
       setNodes((nds) => nds.map((n) => {
         if (!n.className) return n;
