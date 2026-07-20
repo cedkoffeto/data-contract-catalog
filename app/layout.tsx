@@ -28,8 +28,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const session = await auth();
 
   return (
-    <html className="h-full" lang="en">
-      <body className={`${manrope.variable} ${ibmPlexMono.variable} app-body h-full`}>
+    <html lang="en">
+      <body className={`${manrope.variable} ${ibmPlexMono.variable} app-body h-screen overflow-hidden`}>
         <Providers session={session}>{children}</Providers>
       </body>
     </html>

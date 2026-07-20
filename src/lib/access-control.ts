@@ -663,8 +663,8 @@ export async function addUserToGroup(params: {
     contractSlug: "",
     type: "group_membership",
     title: "Added to group",
-    message: `You have been added to the group "${groupName}" by ${params.actorId}`,
-    metadata: { groupId: params.groupId, groupName },
+    message: `User ${params.userId} has been added to the group "${groupName}" by ${params.actorId}`,
+    metadata: { groupId: params.groupId, groupName, userId: params.userId },
   });
 }
 
@@ -694,8 +694,8 @@ export async function removeUserFromGroup(params: {
     contractSlug: "",
     type: "group_membership",
     title: "Removed from group",
-    message: `You have been removed from the group "${groupName}" by ${params.actorId}`,
-    metadata: { groupId: params.groupId, groupName },
+    message: `User ${params.userId} has been removed from the group "${groupName}" by ${params.actorId}`,
+    metadata: { groupId: params.groupId, groupName, userId: params.userId },
   });
 }
 

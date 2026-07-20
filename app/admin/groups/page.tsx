@@ -201,7 +201,7 @@ export default function GroupsPage() {
 
   if (loading) {
     return (
-      <div className="space-y-6 px-6 lg:px-8">
+    <div className="space-y-6 px-4 lg:px-6">
         <div className="h-28 rounded-lg border border-gray-300 bg-gray-50 shadow-lg" />
         <div className="h-64 rounded-lg border border-gray-300 bg-gray-50 shadow-lg" />
       </div>
@@ -209,7 +209,7 @@ export default function GroupsPage() {
   }
 
   return (
-    <div className="space-y-6 px-6 lg:px-8">
+    <div className="space-y-6 px-4 lg:px-6">
       {error && (
         <div className="rounded-lg border border-red-500 bg-red-50 p-3 text-sm text-destructive">
           {error}

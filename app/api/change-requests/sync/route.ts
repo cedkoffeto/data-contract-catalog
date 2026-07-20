@@ -16,6 +16,32 @@ function extractContractSlug(filePath: string): string | null {
   return match ? match[1] : null;
 }
 
+async function fetchAllMrs(
+  api: ReturnType<typeof getGitLabClient>["api"],
+  projectId: string,
+  state: "merged" | "opened" | "closed",
+): Promise<Array<{ iid: number; web_url: string; source_branch: string; author?: { username: string } }>> {
+  const PER_PAGE = 100;
+  const MAX_PAGES = 20;
+  const all: Array<{ iid: number; web_url: string; source_branch: string; author?: { username: string } }> = [];
+
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    const batch = (await api.MergeRequests.all({
+      projectId,
+      state,
+      perPage: PER_PAGE,
+      page,
+      orderBy: "updated_at",
+      sort: "desc",
+    })) as Array<{ iid: number; web_url: string; source_branch: string; author?: { username: string } }>;
+
+    all.push(...batch);
+    if (batch.length < PER_PAGE) break;
+  }
+
+  return all;
+}
+
 async function POST() {
   const session = await auth();
   const userId = session?.user?.name;
@@ -135,26 +161,12 @@ async function POST() {
   try {
     const { api, config } = getGitLabClient();
 
-    const mergedMrs = (await api.MergeRequests.all({
-      projectId: config.projectId,
-      state: "merged",
-      perPage: 50,
-      orderBy: "updated_at",
-      sort: "desc",
-    })) as Array<{ iid: number; web_url: string; source_branch: string; author?: { username: string } }>;
-
+    const mergedMrs = await fetchAllMrs(api, config.projectId, "merged");
     for (const mr of mergedMrs) {
       await processMr(api, config, mr, "approved");
     }
 
-    const openedMrs = (await api.MergeRequests.all({
-      projectId: config.projectId,
-      state: "opened",
-      perPage: 50,
-      orderBy: "updated_at",
-      sort: "desc",
-    })) as Array<{ iid: number; web_url: string; source_branch: string; author?: { username: string } }>;
-
+    const openedMrs = await fetchAllMrs(api, config.projectId, "opened");
     for (const mr of openedMrs) {
       await processMr(api, config, mr, "pending");
     }

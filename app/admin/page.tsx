@@ -145,7 +145,7 @@ export default function AdminDashboard() {
         })}
       </div>
 
-      <div className="w-full overflow-hidden" style={{ minHeight: "600px" }}>
+      <div className="w-full overflow-hidden">
         {activeTab === "access" && <AccessRequestsSection onPendingCount={setPendingAccess} />}
         {activeTab === "changes" && <ChangeRequestsSection highlightId={highlightId} onPendingCount={setPendingChanges} />}
         {activeTab === "audit" && <AuditLogSection />}
