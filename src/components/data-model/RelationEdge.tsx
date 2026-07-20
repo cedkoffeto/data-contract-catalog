@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState, useEffect, useMemo, useCallback, useContext } from "react";
+import { memo, useState, useEffect, useMemo, useContext } from "react";
 import {
   getSmoothStepPath,
   EdgeLabelRenderer,
@@ -8,7 +8,6 @@ import {
   type EdgeProps,
 } from "@xyflow/react";
 import { HighlightCtx, ViewModeCtx } from "./ModelGraph";
-import type { ContractTableNodeData } from "@/src/lib/data-model";
 
 const animStyleId = "dcc-edge-flow";
 
@@ -72,7 +71,7 @@ function portY(pos: Position, ny: number, nh: number): number {
 export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
   const [hovered, setHovered] = useState(false);
   const { highlightedNode, highlightedNeighbors, selectedEdge, nodeMap } = useContext(HighlightCtx);
-  const { viewMode, collapsedTables, connectedFields } = useContext(ViewModeCtx);
+  const { fieldIndexMap, nodesWithSummaryRow } = useContext(ViewModeCtx);
 
   const { source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style, label, data, animated, id } = props;
 
@@ -87,44 +86,18 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
   const FIELD_H = 29;
   const SUMMARY_ROW_H = 23;
 
-  // Replicate ContractTableNode's visible-field logic to get correct index
-  const getVisibleFieldIndex = useCallback((nodeId: string, fieldName: string): number => {
-    const node = nodeMap.get(nodeId);
-    if (!node) return -1;
-    const allFields = (node.data as ContractTableNodeData).fields;
-    const collapsed = collapsedTables.has(nodeId);
-    const showingDetailed = viewMode === "detailed" ? !collapsed : collapsed;
-    if (showingDetailed) return allFields.findIndex((f) => f.name === fieldName);
-    const nodeConnected = connectedFields.get(nodeId);
-    const visibleFields = allFields.filter((f) => (nodeConnected?.get(f.name) ?? 0) > 0);
-    return visibleFields.findIndex((f) => f.name === fieldName);
-  }, [nodeMap, collapsedTables, viewMode, connectedFields]);
-
-  // Whether the "X connected · Y hidden" summary row is shown
-  const hasSummaryRow = useCallback((nodeId: string): boolean => {
-    const node = nodeMap.get(nodeId);
-    if (!node) return false;
-    const allFields = (node.data as ContractTableNodeData).fields;
-    const collapsed = collapsedTables.has(nodeId);
-    const showingDetailed = viewMode === "detailed" ? !collapsed : collapsed;
-    if (showingDetailed) return false;
-    const nodeConnected = connectedFields.get(nodeId);
-    const visibleCount = allFields.filter((f) => (nodeConnected?.get(f.name) ?? 0) > 0).length;
-    return allFields.length > visibleCount;
-  }, [nodeMap, collapsedTables, viewMode, connectedFields]);
-
   const sourceOffset = useMemo(() => {
     if (!srcNode || !srcMeas) return 0;
     const parsed = edgeData.parsed;
     const first = Array.isArray(parsed) ? parsed[0] : parsed;
     const fieldName = first?.left?.field;
     if (!fieldName) return 0;
-    const idx = getVisibleFieldIndex(source, fieldName);
+    const idx = fieldIndexMap.get(source)?.get(fieldName) ?? -1;
     if (idx < 0) return 0;
-    const summaryOffset = hasSummaryRow(source) ? SUMMARY_ROW_H : 0;
+    const summaryOffset = nodesWithSummaryRow.has(source) ? SUMMARY_ROW_H : 0;
     const fieldCenterY = HEADER_H + summaryOffset + idx * FIELD_H + FIELD_H / 2;
     return fieldCenterY - (srcMeas.height ?? 100) / 2;
-  }, [srcNode, srcMeas, edgeData.parsed, getVisibleFieldIndex, hasSummaryRow, source]);
+  }, [srcNode, srcMeas, edgeData.parsed, fieldIndexMap, nodesWithSummaryRow, source]);
 
   const targetOffset = useMemo(() => {
     if (!tgtNode || !tgtMeas) return 0;
@@ -132,12 +105,12 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
     const first = Array.isArray(parsed) ? parsed[0] : parsed;
     const fieldName = first?.right?.field;
     if (!fieldName) return 0;
-    const idx = getVisibleFieldIndex(target, fieldName);
+    const idx = fieldIndexMap.get(target)?.get(fieldName) ?? -1;
     if (idx < 0) return 0;
-    const summaryOffset = hasSummaryRow(target) ? SUMMARY_ROW_H : 0;
+    const summaryOffset = nodesWithSummaryRow.has(target) ? SUMMARY_ROW_H : 0;
     const fieldCenterY = HEADER_H + summaryOffset + idx * FIELD_H + FIELD_H / 2;
     return fieldCenterY - (tgtMeas.height ?? 100) / 2;
-  }, [tgtNode, tgtMeas, edgeData.parsed, getVisibleFieldIndex, hasSummaryRow, target]);
+  }, [tgtNode, tgtMeas, edgeData.parsed, fieldIndexMap, nodesWithSummaryRow, target]);
 
   let sp = sourcePosition;
   let tp = targetPosition;

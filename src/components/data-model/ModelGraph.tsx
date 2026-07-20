@@ -90,6 +90,8 @@ type ViewModeValue = {
   searchMatchIds: Set<string> | null;
   collapsedTables: Set<string>;
   onToggleCollapse: (nodeId: string) => void;
+  fieldIndexMap: Map<string, Map<string, number>>;
+  nodesWithSummaryRow: Set<string>;
 };
 
 export const ViewModeCtx = createContext<ViewModeValue>({
@@ -100,6 +102,8 @@ export const ViewModeCtx = createContext<ViewModeValue>({
   searchMatchIds: null,
   collapsedTables: new Set(),
   onToggleCollapse: () => {},
+  fieldIndexMap: new Map(),
+  nodesWithSummaryRow: new Set(),
 });
 
 export type EdgeRenderData = {
@@ -122,6 +126,7 @@ type HighlightValue = {
   hoveredEdgeId: string | null;
   onHoveredEdgeChange: (id: string | null) => void;
   edgeRenderDataRef: React.RefObject<Map<string, EdgeRenderData>>;
+  nodeMap: Map<string, Node>;
 };
 
 export const HighlightCtx = createContext<HighlightValue>({
@@ -131,6 +136,7 @@ export const HighlightCtx = createContext<HighlightValue>({
   hoveredEdgeId: null,
   onHoveredEdgeChange: () => {},
   edgeRenderDataRef: { current: new Map() },
+  nodeMap: new Map(),
 });
 
 export function ModelGraph({
@@ -298,6 +304,49 @@ export function ModelGraph({
     }
   }, [fitKey, fitView, visibleTables]);
 
+  const nodeMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
+
+  const fieldIndexMap = useMemo(() => {
+    const map = new Map<string, Map<string, number>>();
+    for (const node of nodes) {
+      const allFields = (node.data as ContractTableNodeData).fields;
+      if (!allFields) { map.set(node.id, new Map()); continue; }
+      const collapsed = collapsedTables.has(node.id);
+      const showingDetailed = viewMode === "detailed" ? !collapsed : collapsed;
+      const fieldMap = new Map<string, number>();
+      if (showingDetailed) {
+        allFields.forEach((f, i) => fieldMap.set(f.name, i));
+      } else {
+        const nodeConnected = connectedFields.get(node.id);
+        let idx = 0;
+        for (const f of allFields) {
+          if ((nodeConnected?.get(f.name) ?? 0) > 0) fieldMap.set(f.name, idx++);
+        }
+      }
+      map.set(node.id, fieldMap);
+    }
+    return map;
+  }, [nodes, collapsedTables, viewMode, connectedFields]);
+
+  const nodesWithSummaryRow = useMemo(() => {
+    const set = new Set<string>();
+    for (const node of nodes) {
+      const allFields = (node.data as ContractTableNodeData).fields;
+      const collapsed = collapsedTables.has(node.id);
+      const showingDetailed = viewMode === "detailed" ? !collapsed : collapsed;
+      if (showingDetailed) continue;
+      const nodeConnected = connectedFields.get(node.id);
+      const visibleCount = allFields.filter((f) => (nodeConnected?.get(f.name) ?? 0) > 0).length;
+      if (allFields.length > visibleCount) set.add(node.id);
+    }
+    return set;
+  }, [nodes, collapsedTables, viewMode, connectedFields]);
+
+  const filteredEdges = useMemo(
+    () => edges.filter((e) => visibleTables.has(e.source) && visibleTables.has(e.target)),
+    [edges, visibleTables],
+  );
+
   const ctxValue = useMemo<ViewModeValue>(() => ({
     viewMode,
     connectedFields,
@@ -306,12 +355,9 @@ export function ModelGraph({
     searchMatchIds: searchMatchSet,
     collapsedTables,
     onToggleCollapse,
-  }), [viewMode, connectedFields, onHeaderClick, onNodeClick, searchMatchSet, collapsedTables, onToggleCollapse]);
-
-  const filteredEdges = useMemo(
-    () => edges.filter((e) => visibleTables.has(e.source) && visibleTables.has(e.target)),
-    [edges, visibleTables],
-  );
+    fieldIndexMap,
+    nodesWithSummaryRow,
+  }), [viewMode, connectedFields, onHeaderClick, onNodeClick, searchMatchSet, collapsedTables, onToggleCollapse, fieldIndexMap, nodesWithSummaryRow]);
 
   const highlightCtxValue = useMemo<HighlightValue>(() => ({
     highlightedNode,
@@ -320,7 +366,8 @@ export function ModelGraph({
     hoveredEdgeId,
     onHoveredEdgeChange: handleHoveredEdgeChange,
     edgeRenderDataRef,
-  }), [highlightedNode, highlightedNeighbors, selectedEdge, hoveredEdgeId, handleHoveredEdgeChange]);
+    nodeMap,
+  }), [highlightedNode, highlightedNeighbors, selectedEdge, hoveredEdgeId, handleHoveredEdgeChange, nodeMap]);
 
   return (
     <HighlightCtx.Provider value={highlightCtxValue}>
