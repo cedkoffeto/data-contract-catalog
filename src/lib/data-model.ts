@@ -445,7 +445,9 @@ export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB"
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
   const isCompact = viewMode === "compact";
-  g.setGraph({ rankdir: direction, nodesep: isCompact ? 60 : 100, ranksep: isCompact ? 60 : 60, marginx: 80, marginy: 80 });
+  const maxHeight = Math.max(...connected.map((n) => nodeHeight(n, connectedFields, viewMode)));
+  const computedNodesep = Math.max(isCompact ? 60 : 100, maxHeight + 40);
+  g.setGraph({ rankdir: direction, nodesep: computedNodesep, ranksep: isCompact ? 80 : 120, marginx: 80, marginy: 80 });
 
   for (const node of connected) {
     g.setNode(node.id, { width: nodeWidth(node), height: nodeHeight(node, connectedFields, viewMode) });
