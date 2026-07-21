@@ -411,9 +411,9 @@ function nodeHeight(node: Node, connectedFields?: Map<string, Map<string, number
     fieldCount++;
   }
 
-  // color strip 3px + header ~36px + fields (py-2=16px each) + button ~24px + borders 4px
+  // color strip 3px + header ~36px + fields (py-2=16px padding + ~16px text = ~32px each) + button ~24px + borders 4px
   const chromeH = 3 + 36 + 24 + 4;
-  return Math.max(fieldCount * 16 + chromeH, 90);
+  return Math.max(fieldCount * 32 + chromeH, 90);
 }
 
 const NODE_WIDTH = 260;

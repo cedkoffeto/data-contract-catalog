@@ -83,8 +83,8 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
   const tgtMeas = tgtNode?.measured;
 
   const HEADER_H = 39;
-  const FIELD_H = 29;
-  const SUMMARY_ROW_H = 23;
+  const FIELD_H = 32;
+  const SUMMARY_ROW_H = 26;
 
   const sourceOffset = useMemo(() => {
     if (!srcNode || !srcMeas) return 0;
