@@ -143,7 +143,7 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
     targetX: tx + tpDirX,
     targetY: ty + targetOffset + tpDirY,
     targetPosition: tp,
-    borderRadius: 18,
+    borderRadius: 20,
   });
 
   useEffect(() => {
