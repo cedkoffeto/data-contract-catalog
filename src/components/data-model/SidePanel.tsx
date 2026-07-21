@@ -178,6 +178,7 @@ export function SidePanel({
                 <ExternalLink size={12} />
                 Open contract detail
               </button>
+              <span className="text-[11px] text-gray-400">{contract.fields.length} field{contract.fields.length !== 1 ? "s" : ""}</span>
             </div>
           </>
         ) : (
