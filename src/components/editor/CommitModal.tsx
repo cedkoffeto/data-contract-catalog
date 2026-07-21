@@ -158,7 +158,7 @@ export function CommitModal({
           </label>
           <textarea
             className="w-full rounded-md border px-3 py-2 text-sm text-gray-900 outline-none"
-            style={{ borderColor: "#d1d5db" }}
+            style={{ borderColor: message.trim().length >= 3 ? "#22c55e" : message.trim() ? "#ef4444" : "#d1d5db" }}
             id={`commit-msg-${id}`}
             onChange={(e) => setMessage(e.target.value)}
             placeholder={t("describeChanges")}

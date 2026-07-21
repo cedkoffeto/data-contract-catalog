@@ -156,7 +156,7 @@ export function ContractIssues({
               placeholder={t("issuePlaceholder")}
               value={body}
               onChange={(event) => setBody(event.target.value)}
-              style={{ borderColor: "#e5e7eb" }}
+              style={{ borderColor: body.trim() ? "#22c55e" : "#e5e7eb" }}
             />
             <div className="mt-2 flex items-center justify-end gap-3">
               <button

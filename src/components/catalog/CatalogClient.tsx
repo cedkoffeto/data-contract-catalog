@@ -598,7 +598,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
                         type="button"
                       >
                         <span>{humanize(context)}</span>
-                        <span className="catalog-filter-badge">{contextCountsFiltered[context] ?? 0}</span>
+                        <span className="catalog-filter-badge">{contextCounts[context]}</span>
                       </button>
                     ))}
                     {other.length > 0 && relevant.length > 0 && (

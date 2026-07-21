@@ -104,7 +104,7 @@ function RequestEditorForm({ onDone }: { onDone: () => void }) {
         onChange={(e) => setMessage(e.target.value)}
 
         className="w-full rounded-md border px-2 py-1.5 text-xs text-gray-900 outline-none"
-        style={{ borderColor: "#d1d5db" }}
+        style={{ borderColor: message.trim().length >= 3 ? "#22c55e" : message.trim() ? "#ef4444" : "#d1d5db" }}
       />
       <button
         type="button"

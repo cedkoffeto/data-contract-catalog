@@ -351,7 +351,7 @@ export function ContractComments({
                 value={body}
                 onChange={handleTextChange}
                 onKeyDown={handleKeyDown}
-                style={{ borderColor: "#e5e7eb" }}
+                style={{ borderColor: body.trim() ? "#22c55e" : "#e5e7eb" }}
               />
             </div>
 

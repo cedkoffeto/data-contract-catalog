@@ -157,7 +157,7 @@ export function RequestEditorUpgrade({
                     placeholder={t("whyEditorPlaceholder")}
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    style={{ borderColor: "#e5e7eb" }}
+                    style={{ borderColor: message.trim().length >= 3 ? "#22c55e" : message.trim() ? "#ef4444" : "#e5e7eb" }}
                   />
                   {message.trim() && message.trim().length < 3 && (
                     <p className="mt-1 text-xs text-red-500">{t("minCharsRequired")}</p>
