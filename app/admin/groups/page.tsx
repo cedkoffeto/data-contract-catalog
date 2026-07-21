@@ -220,10 +220,10 @@ export default function GroupsPage() {
         <h2 className="mb-4 text-base font-semibold text-gray-900">{t("createNewGroup")}</h2>
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex-1" style={{ minWidth: "400px" }}>
-            <label className="mb-1 block text-xs font-medium text-gray-500">{t("groupName")}</label>
+            <label className="mb-1 block text-xs font-medium text-gray-500">{t("groupName")} <span className="text-red-500">*</span></label>
             <input
-              className="w-full rounded-md border bg-white px-3 py-2 text-sm text-gray-900"
-              style={{ borderColor: "#d1d5db" }}
+              className="w-full rounded-md border bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:ring-0"
+              style={{ borderColor: newName.trim() ? "#22c55e" : "#ef4444" }}
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => {

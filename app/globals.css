@@ -1221,7 +1221,7 @@ a:has(> .kpi-card) {
   flex-wrap: nowrap;
   gap: 0.4rem;
   align-items: center;
-  overflow-x: auto;
+  overflow-x: clip;
 }
 
 .catalog-searchbar__multi .ss-multi {
@@ -5009,7 +5009,6 @@ body[data-ra-modal] [data-ra-overlay] {
 .ss-multi__trigger {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 0.4rem;
   padding: 0.4rem 0.55rem;
   border: 1px solid var(--ui-subtle);
@@ -5017,7 +5016,7 @@ body[data-ra-modal] [data-ra-overlay] {
   background: #fff;
   cursor: pointer;
   min-height: 2.2rem;
-  flex-wrap: wrap;
+  overflow: hidden;
 }
 
 .ss-multi__trigger:hover {

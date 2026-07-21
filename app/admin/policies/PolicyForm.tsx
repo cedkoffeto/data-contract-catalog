@@ -62,7 +62,7 @@ function UserAutocomplete({
         type="button"
         className="flex w-full items-center justify-between rounded-md border bg-white px-3 py-2 text-sm"
         style={{
-          borderColor: isValid ? "#22c55e" : value && !isValid ? "#ef4444" : "#d1d5db",
+          borderColor: isValid ? "#22c55e" : "#ef4444",
           color: value ? "#111827" : "#9ca3af",
         }}
         onClick={() => setOpen(!open)}
@@ -406,10 +406,10 @@ function PermissionSelect({
       <button
         type="button"
         className="flex w-full items-center justify-between rounded-md border bg-white px-3 py-2 text-sm text-gray-900"
-        style={{ borderColor: "#d1d5db" }}
+        style={{ borderColor: value ? "#22c55e" : "#ef4444" }}
         onClick={() => setOpen(!open)}
       >
-        <span>{selected ? selected.name : "Select\u2026"}</span>
+        <span className={!value ? "text-gray-400" : ""}>{selected ? selected.name : "Select\u2026"}</span>
         <svg className={`h-4 w-4 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </svg>
