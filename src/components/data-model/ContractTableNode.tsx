@@ -2,7 +2,7 @@
 
 import { memo, useContext, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { Handle, Position, NodeResizeControl, ResizeControlVariant, type NodeProps } from "@xyflow/react";
 import { Table, Key, ChevronUp, ChevronDown, Info } from "lucide-react";
 import { ViewModeCtx } from "./ModelGraph";
 import type { ContractTableNodeData } from "@/src/lib/data-model";
@@ -42,8 +42,22 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
       className={`rounded-xl border-2 transition-shadow ${
         selected ? "border-blue-500 shadow-[0_4px_16px_rgba(0,0,0,0.1)]" : isSearchMatch ? "border-green-500 shadow-[0_4px_16px_rgba(0,0,0,0.1)]" : "border-gray-200 shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.1)]"
       }`}
-      style={{ width: 260, position: "relative" }}
+      style={{ position: "relative" }}
     >
+      <NodeResizeControl
+        position="left"
+        variant={ResizeControlVariant.Line}
+        className="!bg-transparent !opacity-0 hover:!opacity-100 !w-[6px] !left-[-3px] !border-0"
+        minWidth={180}
+        maxWidth={600}
+      />
+      <NodeResizeControl
+        position="right"
+        variant={ResizeControlVariant.Line}
+        className="!bg-transparent !opacity-0 hover:!opacity-100 !w-[6px] !right-[-3px] !border-0"
+        minWidth={180}
+        maxWidth={600}
+      />
       <Handle type="source" position={Position.Right} className="!w-0 !h-0 !border-0 !bg-transparent !opacity-0" />
       <Handle type="target" position={Position.Left} className="!w-0 !h-0 !border-0 !bg-transparent !opacity-0" />
       <Handle type="source" position={Position.Bottom} id="bottom" className="!w-0 !h-0 !border-0 !bg-transparent !opacity-0" />
@@ -112,8 +126,14 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
             <div className="px-3 py-2 text-xs italic text-gray-400">No fields</div>
           )}
           {!showingDetailed && allFields.length > fields.length && (
-            <div className="px-3 py-1.5 text-[10px] text-gray-400 border-t border-gray-50">
-              {fields.length} connected · {allFields.length - fields.length} hidden
+            <div
+              className="group flex items-center gap-2 px-3 py-1.5 text-[10px] text-gray-400 border-t border-gray-50 cursor-pointer hover:bg-gray-50 hover:text-gray-500"
+              onClick={(e) => {
+                if (e.ctrlKey || e.metaKey) { e.stopPropagation(); window.open(`/contracts/${d.slug}`, "_blank", "noopener,noreferrer"); }
+                else onFieldClick?.(d.slug);
+              }}
+            >
+              <span>{fields.length} connected · {allFields.length - fields.length} hidden</span>
             </div>
           )}
           {fields.map((f) => {

@@ -197,8 +197,8 @@ export function GraphControls({
   return (
     <div className={`flex flex-row items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 shadow-md ${className ?? ""}`}>
       {/* Zoom */}
-      <button onClick={() => zoomIn()} className="flex h-7 w-7 items-center justify-center rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Zoom in">
-        <ZoomIn size={16} />
+      <button onClick={() => zoomOut()} className="flex h-7 w-7 items-center justify-center rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Zoom out">
+        <ZoomOut size={16} />
       </button>
       {editingZoom ? (
         <input
@@ -224,8 +224,8 @@ export function GraphControls({
           </span>
         </button>
       )}
-      <button onClick={() => zoomOut()} className="flex h-7 w-7 items-center justify-center rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Zoom out">
-        <ZoomOut size={16} />
+      <button onClick={() => zoomIn()} className="flex h-7 w-7 items-center justify-center rounded-md text-gray-500 hover:bg-gray-50 hover:text-gray-700" title="Zoom in">
+        <ZoomIn size={16} />
       </button>
       <button onClick={() => { setFitToggled(!fitToggled); if (!fitToggled) onFitViewVisible(); else zoomTo(1, { duration: 200 }); }} className={`flex h-7 w-7 items-center justify-center rounded-md hover:bg-gray-50 hover:text-gray-700 ${fitToggled ? "bg-gray-100 text-gray-700" : "text-gray-400"}`} title={fitToggled ? "Zoom 100%" : "Fit view"}>
         <Maximize2 size={16} />

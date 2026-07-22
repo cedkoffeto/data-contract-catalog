@@ -105,6 +105,7 @@ export type ContractTableNodeData = Record<string, unknown> & {
   fields: { name: string; type: string; description?: string }[];
   color: string;
   relationErrors?: { field: string; targetSlug: string; ref: string; message: string }[];
+  _customWidth?: number;
 };
 
 export type LoadedModel = {
@@ -411,15 +412,16 @@ function nodeHeight(node: Node, connectedFields?: Map<string, Map<string, number
     fieldCount++;
   }
 
-  // color strip 3px + header ~36px + fields (py-2=16px padding + ~16px text = ~32px each) + button ~24px + borders 4px
-  const chromeH = 3 + 36 + 24 + 4;
-  return Math.max(fieldCount * 32 + chromeH, 90);
+  // header py-2 + borderBottom 2px = 38px, border-2 top+bottom = 4px
+  const chromeH = 38 + 2;
+  return Math.max(fieldCount * 33 + chromeH, 90);
 }
 
 const NODE_WIDTH = 260;
 
-function nodeWidth(_node: Node): number {
-  return NODE_WIDTH;
+function nodeWidth(node: Node): number {
+  const custom = (node.data as ContractTableNodeData)?._customWidth;
+  return typeof custom === "number" && custom > 0 ? custom : NODE_WIDTH;
 }
 
 export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB" = "LR", connectedFields?: Map<string, Map<string, number>>, viewMode?: "detailed" | "compact", containerWidth?: number): { nodes: Node[]; edges: Edge[] } {
@@ -444,10 +446,7 @@ export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB"
   // Layout connected nodes with dagre
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-  const isCompact = viewMode === "compact";
-  const maxHeight = Math.max(...connected.map((n) => nodeHeight(n, connectedFields, viewMode)));
-  const computedNodesep = Math.max(isCompact ? 60 : 100, maxHeight + 40);
-  g.setGraph({ rankdir: direction, nodesep: computedNodesep, ranksep: isCompact ? 80 : 120, marginx: 80, marginy: 80 });
+  g.setGraph({ rankdir: direction, nodesep: 20, ranksep: 60, marginx: 80, marginy: 80 });
 
   for (const node of connected) {
     g.setNode(node.id, { width: nodeWidth(node), height: nodeHeight(node, connectedFields, viewMode) });
@@ -478,7 +477,7 @@ export function layoutGraph(nodes: Node[], edges: Edge[], direction: "LR" | "TB"
 
   // Position isolated nodes in a square grid left of the connected graph
   if (isolated.length > 0) {
-    const gap = 30;
+    const gap = 20;
     const heights = new Map<string, number>();
     for (const n of isolated) {
       heights.set(n.id, nodeHeight(n, connectedFields, viewMode));
@@ -515,7 +514,7 @@ export function layoutLayerGraph(nodes: Node[], edges: Edge[], connectedFields?:
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
   const LAYER_ORDER = ["bronze", "silver", "gold"];
   const COLUMN_WIDTH = 480;
-  const VERTICAL_GAP = 60;
+  const VERTICAL_GAP = 20;
 
   // Separate connected from orphan (isolated) nodes
   const connectedIds = new Set<string>();
@@ -626,8 +625,8 @@ export function layoutLayerGraph(nodes: Node[], edges: Edge[], connectedFields?:
 export function layoutDomainGraph(nodes: Node[], edges: Edge[], connectedFields?: Map<string, Map<string, number>>, viewMode?: "detailed" | "compact"): { nodes: Node[]; edges: Edge[] } {
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
   const COLUMN_WIDTH = 320;
-  const DOMAIN_GAP_X = 160;
-  const VERTICAL_GAP = 50;
+  const DOMAIN_GAP_X = 60;
+  const VERTICAL_GAP = 20;
 
   // Separate connected from orphan (isolated) nodes
   const connectedIds = new Set<string>();

@@ -82,11 +82,11 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
   const srcMeas = srcNode?.measured;
   const tgtMeas = tgtNode?.measured;
 
-  const HEADER_H = 39;
-  const FIELD_H = 32;
-  const SUMMARY_ROW_H = 26;
+  const HEADER_H = 38;
+  const FIELD_H = 33;
+  const SUMMARY_ROW_H = 27;
 
-  const sourceOffset = useMemo(() => {
+  const sourceFieldY = useMemo(() => {
     if (!srcNode || !srcMeas) return 0;
     const parsed = edgeData.parsed;
     const first = Array.isArray(parsed) ? parsed[0] : parsed;
@@ -95,11 +95,10 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
     const idx = fieldIndexMap.get(source)?.get(fieldName) ?? -1;
     if (idx < 0) return 0;
     const summaryOffset = nodesWithSummaryRow.has(source) ? SUMMARY_ROW_H : 0;
-    const fieldCenterY = HEADER_H + summaryOffset + idx * FIELD_H + FIELD_H / 2;
-    return fieldCenterY - (srcMeas.height ?? 100) / 2;
+    return HEADER_H + summaryOffset + idx * FIELD_H + FIELD_H / 2;
   }, [srcNode, srcMeas, edgeData.parsed, fieldIndexMap, nodesWithSummaryRow, source]);
 
-  const targetOffset = useMemo(() => {
+  const targetFieldY = useMemo(() => {
     if (!tgtNode || !tgtMeas) return 0;
     const parsed = edgeData.parsed;
     const first = Array.isArray(parsed) ? parsed[0] : parsed;
@@ -108,9 +107,18 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
     const idx = fieldIndexMap.get(target)?.get(fieldName) ?? -1;
     if (idx < 0) return 0;
     const summaryOffset = nodesWithSummaryRow.has(target) ? SUMMARY_ROW_H : 0;
-    const fieldCenterY = HEADER_H + summaryOffset + idx * FIELD_H + FIELD_H / 2;
-    return fieldCenterY - (tgtMeas.height ?? 100) / 2;
+    return HEADER_H + summaryOffset + idx * FIELD_H + FIELD_H / 2;
   }, [tgtNode, tgtMeas, edgeData.parsed, fieldIndexMap, nodesWithSummaryRow, target]);
+
+  const sourceOffset = useMemo(() => {
+    if (!srcMeas) return 0;
+    return sourceFieldY - (srcMeas.height ?? 100) / 2;
+  }, [srcMeas, sourceFieldY]);
+
+  const targetOffset = useMemo(() => {
+    if (!tgtMeas) return 0;
+    return targetFieldY - (tgtMeas.height ?? 100) / 2;
+  }, [tgtMeas, targetFieldY]);
 
   let sp = sourcePosition;
   let tp = targetPosition;

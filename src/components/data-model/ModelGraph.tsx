@@ -18,6 +18,7 @@ import {
   type Node,
   type Edge,
   type NodeProps,
+  type NodeChange,
   type Viewport,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -193,6 +194,20 @@ export function ModelGraph({
 
   const { setCenter, fitView } = useReactFlow();
   const fitKeyRef = useRef(0);
+
+  // Intercept resize events to persist _customWidth in node data
+  const handleNodesChange = useCallback((changes: NodeChange[]) => {
+    for (const change of changes) {
+      if (change.type === "dimensions" && change.dimensions) {
+        setNodes((nds) => nds.map((n) =>
+          n.id === change.id
+            ? { ...n, data: { ...n.data, _customWidth: change.dimensions!.width } }
+            : n
+        ));
+      }
+    }
+    onNodesChange(changes);
+  }, [onNodesChange, setNodes]);
 
   useEffect(() => { setEdges(initialEdges); }, [initialEdges, setEdges]);
 
@@ -380,7 +395,7 @@ export function ModelGraph({
         <ReactFlow
           nodes={nodes}
           edges={filteredEdges}
-          onNodesChange={onNodesChange}
+          onNodesChange={handleNodesChange}
           onEdgesChange={onEdgesChange}
           onNodeMouseEnter={handleMouseEnter}
           onNodeMouseLeave={handleMouseLeave}
