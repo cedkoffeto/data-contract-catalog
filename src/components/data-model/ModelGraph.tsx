@@ -107,6 +107,16 @@ export const ViewModeCtx = createContext<ViewModeValue>({
   nodesWithSummaryRow: new Set(),
 });
 
+export type FieldPosValue = {
+  fieldPositions: Map<string, Map<string, number>>;
+  onFieldPositions: (nodeId: string, positions: Map<string, number>) => void;
+};
+
+export const FieldPosCtx = createContext<FieldPosValue>({
+  fieldPositions: new Map(),
+  onFieldPositions: () => {},
+});
+
 export type EdgeRenderData = {
   path: string;
   sourceX: number;
@@ -191,6 +201,17 @@ export function ModelGraph({
   const edgeClickGuardRef = useRef(false);
   const edgeRenderDataRef = useRef(new Map<string, EdgeRenderData>());
   const [showGrid, setShowGrid] = useState(true);
+  const [fieldPositions, setFieldPositions] = useState<Map<string, Map<string, number>>>(new Map());
+
+  const handleFieldPositions = useCallback((nodeId: string, positions: Map<string, number>) => {
+    setFieldPositions((prev) => {
+      const existing = prev.get(nodeId);
+      if (existing && existing.size === positions.size && [...positions.entries()].every(([k, v]) => existing.get(k) === v)) return prev;
+      const next = new Map(prev);
+      next.set(nodeId, new Map(positions));
+      return next;
+    });
+  }, []);
 
   const { setCenter, fitView } = useReactFlow();
   const fitKeyRef = useRef(0);
@@ -388,9 +409,15 @@ export function ModelGraph({
     nodeMap,
   }), [highlightedNode, highlightedNeighbors, selectedEdge, hoveredEdgeId, handleHoveredEdgeChange, nodeMap]);
 
+  const fieldPosCtxValue = useMemo<FieldPosValue>(() => ({
+    fieldPositions,
+    onFieldPositions: handleFieldPositions,
+  }), [fieldPositions, handleFieldPositions]);
+
   return (
     <HighlightCtx.Provider value={highlightCtxValue}>
     <ViewModeCtx.Provider value={ctxValue}>
+    <FieldPosCtx.Provider value={fieldPosCtxValue}>
       <div className="data-model-graph relative h-full w-full">
         <ReactFlow
           nodes={nodes}
@@ -456,6 +483,7 @@ export function ModelGraph({
           />
         </ReactFlow>
       </div>
+    </FieldPosCtx.Provider>
     </ViewModeCtx.Provider>
     </HighlightCtx.Provider>
   );

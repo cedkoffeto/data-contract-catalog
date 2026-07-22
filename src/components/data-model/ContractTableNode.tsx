@@ -1,10 +1,10 @@
 "use client";
 
-import { memo, useContext, useMemo, useState } from "react";
+import { memo, useContext, useMemo, useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Handle, Position, NodeResizeControl, ResizeControlVariant, type NodeProps } from "@xyflow/react";
 import { Table, Key, ChevronUp, ChevronDown, Info } from "lucide-react";
-import { ViewModeCtx } from "./ModelGraph";
+import { ViewModeCtx, FieldPosCtx } from "./ModelGraph";
 import type { ContractTableNodeData } from "@/src/lib/data-model";
 
 const layerBorderColor: Record<string, string> = {
@@ -16,6 +16,8 @@ const layerBorderColor: Record<string, string> = {
 export const ContractTableNode = memo(function ContractTableNode({ selected, id, data }: NodeProps) {
   const d = data as ContractTableNodeData;
   const { viewMode, connectedFields, onHeaderClick, onFieldClick, searchMatchIds, collapsedTables, onToggleCollapse } = useContext(ViewModeCtx);
+  const { onFieldPositions } = useContext(FieldPosCtx);
+  const rootRef = useRef<HTMLDivElement>(null);
   const isSearchMatch = searchMatchIds?.has(id) ?? false;
   const allFields = d.fields;
   const nodeConnected = connectedFields.get(id);
@@ -37,8 +39,23 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
     return allFields.filter((f) => isConnected(f.name));
   }, [allFields, showingDetailed, connectedCount]);
 
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const positions = new Map<string, number>();
+    const nodeRect = el.getBoundingClientRect();
+    const fieldEls = el.querySelectorAll<HTMLElement>("[data-field]");
+    fieldEls.forEach((f) => {
+      const name = f.getAttribute("data-field")!;
+      const r = f.getBoundingClientRect();
+      positions.set(name, r.top - nodeRect.top + r.height / 2);
+    });
+    onFieldPositions(id, positions);
+  });
+
   return (
     <div
+      ref={rootRef}
       className={`rounded-xl border-2 transition-shadow ${
         selected ? "border-blue-500 shadow-[0_4px_16px_rgba(0,0,0,0.1)]" : isSearchMatch ? "border-green-500 shadow-[0_4px_16px_rgba(0,0,0,0.1)]" : "border-gray-200 shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.1)]"
       }`}
@@ -127,6 +144,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
           )}
           {!showingDetailed && allFields.length > fields.length && (
             <div
+              data-field="__summary__"
               className="group flex items-center gap-2 px-3 py-1.5 text-[10px] text-gray-400 border-t border-gray-50 cursor-pointer hover:bg-gray-50 hover:text-gray-500"
               onClick={(e) => {
                 if (e.ctrlKey || e.metaKey) { e.stopPropagation(); window.open(`/contracts/${d.slug}`, "_blank", "noopener,noreferrer"); }
@@ -140,7 +158,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
             const c = connectedCount.get(f.name) ?? 0;
             const edgeCount = c > 0 ? c : 0;
             return (
-              <div key={f.name} className="group relative flex min-w-0 cursor-pointer items-center gap-2 border-t border-gray-50 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50" onClick={(e) => {
+              <div key={f.name} data-field={f.name} className="group relative flex min-w-0 cursor-pointer items-center gap-2 border-t border-gray-50 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50" onClick={(e) => {
                 if (e.ctrlKey || e.metaKey) { e.stopPropagation(); window.open(`/contracts/${d.slug}`, "_blank", "noopener,noreferrer"); }
                 else onFieldClick?.(d.slug);
               }}>

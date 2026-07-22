@@ -7,7 +7,7 @@ import {
   Position,
   type EdgeProps,
 } from "@xyflow/react";
-import { HighlightCtx, ViewModeCtx } from "./ModelGraph";
+import { HighlightCtx, FieldPosCtx } from "./ModelGraph";
 
 const animStyleId = "dcc-edge-flow";
 
@@ -71,7 +71,7 @@ function portY(pos: Position, ny: number, nh: number): number {
 export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
   const [hovered, setHovered] = useState(false);
   const { highlightedNode, highlightedNeighbors, selectedEdge, nodeMap } = useContext(HighlightCtx);
-  const { fieldIndexMap, nodesWithSummaryRow } = useContext(ViewModeCtx);
+  const { fieldPositions } = useContext(FieldPosCtx);
 
   const { source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style, label, data, animated, id } = props;
 
@@ -82,43 +82,37 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
   const srcMeas = srcNode?.measured;
   const tgtMeas = tgtNode?.measured;
 
-  const HEADER_H = 38;
-  const FIELD_H = 33;
-  const SUMMARY_ROW_H = 27;
-
-  const sourceFieldY = useMemo(() => {
-    if (!srcNode || !srcMeas) return 0;
+  const srcFieldName = useMemo(() => {
     const parsed = edgeData.parsed;
     const first = Array.isArray(parsed) ? parsed[0] : parsed;
-    const fieldName = first?.left?.field;
-    if (!fieldName) return 0;
-    const idx = fieldIndexMap.get(source)?.get(fieldName) ?? -1;
-    if (idx < 0) return 0;
-    const summaryOffset = nodesWithSummaryRow.has(source) ? SUMMARY_ROW_H : 0;
-    return HEADER_H + summaryOffset + idx * FIELD_H + FIELD_H / 2;
-  }, [srcNode, srcMeas, edgeData.parsed, fieldIndexMap, nodesWithSummaryRow, source]);
+    return first?.left?.field as string | undefined;
+  }, [edgeData.parsed]);
 
-  const targetFieldY = useMemo(() => {
-    if (!tgtNode || !tgtMeas) return 0;
+  const tgtFieldName = useMemo(() => {
     const parsed = edgeData.parsed;
     const first = Array.isArray(parsed) ? parsed[0] : parsed;
-    const fieldName = first?.right?.field;
-    if (!fieldName) return 0;
-    const idx = fieldIndexMap.get(target)?.get(fieldName) ?? -1;
-    if (idx < 0) return 0;
-    const summaryOffset = nodesWithSummaryRow.has(target) ? SUMMARY_ROW_H : 0;
-    return HEADER_H + summaryOffset + idx * FIELD_H + FIELD_H / 2;
-  }, [tgtNode, tgtMeas, edgeData.parsed, fieldIndexMap, nodesWithSummaryRow, target]);
+    return first?.right?.field as string | undefined;
+  }, [edgeData.parsed]);
+
+  const srcFieldY = useMemo(() => {
+    if (!srcFieldName) return 0;
+    return fieldPositions.get(source)?.get(srcFieldName) ?? 0;
+  }, [fieldPositions, source, srcFieldName]);
+
+  const tgtFieldY = useMemo(() => {
+    if (!tgtFieldName) return 0;
+    return fieldPositions.get(target)?.get(tgtFieldName) ?? 0;
+  }, [fieldPositions, target, tgtFieldName]);
 
   const sourceOffset = useMemo(() => {
-    if (!srcMeas) return 0;
-    return sourceFieldY - (srcMeas.height ?? 100) / 2;
-  }, [srcMeas, sourceFieldY]);
+    if (!srcMeas || !srcFieldY) return 0;
+    return srcFieldY - (srcMeas.height ?? 100) / 2;
+  }, [srcMeas, srcFieldY]);
 
   const targetOffset = useMemo(() => {
-    if (!tgtMeas) return 0;
-    return targetFieldY - (tgtMeas.height ?? 100) / 2;
-  }, [tgtMeas, targetFieldY]);
+    if (!tgtMeas || !tgtFieldY) return 0;
+    return tgtFieldY - (tgtMeas.height ?? 100) / 2;
+  }, [tgtMeas, tgtFieldY]);
 
   let sp = sourcePosition;
   let tp = targetPosition;
