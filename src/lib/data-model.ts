@@ -94,6 +94,7 @@ export type GraphData = {
   nodes: Node[];
   edges: Edge[];
   orphanRefs: string[];
+  orphanEdgeRefs: string[];
 };
 
 export type ContractTableNodeData = Record<string, unknown> & {
@@ -262,6 +263,7 @@ export function parseContractsToGraph(
   }
 
   // Collect relation errors: edges where the referenced field doesn't exist
+  const orphanEdgeRefs: string[] = [];
   for (const e of edges) {
     const d = e.data as { ref?: string; parsed?: { left: ResolvedContract; right: ResolvedContract } };
     const parsed = d?.parsed;
@@ -273,6 +275,7 @@ export function parseContractsToGraph(
         const msg = `${d.ref ?? ""}: field "${parsed.left.field}" not found in ${parsed.left.slug}`;
         srcData.relationErrors = srcData.relationErrors || [];
         srcData.relationErrors.push({ field: parsed.left.field, targetSlug: parsed.right.slug, ref: d.ref ?? "", message: msg });
+        if (d.ref) orphanEdgeRefs.push(d.ref);
       }
     }
     if (!e.targetHandle) {
@@ -282,13 +285,25 @@ export function parseContractsToGraph(
         const msg = `${d.ref ?? ""}: field "${parsed.right.field}" not found in ${parsed.right.slug}`;
         tgtData.relationErrors = tgtData.relationErrors || [];
         tgtData.relationErrors.push({ field: parsed.right.field, targetSlug: parsed.left.slug, ref: d.ref ?? "", message: msg });
+        if (d.ref) orphanEdgeRefs.push(d.ref);
       }
     }
   }
 
+  // Filter out edges where sourceHandle or targetHandle doesn't match a real field
+  const validEdges = edges.filter((e) => {
+    if (!e.sourceHandle || !e.targetHandle) return false;
+    const srcNode = nodeMap.get(e.source);
+    const tgtNode = nodeMap.get(e.target);
+    if (!srcNode || !tgtNode) return false;
+    const srcFields = new Set((srcNode.data as ContractTableNodeData).fields?.map((f) => f.name));
+    const tgtFields = new Set((tgtNode.data as ContractTableNodeData).fields?.map((f) => f.name));
+    return srcFields.has(e.sourceHandle) && tgtFields.has(e.targetHandle);
+  });
+
   // Merge edges by table pair + cardinality direction (one edge per direction)
   const mergeMap = new Map<string, Edge>();
-  for (const e of edges) {
+  for (const e of validEdges) {
     const ed = e.data as { cardSource?: string; cardTarget?: string; ref_name?: string; ref?: string; parsed?: any };
     const mergeKey = `${e.source}|${e.target}|${ed.cardSource}|${ed.cardTarget}`;
     const existing = mergeMap.get(mergeKey);
@@ -298,9 +313,8 @@ export function parseContractsToGraph(
       existingEd.parsed = [...(existingEd.parsed ?? []), ed.parsed];
       existing.label = [existing.label, e.label].filter(Boolean).join(", ");
     } else {
-      const { sourceHandle, targetHandle, ...rest } = e;
       mergeMap.set(mergeKey, {
-        ...rest,
+        ...e,
         data: {
           ...ed,
           refs: [ed.ref_name ?? ed.ref ?? ""],
@@ -314,6 +328,7 @@ export function parseContractsToGraph(
     nodes: Array.from(nodeMap.values()),
     edges: Array.from(mergeMap.values()),
     orphanRefs,
+    orphanEdgeRefs: [...new Set(orphanEdgeRefs)],
   };
 }
 

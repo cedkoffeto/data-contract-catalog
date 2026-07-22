@@ -102,7 +102,7 @@ export function DataModelEditor({
     } catch {}
   }
 
-  const { nodes: rawNodes, edges, orphanRefs } = useMemo(
+  const { nodes: rawNodes, edges, orphanRefs, orphanEdgeRefs } = useMemo(
     () => parseContractsToGraph(contracts, models),
     [contracts, models],
   );
@@ -150,15 +150,40 @@ export function DataModelEditor({
   const [laidOutNodes, setLaidOutNodes] = useState<FlowNode[]>(() => layoutByMode(rawNodes, layoutEdges, layoutMode, connectedFields, viewMode, 0).nodes);
   const layoutWidthRef = useRef(0);
 
+  const [visibleTablesState, setVisibleTablesState] = useState<Set<string>>(() =>
+    new Set(rawNodes.map((n) => n.id)),
+  );
+
+  const customWidthsRef = useRef<Map<string, number>>(new Map());
+  const resizeDebounceRef = useRef<ReturnType<typeof setTimeout>>();
+
   function relayoutVisible(prev: FlowNode[]): FlowNode[] {
     const ids = new Set(visibleTablesState);
-    const visibleNodes = rawNodes.filter((n) => ids.has(n.id));
+    const nodesWithWidths = rawNodes.map((n) => {
+      const w = customWidthsRef.current.get(n.id);
+      return typeof w === "number" ? { ...n, data: { ...n.data, _customWidth: w } } : n;
+    });
+    const visibleNodes = nodesWithWidths.filter((n) => ids.has(n.id));
     const visibleEdges = layoutEdges.filter((e) => ids.has(e.source) && ids.has(e.target));
     const { nodes: laidOut } = layoutByMode(visibleNodes, visibleEdges, layoutMode, connectedFields, viewMode, layoutWidthRef.current);
     const newPosMap = new Map(laidOut.map((n) => [n.id, n]));
     const prevMap = new Map(prev.map((n) => [n.id, n]));
     return rawNodes.map((n) => newPosMap.get(n.id) ?? prevMap.get(n.id) ?? n);
   }
+
+  const handleNodeResize = useCallback((nodeId: string, width: number) => {
+    customWidthsRef.current.set(nodeId, width);
+    clearTimeout(resizeDebounceRef.current);
+    resizeDebounceRef.current = setTimeout(() => {
+      setLaidOutNodes((prev) => relayoutVisible(prev));
+    }, 300);
+  }, [rawNodes, layoutEdges, layoutMode, connectedFields, viewMode, visibleTablesState]);
+
+  useEffect(() => { savePrefs({ layoutMode }); }, [layoutMode]);
+  useEffect(() => { savePrefs({ viewMode }); }, [viewMode]);
+  useEffect(() => { savePrefs({ layerFilter }); }, [layerFilter]);
+
+  useEffect(() => () => clearTimeout(resizeDebounceRef.current), []);
 
   // Only re-layout when layout-critical props change (NOT on every resize)
   useEffect(() => {
@@ -171,14 +196,6 @@ export function DataModelEditor({
     layoutWidthRef.current = containerWidth;
     setLaidOutNodes(relayoutVisible);
   }, [layoutMode, containerWidth]);
-
-  const [visibleTablesState, setVisibleTablesState] = useState<Set<string>>(() =>
-    new Set(rawNodes.map((n) => n.id)),
-  );
-
-  useEffect(() => { savePrefs({ layoutMode }); }, [layoutMode]);
-  useEffect(() => { savePrefs({ viewMode }); }, [viewMode]);
-  useEffect(() => { savePrefs({ layerFilter }); }, [layerFilter]);
 
   useEffect(() => {
     if (!focusSlug || rawNodes.length === 0) return;
@@ -295,8 +312,10 @@ export function DataModelEditor({
               visibleCount={visibleTablesState.size}
               totalCount={rawNodes.length}
               orphanRefs={orphanRefs}
+              orphanEdgeRefs={orphanEdgeRefs}
               collapsedTables={collapsedTables}
               onToggleCollapse={handleToggleCollapse}
+              onNodeResize={handleNodeResize}
             />
           </div>
         </div>

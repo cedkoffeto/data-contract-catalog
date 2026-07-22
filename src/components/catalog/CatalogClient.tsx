@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { CatalogCard } from "@/src/components/catalog/CatalogCard";
 import { Button } from "@/src/components/ui/Button";
@@ -48,6 +49,38 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
   const { t, tWith } = useT();
   const { showToast } = useToast();
   const [showGitError, setShowGitError] = useState(gitError ?? false);
+  const [retrying, setRetrying] = useState(false);
+  const router = useRouter();
+  const autoRetryRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const retryGitLab = useCallback(async () => {
+    if (retrying) return;
+    setRetrying(true);
+    try {
+      const res = await fetch("/api/contracts/retry-git", { method: "POST" });
+      const data = await res.json();
+      if (data.gitError) {
+        setShowGitError(true);
+      } else {
+        setShowGitError(false);
+        router.refresh();
+      }
+    } catch {
+      setShowGitError(true);
+    } finally {
+      setRetrying(false);
+    }
+  }, [retrying, router]);
+
+  useEffect(() => {
+    if (showGitError && !retrying) {
+      autoRetryRef.current = setTimeout(() => {
+        retryGitLab();
+      }, 30000);
+      return () => clearTimeout(autoRetryRef.current!);
+    }
+  }, [showGitError, retrying, retryGitLab]);
+
   const [cards, setCards] = useState(initialCards);
   const cardsRef = useRef(cards);
   cardsRef.current = cards;
@@ -57,14 +90,6 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
   const [appliedMultiFilters, setAppliedMultiFilters] = useState<Record<string, string[]>>({});
   const [debouncedFreeText, setDebouncedFreeText] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
-
-  useEffect(() => {
-    if (gitError) {
-      setShowGitError(true);
-      const timer = setTimeout(() => setShowGitError(false), 15000);
-      return () => clearTimeout(timer);
-    }
-  }, [gitError]);
 
   useEffect(() => {
     clearTimeout(debounceRef.current);
@@ -328,8 +353,16 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
   return (
     <div className="catalog-shell">
       {showGitError ? (
-        <div className="mb-4 rounded-md border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800 shadow-sm">
-          Impossible de récupérer les contrats depuis GitLab. Les contrats locaux sont affichés à la place.
+        <div className="mb-4 flex items-center justify-between rounded-md border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800 shadow-sm">
+          <span>Impossible de récupérer les contrats depuis GitLab. Les contrats locaux sont affichés à la place.</span>
+          <Button
+            variant="outline"
+            onClick={retryGitLab}
+            disabled={retrying}
+            className="ml-4 shrink-0 border-orange-300 text-orange-700 hover:bg-orange-100"
+          >
+            {retrying ? "Rechargement..." : "Réessayer"}
+          </Button>
         </div>
       ) : null}
       <section className="catalog-header">
