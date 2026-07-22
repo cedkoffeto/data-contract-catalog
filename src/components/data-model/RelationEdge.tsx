@@ -71,7 +71,7 @@ function portY(pos: Position, ny: number, nh: number): number {
 export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
   const [hovered, setHovered] = useState(false);
   const { highlightedNode, highlightedNeighbors, selectedEdge, nodeMap } = useContext(HighlightCtx);
-  const { fieldPositions } = useContext(FieldPosCtx);
+  const { fieldPositions, nodeHeights } = useContext(FieldPosCtx);
 
   const { source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style, label, data, animated, id } = props;
 
@@ -105,14 +105,16 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
   }, [fieldPositions, target, tgtFieldName]);
 
   const sourceOffset = useMemo(() => {
-    if (!srcMeas || !srcFieldY) return 0;
-    return srcFieldY - (srcMeas.height ?? 100) / 2;
-  }, [srcMeas, srcFieldY]);
+    const h = nodeHeights.get(source) ?? srcMeas?.height ?? 100;
+    if (!srcFieldY) return 0;
+    return srcFieldY - h / 2;
+  }, [nodeHeights, source, srcMeas, srcFieldY]);
 
   const targetOffset = useMemo(() => {
-    if (!tgtMeas || !tgtFieldY) return 0;
-    return tgtFieldY - (tgtMeas.height ?? 100) / 2;
-  }, [tgtMeas, tgtFieldY]);
+    const h = nodeHeights.get(target) ?? tgtMeas?.height ?? 100;
+    if (!tgtFieldY) return 0;
+    return tgtFieldY - h / 2;
+  }, [nodeHeights, target, tgtMeas, tgtFieldY]);
 
   let sp = sourcePosition;
   let tp = targetPosition;

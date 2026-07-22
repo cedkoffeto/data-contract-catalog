@@ -109,11 +109,13 @@ export const ViewModeCtx = createContext<ViewModeValue>({
 
 export type FieldPosValue = {
   fieldPositions: Map<string, Map<string, number>>;
-  onFieldPositions: (nodeId: string, positions: Map<string, number>) => void;
+  nodeHeights: Map<string, number>;
+  onFieldPositions: (nodeId: string, positions: Map<string, number>, height: number) => void;
 };
 
 export const FieldPosCtx = createContext<FieldPosValue>({
   fieldPositions: new Map(),
+  nodeHeights: new Map(),
   onFieldPositions: () => {},
 });
 
@@ -202,13 +204,20 @@ export function ModelGraph({
   const edgeRenderDataRef = useRef(new Map<string, EdgeRenderData>());
   const [showGrid, setShowGrid] = useState(true);
   const [fieldPositions, setFieldPositions] = useState<Map<string, Map<string, number>>>(new Map());
+  const [nodeHeights, setNodeHeights] = useState<Map<string, number>>(new Map());
 
-  const handleFieldPositions = useCallback((nodeId: string, positions: Map<string, number>) => {
+  const handleFieldPositions = useCallback((nodeId: string, positions: Map<string, number>, height: number) => {
     setFieldPositions((prev) => {
       const existing = prev.get(nodeId);
       if (existing && existing.size === positions.size && [...positions.entries()].every(([k, v]) => existing.get(k) === v)) return prev;
       const next = new Map(prev);
       next.set(nodeId, new Map(positions));
+      return next;
+    });
+    setNodeHeights((prev) => {
+      if (prev.get(nodeId) === height) return prev;
+      const next = new Map(prev);
+      next.set(nodeId, height);
       return next;
     });
   }, []);
@@ -411,8 +420,9 @@ export function ModelGraph({
 
   const fieldPosCtxValue = useMemo<FieldPosValue>(() => ({
     fieldPositions,
+    nodeHeights,
     onFieldPositions: handleFieldPositions,
-  }), [fieldPositions, handleFieldPositions]);
+  }), [fieldPositions, nodeHeights, handleFieldPositions]);
 
   return (
     <HighlightCtx.Provider value={highlightCtxValue}>

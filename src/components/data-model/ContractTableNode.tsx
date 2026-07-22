@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useContext, useMemo, useState, useRef, useEffect } from "react";
+import { memo, useContext, useMemo, useState, useRef, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { Handle, Position, NodeResizeControl, ResizeControlVariant, type NodeProps } from "@xyflow/react";
 import { Table, Key, ChevronUp, ChevronDown, Info } from "lucide-react";
@@ -39,7 +39,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
     return allFields.filter((f) => isConnected(f.name));
   }, [allFields, showingDetailed, connectedCount]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = rootRef.current;
     if (!el) return;
     const positions = new Map<string, number>();
@@ -50,7 +50,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
       const r = f.getBoundingClientRect();
       positions.set(name, r.top - nodeRect.top + r.height / 2);
     });
-    onFieldPositions(id, positions);
+    onFieldPositions(id, positions, nodeRect.height);
   });
 
   return (
