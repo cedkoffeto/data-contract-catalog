@@ -18,6 +18,11 @@
 - [ ] Conserver `sourceHandle` / `targetHandle` dans le merge des edges (`data-model.ts:301` — destructuring les supprime)
 - [ ] Simplifier `RelationEdge` : supprimer le calcul manuel de `sx`/`sy`/`tx`/`ty`/offsets, utiliser les positions fournies par React Flow
 
+### Liens avec champs src/dest inexistants
+- [ ] Filtrer les edges dont le `sourceHandle` (champ source) ou `targetHandle` (champ cible) n'existe pas dans les fields du noeud correspondant
+- [ ] Afficher un warning/indicator quand des edges sont masqués à cause de champs inexistants (similaire au badge "broken references")
+- [ ] Log/console.warn quand un edge référence un champ introuvable (debug)
+
 ### Badge counts contextes (Multicritère)
 - [x] `CatalogClient.tsx:601` — `contextCountsFiltered[context]` → `contextCounts[context]`
 
