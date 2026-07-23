@@ -214,8 +214,12 @@ export function DataModelEditor({
       return true;
     });
     if (node) {
-      setCenterSlug(node.id);
-      setCenterKey((k) => k + 1);
+      // Delay to let React Flow measure nodes after first render
+      const t = setTimeout(() => {
+        setCenterSlug(node.id);
+        setCenterKey((k) => k + 1);
+      }, 150);
+      return () => clearTimeout(t);
     }
   }, [focusSlug, focusDomain, focusContext, rawNodes]);
 
