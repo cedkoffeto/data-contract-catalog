@@ -6,9 +6,13 @@ export const metadata = {
   description: "Interactive lineage graph for data contracts",
 };
 
-export default async function DataModelPage(props: { searchParams?: Promise<{ slug?: string }> }) {
+export default async function DataModelPage(props: {
+  searchParams?: Promise<{ slug?: string; domain?: string; context?: string }>;
+}) {
   const searchParams = await props.searchParams;
   const focusSlug = searchParams?.slug ?? null;
+  const focusDomain = searchParams?.domain ?? null;
+  const focusContext = searchParams?.context ?? null;
 
   return (
     <>
@@ -16,7 +20,11 @@ export default async function DataModelPage(props: { searchParams?: Promise<{ sl
       <PageShell showFooter={false}>
         <div className="flex flex-1 flex-col overflow-hidden">
           <div className="relative min-h-0 flex-1">
-            <DataModelClient focusSlug={focusSlug} />
+            <DataModelClient
+              focusSlug={focusSlug}
+              focusDomain={focusDomain}
+              focusContext={focusContext}
+            />
           </div>
         </div>
       </PageShell>

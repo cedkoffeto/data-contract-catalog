@@ -25,7 +25,15 @@ function LoadingSkeleton() {
   );
 }
 
-export function DataModelClient({ focusSlug }: { focusSlug: string | null }) {
+export function DataModelClient({
+  focusSlug,
+  focusDomain,
+  focusContext,
+}: {
+  focusSlug: string | null;
+  focusDomain?: string | null;
+  focusContext?: string | null;
+}) {
   const [contracts, setContracts] = useState<DataModelContract[] | null>(null);
   const [models, setModels] = useState<LoadedModel[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -70,5 +78,13 @@ export function DataModelClient({ focusSlug }: { focusSlug: string | null }) {
     return <LoadingSkeleton />;
   }
 
-  return <DataModelEditor contracts={contracts} models={models} focusSlug={focusSlug} />;
+  return (
+    <DataModelEditor
+      contracts={contracts}
+      models={models}
+      focusSlug={focusSlug}
+      focusDomain={focusDomain}
+      focusContext={focusContext}
+    />
+  );
 }

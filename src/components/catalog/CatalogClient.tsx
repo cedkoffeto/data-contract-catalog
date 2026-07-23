@@ -54,7 +54,6 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
   const [searchMode, setSearchMode] = useState<"free" | "multi">("free");
   const [freeText, setFreeText] = useState("");
   const [multiFilters, setMultiFilters] = useState<Record<string, string[]>>({});
-  const [appliedMultiFilters, setAppliedMultiFilters] = useState<Record<string, string[]>>({});
   const [debouncedFreeText, setDebouncedFreeText] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -145,7 +144,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
 
   const [domainCounts, contextCounts, maturityCounts, contextCountsFiltered] = useMemo(() => {
     const ft = debouncedFreeText.trim().toLowerCase();
-    const mfEntries = Object.entries(appliedMultiFilters);
+    const mfEntries = Object.entries(multiFilters);
 
     function matchMultiSkip(card: CatalogCardType, skipField: string | null): boolean {
       for (const [field, values] of mfEntries) {
@@ -203,11 +202,11 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
     }
 
     return [dc, cc, mc, ccf];
-  }, [cards, debouncedFreeText, appliedMultiFilters, selectedDomain, selectedContexts, selectedMaturities, showOnlyAccessible, showFavoritesOnly]);
+  }, [cards, debouncedFreeText, multiFilters, selectedDomain, selectedContexts, selectedMaturities, showOnlyAccessible, showFavoritesOnly]);
 
   const visibleCards = useMemo(() => {
     const ft = debouncedFreeText.trim().toLowerCase();
-    const mf = appliedMultiFilters;
+    const mf = multiFilters;
 
     return cards
       .filter((card) => {
@@ -232,7 +231,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
         if (aFav !== bFav) return aFav - bFav;
         return a.title.localeCompare(b.title);
       });
-  }, [cards, debouncedFreeText, appliedMultiFilters, selectedDomain, selectedContexts, selectedMaturities, showOnlyAccessible, showFavoritesOnly]);
+  }, [cards, debouncedFreeText, multiFilters, selectedDomain, selectedContexts, selectedMaturities, showOnlyAccessible, showFavoritesOnly]);
 
   const handleTogglePin = useCallback(async (slug: string) => {
     const card = cardsRef.current.find((c) => c.slug === slug);
@@ -314,17 +313,6 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
     return opts;
   }, [cards]);
 
-  const hasActiveMultiFilters = Object.values(multiFilters).some((arr) => arr.length > 0);
-
-  function handleApplyMultiSearch() {
-    setAppliedMultiFilters({ ...multiFilters });
-  }
-
-  function handleResetMultiSearch() {
-    setMultiFilters({});
-    setAppliedMultiFilters({});
-  }
-
   return (
     <div className="catalog-shell">
       {showGitError ? (
@@ -362,8 +350,8 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
               {t("searchMulti")}
             </button>
           </div>
-          {searchMode === "multi" && hasActiveMultiFilters && (
-            <Button variant="outline" onClick={handleResetMultiSearch}>
+          {searchMode === "multi" && Object.values(multiFilters).some((arr) => arr.length > 0) && (
+            <Button variant="outline" onClick={() => setMultiFilters({})}>
               {t("reset")}
             </Button>
           )}
@@ -401,15 +389,6 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
                   placeholder={t(field.placeholder)}
                 />
               ))}
-              <Button
-                onClick={handleApplyMultiSearch}
-                disabled={!hasActiveMultiFilters}
-                className="catalog-searchbar__search-btn"
-              >
-                <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                  <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
-                </svg>
-              </Button>
             </div>
           </>
         )}
@@ -474,7 +453,6 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
                 onClick={() => {
                   setFreeText("");
                   setMultiFilters({});
-                  setAppliedMultiFilters({});
                   setSelectedDomain(ALL_DOMAINS);
                   setSelectedContexts(new Set());
                   setSelectedMaturities(new Set());

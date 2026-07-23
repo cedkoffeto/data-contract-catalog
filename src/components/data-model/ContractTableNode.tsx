@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useContext, useMemo, useState, useRef, useLayoutEffect } from "react";
+import { memo, useContext, useMemo, useState, useRef, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Handle, Position, NodeResizeControl, ResizeControlVariant, type NodeProps } from "@xyflow/react";
 import { Table, Key, ChevronUp, ChevronDown, Info } from "lucide-react";
@@ -39,7 +39,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
     return allFields.filter((f) => isConnected(f.name));
   }, [allFields, showingDetailed, connectedCount]);
 
-  useLayoutEffect(() => {
+  const measure = useCallback(() => {
     const el = rootRef.current;
     if (!el) return;
     const positions = new Map<string, number>();
@@ -51,7 +51,16 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
       positions.set(name, r.top - nodeRect.top + r.height / 2);
     });
     onFieldPositions(id, positions, nodeRect.height);
-  });
+  }, [id, onFieldPositions]);
+
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    measure();
+    const ro = new ResizeObserver(() => measure());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [measure]);
 
   return (
     <div
@@ -162,12 +171,12 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
                 if (e.ctrlKey || e.metaKey) { e.stopPropagation(); window.open(`/contracts/${d.slug}`, "_blank", "noopener,noreferrer"); }
                 else onFieldClick?.(d.slug);
               }}>
+                <span className={`min-w-0 font-mono text-[11px] leading-none break-all ${edgeCount > 0 ? "font-bold text-gray-900" : "text-gray-600"}`}>{f.name}</span>
                 {edgeCount > 0 ? (
                   <Key size={10} className="shrink-0 text-amber-500" />
                 ) : (
                   <span className="w-[10px] shrink-0" />
                 )}
-                <span className={`min-w-0 font-mono text-[11px] leading-none break-all ${edgeCount > 0 ? "font-bold text-gray-900" : "text-gray-600"}`}>{f.name}</span>
                 <span className="w-4 shrink-0 flex items-center justify-center">
                   {f.description && (
                     <Info

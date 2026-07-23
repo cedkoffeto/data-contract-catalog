@@ -25,7 +25,7 @@ export default function AdminError({
       <div className="flex flex-1 flex-col">
         <main className="pb-7">
           <div className="mx-auto flex min-h-[60vh] max-w-7xl items-center justify-center px-6 pb-8 pt-10 lg:px-8">
-            <div className="w-full max-w-xl rounded-xl border bg-white shadow-lg">
+            <div className="w-full max-w-xl rounded-xl border border-[#d1d5db] bg-white shadow-lg">
               <div className="p-12 text-center">
                 <div className="flex items-center justify-between">
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-50">

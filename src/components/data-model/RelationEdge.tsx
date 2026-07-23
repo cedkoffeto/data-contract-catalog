@@ -56,6 +56,13 @@ function getPortPosition(dx: number): Position {
   return dx >= 0 ? Position.Right : Position.Left;
 }
 
+function getOppositePort(pos: Position): Position {
+  if (pos === Position.Right) return Position.Left;
+  if (pos === Position.Left) return Position.Right;
+  if (pos === Position.Top) return Position.Bottom;
+  return Position.Top;
+}
+
 function portX(pos: Position, nx: number, nw: number): number {
   if (pos === Position.Left) return nx;
   if (pos === Position.Right) return nx + nw;
@@ -70,8 +77,8 @@ function portY(pos: Position, ny: number, nh: number): number {
 
 export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
   const [hovered, setHovered] = useState(false);
-  const { highlightedNode, highlightedNeighbors, selectedEdge, nodeMap } = useContext(HighlightCtx);
-  const { fieldPositions, nodeHeights } = useContext(FieldPosCtx);
+  const { highlightedNode, highlightedNeighbors, selectedEdge, nodeMap, onHoveredEdgeChange } = useContext(HighlightCtx);
+  const { fieldPositions, nodeHeights, fieldPorts } = useContext(FieldPosCtx);
 
   const { source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style, label, data, animated, id } = props;
 
@@ -124,12 +131,11 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
   let ty = targetY;
 
   if (srcNode && tgtNode && srcMeas && tgtMeas) {
-    const scx = srcNode.position.x + (srcMeas.width ?? 220) / 2;
-    const scy = srcNode.position.y + (srcMeas.height ?? 40) / 2;
-    const tcx = tgtNode.position.x + (tgtMeas.width ?? 220) / 2;
-    const tcy = tgtNode.position.y + (tgtMeas.height ?? 40) / 2;
-    sp = getPortPosition(tcx - scx);
-    tp = getPortPosition(scx - tcx);
+    // Use field-level port assignment for clean routing
+    const srcPorts = fieldPorts.get(source);
+    const tgtPorts = fieldPorts.get(target);
+    sp = (srcFieldName && srcPorts?.get(srcFieldName)) || getPortPosition(tgtNode.position.x - srcNode.position.x);
+    tp = (tgtFieldName && tgtPorts?.get(tgtFieldName)) || getOppositePort(sp);
     sx = portX(sp, srcNode.position.x, srcMeas.width ?? 220);
     tx = portX(tp, tgtNode.position.x, tgtMeas.width ?? 220);
   }
@@ -206,8 +212,8 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
 
   return (
     <g
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseEnter={() => { setHovered(true); onHoveredEdgeChange(id); }}
+      onMouseLeave={() => { setHovered(false); onHoveredEdgeChange(null); }}
       style={{ cursor: "pointer" }}
     >
       <path d={edgePath} fill="none" stroke="transparent" strokeWidth={20} />

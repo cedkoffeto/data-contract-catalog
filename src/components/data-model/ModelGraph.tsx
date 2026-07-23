@@ -111,12 +111,14 @@ export type FieldPosValue = {
   fieldPositions: Map<string, Map<string, number>>;
   nodeHeights: Map<string, number>;
   onFieldPositions: (nodeId: string, positions: Map<string, number>, height: number) => void;
+  fieldPorts: Map<string, Map<string, Position>>;
 };
 
 export const FieldPosCtx = createContext<FieldPosValue>({
   fieldPositions: new Map(),
   nodeHeights: new Map(),
   onFieldPositions: () => {},
+  fieldPorts: new Map(),
 });
 
 export type EdgeRenderData = {
@@ -229,17 +231,29 @@ export function ModelGraph({
   const handleNodesChange = useCallback((changes: NodeChange[]) => {
     for (const change of changes) {
       if (change.type === "dimensions" && change.dimensions) {
-        setNodes((nds) => nds.map((n) =>
-          n.id === change.id
-            ? { ...n, data: { ...n.data, _customWidth: change.dimensions!.width } }
-            : n
-        ));
+        const newWidth = change.dimensions.width;
+        setNodes((nds) => nds.map((n) => {
+          if (n.id !== change.id) return n;
+          if ((n.data as Record<string, unknown>)?._customWidth === newWidth) return n;
+          return { ...n, data: { ...n.data, _customWidth: newWidth } };
+        }));
       }
     }
     onNodesChange(changes);
   }, [onNodesChange, setNodes]);
 
   useEffect(() => { setEdges(initialEdges); }, [initialEdges, setEdges]);
+
+  // Elevate connected edges above nodes when hovering a table or an edge
+  useEffect(() => {
+    setEdges((eds) => eds.map((e) => {
+      const isConnected = highlightedNode && (e.source === highlightedNode || e.target === highlightedNode);
+      const isHovered = hoveredEdgeId === e.id;
+      const elevated = isConnected || isHovered;
+      const z = elevated ? 20 : 0;
+      return e.zIndex === z ? e : { ...e, zIndex: z };
+    }));
+  }, [highlightedNode, hoveredEdgeId, setEdges]);
 
   // Sync layout changes + apply current visibility — loses drag positions
   useLayoutEffect(() => {
@@ -334,9 +348,9 @@ export function ModelGraph({
     if (!centerSlug) return;
     const prev = centerRef.current;
     if (prev && centerKey <= prev.key && centerSlug === prev.slug) return;
-    centerRef.current = { key: centerKey, slug: centerSlug };
     const node = nodes.find((n) => n.id === centerSlug);
     if (!node) return;
+    centerRef.current = { key: centerKey, slug: centerSlug };
     const x = node.position.x + (node.measured?.width ?? 220) / 2;
     const y = node.position.y + 20;
     requestAnimationFrame(() => setCenter(x, y, { zoom: 1 }));
@@ -376,6 +390,59 @@ export function ModelGraph({
     }
     return map;
   }, [nodes, collapsedTables, viewMode, connectedFields]);
+
+  // Field-level port assignment: each field gets a side (Left or Right)
+  // to minimize S-shapes and edge crossings
+  const fieldPorts = useMemo(() => {
+    const ports = new Map<string, Map<string, Position>>();
+    for (const node of nodes) {
+      const nodeX = node.position.x + (node.measured?.width ?? 220) / 2;
+      // Collect field directions from all edges
+      const fieldDir = new Map<string, { right: number; left: number }>();
+      for (const edge of edges) {
+        let fieldName: string | undefined;
+        let otherX: number | undefined;
+        if (edge.source === node.id) {
+          fieldName = edge.sourceHandle ?? undefined;
+          const other = nodeMap.get(edge.target);
+          if (other) otherX = other.position.x + (other.measured?.width ?? 220) / 2;
+        } else if (edge.target === node.id) {
+          fieldName = edge.targetHandle ?? undefined;
+          const other = nodeMap.get(edge.source);
+          if (other) otherX = other.position.x + (other.measured?.width ?? 220) / 2;
+        }
+        if (fieldName === undefined || otherX === undefined) continue;
+        if (!fieldDir.has(fieldName)) fieldDir.set(fieldName, { right: 0, left: 0 });
+        const dir = fieldDir.get(fieldName)!;
+        if (otherX > nodeX) dir.right++;
+        else dir.left++;
+      }
+
+      const fieldMap = new Map<string, Position>();
+      // Sort fields: majority-direction first, then alternate within each group
+      const entries = Array.from(fieldDir.entries());
+      entries.sort((a, b) => {
+        const aRight = a[1].right - a[1].left;
+        const bRight = b[1].right - b[1].left;
+        return bRight - aRight;
+      });
+
+      let rightCount = 0;
+      let leftCount = 0;
+      for (const [fieldName, dir] of entries) {
+        const preferRight = dir.right >= dir.left;
+        if (preferRight) {
+          fieldMap.set(fieldName, rightCount % 2 === 0 ? Position.Right : Position.Left);
+          rightCount++;
+        } else {
+          fieldMap.set(fieldName, leftCount % 2 === 0 ? Position.Left : Position.Right);
+          leftCount++;
+        }
+      }
+      ports.set(node.id, fieldMap);
+    }
+    return ports;
+  }, [nodes, edges, nodeMap]);
 
   const nodesWithSummaryRow = useMemo(() => {
     const set = new Set<string>();
@@ -422,7 +489,8 @@ export function ModelGraph({
     fieldPositions,
     nodeHeights,
     onFieldPositions: handleFieldPositions,
-  }), [fieldPositions, nodeHeights, handleFieldPositions]);
+    fieldPorts,
+  }), [fieldPositions, nodeHeights, handleFieldPositions, fieldPorts]);
 
   return (
     <HighlightCtx.Provider value={highlightCtxValue}>
