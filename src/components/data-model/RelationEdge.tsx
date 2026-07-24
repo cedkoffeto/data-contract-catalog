@@ -63,7 +63,6 @@ function getOppositePort(pos: Position): Position {
   return Position.Top;
 }
 
-const NODE_WIDTH = 260;
 const EDGE_GAP = 20;
 
 function portX(pos: Position, nx: number, nw: number): number {
@@ -144,13 +143,16 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
       tp = fieldTp;
     } else {
       const sp0 = fieldSp || getPortPosition(tgtNode.position.x - srcNode.position.x);
-      const d = tgtNode.position.x - srcNode.position.x;
+      const srcW = srcMeas.width ?? 220;
+      const tgtW = tgtMeas.width ?? 220;
       if (sp0 === Position.Left) {
-        sp = d >= NODE_WIDTH + EDGE_GAP ? Position.Right : Position.Left;
-        tp = d < NODE_WIDTH + EDGE_GAP ? Position.Left : Position.Right;
+        const gap = tgtNode.position.x - (srcNode.position.x + srcW);
+        sp = gap > EDGE_GAP ? Position.Right : Position.Left;
+        tp = Position.Left;
       } else if (sp0 === Position.Right) {
-        sp = -d >= NODE_WIDTH + EDGE_GAP ? Position.Left : Position.Right;
-        tp = -d < NODE_WIDTH + EDGE_GAP ? Position.Right : Position.Left;
+        const gap = srcNode.position.x - (tgtNode.position.x + tgtW);
+        sp = gap > EDGE_GAP ? Position.Left : Position.Right;
+        tp = Position.Right;
       } else {
         sp = sp0;
         tp = getOppositePort(sp0);
