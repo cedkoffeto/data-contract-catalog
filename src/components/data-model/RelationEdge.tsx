@@ -66,20 +66,23 @@ function getOppositePort(pos: Position): Position {
 function getBestTargetPort(sourcePort: Position, dx: number, dy: number): Position {
   const absDx = Math.abs(dx);
   const absDy = Math.abs(dy);
+
   if (sourcePort === Position.Left || sourcePort === Position.Right) {
-    if (absDx >= absDy) {
-      if (sourcePort === Position.Left) return dx < 0 ? Position.Right : Position.Left;
-      return dx > 0 ? Position.Left : Position.Right;
+    if (dx > 0) {
+      return sourcePort === Position.Right ? Position.Left : Position.Right;
+    } else {
+      return sourcePort === Position.Left ? Position.Right : Position.Left;
     }
-    return sourcePort === Position.Left ? Position.Right : Position.Left;
   }
+
   if (sourcePort === Position.Top || sourcePort === Position.Bottom) {
-    if (absDy >= absDx) {
-      if (sourcePort === Position.Top) return dy < 0 ? Position.Bottom : Position.Top;
-      return dy > 0 ? Position.Top : Position.Bottom;
+    if (dy > 0) {
+      return sourcePort === Position.Bottom ? Position.Top : Position.Bottom;
+    } else {
+      return sourcePort === Position.Top ? Position.Bottom : Position.Top;
     }
-    return sourcePort === Position.Top ? Position.Bottom : Position.Top;
   }
+
   return getOppositePort(sourcePort);
 }
 
