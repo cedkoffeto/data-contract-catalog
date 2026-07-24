@@ -56,7 +56,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
 
   useLayoutEffect(() => {
     measure();
-  }, [measure]);
+  }, [measure, fields.length]);
 
   useEffect(() => {
     const el = rootRef.current;

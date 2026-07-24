@@ -205,11 +205,6 @@ export function ModelGraph({
   const [fieldPositions, setFieldPositions] = useState<Map<string, Map<string, number>>>(new Map());
   const [nodeHeights, setNodeHeights] = useState<Map<string, number>>(new Map());
 
-  useEffect(() => {
-    setFieldPositions(new Map());
-    setNodeHeights(new Map());
-  }, [viewMode]);
-
   const handleFieldPositions = useCallback((nodeId: string, positions: Map<string, number>, height: number) => {
     setFieldPositions((prev) => {
       const existing = prev.get(nodeId);
