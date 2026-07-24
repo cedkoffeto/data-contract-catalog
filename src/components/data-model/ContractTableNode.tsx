@@ -47,6 +47,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
     const fieldEls = el.querySelectorAll<HTMLElement>("[data-field]");
     fieldEls.forEach((f) => {
       const name = f.getAttribute("data-field")!;
+      if (name === "__summary__") return;
       const r = f.getBoundingClientRect();
       positions.set(name, r.top - nodeRect.top + r.height / 2);
     });
