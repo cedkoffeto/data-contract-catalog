@@ -66,16 +66,6 @@ function getOppositePort(pos: Position): Position {
 const NODE_WIDTH = 260;
 const EDGE_GAP = 20;
 
-function getTargetPort(sourcePort: Position, sourceNodeX: number, targetNodeX: number): Position {
-  if (sourcePort === Position.Left) {
-    return targetNodeX - sourceNodeX < NODE_WIDTH + EDGE_GAP ? Position.Left : Position.Right;
-  }
-  if (sourcePort === Position.Right) {
-    return sourceNodeX - targetNodeX < NODE_WIDTH + EDGE_GAP ? Position.Right : Position.Left;
-  }
-  return getOppositePort(sourcePort);
-}
-
 function portX(pos: Position, nx: number, nw: number): number {
   if (pos === Position.Left) return nx;
   if (pos === Position.Right) return nx + nw;
@@ -144,17 +134,40 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
   let ty = targetY;
 
   if (srcNode && tgtNode && srcMeas && tgtMeas) {
-    // Use field-level port assignment for clean routing
     const srcPorts = fieldPorts.get(source);
     const tgtPorts = fieldPorts.get(target);
-    sp = (srcFieldName && srcPorts?.get(srcFieldName)) || getPortPosition(tgtNode.position.x - srcNode.position.x);
-    if (sp === Position.Left && tgtNode.position.x - srcNode.position.x > NODE_WIDTH + EDGE_GAP) {
-      sp = Position.Right;
+    const fieldSp = srcFieldName && srcPorts?.get(srcFieldName);
+    const fieldTp = tgtFieldName && tgtPorts?.get(tgtFieldName);
+
+    if (fieldSp && fieldTp) {
+      sp = fieldSp;
+      tp = fieldTp;
+    } else if (fieldSp) {
+      sp = fieldSp;
+      const dist = Math.abs(tgtNode.position.x - srcNode.position.x);
+      if (sp === Position.Left) {
+        tp = dist < NODE_WIDTH + EDGE_GAP ? Position.Left : Position.Right;
+        if (dist >= NODE_WIDTH + EDGE_GAP) sp = Position.Right;
+      } else if (sp === Position.Right) {
+        tp = dist < NODE_WIDTH + EDGE_GAP ? Position.Right : Position.Left;
+        if (dist >= NODE_WIDTH + EDGE_GAP) sp = Position.Left;
+      } else {
+        tp = getOppositePort(sp);
+      }
+    } else {
+      const dx = tgtNode.position.x - srcNode.position.x;
+      sp = getPortPosition(dx);
+      const dist = Math.abs(dx);
+      if (sp === Position.Left) {
+        tp = dist < NODE_WIDTH + EDGE_GAP ? Position.Left : Position.Right;
+        if (dist >= NODE_WIDTH + EDGE_GAP) sp = Position.Right;
+      } else if (sp === Position.Right) {
+        tp = dist < NODE_WIDTH + EDGE_GAP ? Position.Right : Position.Left;
+        if (dist >= NODE_WIDTH + EDGE_GAP) sp = Position.Left;
+      } else {
+        tp = getOppositePort(sp);
+      }
     }
-    if (sp === Position.Right && srcNode.position.x - tgtNode.position.x > NODE_WIDTH + EDGE_GAP) {
-      sp = Position.Left;
-    }
-    tp = (tgtFieldName && tgtPorts?.get(tgtFieldName)) || getTargetPort(sp, srcNode.position.x, tgtNode.position.x);
     sx = portX(sp, srcNode.position.x, srcMeas.width ?? 220);
     tx = portX(tp, tgtNode.position.x, tgtMeas.width ?? 220);
   }
