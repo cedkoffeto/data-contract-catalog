@@ -148,6 +148,12 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
     const srcPorts = fieldPorts.get(source);
     const tgtPorts = fieldPorts.get(target);
     sp = (srcFieldName && srcPorts?.get(srcFieldName)) || getPortPosition(tgtNode.position.x - srcNode.position.x);
+    if (sp === Position.Left && tgtNode.position.x - srcNode.position.x > NODE_WIDTH + EDGE_GAP) {
+      sp = Position.Right;
+    }
+    if (sp === Position.Right && srcNode.position.x - tgtNode.position.x > NODE_WIDTH + EDGE_GAP) {
+      sp = Position.Left;
+    }
     tp = (tgtFieldName && tgtPorts?.get(tgtFieldName)) || getTargetPort(sp, srcNode.position.x, tgtNode.position.x);
     sx = portX(sp, srcNode.position.x, srcMeas.width ?? 220);
     tx = portX(tp, tgtNode.position.x, tgtMeas.width ?? 220);
