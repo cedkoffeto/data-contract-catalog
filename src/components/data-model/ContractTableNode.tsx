@@ -52,11 +52,11 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
       positions.set(name, r.top - nodeRect.top + r.height / 2);
     });
     onFieldPositions(id, positions, nodeRect.height);
-  }, [id, onFieldPositions]);
+  }, [id, onFieldPositions, showingDetailed]);
 
   useLayoutEffect(() => {
     measure();
-  }, [measure, fields.length]);
+  }, [measure]);
 
   useEffect(() => {
     const el = rootRef.current;
