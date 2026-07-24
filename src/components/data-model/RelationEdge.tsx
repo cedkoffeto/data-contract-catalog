@@ -142,29 +142,18 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
     if (fieldSp && fieldTp) {
       sp = fieldSp;
       tp = fieldTp;
-    } else if (fieldSp) {
-      sp = fieldSp;
-      const d = tgtNode.position.x - srcNode.position.x;
-      if (sp === Position.Left) {
-        if (d < NODE_WIDTH + EDGE_GAP) { tp = Position.Left; }
-        else { tp = Position.Right; if (d > NODE_WIDTH + EDGE_GAP) sp = Position.Right; }
-      } else if (sp === Position.Right) {
-        if (-d < NODE_WIDTH + EDGE_GAP) { tp = Position.Right; }
-        else { tp = Position.Left; if (-d > NODE_WIDTH + EDGE_GAP) sp = Position.Left; }
-      } else {
-        tp = getOppositePort(sp);
-      }
     } else {
+      const sp0 = fieldSp || getPortPosition(tgtNode.position.x - srcNode.position.x);
       const d = tgtNode.position.x - srcNode.position.x;
-      sp = getPortPosition(d);
-      if (sp === Position.Left) {
-        if (d < NODE_WIDTH + EDGE_GAP) { tp = Position.Left; }
-        else { tp = Position.Right; if (d > NODE_WIDTH + EDGE_GAP) sp = Position.Right; }
-      } else if (sp === Position.Right) {
-        if (-d < NODE_WIDTH + EDGE_GAP) { tp = Position.Right; }
-        else { tp = Position.Left; if (-d > NODE_WIDTH + EDGE_GAP) sp = Position.Left; }
+      if (sp0 === Position.Left) {
+        sp = d >= NODE_WIDTH + EDGE_GAP ? Position.Right : Position.Left;
+        tp = d < NODE_WIDTH + EDGE_GAP ? Position.Left : Position.Right;
+      } else if (sp0 === Position.Right) {
+        sp = -d >= NODE_WIDTH + EDGE_GAP ? Position.Left : Position.Right;
+        tp = -d < NODE_WIDTH + EDGE_GAP ? Position.Right : Position.Left;
       } else {
-        tp = getOppositePort(sp);
+        sp = sp0;
+        tp = getOppositePort(sp0);
       }
     }
     sx = portX(sp, srcNode.position.x, srcMeas.width ?? 220);
