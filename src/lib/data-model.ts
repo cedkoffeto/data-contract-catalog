@@ -1,7 +1,5 @@
 import { Position, type Node, type Edge } from "@xyflow/react";
 
-export type EdgeWithPorts = Edge & { sourcePosition?: Position; targetPosition?: Position };
-
 // ── Types ──────────────────────────────────────────────────────────
 
 export type ContractField = {
@@ -401,34 +399,6 @@ function layoutOrphanGrid(
   return { positions, gridWidth: totalGridW };
 }
 
-function computeEdgePorts(dx: number, dy: number): { sourcePosition: Position; targetPosition: Position } {
-  const absDx = Math.abs(dx);
-  const absDy = Math.abs(dy);
-  let sourcePosition: Position;
-  let targetPosition: Position;
-  if (absDx >= absDy) {
-    sourcePosition = dx >= 0 ? Position.Right : Position.Left;
-  } else {
-    sourcePosition = dy >= 0 ? Position.Bottom : Position.Top;
-  }
-  if (sourcePosition === Position.Left || sourcePosition === Position.Right) {
-    if (absDx >= absDy) {
-      if (sourcePosition === Position.Left) targetPosition = dx < 0 ? Position.Right : Position.Left;
-      else targetPosition = dx > 0 ? Position.Left : Position.Right;
-    } else {
-      targetPosition = sourcePosition === Position.Left ? Position.Right : Position.Left;
-    }
-  } else {
-    if (absDy >= absDx) {
-      if (sourcePosition === Position.Top) targetPosition = dy < 0 ? Position.Bottom : Position.Top;
-      else targetPosition = dy > 0 ? Position.Top : Position.Bottom;
-    } else {
-      targetPosition = sourcePosition === Position.Top ? Position.Bottom : Position.Top;
-    }
-  }
-  return { sourcePosition, targetPosition };
-}
-
 export type LayoutMode = "LR" | "TB" | "layer" | "star";
 
 function nodeHeight(node: Node, connectedFields?: Map<string, Map<string, number>>, viewMode?: "detailed" | "compact", collapsed?: boolean): number {
@@ -658,18 +628,6 @@ export function layoutGraph(
     }
   }
 
-  // ── Compute edge ports ──
-  const edgesWithPorts = edges as EdgeWithPorts[];
-  for (const edge of edgesWithPorts) {
-    const src = laidOut.get(edge.source) ?? nodeById.get(edge.source);
-    const tgt = laidOut.get(edge.target) ?? nodeById.get(edge.target);
-    if (src && tgt) {
-      const dx = tgt.position.x - src.position.x;
-      const dy = tgt.position.y - src.position.y;
-      Object.assign(edge, computeEdgePorts(dx, dy));
-    }
-  }
-
   return { nodes: nodes.map((n) => laidOut.get(n.id) || n), edges };
 }
 
@@ -779,16 +737,6 @@ export function layoutLayerGraph(nodes: Node[], edges: Edge[], connectedFields?:
     const pos = positions.get(n.id);
     return pos ? { ...n, position: pos } : n;
   });
-
-  // Compute optimal edge ports
-  const layerEdges = edges as EdgeWithPorts[];
-  for (const edge of layerEdges) {
-    const src = positions.get(edge.source) ?? nodeById.get(edge.source)?.position;
-    const tgt = positions.get(edge.target) ?? nodeById.get(edge.target)?.position;
-    if (src && tgt) {
-      Object.assign(edge, computeEdgePorts(tgt.x - src.x, tgt.y - src.y));
-    }
-  }
 
   return { nodes: [...bgNodes, ...laidOut], edges };
 }
@@ -906,12 +854,6 @@ export function layoutStarGraph(nodes: Node[], edges: Edge[], connectedFields?: 
     compX += compMaxR * 2 + COMP_GAP;
   }
 
-  const starEdges = edges as EdgeWithPorts[];
-  for (const edge of starEdges) {
-    const sp = positions.get(edge.source);
-    const tp = positions.get(edge.target);
-    if (sp && tp) Object.assign(edge, computeEdgePorts(tp.x - sp.x, tp.y - sp.y));
-  }
 
   const laidOut = nodes.map((n) => {
     const pos = positions.get(n.id);
