@@ -331,7 +331,6 @@ export function parseContractsToGraph(
 
 // ── Layout modes ────────────────────────────────────────────────────
 
-import dagre from "dagre";
 
 function layoutOrphanGrid(
   orphans: Node[],
@@ -403,9 +402,16 @@ function layoutOrphanGrid(
 }
 
 function computeEdgePorts(dx: number, dy: number): { sourcePosition: Position; targetPosition: Position } {
-  // Always use opposite sides to create C-shapes, never S-shapes
-  if (dx >= 0) return { sourcePosition: Position.Right, targetPosition: Position.Left };
-  return { sourcePosition: Position.Left, targetPosition: Position.Right };
+  const absDx = Math.abs(dx);
+  const absDy = Math.abs(dy);
+  // When horizontal displacement dominates → left/right (C-shape)
+  if (absDx >= absDy) {
+    if (dx >= 0) return { sourcePosition: Position.Right, targetPosition: Position.Left };
+    return { sourcePosition: Position.Left, targetPosition: Position.Right };
+  }
+  // When vertical displacement dominates → top/bottom (avoids long S-shapes)
+  if (dy >= 0) return { sourcePosition: Position.Bottom, targetPosition: Position.Top };
+  return { sourcePosition: Position.Top, targetPosition: Position.Bottom };
 }
 
 export type LayoutMode = "LR" | "TB" | "layer" | "domain" | "star";
@@ -474,41 +480,8 @@ export function layoutGraph(
     return { nodes: laidOut, edges };
   }
 
-  // ── Step 1: dagre assigns ranks (structural layering only) ──
-  const g = new dagre.graphlib.Graph();
-  g.setDefaultEdgeLabel(() => ({}));
-  // Use a large ranksep so dagre never overlaps — we fix positions after
-  const maxHeight = connected.reduce((m, n) => Math.max(m, nodeHeight(n, connectedFields, viewMode, collapsedTables?.has(n.id))), 0);
-  g.setGraph({ rankdir: direction, nodesep: 20, ranksep: maxHeight + visualGap, marginx: 80, marginy: 80 });
-
-  for (const node of connected) {
-    g.setNode(node.id, { width: nodeWidth(node), height: nodeHeight(node, connectedFields, viewMode, collapsedTables?.has(node.id)) });
-  }
-
-  const pairWeight = new Map<string, number>();
-  for (const e of edges) {
-    const key = e.source < e.target ? `${e.source}|${e.target}` : `${e.target}|${e.source}`;
-    pairWeight.set(key, (pairWeight.get(key) ?? 0) + 1);
-  }
-  for (const edge of edges) {
-    const key = edge.source < edge.target ? `${edge.source}|${edge.target}` : `${edge.target}|${edge.source}`;
-    g.setEdge(edge.source, edge.target, { weight: 1 + (pairWeight.get(key) ?? 0) });
-  }
-
-  dagre.layout(g);
-
-  // ── Step 2: read dagre-assigned ranks ──
+  // ── Step 1: BFS rank assignment (topological layering) ──
   const nodeRanks = new Map<string, number>();
-  for (const node of connected) {
-    const dn = g.node(node.id);
-    if (!dn) continue;
-    // dagre stores rank in the graph's internal structure
-    // We recover it from the node's x/y position relative to rank direction
-    // In LR: ranks are along x-axis; in TB: along y-axis
-    // But dagre doesn't expose rank directly — we infer from edges
-  }
-
-  // Infer ranks from DAG structure (BFS from sources)
   const inDegree = new Map<string, number>();
   const adjList = new Map<string, string[]>();
   for (const n of connected) { inDegree.set(n.id, 0); adjList.set(n.id, []); }
@@ -532,7 +505,7 @@ export function layoutGraph(
     }
   }
 
-  // ── Step 3: barycenter crossing reduction (3 passes) ──
+  // ── Step 3: group by rank ──
   const rankGroups = new Map<number, string[]>();
   for (const [id, rank] of nodeRanks) {
     let arr = rankGroups.get(rank);
@@ -540,75 +513,97 @@ export function layoutGraph(
     arr.push(id);
   }
 
-  // Build adjacency for barycenter
-  const undirAdj = new Map<string, Set<string>>();
-  for (const n of connected) undirAdj.set(n.id, new Set());
-  for (const e of edges) {
-    undirAdj.get(e.source)?.add(e.target);
-    undirAdj.get(e.target)?.add(e.source);
-  }
-
   const sortedRanks = Array.from(rankGroups.keys()).sort((a, b) => a - b);
 
-  for (let pass = 0; pass < 3; pass++) {
-    // Forward pass: fix order based on lower neighbors
-    for (let i = 1; i < sortedRanks.length; i++) {
-      const rank = sortedRanks[i];
-      const ids = rankGroups.get(rank)!;
-      const lowerIds = rankGroups.get(sortedRanks[i - 1])!;
-      const lowerPos = new Map(lowerIds.map((id, idx) => [id, idx]));
-      ids.sort((a, b) => {
-        const avgA = avgNeighborPos(a, lowerPos, undirAdj);
-        const avgB = avgNeighborPos(b, lowerPos, undirAdj);
-        return avgA - avgB;
-      });
-    }
-    // Backward pass: fix order based on upper neighbors
-    for (let i = sortedRanks.length - 2; i >= 0; i--) {
-      const rank = sortedRanks[i];
-      const ids = rankGroups.get(rank)!;
-      const upperIds = rankGroups.get(sortedRanks[i + 1])!;
-      const upperPos = new Map(upperIds.map((id, idx) => [id, idx]));
-      ids.sort((a, b) => {
-        const avgA = avgNeighborPos(a, upperPos, undirAdj);
-        const avgB = avgNeighborPos(b, upperPos, undirAdj);
-        return avgA - avgB;
-      });
+  // Upstream neighbor lookup: direct predecessors in the immediately preceding rank
+  const upstreamByRank = new Map<string, string[]>();
+  for (const e of edges) {
+    const srcRank = nodeRanks.get(e.source);
+    const tgtRank = nodeRanks.get(e.target);
+    if (srcRank !== undefined && tgtRank !== undefined && srcRank === tgtRank - 1) {
+      const arr = upstreamByRank.get(e.target);
+      if (arr) arr.push(e.source);
+      else upstreamByRank.set(e.target, [e.source]);
     }
   }
 
-  // ── Step 4: assign positions with exact visualGap ──
+  // ── Step 4: assign positions — sources alphabetical, targets centered on upstream block ──
+  // In LR mode nodes stack vertically  → spacing uses height; in TB mode → width
+  const isLR = direction === "LR";
+  const nodeSizes = new Map<string, number>();
   const heights = new Map<string, number>();
-  for (const n of connected) heights.set(n.id, nodeHeight(n, connectedFields, viewMode, collapsedTables?.has(n.id)));
+  for (const n of connected) {
+    const h = nodeHeight(n, connectedFields, viewMode, collapsedTables?.has(n.id));
+    heights.set(n.id, h);
+    nodeSizes.set(n.id, isLR ? h : nodeWidth(n));
+  }
+  const NODE_GAP = 30; // gap between adjacent nodes within the same rank
 
   const rankPositions = new Map<string, { x: number; y: number }>();
-  let yOffset = 0;
 
   for (const rank of sortedRanks) {
     const ids = rankGroups.get(rank)!;
-    // Compute total height of this rank
-    let rankTotalH = 0;
-    for (const id of ids) rankTotalH += heights.get(id) ?? 0;
-    rankTotalH += (ids.length - 1) * 20; // nodesep within rank
 
-    // Center this rank vertically
-    let y = yOffset - rankTotalH / 2;
-    for (const id of ids) {
-      const h = heights.get(id) ?? 0;
-      rankPositions.set(id, { x: 0, y: y + h / 2 });
-      y += h + 20;
+    if (rank === 0) {
+      // Rank 0: sort alphabetically, stack along the stacking axis, centered at 0
+      ids.sort((a, b) => {
+        const sa = (nodeById.get(a)?.data as ContractTableNodeData)?.slug || "";
+        const sb = (nodeById.get(b)?.data as ContractTableNodeData)?.slug || "";
+        return sa.localeCompare(sb);
+      });
+      let totalSize = 0;
+      for (const id of ids) totalSize += nodeSizes.get(id) ?? 0;
+      totalSize += (ids.length - 1) * NODE_GAP;
+      let pos = -totalSize / 2;
+      for (const id of ids) {
+        const sz = nodeSizes.get(id) ?? 0;
+        rankPositions.set(id, { x: 0, y: pos + sz / 2 });
+        pos += sz + NODE_GAP;
+      }
+    } else {
+      // Rank k > 0: compute preferred position for each node (center of upstream block)
+      const preferredPos = new Map<string, number>();
+      for (const id of ids) {
+        const upstream = upstreamByRank.get(id) ?? [];
+        if (upstream.length === 0) {
+          preferredPos.set(id, 0);
+        } else {
+          let minP = Infinity;
+          let maxP = -Infinity;
+          for (const nb of upstream) {
+            const pos = rankPositions.get(nb);
+            const sz = nodeSizes.get(nb) ?? 0;
+            if (pos) {
+              minP = Math.min(minP, pos.y - sz / 2);
+              maxP = Math.max(maxP, pos.y + sz / 2);
+            }
+          }
+          preferredPos.set(id, (minP + maxP) / 2);
+        }
+      }
+
+      // Sort by preferred position
+      ids.sort((a, b) => (preferredPos.get(a) ?? 0) - (preferredPos.get(b) ?? 0));
+
+      // Stack with gap, centered on average preferred position
+      let totalSize = 0;
+      for (const id of ids) totalSize += nodeSizes.get(id) ?? 0;
+      totalSize += (ids.length - 1) * NODE_GAP;
+      const avgPP = ids.reduce((s, id) => s + (preferredPos.get(id) ?? 0), 0) / ids.length;
+      let pos = avgPP - totalSize / 2;
+      for (const id of ids) {
+        const sz = nodeSizes.get(id) ?? 0;
+        rankPositions.set(id, { x: 0, y: pos + sz / 2 });
+        pos += sz + NODE_GAP;
+      }
     }
-
-    // Next rank offset: bottom of tallest node in this rank + visualGap
-    const maxRankH = ids.reduce((m, id) => Math.max(m, heights.get(id) ?? 0), 0);
-    yOffset += maxRankH + visualGap;
   }
 
-  // Center the whole graph vertically
-  const allY = Array.from(rankPositions.values()).map((p) => p.y);
-  const centerY = (Math.min(...allY) + Math.max(...allY)) / 2;
+  // Center the whole graph on the stacking axis
+  const allStackPos = Array.from(rankPositions.values()).map((p) => p.y);
+  const centerStack = (Math.min(...allStackPos) + Math.max(...allStackPos)) / 2;
 
-  // Assign x positions based on direction
+  // Assign final positions based on direction
   const COLUMN_WIDTH = 320;
   const laidOut = new Map<string, Node>();
   for (const node of connected) {
@@ -617,27 +612,34 @@ export function layoutGraph(
     const rank = nodeRanks.get(node.id) ?? 0;
     const h = heights.get(node.id) ?? 0;
     const w = nodeWidth(node);
-    const x = direction === "LR" ? rank * COLUMN_WIDTH : rp.y - centerY;
-    const yPos = direction === "LR" ? rp.y - centerY : rank * COLUMN_WIDTH;
+    const x = isLR ? rank * COLUMN_WIDTH : rp.y - centerStack;
+    const yPos = isLR ? rp.y - centerStack : rank * COLUMN_WIDTH;
     laidOut.set(node.id, {
       ...node,
       position: { x: x - w / 2, y: yPos - h / 2 },
     });
   }
 
-  // ── Isolated nodes: grid to the left (LR) or top (TB) ──
+  // ── Isolated nodes: grid to the left (LR) or above (TB) ──
   if (isolated.length > 0) {
     const gap = 20;
     const isoHeights = new Map<string, number>();
-    for (const n of isolated) isoHeights.set(n.id, nodeHeight(n, connectedFields, viewMode));
+    for (const n of isolated) isoHeights.set(n.id, nodeHeight(n, connectedFields, viewMode, collapsedTables?.has(n.id)));
     const { positions, gridWidth } = layoutOrphanGrid(isolated, isoHeights, gap);
-    const gridLeft = connected.length > 0
-      ? Math.min(...Array.from(laidOut.values()).map((n) => n.position.x)) - gridWidth - 80
-      : -gridWidth / 2;
+    let gridPos: { x: number; y: number };
+    if (connected.length > 0) {
+      if (isLR) {
+        gridPos = { x: Math.min(...Array.from(laidOut.values()).map((n) => n.position.x)) - gridWidth - 80, y: 0 };
+      } else {
+        gridPos = { x: 0, y: Math.min(...Array.from(laidOut.values()).map((n) => n.position.y)) - gridWidth - 80 };
+      }
+    } else {
+      gridPos = { x: 0, y: 0 };
+    }
     for (const [id, pos] of positions) {
       const node = nodeById.get(id);
       if (!node) continue;
-      laidOut.set(id, { ...node, position: { x: pos.x + gridLeft, y: pos.y } });
+      laidOut.set(id, { ...node, position: { x: pos.x + gridPos.x, y: pos.y + gridPos.y } });
     }
   }
 
@@ -656,17 +658,6 @@ export function layoutGraph(
   return { nodes: nodes.map((n) => laidOut.get(n.id) || n), edges };
 }
 
-function avgNeighborPos(nodeId: string, rankPos: Map<string, number>, adj: Map<string, Set<string>>): number {
-  const neighbors = adj.get(nodeId);
-  if (!neighbors || neighbors.size === 0) return 0;
-  let sum = 0;
-  let count = 0;
-  for (const nb of neighbors) {
-    const pos = rankPos.get(nb);
-    if (pos !== undefined) { sum += pos; count++; }
-  }
-  return count > 0 ? sum / count : 0;
-}
 
 export function layoutLayerGraph(nodes: Node[], edges: Edge[], connectedFields?: Map<string, Map<string, number>>, viewMode?: "detailed" | "compact", collapsedTables?: Set<string>): { nodes: Node[]; edges: Edge[] } {
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
@@ -703,6 +694,13 @@ export function layoutLayerGraph(nodes: Node[], edges: Edge[], connectedFields?:
   for (let colIdx = 0; colIdx < LAYER_ORDER.length; colIdx++) {
     const ns = byLayer.get(LAYER_ORDER[colIdx]);
     if (!ns) continue;
+
+    // Sort alphabetically within each layer to reduce edge crossings
+    ns.sort((a, b) => {
+      const sa = (a.data as ContractTableNodeData).slug || "";
+      const sb = (b.data as ContractTableNodeData).slug || "";
+      return sa.localeCompare(sb);
+    });
 
     let totalHeight = 0;
     for (const n of ns) totalHeight += heights.get(n.id) ?? 0;
@@ -815,6 +813,13 @@ export function layoutDomainGraph(nodes: Node[], edges: Edge[], connectedFields?
   let xOffset = -(sortedEntries.length * (COLUMN_WIDTH + DOMAIN_GAP_X) - DOMAIN_GAP_X) / 2;
 
   for (const [, ns] of sortedEntries) {
+    // Sort alphabetically within each domain to reduce edge crossings
+    ns.sort((a, b) => {
+      const sa = (a.data as ContractTableNodeData).slug || "";
+      const sb = (b.data as ContractTableNodeData).slug || "";
+      return sa.localeCompare(sb);
+    });
+
     let totalHeight = 0;
     for (const n of ns) totalHeight += heights.get(n.id)!;
     totalHeight += (ns.length - 1) * VERTICAL_GAP;
@@ -860,6 +865,7 @@ export function layoutDomainGraph(nodes: Node[], edges: Edge[], connectedFields?
 }
 
 export function layoutStarGraph(nodes: Node[], edges: Edge[], connectedFields?: Map<string, Map<string, number>>, viewMode?: "detailed" | "compact", collapsedTables?: Set<string>): { nodes: Node[]; edges: Edge[] } {
+  const nodeById = new Map(nodes.map((n) => [n.id, n]));
   // Build undirected adjacency
   const adj = new Map<string, Set<string>>();
   for (const n of nodes) adj.set(n.id, new Set());
@@ -868,14 +874,19 @@ export function layoutStarGraph(nodes: Node[], edges: Edge[], connectedFields?: 
     adj.get(e.target)?.add(e.source);
   }
 
-  // Degree centrality
   const degree = new Map<string, number>();
   for (const [id, nb] of adj) degree.set(id, nb.size);
 
-  // Connected components via BFS
+  const heights = new Map<string, number>();
+  for (const n of nodes) heights.set(n.id, nodeHeight(n, connectedFields, viewMode, collapsedTables?.has(n.id)));
+
+  // Separate orphans from connected components
+  const orphanNodes = nodes.filter((n) => (adj.get(n.id)?.size ?? 0) === 0);
+
   const visited = new Set<string>();
   const components: string[][] = [];
   for (const n of nodes) {
+    if ((adj.get(n.id)?.size ?? 0) === 0) continue;
     if (visited.has(n.id)) continue;
     const comp: string[] = [];
     const queue = [n.id];
@@ -892,19 +903,36 @@ export function layoutStarGraph(nodes: Node[], edges: Edge[], connectedFields?: 
   }
 
   const positions = new Map<string, { x: number; y: number }>();
-  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
-  const BASE_RADIUS = 100;
-  const RADIUS_STEP = 160;
+  const BASE_RADIUS = 80;
+  const RADIUS_STEP = 130;
+  const ORPHAN_BLOCK_GAP = 60;
+  const COMP_GAP = 80;
+
+  // ── Orphan block: grid to the left ──
+  let orphanBlockWidth = 0;
+  if (orphanNodes.length > 0) {
+    const sorted = orphanNodes.slice().sort((a, b) => {
+      const sa = (a.data as ContractTableNodeData).slug || "";
+      const sb = (b.data as ContractTableNodeData).slug || "";
+      return sa.localeCompare(sb);
+    });
+    const { positions: oPos, gridWidth } = layoutOrphanGrid(sorted, heights, 20);
+    orphanBlockWidth = gridWidth;
+    for (const [id, pos] of oPos) {
+      positions.set(id, { x: pos.x - gridWidth / 2, y: pos.y });
+    }
+  }
+
+  // ── Connected components left-to-right ──
+  let compX = orphanNodes.length > 0 ? orphanBlockWidth / 2 + ORPHAN_BLOCK_GAP : 0;
 
   for (let ci = 0; ci < components.length; ci++) {
     const comp = components[ci];
     if (comp.length === 0) continue;
 
-    // Pick center: highest degree
     let center = comp[0];
     for (const id of comp) { if ((degree.get(id) ?? 0) > (degree.get(center) ?? 0)) center = id; }
 
-    // BFS layers from center
     const layer = new Map<string, number>();
     const queue = [center];
     layer.set(center, 0);
@@ -916,7 +944,6 @@ export function layoutStarGraph(nodes: Node[], edges: Edge[], connectedFields?: 
       }
     }
 
-    // Group by layer
     const byLayer = new Map<number, string[]>();
     for (const id of comp) {
       const l = layer.get(id) ?? 0;
@@ -924,20 +951,16 @@ export function layoutStarGraph(nodes: Node[], edges: Edge[], connectedFields?: 
       byLayer.get(l)?.push(id);
     }
 
-    // Compute radius per layer (enough arc gap to avoid overlap)
     const radii = new Map<number, number>();
-    let maxR = 0;
+    let compMaxR = 0;
     for (const [l, ids] of byLayer) {
       const n = ids.length;
-      const maxW = Math.max(...ids.map((id) => { const node = nodeMap.get(id); return node ? nodeWidth(node) : 0; }), 220);
-      const minR = (n * (maxW + 40)) / (2 * Math.PI);
+      const maxW = Math.max(...ids.map((id) => { const node = nodeById.get(id); return node ? nodeWidth(node) : NODE_WIDTH; }), NODE_WIDTH);
+      const minR = (n * (maxW + 30)) / (2 * Math.PI);
       const r = Math.max(BASE_RADIUS + l * RADIUS_STEP, minR);
       radii.set(l, r);
-      if (r > maxR) maxR = r;
+      if (r > compMaxR) compMaxR = r;
     }
-
-    // Component horizontal offset (spread components apart)
-    const compOffsetX = (ci - (components.length - 1) / 2) * (maxR * 2 + 160);
 
     for (const [l, ids] of byLayer) {
       const radius = l === 0 ? 0 : radii.get(l)!;
@@ -945,28 +968,26 @@ export function layoutStarGraph(nodes: Node[], edges: Edge[], connectedFields?: 
       for (let i = 0; i < n; i++) {
         const angle = l === 0 ? 0 : (i / n) * Math.PI * 2 - Math.PI / 2;
         positions.set(ids[i], {
-          x: compOffsetX + radius * Math.cos(angle),
+          x: compX + radius * Math.cos(angle),
           y: radius * Math.sin(angle),
         });
       }
     }
+
+    compX += compMaxR * 2 + COMP_GAP;
   }
 
-  // Edge ports
   const starEdges = edges as EdgeWithPorts[];
   for (const edge of starEdges) {
     const sp = positions.get(edge.source);
     const tp = positions.get(edge.target);
-    if (sp && tp) {
-      Object.assign(edge, computeEdgePorts(tp.x - sp.x, tp.y - sp.y));
-    }
+    if (sp && tp) Object.assign(edge, computeEdgePorts(tp.x - sp.x, tp.y - sp.y));
   }
 
-  // Single output pass with node dimensions
   const laidOut = nodes.map((n) => {
     const pos = positions.get(n.id);
     if (!pos) return n;
-    const h = nodeHeight(n, connectedFields, viewMode, collapsedTables?.has(n.id));
+    const h = heights.get(n.id) ?? 0;
     const w = nodeWidth(n);
     return { ...n, position: { x: pos.x - w / 2, y: pos.y - h / 2 } };
   });

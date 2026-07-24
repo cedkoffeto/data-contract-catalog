@@ -92,7 +92,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
         {/* Header */}
         <div className="flex min-w-0 cursor-grab active:cursor-grabbing items-center gap-2 py-2 pl-4 pr-3" style={{ background: d.color.replace("hsl(", "hsla(").replace(")", ", 0.1)"), borderBottom: `2px solid ${d.color}40`, borderLeft: `4px solid ${layerBorderColor[d.maturity as string] || layerBorderColor.bronze}` }}>
           <span className="flex h-5 cursor-pointer items-center" onClick={(e) => { e.stopPropagation(); window.open(`/contracts/${d.slug}`, "_blank", "noopener,noreferrer"); }} title="Open contract detail"><Table size={14} style={{ color: d.color }} /></span>
-          <span className="flex h-5 min-w-0 items-center text-sm font-semibold tracking-tight text-gray-900"
+          <span className="flex h-5 min-w-0 items-center text-xs font-semibold tracking-tight text-gray-900"
             onClick={(e) => {
               if (e.ctrlKey || e.metaKey) { e.stopPropagation(); window.open(`/contracts/${d.slug}`, "_blank", "noopener,noreferrer"); }
               else onHeaderClick(d.slug);

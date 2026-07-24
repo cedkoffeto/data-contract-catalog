@@ -222,8 +222,8 @@ export function FilterPanel({
         <>
 
           {/* Layer filter — pill toggle like Discussion */}
-          <div className="flex border-b border-gray-200 px-3 py-2.5">
-            <div className="inline-flex rounded-lg p-0.5" style={{ backgroundColor: "rgba(0,0,0,0.06)" }}>
+          <div className="flex flex-wrap items-center gap-1 border-b border-gray-200 px-3 py-2.5">
+            <div className="inline-flex flex-wrap gap-0.5 rounded-lg p-0.5" style={{ backgroundColor: "rgba(0,0,0,0.06)" }}>
                 {(["all", ...LAYERS] as const).map((item) => {
                   const isActive = item === "all" ? !layerFilter : layerFilter === item.id;
                   return (
@@ -243,7 +243,7 @@ export function FilterPanel({
               })}
             </div>
             <span
-              className="ml-auto inline-flex items-center self-center text-[10px] font-semibold text-gray-500"
+              className="ml-auto inline-flex items-center self-center text-[10px] font-semibold text-gray-500 shrink-0"
               title={`${filteredNodes.filter((n) => visibleTables.has(n.id)).length} visible / ${filteredNodes.length} total`}
             >{filteredNodes.filter((n) => visibleTables.has(n.id)).length}/{filteredNodes.length}</span>
           </div>

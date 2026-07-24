@@ -169,7 +169,7 @@ export function DataModelEditor({
     setLaidOutNodes(relayoutVisible);
   }, [rawNodes, layoutEdges, layoutMode, connectedFields, viewMode]);
 
-  // On collapse/expand: update only the affected node's height (no full relayout)
+  // On collapse/expand: only recreate the changed node objects (no flicker)
   const prevCollapsedRef = useRef<Set<string>>(collapsedTables);
   useEffect(() => {
     const prev = prevCollapsedRef.current;
@@ -177,13 +177,13 @@ export function DataModelEditor({
     prevCollapsedRef.current = collapsedTables;
     const added = [...collapsedTables].filter((id) => !prev.has(id));
     const removed = [...prev].filter((id) => !collapsedTables.has(id));
-    const changedIds = [...added, ...removed];
-    if (changedIds.length === 0) return;
+    const changedIds = new Set([...added, ...removed]);
+    if (changedIds.size === 0) return;
     setLaidOutNodes((prevNodes) =>
       prevNodes.map((n) => {
-        if (!changedIds.includes(n.id)) return n;
-        // Bump a version key to trigger React Flow re-measurement
-        return { ...n, data: { ...n.data, _collapsedVersion: ((n.data as Record<string, unknown>)._collapsedVersion as number ?? 0) + 1 } };
+        if (!changedIds.has(n.id)) return n;
+        // New data ref → ContractTableNode memo detects change → re-renders → ResizeObserver fires
+        return { ...n, data: { ...n.data } };
       }),
     );
   }, [collapsedTables]);
@@ -201,6 +201,8 @@ export function DataModelEditor({
 
   useEffect(() => { savePrefs({ layoutMode }); }, [layoutMode]);
   useEffect(() => { savePrefs({ viewMode }); }, [viewMode]);
+  // Center view after mode switch — relayout already ran via the effect above
+  useEffect(() => { setFitKey((k) => k + 1); }, [viewMode]);
   useEffect(() => { savePrefs({ layerFilter }); }, [layerFilter]);
 
   useEffect(() => {

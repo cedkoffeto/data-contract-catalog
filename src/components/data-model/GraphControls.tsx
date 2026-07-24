@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { toPng, toSvg } from "html-to-image";
 import { useReactFlow, useViewport } from "@xyflow/react";
 import { ZoomIn, ZoomOut, Maximize2, Eye, LayoutTemplate, LayoutList, AlignEndHorizontal, AlignEndVertical, Layers, LayoutGrid, Grid3x3, Check, Download, Star } from "lucide-react";
 import type { LayoutMode } from "@/src/lib/data-model";
@@ -139,15 +138,20 @@ export function GraphControls({
     const el = document.querySelector(".react-flow") as HTMLElement | null;
     if (!el) return;
 
-    const allNodes = getNodes().map((n) => ({ id: n.id }));
-    if (scope === "all") {
-      await fitView({ nodes: allNodes, duration: 0, padding: 0.1 });
-    } else {
-      fitView({ duration: 0 });
-    }
-
-    await new Promise((r) => requestAnimationFrame(r));
-    await new Promise((r) => requestAnimationFrame(r));
+    const [{ toPng, toSvg }] = await Promise.all([
+      import("html-to-image"),
+      (async () => {
+        const allNodes = getNodes().map((n) => ({ id: n.id }));
+        if (scope === "all") {
+          await fitView({ nodes: allNodes, duration: 0, padding: 0.1 });
+        } else {
+          fitView({ duration: 0 });
+        }
+        await new Promise((r) => requestAnimationFrame(r));
+        await new Promise((r) => requestAnimationFrame(r));
+        return null;
+      })(),
+    ]);
 
     // Hide ALL panels aggressively — display:none + visibility:hidden + position:absolute
     const panels = el.querySelectorAll<HTMLElement>(".react-flow__panel");

@@ -8,18 +8,15 @@ import {
   BackgroundVariant,
   MiniMap,
   Panel,
-  EdgeLabelRenderer,
   useNodesState,
   useEdgesState,
   useReactFlow,
-  useOnViewportChange,
   PanOnScrollMode,
   Position,
   type Node,
   type Edge,
   type NodeProps,
   type NodeChange,
-  type Viewport,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { ContractTableNode } from "./ContractTableNode";
@@ -255,13 +252,30 @@ export function ModelGraph({
     }));
   }, [highlightedNode, hoveredEdgeId, setEdges]);
 
-  // Sync layout changes + apply current visibility — loses drag positions
+  // Sync layout changes + apply current visibility
+  // Only replaces node objects whose reference actually changed from previous initialNodes —
+  // unchanged nodes keep their existing React Flow entry (preserves drag positions).
+  const prevInitNodesRef = useRef(initialNodes);
   useLayoutEffect(() => {
-    setNodes(initialNodes.map((n) => ({
-      ...n,
-      hidden: n.id.startsWith("__bg_") ? false : !visibleTables.has(n.id),
-    })));
-  }, [initialNodes, setNodes]);
+    const prevNodes = prevInitNodesRef.current;
+    prevInitNodesRef.current = initialNodes;
+    if (prevNodes === initialNodes) return;
+    setNodes((nds) => {
+      const prevMap = new Map(prevNodes.map((n) => [n.id, n]));
+      const ndsMap = new Map(nds.map((n) => [n.id, n]));
+      let changed = false;
+      const next = initialNodes.map((n) => {
+        const prev = prevMap.get(n.id);
+        if (prev === n) {
+          return ndsMap.get(n.id) ?? n;
+        }
+        changed = true;
+        const shouldHide = n.id.startsWith("__bg_") ? false : !visibleTables.has(n.id);
+        return { ...n, hidden: shouldHide };
+      });
+      return changed ? next : nds;
+    });
+  }, [initialNodes, setNodes, visibleTables]);
 
   // Toggle visibility — preserves dragged positions (uses callback form)
   useEffect(() => {
@@ -269,7 +283,7 @@ export function ModelGraph({
       const shouldHide = n.id.startsWith("__bg_") ? false : !visibleTables.has(n.id);
       return n.hidden === shouldHide ? n : { ...n, hidden: shouldHide };
     }));
-  }, [initialNodes, visibleTables, setNodes]);
+  }, [visibleTables, setNodes]);
 
   // Sync collapse state into node data so React Flow re-renders ContractTableNode
   useEffect(() => {
