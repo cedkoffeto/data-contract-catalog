@@ -205,6 +205,11 @@ export function ModelGraph({
   const [fieldPositions, setFieldPositions] = useState<Map<string, Map<string, number>>>(new Map());
   const [nodeHeights, setNodeHeights] = useState<Map<string, number>>(new Map());
 
+  useEffect(() => {
+    setFieldPositions(new Map());
+    setNodeHeights(new Map());
+  }, [viewMode]);
+
   const handleFieldPositions = useCallback((nodeId: string, positions: Map<string, number>, height: number) => {
     setFieldPositions((prev) => {
       const existing = prev.get(nodeId);
@@ -414,14 +419,15 @@ export function ModelGraph({
       // Collect field directions from all edges
       const fieldDir = new Map<string, { right: number; left: number }>();
       for (const edge of edges) {
+        const edData = edge.data as { parsed?: { left?: { field?: string }; right?: { field?: string } }[] };
         let fieldName: string | undefined;
         let otherX: number | undefined;
         if (edge.source === node.id) {
-          fieldName = edge.sourceHandle ?? undefined;
+          fieldName = edge.sourceHandle ?? edData.parsed?.[0]?.left?.field;
           const other = nodeMap.get(edge.target);
           if (other) otherX = other.position.x + (other.measured?.width ?? 220) / 2;
         } else if (edge.target === node.id) {
-          fieldName = edge.targetHandle ?? undefined;
+          fieldName = edge.targetHandle ?? edData.parsed?.[0]?.right?.field;
           const other = nodeMap.get(edge.source);
           if (other) otherX = other.position.x + (other.measured?.width ?? 220) / 2;
         }

@@ -300,9 +300,10 @@ export function parseContractsToGraph(
       existingEd.parsed = [...(existingEd.parsed ?? []), ed.parsed];
       existing.label = [existing.label, e.label].filter(Boolean).join(", ");
     } else {
-      const { sourceHandle, targetHandle, ...rest } = e;
       mergeMap.set(mergeKey, {
-        ...rest,
+        ...e,
+        sourceHandle: e.sourceHandle,
+        targetHandle: e.targetHandle,
         data: {
           ...ed,
           refs: [ed.ref_name ?? ed.ref ?? ""],

@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useContext, useMemo, useState, useRef, useCallback, useEffect } from "react";
+import { memo, useContext, useMemo, useState, useRef, useCallback, useEffect, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { Handle, Position, NodeResizeControl, ResizeControlVariant, type NodeProps } from "@xyflow/react";
 import { Table, Key, ChevronUp, ChevronDown, Info } from "lucide-react";
@@ -54,10 +54,13 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
     onFieldPositions(id, positions, nodeRect.height);
   }, [id, onFieldPositions]);
 
+  useLayoutEffect(() => {
+    measure();
+  }, [measure]);
+
   useEffect(() => {
     const el = rootRef.current;
     if (!el) return;
-    measure();
     const ro = new ResizeObserver(() => measure());
     ro.observe(el);
     return () => ro.disconnect();
