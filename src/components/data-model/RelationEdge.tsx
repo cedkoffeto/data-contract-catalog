@@ -1,13 +1,13 @@
 "use client";
 
-import { memo, useState, useEffect, useMemo, useSyncExternalStore } from "react";
+import { memo, useState, useEffect, useMemo, useContext } from "react";
 import {
   getSmoothStepPath,
   EdgeLabelRenderer,
   Position,
   type EdgeProps,
 } from "@xyflow/react";
-import { subscribeHighlight, getHighlightSnapshot, getHighlightSnapshotValue } from "./ModelGraph";
+import { HighlightCtx, FieldPosCtx } from "./ModelGraph";
 
 const animStyleId = "dcc-edge-flow";
 
@@ -56,10 +56,52 @@ function getPortPosition(dx: number): Position {
   return dx >= 0 ? Position.Right : Position.Left;
 }
 
+function getOppositePort(pos: Position): Position {
+  if (pos === Position.Right) return Position.Left;
+  if (pos === Position.Left) return Position.Right;
+  if (pos === Position.Top) return Position.Bottom;
+  return Position.Top;
+}
+
+function getBestTargetPort(sourcePort: Position, dx: number, dy: number): Position {
+  const absDx = Math.abs(dx);
+  const absDy = Math.abs(dy);
+
+  if (sourcePort === Position.Left || sourcePort === Position.Right) {
+    if (dx > 0) {
+      return sourcePort === Position.Right ? Position.Left : Position.Right;
+    } else {
+      return sourcePort === Position.Left ? Position.Right : Position.Left;
+    }
+  }
+
+  if (sourcePort === Position.Top || sourcePort === Position.Bottom) {
+    if (dy > 0) {
+      return sourcePort === Position.Bottom ? Position.Top : Position.Bottom;
+    } else {
+      return sourcePort === Position.Top ? Position.Bottom : Position.Top;
+    }
+  }
+
+  return getOppositePort(sourcePort);
+}
+
+function portX(pos: Position, nx: number, nw: number): number {
+  if (pos === Position.Left) return nx;
+  if (pos === Position.Right) return nx + nw;
+  return nx + nw / 2;
+}
+
+function portY(pos: Position, ny: number, nh: number): number {
+  if (pos === Position.Top) return ny;
+  if (pos === Position.Bottom) return ny + nh;
+  return ny + nh / 2;
+}
+
 export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
   const [hovered, setHovered] = useState(false);
-  const _version = useSyncExternalStore(subscribeHighlight, getHighlightSnapshot);
-  const { highlightedNode, highlightedNeighbors, selectedEdge, nodeMap } = getHighlightSnapshotValue();
+  const { highlightedNode, highlightedNeighbors, selectedEdge, nodeMap, onHoveredEdgeChange } = useContext(HighlightCtx);
+  const { fieldPositions, nodeHeights, fieldPorts } = useContext(FieldPosCtx);
 
   const { source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style, label, data, animated, id } = props;
 
@@ -70,24 +112,71 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
   const srcMeas = srcNode?.measured;
   const tgtMeas = tgtNode?.measured;
 
-  // With per-field handles, React Flow provides sourceX/Y and targetX/Y
-  // at the exact handle position. We just determine the port direction.
+  const srcFieldName = useMemo(() => {
+    const parsed = edgeData.parsed;
+    const first = Array.isArray(parsed) ? parsed[0] : parsed;
+    return first?.left?.field as string | undefined;
+  }, [edgeData.parsed]);
+
+  const tgtFieldName = useMemo(() => {
+    const parsed = edgeData.parsed;
+    const first = Array.isArray(parsed) ? parsed[0] : parsed;
+    return first?.right?.field as string | undefined;
+  }, [edgeData.parsed]);
+
+  const srcFieldY = useMemo(() => {
+    if (!srcFieldName) return 0;
+    return fieldPositions.get(source)?.get(srcFieldName) ?? 0;
+  }, [fieldPositions, source, srcFieldName]);
+
+  const tgtFieldY = useMemo(() => {
+    if (!tgtFieldName) return 0;
+    return fieldPositions.get(target)?.get(tgtFieldName) ?? 0;
+  }, [fieldPositions, target, tgtFieldName]);
+
+  const sourceOffset = useMemo(() => {
+    const h = nodeHeights.get(source) ?? srcMeas?.height ?? 100;
+    if (!srcFieldY) return 0;
+    return srcFieldY - h / 2;
+  }, [nodeHeights, source, srcMeas, srcFieldY]);
+
+  const targetOffset = useMemo(() => {
+    const h = nodeHeights.get(target) ?? tgtMeas?.height ?? 100;
+    if (!tgtFieldY) return 0;
+    return tgtFieldY - h / 2;
+  }, [nodeHeights, target, tgtMeas, tgtFieldY]);
+
   let sp = sourcePosition;
   let tp = targetPosition;
+  let sx = sourceX;
+  let sy = sourceY;
+  let tx = targetX;
+  let ty = targetY;
 
   if (srcNode && tgtNode && srcMeas && tgtMeas) {
-    const scx = srcNode.position.x + (srcMeas.width ?? 220) / 2;
-    const tcx = tgtNode.position.x + (tgtMeas.width ?? 220) / 2;
-    sp = getPortPosition(tcx - scx);
-    tp = getPortPosition(scx - tcx);
+    // Use field-level port assignment for clean routing
+    const srcPorts = fieldPorts.get(source);
+    const tgtPorts = fieldPorts.get(target);
+    sp = (srcFieldName && srcPorts?.get(srcFieldName)) || getPortPosition(tgtNode.position.x - srcNode.position.x);
+    const dx = tgtNode.position.x - srcNode.position.x;
+    const dy = tgtNode.position.y - srcNode.position.y;
+    tp = (tgtFieldName && tgtPorts?.get(tgtFieldName)) || getBestTargetPort(sp, dx, dy);
+    sx = portX(sp, srcNode.position.x, srcMeas.width ?? 220);
+    tx = portX(tp, tgtNode.position.x, tgtMeas.width ?? 220);
   }
 
+  const pathPad = 0;
+  const spDirX = sp === Position.Left ? -pathPad : sp === Position.Right ? pathPad : 0;
+  const spDirY = sp === Position.Top ? -pathPad : sp === Position.Bottom ? pathPad : 0;
+  const tpDirX = tp === Position.Left ? -pathPad : tp === Position.Right ? pathPad : 0;
+  const tpDirY = tp === Position.Top ? -pathPad : tp === Position.Bottom ? pathPad : 0;
+
   const [edgePath, labelX, labelY] = getSmoothStepPath({
-    sourceX,
-    sourceY,
+    sourceX: sx + spDirX,
+    sourceY: sy + sourceOffset + spDirY,
     sourcePosition: sp,
-    targetX,
-    targetY,
+    targetX: tx + tpDirX,
+    targetY: ty + targetOffset + tpDirY,
     targetPosition: tp,
     borderRadius: 20,
   });
@@ -148,8 +237,8 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
 
   return (
     <g
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseEnter={() => { setHovered(true); onHoveredEdgeChange(id); }}
+      onMouseLeave={() => { setHovered(false); onHoveredEdgeChange(null); }}
       style={{ cursor: "pointer" }}
     >
       <path d={edgePath} fill="none" stroke="transparent" strokeWidth={20} />
@@ -186,8 +275,8 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
       <g opacity={edgeActive || isEdgeHighlighted ? 1 : 0.2} />
 
       <text
-        x={sourceX + edgeOffset(sp, "source", 4).dx}
-        y={sourceY + edgeOffset(sp, "source", 4).dy - 10}
+        x={sx + edgeOffset(sp, "source", 4).dx}
+        y={sy + sourceOffset + edgeOffset(sp, "source", 4).dy - 10}
         textAnchor="middle"
         dominantBaseline="central"
         fill={edgeColor}
@@ -202,8 +291,8 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
       </text>
       <path
         d={cardinalitySymbolD(
-          sourceX + spDx,
-          sourceY + spDy,
+          sx + spDx,
+          sy + sourceOffset + spDy,
           sp,
           cardSource === "many" ? "many" : "one",
         )}
@@ -216,8 +305,8 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
       />
 
       <text
-        x={targetX + edgeOffset(tp, "target", 4).dx}
-        y={targetY + edgeOffset(tp, "target", 4).dy - 10}
+        x={tx + edgeOffset(tp, "target", 4).dx}
+        y={ty + targetOffset + edgeOffset(tp, "target", 4).dy - 10}
         textAnchor="middle"
         dominantBaseline="central"
         fill={edgeColor}
@@ -232,8 +321,8 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
       </text>
       <path
         d={cardinalitySymbolD(
-          targetX + tpDx,
-          targetY + tpDy,
+          tx + tpDx,
+          ty + targetOffset + tpDy,
           tp,
           cardTarget === "many" ? "many" : "one",
         )}

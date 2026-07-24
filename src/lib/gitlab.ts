@@ -126,6 +126,9 @@ export async function getGitLabMergeRequest(mrIid: number) {
     web_url: string;
     state: string;
     source_branch: string;
+    has_conflicts: boolean;
+    merge_status: string;
+    created_at: string;
   };
 }
 

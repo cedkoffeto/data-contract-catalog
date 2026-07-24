@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { Search, ExternalLink } from "lucide-react";
 import type { Edge } from "@xyflow/react";
 import type { DataModelContract } from "@/src/lib/data-model";
@@ -30,6 +30,10 @@ export function SidePanel({
 }) {
   const [tab, setTab] = useState<"fields" | "details">("fields");
   const [query, setQuery] = useState("");
+  const [panelWidth, setPanelWidth] = useState(900);
+  const resizingRef = useRef(false);
+  const startXRef = useRef(0);
+  const startWidthRef = useRef(0);
 
   useEffect(() => {
     setTab("fields");
@@ -45,6 +49,18 @@ export function SidePanel({
       return () => document.removeEventListener("keydown", handleEscape);
     }
   }, [contract, onClose]);
+
+  useEffect(() => {
+    if (!resizingRef.current) return;
+    function handleMove(e: MouseEvent) {
+      const delta = e.clientX - startXRef.current;
+      setPanelWidth(Math.min(1400, Math.max(360, startWidthRef.current + delta)));
+    }
+    function handleUp() { resizingRef.current = false; }
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleUp);
+    return () => { window.removeEventListener("mousemove", handleMove); window.removeEventListener("mouseup", handleUp); };
+  }, []);
 
   const filteredFields = useMemo(() => {
     if (!query) return contract?.fields ?? [];
@@ -90,10 +106,15 @@ export function SidePanel({
       onClick={onClose}
     >
       <div
-        className="flex h-[80vh] flex-col rounded-lg bg-white shadow-xl overflow-hidden resize"
-        style={{ width: "min(80vw, 1100px)" }}
+        className="flex h-[80vh] flex-col rounded-lg bg-white shadow-xl overflow-hidden relative"
+        style={{ width: panelWidth, maxWidth: "90vw" }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Resize handle */}
+        <div
+          className="absolute left-0 top-0 z-10 h-full w-1.5 cursor-col-resize hover:bg-blue-400 active:bg-blue-500 transition-colors"
+          onMouseDown={(e) => { resizingRef.current = true; startXRef.current = e.clientX; startWidthRef.current = panelWidth; }}
+        />
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
           <div className="min-w-0 flex-1">

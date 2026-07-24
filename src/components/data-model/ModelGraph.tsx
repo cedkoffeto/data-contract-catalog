@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useMemo, useCallback, useState, useEffect, useLayoutEffect, useRef, memo, useSyncExternalStore, type RefObject } from "react";
+import { createContext, useMemo, useCallback, useState, useEffect, useLayoutEffect, useRef, memo, useContext, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import {
   ReactFlow,
@@ -8,18 +8,15 @@ import {
   BackgroundVariant,
   MiniMap,
   Panel,
-  EdgeLabelRenderer,
   useNodesState,
   useEdgesState,
   useReactFlow,
-  useOnViewportChange,
   PanOnScrollMode,
   Position,
   type Node,
   type Edge,
   type NodeProps,
   type NodeChange,
-  type Viewport,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { ContractTableNode } from "./ContractTableNode";
@@ -33,7 +30,7 @@ const layerColors: Record<string, { bg: string; border: string; text: string }> 
   gold:   { bg: "rgba(234,179,8,0.06)",  border: "rgba(234,179,8,0.25)",  text: "rgba(160,120,0,0.5)" },
 };
 
-function BrokenRefBadge({ orphanRefs, title = "broken reference" }: { orphanRefs: string[]; title?: string }) {
+function BrokenRefBadge({ orphanRefs }: { orphanRefs: string[] }) {
   const [hover, setHover] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   return (
@@ -43,13 +40,13 @@ function BrokenRefBadge({ orphanRefs, title = "broken reference" }: { orphanRefs
         onMouseEnter={(e) => { setHover(true); const r = e.currentTarget.getBoundingClientRect(); setPos({ top: r.bottom + 6, left: r.left }); }}
         onMouseLeave={() => { setHover(false); setPos(null); }}
       >
-        {orphanRefs.length} {title}{orphanRefs.length !== 1 ? "s" : ""}
+        {orphanRefs.length} broken reference{orphanRefs.length !== 1 ? "s" : ""}
       </div>
       {hover && pos && createPortal(
         <div className="editor-error-popover fixed" style={{ left: pos.left, top: pos.top }}>
           <div className="editor-error-popover-arrow" />
           <div className="editor-error-popover-header">
-            <span>{title.charAt(0).toUpperCase() + title.slice(1)}{title !== "broken reference" ? "s" : ""}</span>
+            <span>Broken references</span>
           </div>
           <div className="editor-error-popover-body">
             {orphanRefs.map((ref, i) => (
@@ -107,6 +104,20 @@ export const ViewModeCtx = createContext<ViewModeValue>({
   nodesWithSummaryRow: new Set(),
 });
 
+export type FieldPosValue = {
+  fieldPositions: Map<string, Map<string, number>>;
+  nodeHeights: Map<string, number>;
+  onFieldPositions: (nodeId: string, positions: Map<string, number>, height: number) => void;
+  fieldPorts: Map<string, Map<string, Position>>;
+};
+
+export const FieldPosCtx = createContext<FieldPosValue>({
+  fieldPositions: new Map(),
+  nodeHeights: new Map(),
+  onFieldPositions: () => {},
+  fieldPorts: new Map(),
+});
+
 export type EdgeRenderData = {
   path: string;
   sourceX: number;
@@ -120,44 +131,25 @@ export type EdgeRenderData = {
   label: string;
 };
 
-// ── Highlight store (ref + subscribe, no React Context re-renders) ─────
-type HighlightState = {
+type HighlightValue = {
   highlightedNode: string | null;
   highlightedNeighbors: Set<string> | null;
   selectedEdge: string | null;
   hoveredEdgeId: string | null;
+  onHoveredEdgeChange: (id: string | null) => void;
+  edgeRenderDataRef: React.RefObject<Map<string, EdgeRenderData>>;
   nodeMap: Map<string, Node>;
 };
 
-let _highlightVersion = 0;
-const _highlightListeners = new Set<() => void>();
-const _highlightState: HighlightState = {
+export const HighlightCtx = createContext<HighlightValue>({
   highlightedNode: null,
   highlightedNeighbors: null,
   selectedEdge: null,
   hoveredEdgeId: null,
+  onHoveredEdgeChange: () => {},
+  edgeRenderDataRef: { current: new Map() },
   nodeMap: new Map(),
-};
-
-function subscribeHighlight(cb: () => void) {
-  _highlightListeners.add(cb);
-  return () => { _highlightListeners.delete(cb); };
-}
-
-function getHighlightSnapshot() {
-  return _highlightVersion;
-}
-
-function getHighlightSnapshotValue() {
-  return _highlightState;
-}
-
-function emitHighlight() {
-  _highlightVersion++;
-  for (const l of _highlightListeners) l();
-}
-
-export { subscribeHighlight, getHighlightSnapshot, getHighlightSnapshotValue };
+});
 
 export function ModelGraph({
   initialNodes,
@@ -178,10 +170,8 @@ export function ModelGraph({
   visibleCount,
   totalCount,
   orphanRefs,
-  orphanEdgeRefs,
   collapsedTables,
   onToggleCollapse,
-  onNodeResize,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
@@ -201,22 +191,35 @@ export function ModelGraph({
   visibleCount: number;
   totalCount: number;
   orphanRefs?: string[];
-  orphanEdgeRefs?: string[];
   collapsedTables: Set<string>;
   onToggleCollapse: (nodeId: string) => void;
-  onNodeResize?: (nodeId: string, width: number) => void;
 }) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const highlightedNodeRef = useRef<string | null>(null);
-  const highlightedNeighborsRef = useRef<Set<string> | null>(null);
+  const [highlightedNode, setHighlightedNode] = useState<string | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<string | null>(null);
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
   const edgeClickGuardRef = useRef(false);
   const edgeRenderDataRef = useRef(new Map<string, EdgeRenderData>());
   const [showGrid, setShowGrid] = useState(true);
-  const isScrollingRef = useRef(false);
-  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const [fieldPositions, setFieldPositions] = useState<Map<string, Map<string, number>>>(new Map());
+  const [nodeHeights, setNodeHeights] = useState<Map<string, number>>(new Map());
+
+  const handleFieldPositions = useCallback((nodeId: string, positions: Map<string, number>, height: number) => {
+    setFieldPositions((prev) => {
+      const existing = prev.get(nodeId);
+      if (existing && existing.size === positions.size && [...positions.entries()].every(([k, v]) => existing.get(k) === v)) return prev;
+      const next = new Map(prev);
+      next.set(nodeId, new Map(positions));
+      return next;
+    });
+    setNodeHeights((prev) => {
+      if (prev.get(nodeId) === height) return prev;
+      const next = new Map(prev);
+      next.set(nodeId, height);
+      return next;
+    });
+  }, []);
 
   const { setCenter, fitView } = useReactFlow();
   const fitKeyRef = useRef(0);
@@ -225,26 +228,54 @@ export function ModelGraph({
   const handleNodesChange = useCallback((changes: NodeChange[]) => {
     for (const change of changes) {
       if (change.type === "dimensions" && change.dimensions) {
-        setNodes((nds) => nds.map((n) =>
-          n.id === change.id
-            ? { ...n, data: { ...n.data, _customWidth: change.dimensions!.width } }
-            : n
-        ));
-        onNodeResize?.(change.id, change.dimensions.width);
+        const newWidth = change.dimensions.width;
+        setNodes((nds) => nds.map((n) => {
+          if (n.id !== change.id) return n;
+          if ((n.data as Record<string, unknown>)?._customWidth === newWidth) return n;
+          return { ...n, data: { ...n.data, _customWidth: newWidth } };
+        }));
       }
     }
     onNodesChange(changes);
-  }, [onNodesChange, setNodes, onNodeResize]);
+  }, [onNodesChange, setNodes]);
 
   useEffect(() => { setEdges(initialEdges); }, [initialEdges, setEdges]);
 
-  // Sync layout changes + apply current visibility — loses drag positions
+  // Elevate connected edges above nodes when hovering a table or an edge
+  useEffect(() => {
+    setEdges((eds) => eds.map((e) => {
+      const isConnected = highlightedNode && (e.source === highlightedNode || e.target === highlightedNode);
+      const isHovered = hoveredEdgeId === e.id;
+      const elevated = isConnected || isHovered;
+      const z = elevated ? 20 : 0;
+      return e.zIndex === z ? e : { ...e, zIndex: z };
+    }));
+  }, [highlightedNode, hoveredEdgeId, setEdges]);
+
+  // Sync layout changes + apply current visibility
+  // Only replaces node objects whose reference actually changed from previous initialNodes —
+  // unchanged nodes keep their existing React Flow entry (preserves drag positions).
+  const prevInitNodesRef = useRef(initialNodes);
   useLayoutEffect(() => {
-    setNodes(initialNodes.map((n) => ({
-      ...n,
-      hidden: n.id.startsWith("__bg_") ? false : !visibleTables.has(n.id),
-    })));
-  }, [initialNodes, setNodes]);
+    const prevNodes = prevInitNodesRef.current;
+    prevInitNodesRef.current = initialNodes;
+    if (prevNodes === initialNodes) return;
+    setNodes((nds) => {
+      const prevMap = new Map(prevNodes.map((n) => [n.id, n]));
+      const ndsMap = new Map(nds.map((n) => [n.id, n]));
+      let changed = false;
+      const next = initialNodes.map((n) => {
+        const prev = prevMap.get(n.id);
+        if (prev === n) {
+          return ndsMap.get(n.id) ?? n;
+        }
+        changed = true;
+        const shouldHide = n.id.startsWith("__bg_") ? false : !visibleTables.has(n.id);
+        return { ...n, hidden: shouldHide };
+      });
+      return changed ? next : nds;
+    });
+  }, [initialNodes, setNodes, visibleTables]);
 
   // Toggle visibility — preserves dragged positions (uses callback form)
   useEffect(() => {
@@ -252,7 +283,7 @@ export function ModelGraph({
       const shouldHide = n.id.startsWith("__bg_") ? false : !visibleTables.has(n.id);
       return n.hidden === shouldHide ? n : { ...n, hidden: shouldHide };
     }));
-  }, [initialNodes, visibleTables, setNodes]);
+  }, [visibleTables, setNodes]);
 
   // Sync collapse state into node data so React Flow re-renders ContractTableNode
   useEffect(() => {
@@ -263,46 +294,13 @@ export function ModelGraph({
     }));
   }, [collapsedTables, setNodes]);
 
-  // Adjacency map built once when edges change — O(E) once, O(1) per lookup
-  const adjacencyMap = useMemo(() => {
-    const map = new Map<string, Set<string>>();
-    for (const e of edges) {
-      if (!map.has(e.source)) map.set(e.source, new Set());
-      map.get(e.source)?.add(e.target);
-      if (!map.has(e.target)) map.set(e.target, new Set());
-      map.get(e.target)?.add(e.source);
-    }
-    return map;
-  }, [edges]);
-
   const handleMouseEnter = useCallback((_event: React.MouseEvent, node: Node) => {
-    if (isScrollingRef.current) return;
-    highlightedNodeRef.current = node.id;
-    highlightedNeighborsRef.current = adjacencyMap.get(node.id) ?? null;
-    emitHighlight();
-  }, [adjacencyMap]);
+    setHighlightedNode(node.id);
+  }, []);
 
   const handleMouseLeave = useCallback(() => {
-    if (isScrollingRef.current) return;
-    highlightedNodeRef.current = null;
-    highlightedNeighborsRef.current = null;
-    emitHighlight();
+    setHighlightedNode(null);
   }, []);
-
-  const handlePaneWheel = useCallback(() => {
-    isScrollingRef.current = true;
-    clearTimeout(scrollTimeoutRef.current);
-    scrollTimeoutRef.current = setTimeout(() => { isScrollingRef.current = false; }, 150);
-  }, []);
-
-  const containerDivRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const el = containerDivRef.current;
-    if (!el) return;
-    el.addEventListener("wheel", handlePaneWheel, { passive: true });
-    return () => el.removeEventListener("wheel", handlePaneWheel);
-  }, [handlePaneWheel]);
 
   const handleEdgeClick = useCallback((_event: React.MouseEvent, edge: Edge) => {
     edgeClickGuardRef.current = true;
@@ -319,9 +317,22 @@ export function ModelGraph({
     setHoveredEdgeId(id);
   }, []);
 
-  // Sync selectedEdge / hoveredEdgeId into the highlight store
-  useEffect(() => { _highlightState.selectedEdge = selectedEdge; emitHighlight(); }, [selectedEdge]);
-  useEffect(() => { _highlightState.hoveredEdgeId = hoveredEdgeId; emitHighlight(); }, [hoveredEdgeId]);
+  // Adjacency map built once when edges change — O(E) once, O(1) per lookup
+  const adjacencyMap = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const e of edges) {
+      if (!map.has(e.source)) map.set(e.source, new Set());
+      map.get(e.source)?.add(e.target);
+      if (!map.has(e.target)) map.set(e.target, new Set());
+      map.get(e.target)?.add(e.source);
+    }
+    return map;
+  }, [edges]);
+
+  const highlightedNeighbors = useMemo(() => {
+    if (!highlightedNode) return null;
+    return adjacencyMap.get(highlightedNode) ?? null;
+  }, [highlightedNode, adjacencyMap]);
 
   // Compute search-matching node IDs from prop
   const searchMatchSet = useMemo(
@@ -351,9 +362,9 @@ export function ModelGraph({
     if (!centerSlug) return;
     const prev = centerRef.current;
     if (prev && centerKey <= prev.key && centerSlug === prev.slug) return;
-    centerRef.current = { key: centerKey, slug: centerSlug };
     const node = nodes.find((n) => n.id === centerSlug);
     if (!node) return;
+    centerRef.current = { key: centerKey, slug: centerSlug };
     const x = node.position.x + (node.measured?.width ?? 220) / 2;
     const y = node.position.y + 20;
     requestAnimationFrame(() => setCenter(x, y, { zoom: 1 }));
@@ -371,9 +382,6 @@ export function ModelGraph({
   }, [fitKey, fitView, visibleTables]);
 
   const nodeMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
-
-  // Sync nodeMap into the highlight store
-  useEffect(() => { _highlightState.nodeMap = nodeMap; }, [nodeMap]);
 
   const fieldIndexMap = useMemo(() => {
     const map = new Map<string, Map<string, number>>();
@@ -396,6 +404,59 @@ export function ModelGraph({
     }
     return map;
   }, [nodes, collapsedTables, viewMode, connectedFields]);
+
+  // Field-level port assignment: each field gets a side (Left or Right)
+  // to minimize S-shapes and edge crossings
+  const fieldPorts = useMemo(() => {
+    const ports = new Map<string, Map<string, Position>>();
+    for (const node of nodes) {
+      const nodeX = node.position.x + (node.measured?.width ?? 220) / 2;
+      // Collect field directions from all edges
+      const fieldDir = new Map<string, { right: number; left: number }>();
+      for (const edge of edges) {
+        let fieldName: string | undefined;
+        let otherX: number | undefined;
+        if (edge.source === node.id) {
+          fieldName = edge.sourceHandle ?? undefined;
+          const other = nodeMap.get(edge.target);
+          if (other) otherX = other.position.x + (other.measured?.width ?? 220) / 2;
+        } else if (edge.target === node.id) {
+          fieldName = edge.targetHandle ?? undefined;
+          const other = nodeMap.get(edge.source);
+          if (other) otherX = other.position.x + (other.measured?.width ?? 220) / 2;
+        }
+        if (fieldName === undefined || otherX === undefined) continue;
+        if (!fieldDir.has(fieldName)) fieldDir.set(fieldName, { right: 0, left: 0 });
+        const dir = fieldDir.get(fieldName)!;
+        if (otherX > nodeX) dir.right++;
+        else dir.left++;
+      }
+
+      const fieldMap = new Map<string, Position>();
+      // Sort fields: majority-direction first, then alternate within each group
+      const entries = Array.from(fieldDir.entries());
+      entries.sort((a, b) => {
+        const aRight = a[1].right - a[1].left;
+        const bRight = b[1].right - b[1].left;
+        return bRight - aRight;
+      });
+
+      let rightCount = 0;
+      let leftCount = 0;
+      for (const [fieldName, dir] of entries) {
+        const preferRight = dir.right >= dir.left;
+        if (preferRight) {
+          fieldMap.set(fieldName, rightCount % 2 === 0 ? Position.Right : Position.Left);
+          rightCount++;
+        } else {
+          fieldMap.set(fieldName, leftCount % 2 === 0 ? Position.Left : Position.Right);
+          leftCount++;
+        }
+      }
+      ports.set(node.id, fieldMap);
+    }
+    return ports;
+  }, [nodes, edges, nodeMap]);
 
   const nodesWithSummaryRow = useMemo(() => {
     const set = new Set<string>();
@@ -428,13 +489,28 @@ export function ModelGraph({
     nodesWithSummaryRow,
   }), [viewMode, connectedFields, onHeaderClick, onNodeClick, searchMatchSet, collapsedTables, onToggleCollapse, fieldIndexMap, nodesWithSummaryRow]);
 
-  // Sync selectedEdge / hoveredEdgeId into the highlight store
-  useEffect(() => { _highlightState.selectedEdge = selectedEdge; emitHighlight(); }, [selectedEdge]);
-  useEffect(() => { _highlightState.hoveredEdgeId = hoveredEdgeId; emitHighlight(); }, [hoveredEdgeId]);
+  const highlightCtxValue = useMemo<HighlightValue>(() => ({
+    highlightedNode,
+    highlightedNeighbors,
+    selectedEdge,
+    hoveredEdgeId,
+    onHoveredEdgeChange: handleHoveredEdgeChange,
+    edgeRenderDataRef,
+    nodeMap,
+  }), [highlightedNode, highlightedNeighbors, selectedEdge, hoveredEdgeId, handleHoveredEdgeChange, nodeMap]);
+
+  const fieldPosCtxValue = useMemo<FieldPosValue>(() => ({
+    fieldPositions,
+    nodeHeights,
+    onFieldPositions: handleFieldPositions,
+    fieldPorts,
+  }), [fieldPositions, nodeHeights, handleFieldPositions, fieldPorts]);
 
   return (
+    <HighlightCtx.Provider value={highlightCtxValue}>
     <ViewModeCtx.Provider value={ctxValue}>
-      <div ref={containerDivRef} className="data-model-graph relative h-full w-full">
+    <FieldPosCtx.Provider value={fieldPosCtxValue}>
+      <div className="data-model-graph relative h-full w-full">
         <ReactFlow
           nodes={nodes}
           edges={filteredEdges}
@@ -457,7 +533,7 @@ export function ModelGraph({
           onlyRenderVisibleElements={true}
           nodeDragThreshold={1}
           panOnScroll={true}
-          panOnScrollMode={PanOnScrollMode.Vertical}
+          panOnScrollMode={PanOnScrollMode.Free}
           zoomActivationKeyCode="Control"
         >
           {showGrid && <Background variant={BackgroundVariant.Lines} color="#e2e8f0" gap={10} size={0.5} />}
@@ -477,11 +553,6 @@ export function ModelGraph({
           {orphanRefs && orphanRefs.length > 0 ? (
             <Panel position="top-right" className="!m-0" style={{ top: 12, right: 12 }}>
               <BrokenRefBadge orphanRefs={orphanRefs} />
-            </Panel>
-          ) : null}
-          {orphanEdgeRefs && orphanEdgeRefs.length > 0 ? (
-            <Panel position="top-right" className="!m-0" style={{ top: orphanRefs && orphanRefs.length > 0 ? 48 : 12, right: 12 }}>
-              <BrokenRefBadge orphanRefs={orphanEdgeRefs} title="filtered edge" />
             </Panel>
           ) : null}
           <MiniMap
@@ -504,6 +575,8 @@ export function ModelGraph({
           />
         </ReactFlow>
       </div>
+    </FieldPosCtx.Provider>
     </ViewModeCtx.Provider>
+    </HighlightCtx.Provider>
   );
 }

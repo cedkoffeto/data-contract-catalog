@@ -37,6 +37,16 @@ function layerFromPath(fp: string): string {
   return "bronze";
 }
 
+function getMaturityFromContractPath(filePath: string): string {
+  const parts = filePath.replace(/\\/g, "/").split("/");
+  const idx = parts.indexOf("contracts");
+  if (idx === -1) return "bronze";
+  // contracts/published/{maturity}/file.yaml
+  if (parts[idx + 1] === "published" && idx + 2 < parts.length) return parts[idx + 2];
+  // contracts/{maturity}/file.yaml
+  return parts[idx + 1] ?? "bronze";
+}
+
 function parseContractFromRaw(
   raw: string,
   slug: string,
@@ -122,7 +132,7 @@ async function readLocalDataModel(): Promise<{ contracts: DataModelContract[]; m
   }
 
   const [contractPaths, modelPaths] = await Promise.all([
-    walk(CONTRACTS_DIR),
+    walk(CONTRACTS_DIR).then((paths) => paths.filter((fp) => !fp.includes("/draft/"))),
     walk(DATA_MODEL_DIR).then((paths) => paths.filter((f) => path.basename(f) !== "model-global.yaml")),
   ]);
 
@@ -131,7 +141,7 @@ async function readLocalDataModel(): Promise<{ contracts: DataModelContract[]; m
       contractPaths.map(async (fp) => {
         const raw = await fs.promises.readFile(fp, "utf-8");
         const slug = path.basename(fp, ".yaml");
-        const maturity = path.basename(path.dirname(fp));
+        const maturity = getMaturityFromContractPath(fp);
         return parseContractFromRaw(raw, slug, maturity);
       })
     ).then((results) => results.filter(Boolean) as DataModelContract[]),
@@ -148,13 +158,16 @@ async function readLocalDataModel(): Promise<{ contracts: DataModelContract[]; m
 
 function parseContractsFromArchive(archiveFiles: Map<string, Buffer>): DataModelContract[] {
   const contracts: DataModelContract[] = [];
-  const yamlPaths = [...archiveFiles.keys()].filter((p) => /\.(yaml|yml)$/i.test(p) && p.startsWith("contracts/"));
+  const yamlPaths = [...archiveFiles.keys()].filter(
+    (p) => /\.(yaml|yml)$/i.test(p) && p.startsWith("contracts/") && !p.includes("/draft/"),
+  );
 
   for (const filePath of yamlPaths) {
     const buf = archiveFiles.get(filePath);
     if (!buf) continue;
     const slug = path.basename(filePath, ".yaml");
-    const parsed = parseContractFromRaw(buf.toString("utf-8"), slug, "bronze");
+    const maturity = getMaturityFromContractPath(filePath);
+    const parsed = parseContractFromRaw(buf.toString("utf-8"), slug, maturity);
     if (parsed) contracts.push(parsed);
   }
 

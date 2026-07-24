@@ -51,7 +51,7 @@ export async function createChangeRequest(params: {
   try {
     const { api, config } = getGitLabClient();
     const filePath = await getGitLabContractFilePath(cr.contractSlug);
-    const branchName = `change-${cr.contractSlug}-${cr.id}`;
+    const branchName = `change-${cr.contractSlug}-${cr.id}-${Date.now()}`;
     const commitMsg = params.commitMessage || `Update contract ${cr.contractSlug} (change request #${cr.id})`;
     const lines = commitMsg.split("\n");
     const mrTitle = lines[0].slice(0, 255);
@@ -82,7 +82,6 @@ export async function createChangeRequest(params: {
     await updateChangeRequestStatus({
       id: cr.id,
       status: "pending",
-      resolvedBy: cr.editorId,
       gitlabMrId: mrId,
       gitlabMrUrl: mrUrl,
     });
@@ -107,8 +106,10 @@ export async function insertExternalChangeRequest(params: {
   editorId: string;
   gitlabMrId: number;
   gitlabMrUrl: string;
-  status: "approved" | "pending";
+  status: "approved" | "pending" | "conflicted";
+  mrCreatedAt?: Date;
 }): Promise<ContractChangeRequest> {
+  const isResolved = params.status === "approved";
   const row = await prisma.contractChangeRequest.create({
     data: {
       contractSlug: params.contractSlug,
@@ -117,9 +118,10 @@ export async function insertExternalChangeRequest(params: {
       status: params.status,
       gitlabMrId: params.gitlabMrId,
       gitlabMrUrl: params.gitlabMrUrl,
-      resolvedBy: params.editorId,
-      resolvedAt: new Date(),
+      resolvedBy: isResolved ? params.editorId : null,
+      resolvedAt: isResolved ? new Date() : null,
       source: "external",
+      createdAt: params.mrCreatedAt ?? new Date(),
     },
   });
   return toChangeRequest(row);
@@ -146,17 +148,18 @@ export async function getChangeRequest(id: number): Promise<ContractChangeReques
 export async function updateChangeRequestStatus(params: {
   id: number;
   status: ContractChangeRequest["status"];
-  resolvedBy: string;
+  resolvedBy?: string | null;
   gitlabMrId?: number;
   gitlabMrUrl?: string;
   rejectionReason?: string;
 }): Promise<void> {
+  const isResolved = params.status === "approved" || params.status === "rejected";
   await prisma.contractChangeRequest.update({
     where: { id: params.id },
     data: {
       status: params.status,
-      resolvedBy: params.resolvedBy,
-      resolvedAt: new Date(),
+      resolvedBy: isResolved ? (params.resolvedBy ?? null) : null,
+      resolvedAt: isResolved ? new Date() : null,
       updatedAt: new Date(),
       ...(params.gitlabMrId !== undefined ? { gitlabMrId: params.gitlabMrId } : {}),
       ...(params.gitlabMrUrl !== undefined ? { gitlabMrUrl: params.gitlabMrUrl } : {}),
@@ -194,10 +197,9 @@ export async function mergeChangeRequest(
       await updateChangeRequestStatus({
         id,
         status: "conflicted",
-        resolvedBy: resolverId,
-        rejectionReason: "Conflit détecté, merci de merger manuellement sur GitLab",
+        rejectionReason: "Conflit de merge détecté — rebase nécessaire sur la branche source avant de pouvoir merger",
       });
-      return { success: false, error: "Conflit détecté, merci de merger manuellement sur GitLab" };
+      return { success: false, error: "Conflit de merge détecté — rebase nécessaire sur la branche source avant de pouvoir merger" };
     }
 
     return { success: false, error: msg };

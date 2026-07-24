@@ -93,6 +93,7 @@ body {
   background: var(--ui-bg);
   color: var(--ui-text);
   height: 100%;
+  overflow: hidden;
 }
 
 body,
@@ -1195,6 +1196,17 @@ a:has(> .kpi-card) {
   flex: 1 1 auto;
 }
 
+.catalog-filters__search .ui-input {
+  min-height: 2rem;
+  padding: 0 0.9rem 0 2.6rem;
+  font-size: 0.875rem;
+  border: 1px solid #d1d5db;
+}
+
+.catalog-filters__search .ui-input-icon {
+  left: 0.7rem;
+}
+
 .catalog-searchbar {
   display: flex;
   flex-direction: column;
@@ -1403,27 +1415,6 @@ a:has(> .kpi-card) {
 .catalog-filter-pill.is-active {
   background: rgba(249, 115, 22, 0.08);
   color: var(--ui-primary);
-}
-
-.catalog-searchbar__search-btn {
-  background: #fff;
-  color: #f97316;
-  border: 1px solid rgba(249, 115, 22, 0.3);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.375rem;
-  min-width: 0;
-  width: 2.25rem;
-  height: 2.25rem;
-  padding: 0;
-  flex-shrink: 0;
-}
-.catalog-searchbar__search-btn:hover:not(:disabled) {
-  background: rgba(249, 115, 22, 0.06);
-}
-.catalog-searchbar__search-btn:disabled {
-  opacity: 0.4;
 }
 
 .catalog-filter-pill--muted {
@@ -1813,10 +1804,14 @@ body[data-ra-modal] [data-ra-overlay] {
 .catalog-card__version,
 .catalog-card__description,
 .catalog-card__owner,
-.contract-summary-strip__label,
 .editor-breadcrumb,
 .editor-footer-bar span {
   color: var(--ui-text-soft);
+}
+
+.contract-summary-strip__label {
+  color: var(--ui-text-soft);
+  font-size: 0.75rem;
 }
 
 .catalog-card__description--clamped {
@@ -1932,13 +1927,13 @@ body[data-ra-modal] [data-ra-overlay] {
 }
 
 .contract-summary-strip__card {
-  padding: 0.8rem;
+  padding: 0.45rem 0.6rem;
 }
 
 .contract-summary-strip__card strong {
   display: block;
-  margin-top: 0.2rem;
-  font-size: 1.15rem;
+  margin-top: 0.1rem;
+  font-size: 0.9rem;
 }
 
 .contract-layout-shell {
@@ -5011,7 +5006,7 @@ body[data-ra-modal] [data-ra-overlay] {
   align-items: center;
   gap: 0.4rem;
   padding: 0.4rem 0.55rem;
-  border: 1px solid var(--ui-subtle);
+  border: 1px solid #d1d5db;
   border-radius: var(--ui-radius);
   background: #fff;
   cursor: pointer;
@@ -5020,7 +5015,7 @@ body[data-ra-modal] [data-ra-overlay] {
 }
 
 .ss-multi__trigger:hover {
-  border-color: #d1d5db;
+  border-color: #9ca3af;
 }
 
 .ss-multi__trigger--disabled {
@@ -5227,8 +5222,8 @@ body[data-ra-modal] [data-ra-overlay] {
 }
 
 .data-model-graph .react-flow__edges {
-  z-index: 10;
+  z-index: 1;
 }
 .data-model-graph .react-flow__nodes {
-  z-index: 1;
+  z-index: 10;
 }

@@ -1,10 +1,10 @@
 "use client";
 
-import { memo, useContext, useMemo, useState } from "react";
+import { memo, useContext, useMemo, useState, useRef, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Handle, Position, NodeResizeControl, ResizeControlVariant, type NodeProps } from "@xyflow/react";
 import { Table, Key, ChevronUp, ChevronDown, Info } from "lucide-react";
-import { ViewModeCtx } from "./ModelGraph";
+import { ViewModeCtx, FieldPosCtx } from "./ModelGraph";
 import type { ContractTableNodeData } from "@/src/lib/data-model";
 
 const layerBorderColor: Record<string, string> = {
@@ -16,6 +16,8 @@ const layerBorderColor: Record<string, string> = {
 export const ContractTableNode = memo(function ContractTableNode({ selected, id, data }: NodeProps) {
   const d = data as ContractTableNodeData;
   const { viewMode, connectedFields, onHeaderClick, onFieldClick, searchMatchIds, collapsedTables, onToggleCollapse } = useContext(ViewModeCtx);
+  const { onFieldPositions } = useContext(FieldPosCtx);
+  const rootRef = useRef<HTMLDivElement>(null);
   const isSearchMatch = searchMatchIds?.has(id) ?? false;
   const allFields = d.fields;
   const nodeConnected = connectedFields.get(id);
@@ -37,8 +39,33 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
     return allFields.filter((f) => isConnected(f.name));
   }, [allFields, showingDetailed, connectedCount]);
 
+  const measure = useCallback(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const positions = new Map<string, number>();
+    const nodeRect = el.getBoundingClientRect();
+    const fieldEls = el.querySelectorAll<HTMLElement>("[data-field]");
+    fieldEls.forEach((f) => {
+      const name = f.getAttribute("data-field")!;
+      if (name === "__summary__") return;
+      const r = f.getBoundingClientRect();
+      positions.set(name, r.top - nodeRect.top + r.height / 2);
+    });
+    onFieldPositions(id, positions, nodeRect.height);
+  }, [id, onFieldPositions]);
+
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    measure();
+    const ro = new ResizeObserver(() => measure());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [measure]);
+
   return (
     <div
+      ref={rootRef}
       className={`rounded-xl border-2 transition-shadow ${
         selected ? "border-blue-500 shadow-[0_4px_16px_rgba(0,0,0,0.1)]" : isSearchMatch ? "border-green-500 shadow-[0_4px_16px_rgba(0,0,0,0.1)]" : "border-gray-200 shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.1)]"
       }`}
@@ -58,13 +85,15 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
         minWidth={180}
         maxWidth={600}
       />
+      <Handle type="source" position={Position.Right} className="!w-0 !h-0 !border-0 !bg-transparent !opacity-0" />
+      <Handle type="target" position={Position.Left} className="!w-0 !h-0 !border-0 !bg-transparent !opacity-0" />
       <Handle type="source" position={Position.Bottom} id="bottom" className="!w-0 !h-0 !border-0 !bg-transparent !opacity-0" />
       <Handle type="target" position={Position.Top} id="top" className="!w-0 !h-0 !border-0 !bg-transparent !opacity-0" />
       <div className="relative overflow-hidden rounded-xl bg-white">
         {/* Header */}
         <div className="flex min-w-0 cursor-grab active:cursor-grabbing items-center gap-2 py-2 pl-4 pr-3" style={{ background: d.color.replace("hsl(", "hsla(").replace(")", ", 0.1)"), borderBottom: `2px solid ${d.color}40`, borderLeft: `4px solid ${layerBorderColor[d.maturity as string] || layerBorderColor.bronze}` }}>
           <span className="flex h-5 cursor-pointer items-center" onClick={(e) => { e.stopPropagation(); window.open(`/contracts/${d.slug}`, "_blank", "noopener,noreferrer"); }} title="Open contract detail"><Table size={14} style={{ color: d.color }} /></span>
-          <span className="flex h-5 min-w-0 items-center text-sm font-semibold tracking-tight text-gray-900"
+          <span className="flex h-5 min-w-0 items-center text-xs font-semibold tracking-tight text-gray-900"
             onClick={(e) => {
               if (e.ctrlKey || e.metaKey) { e.stopPropagation(); window.open(`/contracts/${d.slug}`, "_blank", "noopener,noreferrer"); }
               else onHeaderClick(d.slug);
@@ -143,14 +172,12 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
                 if (e.ctrlKey || e.metaKey) { e.stopPropagation(); window.open(`/contracts/${d.slug}`, "_blank", "noopener,noreferrer"); }
                 else onFieldClick?.(d.slug);
               }}>
-                <Handle type="target" position={Position.Left} id={f.name} className="!w-0 !h-0 !border-0 !bg-transparent !opacity-0" />
-                <Handle type="source" position={Position.Right} id={f.name} className="!w-0 !h-0 !border-0 !bg-transparent !opacity-0" />
+                <span className={`min-w-0 font-mono text-[11px] leading-none break-all ${edgeCount > 0 ? "font-bold text-gray-900" : "text-gray-600"}`}>{f.name}</span>
                 {edgeCount > 0 ? (
                   <Key size={10} className="shrink-0 text-amber-500" />
                 ) : (
                   <span className="w-[10px] shrink-0" />
                 )}
-                <span className={`min-w-0 font-mono text-[11px] leading-none break-all ${edgeCount > 0 ? "font-bold text-gray-900" : "text-gray-600"}`}>{f.name}</span>
                 <span className="w-4 shrink-0 flex items-center justify-center">
                   {f.description && (
                     <Info

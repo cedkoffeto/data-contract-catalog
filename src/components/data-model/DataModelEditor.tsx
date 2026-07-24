@@ -45,10 +45,14 @@ export function DataModelEditor({
   contracts,
   models,
   focusSlug,
+  focusDomain,
+  focusContext,
 }: {
   contracts: DataModelContract[];
   models: LoadedModel[];
   focusSlug?: string | null;
+  focusDomain?: string | null;
+  focusContext?: string | null;
 }) {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [layerFilter, setLayerFilter] = useState<string | null>(null);
@@ -102,7 +106,7 @@ export function DataModelEditor({
     } catch {}
   }
 
-  const { nodes: rawNodes, edges, orphanRefs, orphanEdgeRefs } = useMemo(
+  const { nodes: rawNodes, edges, orphanRefs } = useMemo(
     () => parseContractsToGraph(contracts, models),
     [contracts, models],
   );
@@ -147,7 +151,7 @@ export function DataModelEditor({
     });
   }, [edges, layoutMode]);
 
-  const [laidOutNodes, setLaidOutNodes] = useState<FlowNode[]>(() => layoutByMode(rawNodes, layoutEdges, layoutMode, connectedFields, viewMode, 0).nodes);
+  const [laidOutNodes, setLaidOutNodes] = useState<FlowNode[]>(() => layoutByMode(rawNodes, layoutEdges, layoutMode, connectedFields, viewMode, 0, collapsedTables).nodes);
   const layoutWidthRef = useRef(0);
 
   const [visibleTablesState, setVisibleTablesState] = useState<Set<string>>(() =>
@@ -165,7 +169,7 @@ export function DataModelEditor({
     });
     const visibleNodes = nodesWithWidths.filter((n) => ids.has(n.id));
     const visibleEdges = layoutEdges.filter((e) => ids.has(e.source) && ids.has(e.target));
-    const { nodes: laidOut } = layoutByMode(visibleNodes, visibleEdges, layoutMode, connectedFields, viewMode, layoutWidthRef.current);
+    const { nodes: laidOut } = layoutByMode(visibleNodes, visibleEdges, layoutMode, connectedFields, viewMode, layoutWidthRef.current, collapsedTables);
     const newPosMap = new Map(laidOut.map((n) => [n.id, n]));
     const prevMap = new Map(prev.map((n) => [n.id, n]));
     return rawNodes.map((n) => newPosMap.get(n.id) ?? prevMap.get(n.id) ?? n);
@@ -185,10 +189,29 @@ export function DataModelEditor({
 
   useEffect(() => () => clearTimeout(resizeDebounceRef.current), []);
 
-  // Only re-layout when layout-critical props change (NOT on every resize)
+  // Only re-layout when layout-critical props change (NOT on every resize or collapse)
   useEffect(() => {
     setLaidOutNodes(relayoutVisible);
   }, [rawNodes, layoutEdges, layoutMode, connectedFields, viewMode]);
+
+  // On collapse/expand: only recreate the changed node objects (no flicker)
+  const prevCollapsedRef = useRef<Set<string>>(collapsedTables);
+  useEffect(() => {
+    const prev = prevCollapsedRef.current;
+    if (prev === collapsedTables) return;
+    prevCollapsedRef.current = collapsedTables;
+    const added = [...collapsedTables].filter((id) => !prev.has(id));
+    const removed = [...prev].filter((id) => !collapsedTables.has(id));
+    const changedIds = new Set([...added, ...removed]);
+    if (changedIds.size === 0) return;
+    setLaidOutNodes((prevNodes) =>
+      prevNodes.map((n) => {
+        if (!changedIds.has(n.id)) return n;
+        // New data ref → ContractTableNode memo detects change → re-renders → ResizeObserver fires
+        return { ...n, data: { ...n.data } };
+      }),
+    );
+  }, [collapsedTables]);
 
   // In TB mode, also re-layout when containerWidth changes (affects isolated grid)
   useEffect(() => {
@@ -197,17 +220,27 @@ export function DataModelEditor({
     setLaidOutNodes(relayoutVisible);
   }, [layoutMode, containerWidth]);
 
+  // Center view after mode switch — relayout already ran via the effect above
+  useEffect(() => { setFitKey((k) => k + 1); }, [viewMode]);
   useEffect(() => {
     if (!focusSlug || rawNodes.length === 0) return;
     const node = rawNodes.find((n) => {
       const d = n.data as ContractTableNodeData;
-      return d.slug === focusSlug || focusSlug === `${d.maturity}-${d.slug}`;
+      const slugMatch = d.slug === focusSlug || focusSlug === `${d.maturity}-${d.slug}`;
+      if (!slugMatch) return false;
+      if (focusDomain && d.domain !== focusDomain) return false;
+      if (focusContext && d.context !== focusContext) return false;
+      return true;
     });
     if (node) {
-      setCenterSlug(node.id);
-      setCenterKey((k) => k + 1);
+      // Delay to let React Flow measure nodes after first render
+      const t = setTimeout(() => {
+        setCenterSlug(node.id);
+        setCenterKey((k) => k + 1);
+      }, 150);
+      return () => clearTimeout(t);
     }
-  }, [focusSlug, rawNodes]);
+  }, [focusSlug, focusDomain, focusContext, rawNodes]);
 
   const handleCenterView = useCallback((slug: string) => {
     setCenterSlug(slug);
@@ -312,10 +345,8 @@ export function DataModelEditor({
               visibleCount={visibleTablesState.size}
               totalCount={rawNodes.length}
               orphanRefs={orphanRefs}
-              orphanEdgeRefs={orphanEdgeRefs}
               collapsedTables={collapsedTables}
               onToggleCollapse={handleToggleCollapse}
-              onNodeResize={handleNodeResize}
             />
           </div>
         </div>
