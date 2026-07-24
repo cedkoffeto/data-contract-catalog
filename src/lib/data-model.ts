@@ -429,7 +429,7 @@ function computeEdgePorts(dx: number, dy: number): { sourcePosition: Position; t
   return { sourcePosition, targetPosition };
 }
 
-export type LayoutMode = "LR" | "TB" | "layer" | "domain" | "star";
+export type LayoutMode = "LR" | "TB" | "layer" | "star";
 
 function nodeHeight(node: Node, connectedFields?: Map<string, Map<string, number>>, viewMode?: "detailed" | "compact", collapsed?: boolean): number {
   const data = node.data as ContractTableNodeData;
@@ -793,92 +793,6 @@ export function layoutLayerGraph(nodes: Node[], edges: Edge[], connectedFields?:
   return { nodes: [...bgNodes, ...laidOut], edges };
 }
 
-export function layoutDomainGraph(nodes: Node[], edges: Edge[], connectedFields?: Map<string, Map<string, number>>, viewMode?: "detailed" | "compact", collapsedTables?: Set<string>): { nodes: Node[]; edges: Edge[] } {
-  const nodeById = new Map(nodes.map((n) => [n.id, n]));
-  const COLUMN_WIDTH = 320;
-  const DOMAIN_GAP_X = 60;
-  const VERTICAL_GAP = 20;
-
-  // Separate connected from orphan (isolated) nodes
-  const connectedIds = new Set<string>();
-  for (const e of edges) {
-    connectedIds.add(e.source);
-    connectedIds.add(e.target);
-  }
-  const connected = nodes.filter((n) => connectedIds.has(n.id));
-  const orphans = nodes.filter((n) => !connectedIds.has(n.id));
-
-  // Heights cache for all nodes
-  const heights = new Map<string, number>();
-  for (const n of nodes) {
-    heights.set(n.id, nodeHeight(n, connectedFields, viewMode, collapsedTables?.has(n.id)));
-  }
-
-  // --- Layout connected nodes by domain ---
-  const byDomain = new Map<string, Node[]>();
-  for (const n of connected) {
-    const domain = (n.data as ContractTableNodeData).domain || "Unknown";
-    if (!byDomain.has(domain)) byDomain.set(domain, []);
-    byDomain.get(domain)?.push(n);
-  }
-
-  const positions = new Map<string, { x: number; y: number }>();
-
-  const sortedEntries = Array.from(byDomain.entries()).sort(([a], [b]) => a.localeCompare(b));
-  let xOffset = -(sortedEntries.length * (COLUMN_WIDTH + DOMAIN_GAP_X) - DOMAIN_GAP_X) / 2;
-
-  for (const [, ns] of sortedEntries) {
-    // Sort alphabetically within each domain to reduce edge crossings
-    ns.sort((a, b) => {
-      const sa = (a.data as ContractTableNodeData).slug || "";
-      const sb = (b.data as ContractTableNodeData).slug || "";
-      return sa.localeCompare(sb);
-    });
-
-    let totalHeight = 0;
-    for (const n of ns) totalHeight += heights.get(n.id)!;
-    totalHeight += (ns.length - 1) * VERTICAL_GAP;
-
-    let y = -totalHeight / 2;
-
-    for (const n of ns) {
-      const h = heights.get(n.id)!;
-      positions.set(n.id, { x: xOffset, y: y + h / 2 });
-      y += h + VERTICAL_GAP;
-    }
-
-    xOffset += COLUMN_WIDTH + DOMAIN_GAP_X;
-  }
-
-  // --- Layout orphan tables in a square grid to the right ---
-  if (orphans.length > 0) {
-    const orphanGap = 30;
-    const { positions: orphanPositions } = layoutOrphanGrid(orphans, heights, orphanGap);
-    const gridLeft = (connected.length > 0 ? xOffset : 0) + orphanGap * 2;
-    for (const [id, pos] of orphanPositions) {
-      positions.set(id, { x: pos.x + gridLeft, y: pos.y });
-    }
-  }
-
-  // Compute optimal edge ports
-  const domainEdges = edges as EdgeWithPorts[];
-  for (const edge of domainEdges) {
-    const src = positions.get(edge.source) ?? nodeById.get(edge.source)?.position;
-    const tgt = positions.get(edge.target) ?? nodeById.get(edge.target)?.position;
-    if (src && tgt) {
-      Object.assign(edge, computeEdgePorts(tgt.x - src.x, tgt.y - src.y));
-    }
-  }
-
-  // Single output pass
-  const laidOut = nodes.map((n) => {
-    const pos = positions.get(n.id);
-    return pos ? { ...n, position: pos } : n;
-  });
-
-  return { nodes: laidOut, edges };
-}
-
 export function layoutStarGraph(nodes: Node[], edges: Edge[], connectedFields?: Map<string, Map<string, number>>, viewMode?: "detailed" | "compact", collapsedTables?: Set<string>): { nodes: Node[]; edges: Edge[] } {
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
   // Build undirected adjacency
@@ -1017,8 +931,6 @@ export function layoutByMode(nodes: Node[], edges: Edge[], mode: LayoutMode, con
       return layoutGraph(nodes, edges, mode, connectedFields, viewMode, containerWidth, 30, collapsedTables);
     case "layer":
       return layoutLayerGraph(nodes, edges, connectedFields, viewMode, collapsedTables);
-    case "domain":
-      return layoutDomainGraph(nodes, edges, connectedFields, viewMode, collapsedTables);
     case "star":
       return layoutStarGraph(nodes, edges, connectedFields, viewMode, collapsedTables);
   }
