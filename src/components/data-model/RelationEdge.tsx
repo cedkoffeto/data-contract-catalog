@@ -63,6 +63,26 @@ function getOppositePort(pos: Position): Position {
   return Position.Top;
 }
 
+function getBestTargetPort(sourcePort: Position, dx: number, dy: number): Position {
+  const absDx = Math.abs(dx);
+  const absDy = Math.abs(dy);
+  if (sourcePort === Position.Left || sourcePort === Position.Right) {
+    if (absDx >= absDy) {
+      if (sourcePort === Position.Left) return dx < 0 ? Position.Right : Position.Left;
+      return dx > 0 ? Position.Left : Position.Right;
+    }
+    return sourcePort === Position.Left ? Position.Right : Position.Left;
+  }
+  if (sourcePort === Position.Top || sourcePort === Position.Bottom) {
+    if (absDy >= absDx) {
+      if (sourcePort === Position.Top) return dy < 0 ? Position.Bottom : Position.Top;
+      return dy > 0 ? Position.Top : Position.Bottom;
+    }
+    return sourcePort === Position.Top ? Position.Bottom : Position.Top;
+  }
+  return getOppositePort(sourcePort);
+}
+
 function portX(pos: Position, nx: number, nw: number): number {
   if (pos === Position.Left) return nx;
   if (pos === Position.Right) return nx + nw;
@@ -135,7 +155,9 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
     const srcPorts = fieldPorts.get(source);
     const tgtPorts = fieldPorts.get(target);
     sp = (srcFieldName && srcPorts?.get(srcFieldName)) || getPortPosition(tgtNode.position.x - srcNode.position.x);
-    tp = (tgtFieldName && tgtPorts?.get(tgtFieldName)) || getOppositePort(sp);
+    const dx = tgtNode.position.x - srcNode.position.x;
+    const dy = tgtNode.position.y - srcNode.position.y;
+    tp = (tgtFieldName && tgtPorts?.get(tgtFieldName)) || getBestTargetPort(sp, dx, dy);
     sx = portX(sp, srcNode.position.x, srcMeas.width ?? 220);
     tx = portX(tp, tgtNode.position.x, tgtMeas.width ?? 220);
   }

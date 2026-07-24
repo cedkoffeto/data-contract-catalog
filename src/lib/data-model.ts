@@ -404,14 +404,29 @@ function layoutOrphanGrid(
 function computeEdgePorts(dx: number, dy: number): { sourcePosition: Position; targetPosition: Position } {
   const absDx = Math.abs(dx);
   const absDy = Math.abs(dy);
-  // When horizontal displacement dominates → left/right (C-shape)
+  let sourcePosition: Position;
+  let targetPosition: Position;
   if (absDx >= absDy) {
-    if (dx >= 0) return { sourcePosition: Position.Right, targetPosition: Position.Left };
-    return { sourcePosition: Position.Left, targetPosition: Position.Right };
+    sourcePosition = dx >= 0 ? Position.Right : Position.Left;
+  } else {
+    sourcePosition = dy >= 0 ? Position.Bottom : Position.Top;
   }
-  // When vertical displacement dominates → top/bottom (avoids long S-shapes)
-  if (dy >= 0) return { sourcePosition: Position.Bottom, targetPosition: Position.Top };
-  return { sourcePosition: Position.Top, targetPosition: Position.Bottom };
+  if (sourcePosition === Position.Left || sourcePosition === Position.Right) {
+    if (absDx >= absDy) {
+      if (sourcePosition === Position.Left) targetPosition = dx < 0 ? Position.Right : Position.Left;
+      else targetPosition = dx > 0 ? Position.Left : Position.Right;
+    } else {
+      targetPosition = sourcePosition === Position.Left ? Position.Right : Position.Left;
+    }
+  } else {
+    if (absDy >= absDx) {
+      if (sourcePosition === Position.Top) targetPosition = dy < 0 ? Position.Bottom : Position.Top;
+      else targetPosition = dy > 0 ? Position.Top : Position.Bottom;
+    } else {
+      targetPosition = sourcePosition === Position.Top ? Position.Bottom : Position.Top;
+    }
+  }
+  return { sourcePosition, targetPosition };
 }
 
 export type LayoutMode = "LR" | "TB" | "layer" | "domain" | "star";
