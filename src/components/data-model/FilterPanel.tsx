@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useCallback, useEffect, memo } from "react";
 import { createPortal } from "react-dom";
 import { Search, Eye, EyeOff, PanelLeftClose } from "lucide-react";
-import type { Node } from "@xyflow/react";
+import type { Node, Edge } from "@xyflow/react";
 import type { ContractTableNodeData } from "@/src/lib/data-model";
 
 const LAYERS = [
@@ -25,24 +25,53 @@ const TableListItem = memo(function TableListItem({
   isVisible,
   onCenterTable,
   onToggleTable,
+  edges,
+  onShowConnected,
 }: {
   node: Node;
   isVisible: boolean;
   onCenterTable: (slug: string) => void;
   onToggleTable: (id: string) => void;
+  edges: Edge[];
+  onShowConnected: (nodeId: string) => void;
 }) {
   const d = nodeData(node);
   const [errHover, setErrHover] = useState(false);
   const [errPos, setErrPos] = useState<{ top: number; left: number } | null>(null);
+  const [ctxMenu, setCtxMenu] = useState<{ top: number; left: number } | null>(null);
   const handleCenter = useCallback(() => onCenterTable(node.id), [onCenterTable, node.id]);
   const handleToggle = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     onToggleTable(node.id);
   }, [onToggleTable, node.id]);
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCtxMenu({ top: e.clientY, left: e.clientX });
+  }, []);
+  const handleShowConnected = useCallback(() => {
+    onShowConnected(node.id);
+    setCtxMenu(null);
+  }, [onShowConnected, node.id]);
+  useEffect(() => {
+    if (!ctxMenu) return;
+    const close = () => setCtxMenu(null);
+    window.addEventListener("click", close);
+    window.addEventListener("contextmenu", close);
+    return () => { window.removeEventListener("click", close); window.removeEventListener("contextmenu", close); };
+  }, [ctxMenu]);
+  const connectedCount = useMemo(() => {
+    let count = 0;
+    for (const e of edges) {
+      if (e.source === node.id || e.target === node.id) count++;
+    }
+    return count;
+  }, [edges, node.id]);
   return (
     <div
       className={`flex items-center gap-2 border-b border-gray-100 px-3 py-1.5 text-xs ${isVisible ? "cursor-pointer hover:bg-gray-50" : "opacity-40"}`}
       onClick={isVisible ? handleCenter : undefined}
+      onContextMenu={isVisible ? handleContextMenu : undefined}
     >
       <div
         className="h-2 w-2 shrink-0 rounded-full"
@@ -86,6 +115,23 @@ const TableListItem = memo(function TableListItem({
       >
         {isVisible ? <Eye size={13} /> : <EyeOff size={13} />}
       </button>
+      {ctxMenu && connectedCount > 0 && createPortal(
+        <div
+          className="fixed z-[9999] min-w-[180px] rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
+          style={{ top: ctxMenu.top, left: ctxMenu.left }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"
+            onClick={handleShowConnected}
+          >
+            <span className="text-gray-400">🔗</span>
+            Show connected tables
+            <span className="ml-auto text-[10px] text-gray-400">{connectedCount}</span>
+          </button>
+        </div>,
+        document.body,
+      )}
     </div>
   );
 });
@@ -101,6 +147,8 @@ export function FilterPanel({
   onLayerFilter,
   query,
   onQueryChange,
+  edges,
+  onShowConnected,
 }: {
   nodes: Node[];
   visibleTables: Set<string>;
@@ -112,6 +160,8 @@ export function FilterPanel({
   onLayerFilter: (layer: string | null) => void;
   query: string;
   onQueryChange: (q: string) => void;
+  edges: Edge[];
+  onShowConnected: (nodeId: string) => void;
 }) {
   const [open, setOpen] = useState(true);
   const [width, setWidth] = useState(DEFAULT_WIDTH);
@@ -177,9 +227,11 @@ export function FilterPanel({
         isVisible={visibleTables.has(n.id)}
         onCenterTable={onCenterTable}
         onToggleTable={onToggleTable}
+        edges={edges}
+        onShowConnected={onShowConnected}
       />
     ));
-  }, [filteredNodes, visibleTables, onCenterTable, onToggleTable]);
+  }, [filteredNodes, visibleTables, onCenterTable, onToggleTable, edges, onShowConnected]);
 
   return (
     <div

@@ -7,9 +7,32 @@ import {
   Position,
   type EdgeProps,
 } from "@xyflow/react";
-import { HighlightCtx, FieldPosCtx } from "./ModelGraph";
+import { HighlightCtx } from "./ModelGraph";
 
 const animStyleId = "dcc-edge-flow";
+
+function cardinalitySymbolD(
+  x: number, y: number, pos: Position, type: "one" | "many"
+): string {
+  if (type === "one") {
+    if (pos === Position.Top || pos === Position.Bottom) {
+      return `M ${x-2},${y} L ${x+2},${y}`;
+    }
+    return `M ${x},${y-2} L ${x},${y+2}`;
+  }
+  const len = 5;
+  const spread = 4;
+  if (pos === Position.Right) {
+    return `M ${x},${y} L ${x-len},${y-spread} M ${x},${y} L ${x-len},${y} M ${x},${y} L ${x-len},${y+spread}`;
+  }
+  if (pos === Position.Left) {
+    return `M ${x},${y} L ${x+len},${y-spread} M ${x},${y} L ${x+len},${y} M ${x},${y} L ${x+len},${y+spread}`;
+  }
+  if (pos === Position.Top) {
+    return `M ${x},${y} L ${x-spread},${y+len} M ${x},${y} L ${x},${y+len} M ${x},${y} L ${x+spread},${y+len}`;
+  }
+  return `M ${x},${y} L ${x-spread},${y-len} M ${x},${y} L ${x},${y-len} M ${x},${y} L ${x+spread},${y-len}`;
+}
 
 function edgeOffset(position: Position, side: "source" | "target", distance: number): { dx: number; dy: number } {
   const pad = 6;
@@ -27,161 +50,23 @@ function edgeOffset(position: Position, side: "source" | "target", distance: num
   return { dx: d, dy: 0 };
 }
 
-function cardinalitySymbolD(
-  x: number, y: number, pos: Position, type: "one" | "many"
-): string {
-  if (type === "one") {
-    if (pos === Position.Top || pos === Position.Bottom) {
-      return `M ${x-2},${y} L ${x+2},${y}`;
-    }
-    return `M ${x},${y-2} L ${x},${y+2}`;
-  }
-  // many — three diverging lines (crow's foot) spreading toward the table
-  const len = 5;
-  const spread = 4;
-  if (pos === Position.Right) {
-    return `M ${x},${y} L ${x-len},${y-spread} M ${x},${y} L ${x-len},${y} M ${x},${y} L ${x-len},${y+spread}`;
-  }
-  if (pos === Position.Left) {
-    return `M ${x},${y} L ${x+len},${y-spread} M ${x},${y} L ${x+len},${y} M ${x},${y} L ${x+len},${y+spread}`;
-  }
-  if (pos === Position.Top) {
-    return `M ${x},${y} L ${x-spread},${y+len} M ${x},${y} L ${x},${y+len} M ${x},${y} L ${x+spread},${y+len}`;
-  }
-  // Bottom
-  return `M ${x},${y} L ${x-spread},${y-len} M ${x},${y} L ${x},${y-len} M ${x},${y} L ${x+spread},${y-len}`;
-}
-
-const EDGE_GAP = 20;
-
-function getOptimalPorts(
-  srcX1: number, srcX2: number,
-  tgtX1: number, tgtX2: number,
-  ecartMin: number,
-): { sp: Position; tp: Position } {
-  const combos: [number, Position, Position][] = [
-    [srcX1 - tgtX1, Position.Left, Position.Left],
-    [srcX1 - tgtX2, Position.Left, Position.Right],
-    [srcX2 - tgtX1, Position.Right, Position.Left],
-    [srcX2 - tgtX2, Position.Right, Position.Right],
-  ];
-
-  const valid = combos.filter(([d]) => Math.abs(d) > ecartMin);
-
-  const pick = (pool: [number, Position, Position][]) => {
-    let best = pool[0];
-    for (let i = 1; i < pool.length; i++) {
-      if (Math.abs(pool[i][0]) < Math.abs(best[0])) best = pool[i];
-    }
-    return { sp: best[1], tp: best[2] };
-  };
-
-  return valid.length > 0 ? pick(valid) : pick(combos);
-}
-
-function portX(pos: Position, nx: number, nw: number): number {
-  if (pos === Position.Left) return nx;
-  if (pos === Position.Right) return nx + nw;
-  return nx + nw / 2;
-}
-
-function portY(pos: Position, ny: number, nh: number): number {
-  if (pos === Position.Top) return ny;
-  if (pos === Position.Bottom) return ny + nh;
-  return ny + nh / 2;
-}
-
 export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
   const [hovered, setHovered] = useState(false);
-  const { highlightedNode, highlightedNeighbors, selectedEdge, nodeMap, onHoveredEdgeChange } = useContext(HighlightCtx);
-  const { fieldPositions, nodeHeights, fieldPorts } = useContext(FieldPosCtx);
+  const { highlightedNode, highlightedNeighbors, selectedEdge, onHoveredEdgeChange } = useContext(HighlightCtx);
 
   const { source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style, label, data, animated, id } = props;
 
   const edgeData = (data ?? {}) as { cardSource?: string; cardTarget?: string; parsed?: any };
 
-  const srcNode = nodeMap.get(source);
-  const tgtNode = nodeMap.get(target);
-  const srcMeas = srcNode?.measured;
-  const tgtMeas = tgtNode?.measured;
-
-  const srcFieldName = useMemo(() => {
-    const parsed = edgeData.parsed;
-    const first = Array.isArray(parsed) ? parsed[0] : parsed;
-    return first?.left?.field as string | undefined;
-  }, [edgeData.parsed]);
-
-  const tgtFieldName = useMemo(() => {
-    const parsed = edgeData.parsed;
-    const first = Array.isArray(parsed) ? parsed[0] : parsed;
-    return first?.right?.field as string | undefined;
-  }, [edgeData.parsed]);
-
-  const srcFieldY = useMemo(() => {
-    if (!srcFieldName) return 0;
-    return fieldPositions.get(source)?.get(srcFieldName) ?? 0;
-  }, [fieldPositions, source, srcFieldName]);
-
-  const tgtFieldY = useMemo(() => {
-    if (!tgtFieldName) return 0;
-    return fieldPositions.get(target)?.get(tgtFieldName) ?? 0;
-  }, [fieldPositions, target, tgtFieldName]);
-
-  const sourceOffset = useMemo(() => {
-    const h = nodeHeights.get(source) ?? srcMeas?.height ?? 100;
-    if (!srcFieldY) return 0;
-    return srcFieldY - h / 2;
-  }, [nodeHeights, source, srcMeas, srcFieldY]);
-
-  const targetOffset = useMemo(() => {
-    const h = nodeHeights.get(target) ?? tgtMeas?.height ?? 100;
-    if (!tgtFieldY) return 0;
-    return tgtFieldY - h / 2;
-  }, [nodeHeights, target, tgtMeas, tgtFieldY]);
-
-  let sp = sourcePosition;
-  let tp = targetPosition;
-  let sx = sourceX;
-  let sy = sourceY;
-  let tx = targetX;
-  let ty = targetY;
-
-  if (srcNode && tgtNode && srcMeas && tgtMeas) {
-    const srcPorts = fieldPorts.get(source);
-    const tgtPorts = fieldPorts.get(target);
-    const fieldSp = srcFieldName && srcPorts?.get(srcFieldName);
-    const fieldTp = tgtFieldName && tgtPorts?.get(tgtFieldName);
-
-    if (fieldSp && fieldTp) {
-      sp = fieldSp;
-      tp = fieldTp;
-    } else {
-      const srcW = srcMeas.width ?? 220;
-      const tgtW = tgtMeas.width ?? 220;
-      const srcX1 = srcNode.position.x;
-      const srcX2 = srcNode.position.x + srcW;
-      const tgtX1 = tgtNode.position.x;
-      const tgtX2 = tgtNode.position.x + tgtW;
-      const opt = getOptimalPorts(srcX1, srcX2, tgtX1, tgtX2, EDGE_GAP);
-      sp = fieldSp || opt.sp;
-      tp = fieldTp || opt.tp;
-    }
-    sx = portX(sp, srcNode.position.x, srcMeas.width ?? 220);
-    tx = portX(tp, tgtNode.position.x, tgtMeas.width ?? 220);
-  }
-
-  const pathPad = 0;
-  const spDirX = sp === Position.Left ? -pathPad : sp === Position.Right ? pathPad : 0;
-  const spDirY = sp === Position.Top ? -pathPad : sp === Position.Bottom ? pathPad : 0;
-  const tpDirX = tp === Position.Left ? -pathPad : tp === Position.Right ? pathPad : 0;
-  const tpDirY = tp === Position.Top ? -pathPad : tp === Position.Bottom ? pathPad : 0;
+  const sp = sourcePosition ?? Position.Right;
+  const tp = targetPosition ?? Position.Left;
 
   const [edgePath, labelX, labelY] = getSmoothStepPath({
-    sourceX: sx + spDirX,
-    sourceY: sy + sourceOffset + spDirY,
+    sourceX,
+    sourceY,
     sourcePosition: sp,
-    targetX: tx + tpDirX,
-    targetY: ty + targetOffset + tpDirY,
+    targetX,
+    targetY,
     targetPosition: tp,
     borderRadius: 20,
   });
@@ -233,7 +118,6 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
     transition: "stroke 0.2s, filter 0.2s, opacity 0.2s",
   }), [style, isAnimated, edgeActive, isEdgeHighlighted]);
 
-  // Offset to push cardinality symbols outside the node boundary
   const cardPad = 4;
   const spDx = sp === Position.Left ? -cardPad : sp === Position.Right ? cardPad : 0;
   const spDy = sp === Position.Top ? -cardPad : sp === Position.Bottom ? cardPad : 0;
@@ -280,8 +164,8 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
       <g opacity={edgeActive || isEdgeHighlighted ? 1 : 0.2} />
 
       <text
-        x={sx + edgeOffset(sp, "source", 4).dx}
-        y={sy + sourceOffset + edgeOffset(sp, "source", 4).dy - 10}
+        x={sourceX + edgeOffset(sp, "source", 4).dx}
+        y={sourceY + edgeOffset(sp, "source", 4).dy - 10}
         textAnchor="middle"
         dominantBaseline="central"
         fill={edgeColor}
@@ -296,8 +180,8 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
       </text>
       <path
         d={cardinalitySymbolD(
-          sx + spDx,
-          sy + sourceOffset + spDy,
+          sourceX + spDx,
+          sourceY + spDy,
           sp,
           cardSource === "many" ? "many" : "one",
         )}
@@ -310,8 +194,8 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
       />
 
       <text
-        x={tx + edgeOffset(tp, "target", 4).dx}
-        y={ty + targetOffset + edgeOffset(tp, "target", 4).dy - 10}
+        x={targetX + edgeOffset(tp, "target", 4).dx}
+        y={targetY + edgeOffset(tp, "target", 4).dy - 10}
         textAnchor="middle"
         dominantBaseline="central"
         fill={edgeColor}
@@ -326,8 +210,8 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
       </text>
       <path
         d={cardinalitySymbolD(
-          tx + tpDx,
-          ty + targetOffset + tpDy,
+          targetX + tpDx,
+          targetY + tpDy,
           tp,
           cardTarget === "many" ? "many" : "one",
         )}

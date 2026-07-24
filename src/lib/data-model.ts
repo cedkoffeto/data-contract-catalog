@@ -255,8 +255,8 @@ export function parseContractsToGraph(
       id: edgeKey,
       source: srcId,
       target: tgtId,
-      sourceHandle: src.field,
-      targetHandle: tgt.field,
+      sourceHandle: `${src.field}-right`,
+      targetHandle: `${tgt.field}-left`,
       label: refName || `${src.field} → ${tgt.field}`,
       type: "relationEdge",
       style: { stroke: "#94a3b8", strokeWidth: 2 },
@@ -300,10 +300,13 @@ export function parseContractsToGraph(
       existingEd.parsed = [...(existingEd.parsed ?? []), ed.parsed];
       existing.label = [existing.label, e.label].filter(Boolean).join(", ");
     } else {
+      const firstParsed = ed.parsed as { left?: { field: string }; right?: { field: string } } | undefined;
+      const srcHandle = firstParsed?.left?.field ? `${firstParsed.left.field}-right` : e.sourceHandle;
+      const tgtHandle = firstParsed?.right?.field ? `${firstParsed.right.field}-left` : e.targetHandle;
       mergeMap.set(mergeKey, {
         ...e,
-        sourceHandle: e.sourceHandle,
-        targetHandle: e.targetHandle,
+        sourceHandle: srcHandle,
+        targetHandle: tgtHandle,
         data: {
           ...ed,
           refs: [ed.ref_name ?? ed.ref ?? ""],

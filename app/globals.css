@@ -1098,7 +1098,6 @@ a:has(> .kpi-card) {
   flex: 1 1 auto;
   min-height: calc(100vh - var(--nav-height));
   padding: 0;
-  overflow: auto;
 }
 
 .catalog-shell,
@@ -1976,6 +1975,7 @@ body[data-ra-modal] [data-ra-overlay] {
   width: 100%;
   max-height: calc(100vh - var(--nav-height) - 2rem);
   margin-top: 0;
+  overflow-y: auto;
 }
 
 @media (max-width: 767px) {

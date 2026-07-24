@@ -303,6 +303,16 @@ export function DataModelEditor({
     });
   }, []);
 
+  const handleShowConnected = useCallback((nodeId: string) => {
+    const connected = new Set<string>([nodeId]);
+    for (const e of edges) {
+      if (e.source === nodeId) connected.add(e.target);
+      if (e.target === nodeId) connected.add(e.source);
+    }
+    setVisibleTablesState(connected);
+    setFitKey((k) => k + 1);
+  }, [edges]);
+
   function handleFitViewVisible() {
     setLaidOutNodes(relayoutVisible);
     setFitKey((k) => k + 1);
@@ -322,6 +332,8 @@ export function DataModelEditor({
           onLayerFilter={setLayerFilter}
           query={searchQuery}
           onQueryChange={setSearchQuery}
+          edges={edges}
+          onShowConnected={handleShowConnected}
         />
 
         <div ref={containerRef} className="relative flex min-w-0 flex-1 flex-col">

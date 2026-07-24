@@ -4,7 +4,7 @@ import { memo, useContext, useMemo, useState, useRef, useCallback, useEffect, us
 import { createPortal } from "react-dom";
 import { Handle, Position, NodeResizeControl, ResizeControlVariant, type NodeProps } from "@xyflow/react";
 import { Table, Key, ChevronUp, ChevronDown, Info } from "lucide-react";
-import { ViewModeCtx, FieldPosCtx } from "./ModelGraph";
+import { ViewModeCtx } from "./ModelGraph";
 import type { ContractTableNodeData } from "@/src/lib/data-model";
 
 const layerBorderColor: Record<string, string> = {
@@ -16,7 +16,6 @@ const layerBorderColor: Record<string, string> = {
 export const ContractTableNode = memo(function ContractTableNode({ selected, id, data }: NodeProps) {
   const d = data as ContractTableNodeData;
   const { viewMode, connectedFields, onHeaderClick, onFieldClick, searchMatchIds, collapsedTables, onToggleCollapse } = useContext(ViewModeCtx);
-  const { onFieldPositions } = useContext(FieldPosCtx);
   const rootRef = useRef<HTMLDivElement>(null);
   const isSearchMatch = searchMatchIds?.has(id) ?? false;
   const allFields = d.fields;
@@ -39,20 +38,25 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
     return allFields.filter((f) => isConnected(f.name));
   }, [allFields, showingDetailed, connectedCount]);
 
+  const [fieldYMap, setFieldYMap] = useState<Map<string, number>>(new Map());
+
   const measure = useCallback(() => {
     const el = rootRef.current;
     if (!el) return;
-    const positions = new Map<string, number>();
     const nodeRect = el.getBoundingClientRect();
     const fieldEls = el.querySelectorAll<HTMLElement>("[data-field]");
+    const next = new Map<string, number>();
     fieldEls.forEach((f) => {
       const name = f.getAttribute("data-field")!;
       if (name === "__summary__") return;
       const r = f.getBoundingClientRect();
-      positions.set(name, r.top - nodeRect.top + r.height / 2);
+      next.set(name, r.top - nodeRect.top + r.height / 2);
     });
-    onFieldPositions(id, positions, nodeRect.height);
-  }, [id, onFieldPositions, showingDetailed]);
+    setFieldYMap((prev) => {
+      if (prev.size === next.size && [...next.entries()].every(([k, v]) => prev.get(k) === v)) return prev;
+      return next;
+    });
+  }, []);
 
   useLayoutEffect(() => {
     measure();
@@ -88,10 +92,16 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
         minWidth={180}
         maxWidth={600}
       />
-      <Handle type="source" position={Position.Right} className="!w-0 !h-0 !border-0 !bg-transparent !opacity-0" />
-      <Handle type="target" position={Position.Left} className="!w-0 !h-0 !border-0 !bg-transparent !opacity-0" />
       <Handle type="source" position={Position.Bottom} id="bottom" className="!w-0 !h-0 !border-0 !bg-transparent !opacity-0" />
       <Handle type="target" position={Position.Top} id="top" className="!w-0 !h-0 !border-0 !bg-transparent !opacity-0" />
+      {fields.map((f) => (
+        <Handle key={`h-src-${f.name}`} type="source" id={`${f.name}-right`} position={Position.Right}
+          style={{ top: fieldYMap.get(f.name) ?? 0, opacity: 0, width: 1, height: 1 }} />
+      ))}
+      {fields.map((f) => (
+        <Handle key={`h-tgt-${f.name}`} type="target" id={`${f.name}-left`} position={Position.Left}
+          style={{ top: fieldYMap.get(f.name) ?? 0, opacity: 0, width: 1, height: 1 }} />
+      ))}
       <div className="relative overflow-hidden rounded-xl bg-white">
         {/* Header */}
         <div className="flex min-w-0 cursor-grab active:cursor-grabbing items-center gap-2 py-2 pl-4 pr-3" style={{ background: d.color.replace("hsl(", "hsla(").replace(")", ", 0.1)"), borderBottom: `2px solid ${d.color}40`, borderLeft: `4px solid ${layerBorderColor[d.maturity as string] || layerBorderColor.bronze}` }}>

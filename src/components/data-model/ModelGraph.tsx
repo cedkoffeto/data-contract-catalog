@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useMemo, useCallback, useState, useEffect, useLayoutEffect, useRef, memo, useContext, type RefObject } from "react";
+import { createContext, useMemo, useCallback, useState, useEffect, useLayoutEffect, useRef, memo } from "react";
 import { createPortal } from "react-dom";
 import {
   ReactFlow,
@@ -12,7 +12,6 @@ import {
   useEdgesState,
   useReactFlow,
   PanOnScrollMode,
-  Position,
   type Node,
   type Edge,
   type NodeProps,
@@ -104,41 +103,12 @@ export const ViewModeCtx = createContext<ViewModeValue>({
   nodesWithSummaryRow: new Set(),
 });
 
-export type FieldPosValue = {
-  fieldPositions: Map<string, Map<string, number>>;
-  nodeHeights: Map<string, number>;
-  onFieldPositions: (nodeId: string, positions: Map<string, number>, height: number) => void;
-  fieldPorts: Map<string, Map<string, Position>>;
-};
-
-export const FieldPosCtx = createContext<FieldPosValue>({
-  fieldPositions: new Map(),
-  nodeHeights: new Map(),
-  onFieldPositions: () => {},
-  fieldPorts: new Map(),
-});
-
-export type EdgeRenderData = {
-  path: string;
-  sourceX: number;
-  sourceY: number;
-  targetX: number;
-  targetY: number;
-  parallelOffset: number;
-  targetParallelOffset: number;
-  cardSource: string;
-  cardTarget: string;
-  label: string;
-};
-
 type HighlightValue = {
   highlightedNode: string | null;
   highlightedNeighbors: Set<string> | null;
   selectedEdge: string | null;
   hoveredEdgeId: string | null;
   onHoveredEdgeChange: (id: string | null) => void;
-  edgeRenderDataRef: React.RefObject<Map<string, EdgeRenderData>>;
-  nodeMap: Map<string, Node>;
 };
 
 export const HighlightCtx = createContext<HighlightValue>({
@@ -147,8 +117,6 @@ export const HighlightCtx = createContext<HighlightValue>({
   selectedEdge: null,
   hoveredEdgeId: null,
   onHoveredEdgeChange: () => {},
-  edgeRenderDataRef: { current: new Map() },
-  nodeMap: new Map(),
 });
 
 export function ModelGraph({
@@ -200,26 +168,7 @@ export function ModelGraph({
   const [selectedEdge, setSelectedEdge] = useState<string | null>(null);
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
   const edgeClickGuardRef = useRef(false);
-  const edgeRenderDataRef = useRef(new Map<string, EdgeRenderData>());
   const [showGrid, setShowGrid] = useState(true);
-  const [fieldPositions, setFieldPositions] = useState<Map<string, Map<string, number>>>(new Map());
-  const [nodeHeights, setNodeHeights] = useState<Map<string, number>>(new Map());
-
-  const handleFieldPositions = useCallback((nodeId: string, positions: Map<string, number>, height: number) => {
-    setFieldPositions((prev) => {
-      const existing = prev.get(nodeId);
-      if (existing && existing.size === positions.size && [...positions.entries()].every(([k, v]) => existing.get(k) === v)) return prev;
-      const next = new Map(prev);
-      next.set(nodeId, new Map(positions));
-      return next;
-    });
-    setNodeHeights((prev) => {
-      if (prev.get(nodeId) === height) return prev;
-      const next = new Map(prev);
-      next.set(nodeId, height);
-      return next;
-    });
-  }, []);
 
   const { setCenter, fitView } = useReactFlow();
   const fitKeyRef = useRef(0);
@@ -381,8 +330,6 @@ export function ModelGraph({
     }
   }, [fitKey, fitView, visibleTables]);
 
-  const nodeMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
-
   const fieldIndexMap = useMemo(() => {
     const map = new Map<string, Map<string, number>>();
     for (const node of nodes) {
@@ -404,60 +351,6 @@ export function ModelGraph({
     }
     return map;
   }, [nodes, collapsedTables, viewMode, connectedFields]);
-
-  // Field-level port assignment: each field gets a side (Left or Right)
-  // to minimize S-shapes and edge crossings
-  const fieldPorts = useMemo(() => {
-    const ports = new Map<string, Map<string, Position>>();
-    for (const node of nodes) {
-      const nodeX = node.position.x + (node.measured?.width ?? 220) / 2;
-      // Collect field directions from all edges
-      const fieldDir = new Map<string, { right: number; left: number }>();
-      for (const edge of edges) {
-        const edData = edge.data as { parsed?: { left?: { field?: string }; right?: { field?: string } }[] };
-        let fieldName: string | undefined;
-        let otherX: number | undefined;
-        if (edge.source === node.id) {
-          fieldName = edge.sourceHandle ?? edData.parsed?.[0]?.left?.field;
-          const other = nodeMap.get(edge.target);
-          if (other) otherX = other.position.x + (other.measured?.width ?? 220) / 2;
-        } else if (edge.target === node.id) {
-          fieldName = edge.targetHandle ?? edData.parsed?.[0]?.right?.field;
-          const other = nodeMap.get(edge.source);
-          if (other) otherX = other.position.x + (other.measured?.width ?? 220) / 2;
-        }
-        if (fieldName === undefined || otherX === undefined) continue;
-        if (!fieldDir.has(fieldName)) fieldDir.set(fieldName, { right: 0, left: 0 });
-        const dir = fieldDir.get(fieldName)!;
-        if (otherX > nodeX) dir.right++;
-        else dir.left++;
-      }
-
-      const fieldMap = new Map<string, Position>();
-      // Sort fields: majority-direction first, then alternate within each group
-      const entries = Array.from(fieldDir.entries());
-      entries.sort((a, b) => {
-        const aRight = a[1].right - a[1].left;
-        const bRight = b[1].right - b[1].left;
-        return bRight - aRight;
-      });
-
-      let rightCount = 0;
-      let leftCount = 0;
-      for (const [fieldName, dir] of entries) {
-        const preferRight = dir.right >= dir.left;
-        if (preferRight) {
-          fieldMap.set(fieldName, rightCount % 2 === 0 ? Position.Right : Position.Left);
-          rightCount++;
-        } else {
-          fieldMap.set(fieldName, leftCount % 2 === 0 ? Position.Left : Position.Right);
-          leftCount++;
-        }
-      }
-      ports.set(node.id, fieldMap);
-    }
-    return ports;
-  }, [nodes, edges, nodeMap]);
 
   const nodesWithSummaryRow = useMemo(() => {
     const set = new Set<string>();
@@ -496,21 +389,11 @@ export function ModelGraph({
     selectedEdge,
     hoveredEdgeId,
     onHoveredEdgeChange: handleHoveredEdgeChange,
-    edgeRenderDataRef,
-    nodeMap,
-  }), [highlightedNode, highlightedNeighbors, selectedEdge, hoveredEdgeId, handleHoveredEdgeChange, nodeMap]);
-
-  const fieldPosCtxValue = useMemo<FieldPosValue>(() => ({
-    fieldPositions,
-    nodeHeights,
-    onFieldPositions: handleFieldPositions,
-    fieldPorts,
-  }), [fieldPositions, nodeHeights, handleFieldPositions, fieldPorts]);
+  }), [highlightedNode, highlightedNeighbors, selectedEdge, hoveredEdgeId, handleHoveredEdgeChange]);
 
   return (
     <HighlightCtx.Provider value={highlightCtxValue}>
     <ViewModeCtx.Provider value={ctxValue}>
-    <FieldPosCtx.Provider value={fieldPosCtxValue}>
       <div className="data-model-graph relative h-full w-full">
         <ReactFlow
           nodes={nodes}
@@ -576,7 +459,6 @@ export function ModelGraph({
           />
         </ReactFlow>
       </div>
-    </FieldPosCtx.Provider>
     </ViewModeCtx.Provider>
     </HighlightCtx.Provider>
   );

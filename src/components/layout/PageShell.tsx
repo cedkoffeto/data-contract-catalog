@@ -15,7 +15,7 @@ export function PageShell({
   return (
     <div className="app-shell h-full flex flex-col">
       <Navbar />
-      <div className="flex-1 min-h-0 flex flex-col overflow-y-auto">
+      <div className="flex-1 min-h-0 flex flex-col overflow-x-hidden overflow-y-auto">
         {children}
       </div>
       {showFooter ? <Footer version={footerVersion} /> : null}
