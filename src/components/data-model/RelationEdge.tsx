@@ -52,18 +52,32 @@ function cardinalitySymbolD(
   return `M ${x},${y} L ${x-spread},${y-len} M ${x},${y} L ${x},${y-len} M ${x},${y} L ${x+spread},${y-len}`;
 }
 
-function getPortPosition(dx: number): Position {
-  return dx >= 0 ? Position.Right : Position.Left;
-}
-
-function getOppositePort(pos: Position): Position {
-  if (pos === Position.Right) return Position.Left;
-  if (pos === Position.Left) return Position.Right;
-  if (pos === Position.Top) return Position.Bottom;
-  return Position.Top;
-}
-
 const EDGE_GAP = 20;
+
+function getOptimalPorts(
+  srcX1: number, srcX2: number,
+  tgtX1: number, tgtX2: number,
+  ecartMin: number,
+): { sp: Position; tp: Position } {
+  const combos: [number, Position, Position][] = [
+    [srcX1 - tgtX1, Position.Left, Position.Left],
+    [srcX1 - tgtX2, Position.Left, Position.Right],
+    [srcX2 - tgtX1, Position.Right, Position.Left],
+    [srcX2 - tgtX2, Position.Right, Position.Right],
+  ];
+
+  const valid = combos.filter(([d]) => Math.abs(d) > ecartMin);
+
+  const pick = (pool: [number, Position, Position][]) => {
+    let best = pool[0];
+    for (let i = 1; i < pool.length; i++) {
+      if (Math.abs(pool[i][0]) < Math.abs(best[0])) best = pool[i];
+    }
+    return { sp: best[1], tp: best[2] };
+  };
+
+  return valid.length > 0 ? pick(valid) : pick(combos);
+}
 
 function portX(pos: Position, nx: number, nw: number): number {
   if (pos === Position.Left) return nx;
@@ -142,21 +156,15 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
       sp = fieldSp;
       tp = fieldTp;
     } else {
-      const sp0 = fieldSp || getPortPosition(tgtNode.position.x - srcNode.position.x);
       const srcW = srcMeas.width ?? 220;
       const tgtW = tgtMeas.width ?? 220;
-      if (sp0 === Position.Left) {
-        const gap = tgtNode.position.x - (srcNode.position.x + srcW);
-        sp = gap > EDGE_GAP ? Position.Right : Position.Left;
-        tp = Position.Left;
-      } else if (sp0 === Position.Right) {
-        const gap = srcNode.position.x - (tgtNode.position.x + tgtW);
-        sp = gap > EDGE_GAP ? Position.Left : Position.Right;
-        tp = Position.Right;
-      } else {
-        sp = sp0;
-        tp = getOppositePort(sp0);
-      }
+      const srcX1 = srcNode.position.x;
+      const srcX2 = srcNode.position.x + srcW;
+      const tgtX1 = tgtNode.position.x;
+      const tgtX2 = tgtNode.position.x + tgtW;
+      const opt = getOptimalPorts(srcX1, srcX2, tgtX1, tgtX2, EDGE_GAP);
+      sp = fieldSp || opt.sp;
+      tp = fieldTp || opt.tp;
     }
     sx = portX(sp, srcNode.position.x, srcMeas.width ?? 220);
     tx = portX(tp, tgtNode.position.x, tgtMeas.width ?? 220);
