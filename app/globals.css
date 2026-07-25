@@ -2099,8 +2099,9 @@ body[data-ra-modal] [data-ra-overlay] {
 
 .contract-flow-section__header h1 {
   margin: 0;
-  font-size: 0.98rem;
-  font-weight: 700;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5rem;
   color: var(--ui-text);
 }
 
