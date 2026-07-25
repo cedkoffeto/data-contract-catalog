@@ -325,7 +325,7 @@ export function ModelGraph({
       fitKeyRef.current = fitKey;
       const hasVisible = visibleTables.size > 0;
       requestAnimationFrame(() => {
-        if (hasVisible) fitView({ padding: 0.2, includeHiddenNodes: false });
+        if (hasVisible) fitView({ zoom: 1, padding: 0.1, duration: 0, includeHiddenNodes: false });
       });
     }
   }, [fitKey, fitView, visibleTables]);
