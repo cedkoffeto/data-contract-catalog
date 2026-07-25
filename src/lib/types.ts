@@ -37,6 +37,7 @@ export type ContractField = {
 
 export type QualityCheck = {
   name?: string;
+  description?: string;
   type?: string;
   field?: string;
   threshold?: number | string;

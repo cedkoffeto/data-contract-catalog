@@ -1,14 +1,6 @@
 import type { QualityCheck } from "@/src/lib/types";
 import { useT } from "@/src/lib/use-i18n";
 
-function CheckIcon() {
-  return (
-    <svg className="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
-    </svg>
-  );
-}
-
 export function QualitySection({
   checks,
   onFailure
@@ -37,20 +29,26 @@ export function QualitySection({
         <div className="px-4 py-5 sm:px-6">
 
           {total > 0 && (
-            <div className="mb-4 flex items-center gap-4 text-sm">
-              <span className="flex items-center gap-1.5 font-medium text-gray-700">
-                <CheckIcon />
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">
+                <svg className="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
+                </svg>
                 {tWith("qualityChecksCount", { count: String(total) })}
               </span>
               {criticalCount > 0 && (
-                <span className="flex items-center gap-1.5 text-red-600">
-                  <span className="h-2 w-2 rounded-full bg-red-500" />
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700 ring-1 ring-inset ring-red-600/20">
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
+                  </svg>
                   {tWith("qualityCriticalsCount", { count: String(criticalCount) })}
                 </span>
               )}
               {nonCriticalCount > 0 && (
-                <span className="flex items-center gap-1.5 text-amber-600">
-                  <span className="h-2 w-2 rounded-full bg-amber-400" />
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                  </svg>
                   {tWith("qualityNonCriticalsCount", { count: String(nonCriticalCount) })}
                 </span>
               )}
@@ -63,14 +61,14 @@ export function QualitySection({
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead>
                     <tr>
-                      <th scope="col" className="py-3 pl-4 pr-2 text-left text-sm font-semibold text-gray-900 sm:pl-0 align-middle">
+                      <th scope="col" className="py-2.5 pl-4 pr-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 sm:pl-0 align-middle">
                         <span className="sr-only">{t("qualityCriticity")}</span>
                       </th>
-                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900 align-middle">{t("qualityName")}</th>
-                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900 align-middle">{t("qualityType")}</th>
-                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900 align-middle">{t("qualityField")}</th>
-                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900 align-middle">{t("qualityThreshold")}</th>
-                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900 align-middle">{t("qualityExpression")}</th>
+                      <th scope="col" className="px-2 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 align-middle">{t("qualityName")}</th>
+                      <th scope="col" className="px-2 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 align-middle">{t("qualityType")}</th>
+                      <th scope="col" className="px-2 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 align-middle">{t("qualityField")}</th>
+                      <th scope="col" className="px-2 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 align-middle">{t("qualityThreshold")}</th>
+                      <th scope="col" className="px-2 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 align-middle">{t("qualityExpression")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -79,30 +77,52 @@ export function QualitySection({
                       return (
                         <tr
                           key={`${check.name ?? "check"}-${index}`}
-                          className={`transition-colors hover:bg-gray-50 ${isCritical ? "border-l-4 border-l-red-500" : "border-l-4 border-l-amber-400"}`}
+                          className={`transition-colors hover:bg-gray-50 ${isCritical ? "border-l-[3px] border-l-red-500" : "border-l-[3px] border-l-amber-400"}`}
                         >
-                          <td className="whitespace-nowrap py-3 pl-4 pr-2 sm:pl-0 align-middle">
+                          <td className="whitespace-nowrap py-2.5 pl-4 pr-2 sm:pl-0 align-middle">
                             {isCritical ? (
-                              <span className="inline-flex items-center gap-1 rounded-md bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20">
-                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <span className="inline-flex items-center gap-1 rounded bg-red-50 px-1.5 py-0.5 text-[11px] font-semibold text-red-700">
+                                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
                                 </svg>
                                 {t("qualityCriticalLabel")}
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">
-                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <span className="inline-flex items-center gap-1 rounded bg-amber-50 px-1.5 py-0.5 text-[11px] font-semibold text-amber-700">
+                                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
                                 </svg>
                                 Non critique
                               </span>
                             )}
                           </td>
-                          <td className="whitespace-nowrap px-2 py-3 text-sm font-medium text-gray-900 align-middle">{check.name}</td>
-                          <td className="whitespace-nowrap px-2 py-3 text-sm text-gray-500 align-middle">{check.type}</td>
-                          <td className="whitespace-nowrap px-2 py-3 text-sm text-gray-500 align-middle">{check.field || "-"}</td>
-                          <td className="whitespace-nowrap px-2 py-3 text-sm text-gray-500 align-middle">{check.threshold ?? "-"}</td>
-                          <td className="px-2 py-3 text-sm text-gray-500 break-words align-middle">{check.expression || "-"}</td>
+                          <td className="whitespace-nowrap px-2 py-2.5 text-sm font-medium text-gray-900 align-middle">
+                            <span className="inline-flex items-center gap-1">
+                              {check.name}
+                              {check.description ? (
+                                <span className="group/tooltip relative inline-flex">
+                                  <svg className="h-3.5 w-3.5 cursor-help text-gray-400 hover:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                                  </svg>
+                                  <span className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-1.5 -translate-x-1/2 whitespace-normal rounded-md bg-gray-900 px-2.5 py-1.5 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover/tooltip:opacity-100" style={{ minWidth: 180, maxWidth: 300 }}>
+                                    {check.description}
+                                  </span>
+                                </span>
+                              ) : null}
+                            </span>
+                          </td>
+                          <td className="whitespace-nowrap px-2 py-2.5 align-middle">
+                            <span className="inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 text-xs font-mono font-medium text-gray-600">{check.type}</span>
+                          </td>
+                          <td className="whitespace-nowrap px-2 py-2.5 text-sm text-gray-500 align-middle font-mono">{check.field || "-"}</td>
+                          <td className="whitespace-nowrap px-2 py-2.5 align-middle">
+                            {check.threshold != null ? (
+                              <span className="inline-flex items-center rounded bg-blue-50 px-1.5 py-0.5 text-xs font-semibold text-blue-700">{check.threshold}</span>
+                            ) : (
+                              <span className="text-gray-300">-</span>
+                            )}
+                          </td>
+                          <td className="px-2 py-2.5 text-xs text-gray-500 break-words align-middle font-mono">{check.expression || "-"}</td>
                         </tr>
                       );
                     })}
@@ -113,27 +133,29 @@ export function QualitySection({
           )}
 
           {onFailure ? (
-            <div className="mt-6 flex flex-wrap items-center gap-x-8 gap-y-3 rounded-lg border border-red-100 bg-red-50/50 px-4 py-3">
-              <div className="flex items-center gap-2">
-                <svg className="h-4 w-4 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
-                </svg>
-                <span className="text-xs font-semibold text-red-700">{t("qualityOnFailure")}</span>
+            <div className="mt-4 rounded-lg border border-red-100 bg-red-50/50 px-4 py-3">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                <div className="flex items-center gap-2">
+                  <svg className="h-4 w-4 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
+                  </svg>
+                  <span className="text-xs font-semibold text-red-700">{t("qualityOnFailure")}</span>
+                </div>
+                {onFailure.action ? (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-gray-500">{t("qualityAction")}</span>
+                    <span className="rounded bg-white px-2 py-0.5 text-xs font-semibold text-gray-900 ring-1 ring-inset ring-gray-200">
+                      {onFailure.action}
+                    </span>
+                  </div>
+                ) : null}
+                {onFailure.notify && onFailure.notify.length > 0 ? (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-gray-500">{t("qualityNotifier")}</span>
+                    <span className="text-xs font-medium text-gray-700">{onFailure.notify.join(", ")}</span>
+                  </div>
+                ) : null}
               </div>
-              {onFailure.action ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">{t("qualityAction")}</span>
-                  <span className="rounded bg-white px-2 py-0.5 text-xs font-medium text-gray-900 ring-1 ring-inset ring-gray-200">
-                    {onFailure.action}
-                  </span>
-                </div>
-              ) : null}
-              {onFailure.notify && onFailure.notify.length > 0 ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">{t("qualityNotifier")}</span>
-                  <span className="text-xs text-gray-700">{onFailure.notify.join(", ")}</span>
-                </div>
-              ) : null}
             </div>
           ) : null}
 
