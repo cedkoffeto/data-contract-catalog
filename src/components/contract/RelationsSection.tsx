@@ -75,10 +75,12 @@ function Connector({ sign, label, reverse }: { sign: string; label: string; reve
   const rightMark = isManyRight ? "N" : "1";
   const accentLeft = isManyLeft ? "#f97316" : "#3b82f6";
   const accentRight = isManyRight ? "#f97316" : "#3b82f6";
+  const flowColor = reverse ? "#3b82f6" : "#f97316";
+  const animDir = reverse ? "reverse" : "normal";
 
   return (
     <div className="flex flex-col items-center shrink-0 mx-1" style={{ minWidth: 140 }}>
-      {/* Crow's foot + animated track */}
+      {/* Crow's foot + animated SVG line */}
       <div className="relative flex items-center w-full" style={{ height: 28 }}>
         {/* Left crow's foot */}
         <svg className="absolute left-0 -translate-x-[2px] z-10" width="14" height="28" viewBox="0 0 14 28">
@@ -93,12 +95,20 @@ function Connector({ sign, label, reverse }: { sign: string; label: string; reve
           )}
         </svg>
 
-        {/* Animated track with circulating dots */}
-        <div className={`relation-connector__track ml-1 mr-1 ${reverse ? "" : ""}`}>
-          <span className={`relation-connector__dot ${reverse ? "relation-connector__dot--reverse" : ""}`} />
-          <span className={`relation-connector__dot ${reverse ? "relation-connector__dot--reverse" : ""}`} />
-          <span className={`relation-connector__dot ${reverse ? "relation-connector__dot--reverse" : ""}`} />
-        </div>
+        {/* Animated SVG connector */}
+        <svg className="ml-1 mr-1" style={{ flex: 1, height: 28 }} preserveAspectRatio="none">
+          <defs>
+            <style>{`
+              @keyframes dcc-flow-rel {
+                0% { stroke-dashoffset: 16; }
+                100% { stroke-dashoffset: 0; }
+              }
+            `}</style>
+          </defs>
+          <line x1="0" y1="14" x2="100%" y2="14" stroke="#cbd5e1" strokeWidth="1.5" />
+          <line x1="0" y1="14" x2="100%" y2="14" stroke={flowColor} strokeWidth="1.5" strokeDasharray="4 8" opacity="0.6"
+            style={{ animation: `dcc-flow-rel 0.8s linear infinite`, animationDirection: animDir }} />
+        </svg>
 
         {/* Right crow's foot */}
         <svg className="absolute right-0 translate-x-[2px] z-10" width="14" height="28" viewBox="0 0 14 28">
