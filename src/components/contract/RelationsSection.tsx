@@ -30,16 +30,20 @@ function TableCard({ refStr, side, incoming }: { refStr: string; side: "left" | 
   const parts = splitRef(refStr);
   if (!parts) return <div className="text-sm text-gray-700">{refStr}</div>;
 
-  const accent = incoming ? "#8b5cf6" : (side === "left" ? "#f97316" : "#3b82f6");
+  const baseAccent = incoming ? "#8b5cf6" : undefined;
+  const leftAccent = "#f97316";
+  const rightAccent = "#3b82f6";
+  const accent = incoming ? baseAccent! : (side === "left" ? leftAccent : rightAccent);
+  const bgTint = incoming ? "rgba(139,92,246,0.06)" : (side === "left" ? "rgba(249,115,22,0.06)" : "rgba(59,130,246,0.06)");
 
   return (
     <Link
       href={`/contracts/${parts.slug}`}
-      className="group block min-w-0 flex-1 overflow-hidden rounded-lg border border-gray-200 bg-white transition-all hover:border-gray-300 hover:shadow-sm"
+      className="block min-w-0 flex-1 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md"
     >
-      <div className="h-0.5" style={{ background: accent }} />
-      <div className="px-2.5 py-1.5">
-        <span className="text-xs font-mono font-semibold text-gray-900 group-hover:text-orange-600 transition-colors">{parts.slug}.{parts.field}</span>
+      <div className="h-1" style={{ background: accent }} />
+      <div className="px-3 py-2" style={{ background: bgTint }}>
+        <span className="text-xs font-mono font-semibold text-gray-900">{parts.slug}.{parts.field}</span>
       </div>
     </Link>
   );
@@ -49,58 +53,52 @@ function Connector({ sign, label, incoming }: { sign: string; label: string; inc
   const isManyLeft = sign === ">";
   const isManyRight = sign === "<";
 
-  const lineColor = "#cbd5e1";
-  const strokeColor = incoming ? "#8b5cf6" : (isManyLeft ? "#f97316" : "#3b82f6");
-
-  function crowFoot(side: "left" | "right") {
-    const isMany = side === "left" ? isManyLeft : isManyRight;
-    const cx = 8;
-    if (isMany) {
-      // Crow's foot: 3 prongs + * label
-      return (
-        <g>
-          <g fill="none" stroke={strokeColor} strokeWidth="1.5" strokeLinecap="round">
-            <line x1={side === "left" ? 14 : 2} y1="10" x2={side === "left" ? 4 : 12} y2="3" />
-            <line x1={side === "left" ? 14 : 2} y1="10" x2={side === "left" ? 4 : 12} y2="10" />
-            <line x1={side === "left" ? 14 : 2} y1="10" x2={side === "left" ? 4 : 12} y2="17" />
-          </g>
-          <text x={cx} y="10" textAnchor="middle" dominantBaseline="central" fill={strokeColor} fontSize="12" fontWeight="700" fontFamily="monospace" pointerEvents="none">*</text>
-        </g>
-      );
-    }
-    // One: perpendicular bar + 1 label
-    return (
-      <g>
-        <g fill="none" stroke={strokeColor} strokeWidth="1.5" strokeLinecap="round">
-          <line x1={cx} y1="3" x2={cx} y2="17" />
-        </g>
-        <text x={cx} y="10" textAnchor="middle" dominantBaseline="central" fill={strokeColor} fontSize="10" fontWeight="700" fontFamily="monospace" pointerEvents="none">1</text>
-      </g>
-    );
-  }
+  const leftMark = isManyLeft ? "M" : "1";
+  const rightMark = isManyRight ? "M" : "1";
+  const leftColor = isManyLeft ? "text-orange-600 bg-orange-50" : "text-blue-600 bg-blue-50";
+  const rightColor = isManyRight ? "text-orange-600 bg-orange-50" : "text-blue-600 bg-blue-50";
+  const lineColor = "#94a3b8";
+  const arrowColor = incoming ? "#8b5cf6" : (isManyLeft ? "#f97316" : "#3b82f6");
 
   return (
-    <div className="flex flex-col items-center shrink-0 mx-1" style={{ minWidth: 120 }}>
-      <svg width="120" height="20" viewBox="0 0 120 20" className="shrink-0">
-        <defs>
-          <style>{`
-            @keyframes dcc-flow-rel {
-              0% { stroke-dashoffset: 24; }
-              100% { stroke-dashoffset: 0; }
-            }
-          `}</style>
-        </defs>
-        {/* Left symbol */}
-        {crowFoot("left")}
-        {/* Line */}
-        <line x1="14" y1="10" x2="106" y2="10" stroke={lineColor} strokeWidth="1.5" />
-        <line x1="14" y1="10" x2="106" y2="10" stroke={strokeColor} strokeWidth="1.5" strokeDasharray="4 8" opacity="0.6" style={{ animation: "dcc-flow-rel 0.8s linear infinite" }} />
-        {/* Right symbol */}
-        {crowFoot("right")}
-        {/* Label in middle */}
-        <rect x="38" y="2" width="44" height="16" rx="4" fill="#f1f5f9" stroke="#e2e8f0" strokeWidth="0.5" />
-        <text x="60" y="11" textAnchor="middle" dominantBaseline="central" fill="#475569" fontSize="9" fontWeight="600" fontFamily="system-ui">{label}</text>
-      </svg>
+    <div className="flex flex-col items-center shrink-0 mx-3" style={{ minWidth: 220 }}>
+      <div className="relative flex items-center w-full" style={{ height: 40 }}>
+        <svg className="absolute left-0 -translate-x-1/2" width="16" height="24" viewBox="0 0 16 24" style={{ color: arrowColor }}>
+          {isManyLeft ? (
+            <g fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <line x1="10" y1="12" x2="3" y2="5" />
+              <line x1="10" y1="12" x2="3" y2="12" />
+              <line x1="10" y1="12" x2="3" y2="19" />
+            </g>
+          ) : (
+            <line x1="10" y1="4" x2="10" y2="20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+          )}
+        </svg>
+        <div className="flex-1 h-0" style={{ borderTop: `2px solid ${lineColor}` }} />
+        <span className="inline-flex items-center justify-center mx-2 rounded-md px-2.5 py-0.5 text-xs font-semibold bg-gray-100 text-gray-700 whitespace-nowrap">
+          {label}
+        </span>
+        <div className="flex-1 h-0" style={{ borderTop: `2px solid ${lineColor}` }} />
+        <svg className="absolute right-0 translate-x-1/2" width="16" height="24" viewBox="0 0 16 24" style={{ color: arrowColor }}>
+          {isManyRight ? (
+            <g fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <line x1="6" y1="12" x2="13" y2="5" />
+              <line x1="6" y1="12" x2="13" y2="12" />
+              <line x1="6" y1="12" x2="13" y2="19" />
+            </g>
+          ) : (
+            <line x1="6" y1="4" x2="6" y2="20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+          )}
+        </svg>
+      </div>
+      <div className="flex items-center justify-between w-full mt-0.5 px-1">
+        <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[11px] font-bold ${leftColor}`}>
+          {leftMark}
+        </span>
+        <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[11px] font-bold ${rightColor}`}>
+          {rightMark}
+        </span>
+      </div>
     </div>
   );
 }
@@ -115,15 +113,23 @@ function RelationRow({ rel, incoming }: { rel: { ref_name: string; ref: string }
   if (!parsed) {
     return <div className="text-sm text-gray-700">{ref}</div>;
   }
+  const leftRef = incoming ? parsed.right : parsed.left;
+  const rightRef = incoming ? parsed.left : parsed.right;
+  const leftSide = incoming ? "right" : "left";
+  const rightSide = incoming ? "left" : "right";
+  const connectorSign = incoming
+    ? (parsed.sign === ">" ? "<" : parsed.sign === "<" ? ">" : parsed.sign)
+    : parsed.sign;
+
   return (
     <div title={relationTooltip(parsed.left, parsed.sign, parsed.right)}>
       <div className="flex items-start justify-center gap-0">
         <div className="flex-1 min-w-0">
-          <TableCard refStr={parsed.left} side="left" incoming={incoming} />
+          <TableCard refStr={leftRef} side={leftSide as "left" | "right"} />
         </div>
-        <Connector sign={parsed.sign} label={rel.ref_name} incoming={incoming} />
+        <Connector sign={connectorSign} label={rel.ref_name} />
         <div className="flex-1 min-w-0">
-          <TableCard refStr={parsed.right} side="right" incoming={incoming} />
+          <TableCard refStr={rightRef} side={rightSide as "left" | "right"} />
         </div>
       </div>
     </div>

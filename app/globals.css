@@ -1965,7 +1965,7 @@ body[data-ra-modal] [data-ra-overlay] {
 
 .contract-side-panel {
   position: sticky;
-  top: calc(var(--nav-height) + 1.25rem);
+  top: calc(var(--nav-height) + 0.1rem);
   display: flex;
   align-self: start;
   flex-direction: column;
