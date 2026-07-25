@@ -68,9 +68,9 @@ export function ServingSection({
             </span>
           </div>
 
-          <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
             {storageFormat ? (
-              <div className="sm:col-span-1 flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <DiskIcon />
                 <div>
                   <dt className="text-xs font-medium text-gray-500">{t("sectionServingStorageFormat")}</dt>
@@ -84,7 +84,7 @@ export function ServingSection({
             ) : null}
 
             {partitioning && partitioning.length > 0 ? (
-              <div className="sm:col-span-1 flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <FolderIcon />
                 <div>
                   <dt className="text-xs font-medium text-gray-500">{t("sectionServingPartitioning")}</dt>
@@ -94,7 +94,7 @@ export function ServingSection({
             ) : null}
 
             {retention?.type && retention.value ? (
-              <div className="sm:col-span-1 flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <ClockIcon />
                 <div>
                   <dt className="text-xs font-medium text-gray-500">{t("sectionServingRetention")}</dt>
