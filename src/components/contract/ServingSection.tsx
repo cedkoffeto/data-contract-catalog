@@ -5,17 +5,19 @@ export function ServingSection({
   storageFormat,
   partitioning,
   retention,
-  queryUrl
+  queryUrl,
+  location,
 }: {
   tableName?: string;
   storageFormat?: string;
   partitioning?: string[];
   retention?: { type?: string; value?: string | number };
   queryUrl?: string;
+  location?: string;
 }) {
   const { t } = useT();
 
-  if (!tableName && !storageFormat && (!partitioning || partitioning.length === 0) && !retention && !queryUrl) {
+  if (!tableName && !storageFormat && (!partitioning || partitioning.length === 0) && !retention && !queryUrl && !location) {
     return null;
   }
 
@@ -34,6 +36,15 @@ export function ServingSection({
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9h16.5M3.75 13.5h16.5M9 9v11.25M15 9v11.25" />
             </svg>
             <span className="font-mono text-xs font-semibold text-gray-900">{tableName}</span>
+            {location && (
+              <span className="inline-flex items-center gap-1 rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600">
+                <svg className="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                </svg>
+                {location}
+              </span>
+            )}
             <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700 ring-1 ring-inset ring-green-600/20">
               <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
               {t("sectionServingActive")}
@@ -76,6 +87,19 @@ export function ServingSection({
                   {t("sectionServingRetention")}
                 </dt>
                 <dd className="mt-1 text-xs font-semibold text-gray-900">{String(retention.value)} ({retention.type})</dd>
+              </div>
+            ) : null}
+
+            {location && !tableName ? (
+              <div>
+                <dt className="flex items-center gap-1.5 text-xs font-semibold text-gray-500">
+                  <svg className="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                  </svg>
+                  {t("sectionServingLocation")}
+                </dt>
+                <dd className="mt-1 font-mono text-xs font-semibold text-gray-900">{location}</dd>
               </div>
             ) : null}
           </div>

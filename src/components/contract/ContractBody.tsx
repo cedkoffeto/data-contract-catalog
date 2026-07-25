@@ -2,6 +2,7 @@ import { InfoSection } from "@/src/components/contract/InfoSection";
 import { InputsSection } from "@/src/components/contract/InputsSection";
 import { LineageGraph } from "@/src/components/contract/LineageGraph";
 import { ModelsSection } from "@/src/components/contract/ModelsSection";
+import { OperationsSection } from "@/src/components/contract/OperationsSection";
 import { QualitySection } from "@/src/components/contract/QualitySection";
 import { RelationsSection } from "@/src/components/contract/RelationsSection";
 import { SecuritySection } from "@/src/components/contract/SecuritySection";
@@ -19,6 +20,7 @@ export const ContractBody = React.memo(function ContractBody({ data, slug, userI
   const serving = data.serving ?? {};
   const output = data.output ?? {};
   const inputs = data.inputs ?? {};
+  const operations = data.operations ?? {};
   const servingEnabled = serving.technology?.enabled ?? true;
 
   return (
@@ -44,6 +46,7 @@ export const ContractBody = React.memo(function ContractBody({ data, slug, userI
         containsPii={security.pii?.contains_pii}
         piiNotes={security.pii?.notes}
         roles={security.access_policies?.roles ?? []}
+        columnMasking={security.access_policies?.column_masking}
       />
 
       <ServiceLevelsSection
@@ -60,8 +63,16 @@ export const ContractBody = React.memo(function ContractBody({ data, slug, userI
           storageFormat={output.storage_format}
           tableName={output.table_name}
           queryUrl={serving.technology?.query_url}
+          location={output.location}
         />
       ) : null}
+
+      <OperationsSection
+        airflowDagId={operations.airflow_dag_id}
+        scheduleCron={operations.schedule_cron}
+        expectedRuntimeMinutes={operations.expected_runtime_minutes}
+        alertsChannel={operations.alerts_channel}
+      />
     </div>
   );
 });

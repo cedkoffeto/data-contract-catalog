@@ -477,6 +477,7 @@ export const dictionaries = {
     sectionServingPartitioning: "Partitioning",
     sectionServingRetention: "Retention",
     sectionServingOpenQuery: "Open in query tool",
+    sectionServingLocation: "Location",
     sectionSecurity: "Security",
     sectionSecurityDesc: "Security classification and access policies",
     sectionSecurityClassification: "Classification",
@@ -487,6 +488,16 @@ export const dictionaries = {
     sectionSecurityAccessControl: "Access control",
     sectionSecurityRole: "Role",
     sectionSecurityPermissions: "Permissions",
+    sectionSecurityColumnMasking: "Column masking",
+    sectionSecurityField: "Field",
+    sectionSecurityPolicy: "Policy",
+
+    sectionOperations: "Operations",
+    sectionOperationsDesc: "Orchestration and scheduling configuration",
+    sectionOpsDagId: "DAG ID",
+    sectionOpsSchedule: "Schedule",
+    sectionOpsRuntime: "Runtime",
+    sectionOpsAlerts: "Alerts",
 
     // Toast / feedback
     pinError: "Error while pinning",
@@ -1000,6 +1011,7 @@ export const dictionaries = {
     sectionServingPartitioning: "Partitionnement",
     sectionServingRetention: "Rétention",
     sectionServingOpenQuery: "Ouvrir dans l'outil de requête",
+    sectionServingLocation: "Emplacement",
     sectionSecurity: "Sécurité",
     sectionSecurityDesc: "Classification et politiques d'accès",
     sectionSecurityClassification: "Classification",
@@ -1010,6 +1022,16 @@ export const dictionaries = {
     sectionSecurityAccessControl: "Contrôle d'accès",
     sectionSecurityRole: "Rôle",
     sectionSecurityPermissions: "Permissions",
+    sectionSecurityColumnMasking: "Masquage de colonnes",
+    sectionSecurityField: "Champ",
+    sectionSecurityPolicy: "Politique",
+
+    sectionOperations: "Opérations",
+    sectionOperationsDesc: "Configuration de l'orchestration et de la planification",
+    sectionOpsDagId: "ID du DAG",
+    sectionOpsSchedule: "Planification",
+    sectionOpsRuntime: "Durée d'exécution",
+    sectionOpsAlerts: "Alertes",
 
     // Toast / feedback
     pinError: "Erreur lors de l'épinglage",

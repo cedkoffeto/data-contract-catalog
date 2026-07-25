@@ -572,26 +572,35 @@ export function layoutGraph(
   const isLR = direction === "LR";
   const nodeSizes = new Map<string, number>();
   const heights = new Map<string, number>();
+  const widths = new Map<string, number>();
   for (const n of connected) {
     const h = nodeHeight(n, connectedFields, viewMode, collapsedTables?.has(n.id));
     heights.set(n.id, h);
+    widths.set(n.id, nodeWidth(n));
     nodeSizes.set(n.id, isLR ? h : nodeWidth(n));
   }
   for (const dummyId of dummyIds) {
     nodeSizes.set(dummyId, 0);
   }
 
+  // Dynamic column width: max node width + gap (never smaller than 320)
+  let maxNodeW = 0;
+  for (const n of connected) maxNodeW = Math.max(maxNodeW, nodeWidth(n));
+  const COLUMN_WIDTH = Math.max(maxNodeW + 60, 320);
   const NODE_GAP = 30;
   const rankPositions = new Map<string, { x: number; y: number }>();
 
   function stackRank(ids: string[], preferredPos: Map<string, number>) {
     ids.sort((a, b) => (preferredPos.get(a) ?? 0) - (preferredPos.get(b) ?? 0));
+
+    // Compute total stack size accounting for different node widths
     let totalSize = 0;
-    for (const id of ids) {
-      totalSize += nodeSizes.get(id) ?? 0;
-      if (!dummyIds.has(id)) totalSize += NODE_GAP;
+    for (let i = 0; i < ids.length; i++) {
+      const sz = nodeSizes.get(ids[i]) ?? 0;
+      totalSize += sz;
+      if (!dummyIds.has(ids[i]) && i < ids.length - 1) totalSize += NODE_GAP;
     }
-    if (ids.length > 0) totalSize -= NODE_GAP;
+
     const avgPP = ids.reduce((s, id) => s + (preferredPos.get(id) ?? 0), 0) / (ids.length || 1);
     let pos = avgPP - totalSize / 2;
     for (const id of ids) {
@@ -660,7 +669,6 @@ export function layoutGraph(
   const centerStack = (Math.min(...allStackPos) + Math.max(...allStackPos)) / 2;
 
   // Assign final positions based on direction
-  const COLUMN_WIDTH = 320;
   const laidOut = new Map<string, Node>();
   for (const node of connected) {
     const rp = rankPositions.get(node.id);
@@ -674,6 +682,36 @@ export function layoutGraph(
       ...node,
       position: { x: x - w / 2, y: yPos - h / 2 },
     });
+  }
+
+  // ── Collision detection: push apart any overlapping nodes ──
+  const nodeArr = Array.from(laidOut.values());
+  for (let iter = 0; iter < 10; iter++) {
+    let hasOverlap = false;
+    for (let i = 0; i < nodeArr.length; i++) {
+      for (let j = i + 1; j < nodeArr.length; j++) {
+        const a = nodeArr[i], b = nodeArr[j];
+        const aw = nodeWidth(a), ah = heights.get(a.id) ?? 0;
+        const bw = nodeWidth(b), bh = heights.get(b.id) ?? 0;
+        const aRight = a.position.x + aw, aBottom = a.position.y + ah;
+        const bRight = b.position.x + bw, bBottom = b.position.y + bh;
+        if (a.position.x < bRight && aRight > b.position.x && a.position.y < bBottom && aBottom > b.position.y) {
+          hasOverlap = true;
+          const overlapX = Math.min(aRight - b.position.x, bRight - a.position.x);
+          const overlapY = Math.min(aBottom - b.position.y, bBottom - a.position.y);
+          if (overlapX < overlapY) {
+            const shift = overlapX / 2 + 1;
+            if (a.position.x < b.position.x) { a.position = { ...a.position, x: a.position.x - shift }; b.position = { ...b.position, x: b.position.x + shift }; }
+            else { a.position = { ...a.position, x: a.position.x + shift }; b.position = { ...b.position, x: b.position.x - shift }; }
+          } else {
+            const shift = overlapY / 2 + 1;
+            if (a.position.y < b.position.y) { a.position = { ...a.position, y: a.position.y - shift }; b.position = { ...b.position, y: b.position.y + shift }; }
+            else { a.position = { ...a.position, y: a.position.y + shift }; b.position = { ...b.position, y: b.position.y - shift }; }
+          }
+        }
+      }
+    }
+    if (!hasOverlap) break;
   }
 
   // ── Isolated nodes: grid to the left (LR) or above (TB) ──
@@ -830,6 +868,36 @@ export function layoutLayerGraph(nodes: Node[], edges: Edge[], connectedFields?:
     return { ...n, position: { x: pos.x - w / 2, y: pos.y } };
   });
 
+  // ── Collision detection for layer layout ──
+  for (let iter = 0; iter < 10; iter++) {
+    let hasOverlap = false;
+    for (let i = 0; i < laidOut.length; i++) {
+      for (let j = i + 1; j < laidOut.length; j++) {
+        const a = laidOut[i], b = laidOut[j];
+        if (!positions.has(a.id) || !positions.has(b.id)) continue;
+        const aw = nodeWidth(a), ah = heights.get(a.id) ?? 0;
+        const bw = nodeWidth(b), bh = heights.get(b.id) ?? 0;
+        const aR = a.position.x + aw, aB = a.position.y + ah;
+        const bR = b.position.x + bw, bB = b.position.y + bh;
+        if (a.position.x < bR && aR > b.position.x && a.position.y < bB && aB > b.position.y) {
+          hasOverlap = true;
+          const ox = Math.min(aR - b.position.x, bR - a.position.x);
+          const oy = Math.min(aB - b.position.y, bB - a.position.y);
+          if (ox < oy) {
+            const s = ox / 2 + 1;
+            if (a.position.x < b.position.x) { a.position = { ...a.position, x: a.position.x - s }; b.position = { ...b.position, x: b.position.x + s }; }
+            else { a.position = { ...a.position, x: a.position.x + s }; b.position = { ...b.position, x: b.position.x - s }; }
+          } else {
+            const s = oy / 2 + 1;
+            if (a.position.y < b.position.y) { a.position = { ...a.position, y: a.position.y - s }; b.position = { ...b.position, y: b.position.y + s }; }
+            else { a.position = { ...a.position, y: a.position.y + s }; b.position = { ...b.position, y: b.position.y - s }; }
+          }
+        }
+      }
+    }
+    if (!hasOverlap) break;
+  }
+
   return { nodes: [...bgNodes, ...laidOut], edges };
 }
 
@@ -957,6 +1025,35 @@ export function layoutStarGraph(nodes: Node[], edges: Edge[], connectedFields?: 
     const w = nodeWidth(n);
     return { ...n, position: { x: pos.x - w / 2, y: pos.y - h / 2 } };
   });
+
+  // ── Collision detection for star layout ──
+  for (let iter = 0; iter < 10; iter++) {
+    let hasOverlap = false;
+    for (let i = 0; i < laidOut.length; i++) {
+      for (let j = i + 1; j < laidOut.length; j++) {
+        const a = laidOut[i], b = laidOut[j];
+        const aw = nodeWidth(a), ah = heights.get(a.id) ?? 0;
+        const bw = nodeWidth(b), bh = heights.get(b.id) ?? 0;
+        const aR = a.position.x + aw, aB = a.position.y + ah;
+        const bR = b.position.x + bw, bB = b.position.y + bh;
+        if (a.position.x < bR && aR > b.position.x && a.position.y < bB && aB > b.position.y) {
+          hasOverlap = true;
+          const ox = Math.min(aR - b.position.x, bR - a.position.x);
+          const oy = Math.min(aB - b.position.y, bB - a.position.y);
+          if (ox < oy) {
+            const s = ox / 2 + 1;
+            if (a.position.x < b.position.x) { a.position = { ...a.position, x: a.position.x - s }; b.position = { ...b.position, x: b.position.x + s }; }
+            else { a.position = { ...a.position, x: a.position.x + s }; b.position = { ...b.position, x: b.position.x - s }; }
+          } else {
+            const s = oy / 2 + 1;
+            if (a.position.y < b.position.y) { a.position = { ...a.position, y: a.position.y - s }; b.position = { ...b.position, y: b.position.y + s }; }
+            else { a.position = { ...a.position, y: a.position.y + s }; b.position = { ...b.position, y: b.position.y - s }; }
+          }
+        }
+      }
+    }
+    if (!hasOverlap) break;
+  }
 
   return { nodes: laidOut, edges };
 }

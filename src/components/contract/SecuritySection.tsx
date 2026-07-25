@@ -16,16 +16,18 @@ export function SecuritySection({
   classification,
   containsPii,
   piiNotes,
-  roles
+  roles,
+  columnMasking,
 }: {
   classification?: string;
   containsPii?: boolean;
   piiNotes?: string;
   roles: RolePolicy[];
+  columnMasking?: Array<{ field?: string; policy?: string }>;
 }) {
   const { t } = useT();
 
-  if (!classification && containsPii === undefined && !piiNotes && roles.length === 0) {
+  if (!classification && containsPii === undefined && !piiNotes && roles.length === 0 && (!columnMasking || columnMasking.length === 0)) {
     return null;
   }
 
@@ -121,6 +123,46 @@ export function SecuritySection({
                           </tr>
                         );
                       })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })()}
+
+          {columnMasking && columnMasking.length > 0 && (() => {
+            const prevContent = classification || containsPii !== undefined || piiNotes || roles.length > 0;
+            return (
+              <div className={prevContent ? "border-t border-gray-100 pt-4 mt-4" : ""}>
+                <div className="flex items-center gap-1.5 mb-3">
+                  <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                  </svg>
+                  <h3 className="text-xs font-semibold text-gray-500">{t("sectionSecurityColumnMasking")}</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-gray-100">
+                        <th className="pb-2 pr-4 text-left font-semibold text-gray-500">{t("sectionSecurityField")}</th>
+                        <th className="pb-2 text-left font-semibold text-gray-500">{t("sectionSecurityPolicy")}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {columnMasking.map((entry, i) => (
+                        <tr key={`mask-${i}`} className="hover:bg-gray-50 transition-colors">
+                          <td className="py-2 pr-4">
+                            <span className="inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs font-medium text-gray-700">
+                              {entry.field}
+                            </span>
+                          </td>
+                          <td className="py-2">
+                            <span className="inline-flex items-center rounded bg-amber-50 px-1.5 py-0.5 text-xs font-semibold text-amber-700">
+                              {entry.policy}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
