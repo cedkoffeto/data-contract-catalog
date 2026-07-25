@@ -88,9 +88,8 @@ export function ContractHeader({
     <section className="contract-hero" style={{ paddingLeft: 0, paddingRight: 0 }}>
       <div className="w-full">
         <div className="px-4 sm:px-0">
-          <h1 className="text-base font-semibold leading-6 text-gray-900">{asset.name ?? "Unknown contract"}</h1>
-
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <h1 className="text-base font-semibold leading-6 text-gray-900">{asset.name ?? "Unknown contract"}</h1>
             {facts.map((fact, i) => (
               <span
                 key={i}

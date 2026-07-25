@@ -38,7 +38,7 @@ function HealthBadge({ value }: { value: number }) {
   const ok = value >= 99;
   return (
     <span
-      className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none ${
+      className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-semibold leading-none ${
         ok ? "bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20" : "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20"
       }`}
     >
