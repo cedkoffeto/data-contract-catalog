@@ -68,7 +68,7 @@ export function ServingSection({
             </span>
           </div>
 
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
+          <dl className="grid grid-cols-3 gap-x-6 gap-y-4">
             {storageFormat ? (
               <div className="flex items-center gap-2">
                 <DiskIcon />

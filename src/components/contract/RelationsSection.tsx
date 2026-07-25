@@ -30,20 +30,16 @@ function TableCard({ refStr, side, incoming }: { refStr: string; side: "left" | 
   const parts = splitRef(refStr);
   if (!parts) return <div className="text-sm text-gray-700">{refStr}</div>;
 
-  const baseAccent = incoming ? "#8b5cf6" : undefined;
-  const leftAccent = "#f97316";
-  const rightAccent = "#3b82f6";
-  const accent = incoming ? baseAccent! : (side === "left" ? leftAccent : rightAccent);
-  const bgTint = incoming ? "rgba(139,92,246,0.06)" : (side === "left" ? "rgba(249,115,22,0.06)" : "rgba(59,130,246,0.06)");
+  const accent = incoming ? "#8b5cf6" : (side === "left" ? "#f97316" : "#3b82f6");
 
   return (
     <Link
       href={`/contracts/${parts.slug}`}
-      className="block min-w-0 flex-1 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+      className="group block min-w-0 flex-1 overflow-hidden rounded-lg border border-gray-200 bg-white transition-all hover:border-gray-300 hover:shadow-sm"
     >
-      <div className="h-1" style={{ background: accent }} />
-      <div className="px-3 py-2" style={{ background: bgTint }}>
-        <span className="text-xs font-mono font-semibold text-gray-900">{parts.slug}.{parts.field}</span>
+      <div className="h-0.5" style={{ background: accent }} />
+      <div className="px-2.5 py-1.5">
+        <span className="text-xs font-mono font-semibold text-gray-900 group-hover:text-orange-600 transition-colors">{parts.slug}.{parts.field}</span>
       </div>
     </Link>
   );
@@ -57,45 +53,45 @@ function Connector({ sign, label, incoming }: { sign: string; label: string; inc
   const rightMark = isManyRight ? "M" : "1";
   const leftColor = isManyLeft ? "text-orange-600 bg-orange-50" : "text-blue-600 bg-blue-50";
   const rightColor = isManyRight ? "text-orange-600 bg-orange-50" : "text-blue-600 bg-blue-50";
-  const lineColor = "#94a3b8";
+  const lineColor = "#cbd5e1";
   const arrowColor = incoming ? "#8b5cf6" : (isManyLeft ? "#f97316" : "#3b82f6");
 
   return (
-    <div className="flex flex-col items-center shrink-0 mx-3" style={{ minWidth: 220 }}>
-      <div className="relative flex items-center w-full" style={{ height: 40 }}>
-        <svg className="absolute left-0 -translate-x-1/2" width="16" height="24" viewBox="0 0 16 24" style={{ color: arrowColor }}>
+    <div className="flex flex-col items-center shrink-0 mx-2" style={{ minWidth: 160 }}>
+      <div className="relative flex items-center w-full" style={{ height: 32 }}>
+        <svg className="absolute left-0 -translate-x-1/2" width="12" height="20" viewBox="0 0 12 20" style={{ color: arrowColor }}>
           {isManyLeft ? (
-            <g fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-              <line x1="10" y1="12" x2="3" y2="5" />
-              <line x1="10" y1="12" x2="3" y2="12" />
-              <line x1="10" y1="12" x2="3" y2="19" />
+            <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="9" y1="10" x2="3" y2="4" />
+              <line x1="9" y1="10" x2="3" y2="10" />
+              <line x1="9" y1="10" x2="3" y2="16" />
             </g>
           ) : (
-            <line x1="10" y1="4" x2="10" y2="20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+            <line x1="8" y1="3" x2="8" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           )}
         </svg>
-        <div className="flex-1 h-0" style={{ borderTop: `2px solid ${lineColor}` }} />
-        <span className="inline-flex items-center justify-center mx-2 rounded-md px-2.5 py-0.5 text-xs font-semibold bg-gray-100 text-gray-700 whitespace-nowrap">
+        <div className="flex-1 h-0" style={{ borderTop: `1.5px solid ${lineColor}` }} />
+        <span className="inline-flex items-center justify-center mx-1.5 rounded px-2 py-0.5 text-xs font-semibold bg-gray-100 text-gray-600 whitespace-nowrap">
           {label}
         </span>
-        <div className="flex-1 h-0" style={{ borderTop: `2px solid ${lineColor}` }} />
-        <svg className="absolute right-0 translate-x-1/2" width="16" height="24" viewBox="0 0 16 24" style={{ color: arrowColor }}>
+        <div className="flex-1 h-0" style={{ borderTop: `1.5px solid ${lineColor}` }} />
+        <svg className="absolute right-0 translate-x-1/2" width="12" height="20" viewBox="0 0 12 20" style={{ color: arrowColor }}>
           {isManyRight ? (
-            <g fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-              <line x1="6" y1="12" x2="13" y2="5" />
-              <line x1="6" y1="12" x2="13" y2="12" />
-              <line x1="6" y1="12" x2="13" y2="19" />
+            <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="3" y1="10" x2="9" y2="4" />
+              <line x1="3" y1="10" x2="9" y2="10" />
+              <line x1="3" y1="10" x2="9" y2="16" />
             </g>
           ) : (
-            <line x1="6" y1="4" x2="6" y2="20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+            <line x1="4" y1="3" x2="4" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           )}
         </svg>
       </div>
-      <div className="flex items-center justify-between w-full mt-0.5 px-1">
-        <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[11px] font-bold ${leftColor}`}>
+      <div className="flex items-center justify-between w-full px-0.5">
+        <span className={`inline-flex items-center justify-center w-4 h-4 rounded text-[10px] font-bold ${leftColor}`}>
           {leftMark}
         </span>
-        <span className={`inline-flex items-center justify-center w-5 h-5 rounded text-[11px] font-bold ${rightColor}`}>
+        <span className={`inline-flex items-center justify-center w-4 h-4 rounded text-[10px] font-bold ${rightColor}`}>
           {rightMark}
         </span>
       </div>
@@ -150,7 +146,7 @@ export function RelationsSection({
       <div className="mt-2 overflow-hidden rounded-lg bg-white shadow sm:rounded-lg">
         <div className="px-4 py-5 sm:px-6">
           {hasDeclared && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {hasIncoming && (
                 <h2 className="text-sm font-semibold text-gray-700">{t("sectionRelationsDeclared")}</h2>
               )}
@@ -161,7 +157,7 @@ export function RelationsSection({
           )}
 
           {hasIncoming && (
-            <div className={hasDeclared ? "mt-8 space-y-6" : "space-y-6"}>
+            <div className={hasDeclared ? "mt-6 space-y-4" : "space-y-4"}>
               <h2 className="text-sm font-semibold text-gray-700">
                 {t("sectionRelationsIncoming")}
                 <span className="ml-2 text-xs font-normal text-gray-400">{t("sectionRelationsIncomingDesc")}</span>
