@@ -406,9 +406,10 @@ function buildReverseRelationIndex(contracts: ContractFile[]): Map<string, Array
   for (const contract of contracts) {
     const rels = contract.data.contract?.schema?.relations ?? [];
     for (const rel of rels) {
-      const match = rel.ref.match(/@([^.]+)\./);
-      if (match) {
-        const targetSlug = match[1];
+      const allMatches = [...rel.ref.matchAll(/@([^.]+)\./g)];
+      for (const m of allMatches) {
+        const targetSlug = m[1];
+        if (targetSlug === contract.slug) continue;
         let arr = index.get(targetSlug);
         if (!arr) { arr = []; index.set(targetSlug, arr); }
         arr.push({ ref_name: rel.ref_name, ref: rel.ref, declared_by_slug: contract.slug });
