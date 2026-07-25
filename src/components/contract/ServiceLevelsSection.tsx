@@ -73,9 +73,9 @@ export function ServiceLevelsSection({
       </div>
       <div className="mt-2 overflow-hidden rounded-lg bg-white shadow sm:rounded-lg">
         <div className="px-4 py-5 sm:px-6">
-          <dl className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-5">
             {availability ? (
-              <div className="sm:col-span-1">
+              <div>
                 <div className="flex items-center gap-1.5">
                   <SignalIcon />
                   <dt className="text-xs font-medium text-gray-500">{t("sectionSlaAvailability")}</dt>
@@ -88,7 +88,7 @@ export function ServiceLevelsSection({
             ) : null}
 
             {readyBy ? (
-              <div className="sm:col-span-1">
+              <div>
                 <div className="flex items-center gap-1.5">
                   <ClockIcon />
                   <dt className="text-xs font-medium text-gray-500">{t("sectionSlaFreshness")}</dt>
@@ -98,7 +98,7 @@ export function ServiceLevelsSection({
             ) : null}
 
             {frequency ? (
-              <div className="sm:col-span-1">
+              <div>
                 <div className="flex items-center gap-1.5">
                   <RefreshIcon />
                   <dt className="text-xs font-medium text-gray-500">{t("sectionSlaFrequency")}</dt>
@@ -108,7 +108,7 @@ export function ServiceLevelsSection({
             ) : null}
 
             {maxDelayMinutes ? (
-              <div className="sm:col-span-1">
+              <div>
                 <div className="flex items-center gap-1.5">
                   <TimerIcon />
                   <dt className="text-xs font-medium text-gray-500">{t("sectionSlaMaxDelay")}</dt>
