@@ -176,10 +176,6 @@ export function RelationsSection({
   const { t } = useT();
   const declaredCount = (relations ?? []).filter(Boolean).length;
   const incomingCount = (incomingRelations ?? []).filter(Boolean).length;
-  const hasDeclared = declaredCount > 0;
-  const hasIncoming = incomingCount > 0;
-
-  if (!hasDeclared && !hasIncoming) return null;
 
   return (
     <section id="relations" className="mt-6">
@@ -198,7 +194,7 @@ export function RelationsSection({
                 {declaredCount}
               </span>
             </div>
-            {hasDeclared ? (
+            {declaredCount > 0 ? (
               (relations ?? []).filter(Boolean).map((rel, i) => (
                 <RelationRow key={`decl-${i}`} rel={rel} />
               ))
@@ -207,23 +203,25 @@ export function RelationsSection({
             )}
           </div>
 
-          {hasIncoming && (
-            <div className="mt-6 space-y-2.5">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="h-4 w-1 rounded-full bg-blue-400" />
-                <h2 className="text-xs font-semibold text-gray-700">
-                  {t("sectionRelationsIncoming")}
-                  <span className="ml-2 text-[11px] font-normal text-gray-400">{t("sectionRelationsIncomingDesc")}</span>
-                </h2>
-                <span className="inline-flex items-center justify-center rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-bold text-blue-700">
-                  {incomingCount}
-                </span>
-              </div>
-              {(incomingRelations ?? []).filter(Boolean).map((rel, i) => (
-                <RelationRow key={`inc-${i}`} rel={rel} incoming />
-              ))}
+          <div className="mt-6 space-y-2.5">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="h-4 w-1 rounded-full bg-blue-400" />
+              <h2 className="text-xs font-semibold text-gray-700">
+                {t("sectionRelationsIncoming")}
+                <span className="ml-2 text-[11px] font-normal text-gray-400">{t("sectionRelationsIncomingDesc")}</span>
+              </h2>
+              <span className="inline-flex items-center justify-center rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-bold text-blue-700">
+                {incomingCount}
+              </span>
             </div>
-          )}
+            {incomingCount > 0 ? (
+              (incomingRelations ?? []).filter(Boolean).map((rel, i) => (
+                <RelationRow key={`inc-${i}`} rel={rel} incoming />
+              ))
+            ) : (
+              <p className="text-xs text-gray-400 italic">{t("noRelationsIncoming")}</p>
+            )}
+          </div>
         </div>
       </div>
     </section>
