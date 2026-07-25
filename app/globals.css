@@ -1115,7 +1115,7 @@ a:has(> .kpi-card) {
 
 .contract-page__inner {
   min-height: 100%;
-  padding: 1rem 1.15rem 1.4rem;
+  padding: 0.15rem 1.15rem 1.4rem;
 }
 
 .catalog-filters,
