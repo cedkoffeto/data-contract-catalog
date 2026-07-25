@@ -304,12 +304,15 @@ export function DataModelEditor({
   }, []);
 
   const handleShowConnected = useCallback((nodeId: string) => {
-    const connected = new Set<string>([nodeId]);
-    for (const e of edges) {
-      if (e.source === nodeId) connected.add(e.target);
-      if (e.target === nodeId) connected.add(e.source);
-    }
-    setVisibleTablesState(connected);
+    setVisibleTablesState((prev) => {
+      const next = new Set(prev);
+      next.add(nodeId);
+      for (const e of edges) {
+        if (e.source === nodeId) next.add(e.target);
+        if (e.target === nodeId) next.add(e.source);
+      }
+      return next;
+    });
     setFitKey((k) => k + 1);
   }, [edges]);
 
