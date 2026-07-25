@@ -10,8 +10,7 @@ function getReadableValue(value?: string) {
 function IdIcon() {
   return (
     <svg className="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M7.864 4.243A7.5 7.5 0 0 1 19.5 10.5c0 2.92-.556 5.709-1.568 8.268M5.742 6.364A7.465 7.465 0 0 0 4.5 10.5a48.667 48.667 0 0 0-1.418 8.773 7.46 7.46 0 0 1-1.082-4.588M14.5 10.5a7.5 7.5 0 0 0-7.5-7.5v7.5m7.5-7.5a7.5 7.5 0 0 1 7.5 7.5c0 1.597-.556 3.076-1.488 4.274M10.5 10.5a7.5 7.5 0 0 1-7.5 7.5v-7.5m7.5 7.5a7.5 7.5 0 0 0 7.5-7.5c0-1.597-.556-3.076-1.488-4.274" />
     </svg>
   );
 }
