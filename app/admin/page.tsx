@@ -88,7 +88,7 @@ export default function AdminDashboard() {
   return (
     <div className="w-full space-y-6 px-4 lg:px-6">
       <div className="w-full overflow-hidden rounded-lg border border-gray-300 bg-white p-4 shadow-lg lg:p-6">
-        <div className="grid grid-cols-8 max-xl:grid-cols-4 max-md:grid-cols-2 max-sm:grid-cols-1 gap-3 lg:gap-4">
+        <div className="grid grid-cols-4 max-md:grid-cols-2 max-sm:grid-cols-1 gap-3 lg:gap-4">
           {cards.map((c) => {
             const inner = (
               <div className="kpi-card" style={{ borderLeft: "4px solid #f97316", backgroundColor: "rgba(249,115,22,0.08)" }}>

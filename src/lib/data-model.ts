@@ -706,8 +706,8 @@ export function layoutGraph(
 export function layoutLayerGraph(nodes: Node[], edges: Edge[], connectedFields?: Map<string, Map<string, number>>, viewMode?: "detailed" | "compact", collapsedTables?: Set<string>): { nodes: Node[]; edges: Edge[] } {
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
   const LAYER_ORDER = ["bronze", "silver", "gold"];
-  const COLUMN_WIDTH = 480;
-  const VERTICAL_GAP = 20;
+  const LAYER_GAP = 80;
+  const VERTICAL_GAP = 30;
 
   // Separate connected from orphan (isolated) nodes
   const connectedIds = new Set<string>();
@@ -735,11 +735,30 @@ export function layoutLayerGraph(nodes: Node[], edges: Edge[], connectedFields?:
 
   const positions = new Map<string, { x: number; y: number }>();
 
+  // Compute per-layer max width for dynamic column sizing
+  const layerMaxW = new Map<string, number>();
+  for (const layer of LAYER_ORDER) {
+    const ns = byLayer.get(layer);
+    if (!ns || ns.length === 0) continue;
+    let maxW = 0;
+    for (const n of ns) maxW = Math.max(maxW, nodeWidth(n));
+    layerMaxW.set(layer, maxW);
+  }
+
+  // Compute cumulative x offsets per layer (centered columns)
+  const layerX = new Map<string, number>();
+  let cursorX = 0;
+  for (const layer of LAYER_ORDER) {
+    const w = layerMaxW.get(layer) ?? NODE_WIDTH;
+    layerX.set(layer, cursorX + w / 2);
+    cursorX += w + LAYER_GAP;
+  }
+  const totalWidth = cursorX - LAYER_GAP;
+
   for (let colIdx = 0; colIdx < LAYER_ORDER.length; colIdx++) {
     const ns = byLayer.get(LAYER_ORDER[colIdx]);
     if (!ns) continue;
 
-    // Sort alphabetically within each layer to reduce edge crossings
     ns.sort((a, b) => {
       const sa = (a.data as ContractTableNodeData).slug || "";
       const sb = (b.data as ContractTableNodeData).slug || "";
@@ -751,7 +770,7 @@ export function layoutLayerGraph(nodes: Node[], edges: Edge[], connectedFields?:
     totalHeight += (ns.length - 1) * VERTICAL_GAP;
 
     let y = -totalHeight / 2;
-    const x = colIdx * COLUMN_WIDTH;
+    const x = (layerX.get(LAYER_ORDER[colIdx]) ?? 0) - totalWidth / 2;
 
     for (const n of ns) {
       const h = heights.get(n.id) ?? 0;
@@ -763,8 +782,8 @@ export function layoutLayerGraph(nodes: Node[], edges: Edge[], connectedFields?:
   // --- Layout orphan tables in a grid to the right ---
   if (orphans.length > 0) {
     const orphanGap = 30;
-    const { positions: orphanPositions } = layoutOrphanGrid(orphans, heights, orphanGap);
-    const gridLeft = (connected.length > 0 ? LAYER_ORDER.length * COLUMN_WIDTH : 0) + orphanGap * 2;
+    const { positions: orphanPositions, gridWidth } = layoutOrphanGrid(orphans, heights, orphanGap);
+    const gridLeft = (connected.length > 0 ? cursorX + orphanGap : 0);
     for (const [id, pos] of orphanPositions) {
       positions.set(id, { x: pos.x + gridLeft, y: pos.y });
     }
@@ -789,14 +808,14 @@ export function layoutLayerGraph(nodes: Node[], edges: Edge[], connectedFields?:
     }
 
     const pad = 20;
-    const cx = LAYER_ORDER.indexOf(layer) * COLUMN_WIDTH;
+    const cx = layerX.get(layer) ?? 0;
     const bw = maxW + pad * 2;
     const bh = maxY - minY + pad * 2;
 
     bgNodes.push({
       id: `__bg_${layer}`,
       type: "layerBackground",
-      position: { x: cx, y: (minY + maxY) / 2 },
+      position: { x: cx - bw / 2, y: (minY + maxY) / 2 - bh / 2 },
       data: { label: layer, width: bw, height: bh },
       draggable: false,
       selectable: false,
@@ -806,7 +825,9 @@ export function layoutLayerGraph(nodes: Node[], edges: Edge[], connectedFields?:
 
   const laidOut = nodes.map((n) => {
     const pos = positions.get(n.id);
-    return pos ? { ...n, position: pos } : n;
+    if (!pos) return n;
+    const w = nodeWidth(n);
+    return { ...n, position: { x: pos.x - w / 2, y: pos.y } };
   });
 
   return { nodes: [...bgNodes, ...laidOut], edges };
@@ -851,10 +872,11 @@ export function layoutStarGraph(nodes: Node[], edges: Edge[], connectedFields?: 
   }
 
   const positions = new Map<string, { x: number; y: number }>();
-  const BASE_RADIUS = 80;
-  const RADIUS_STEP = 130;
+  const isDetailed = viewMode === "detailed";
+  const BASE_RADIUS = isDetailed ? 200 : 80;
+  const RADIUS_STEP = isDetailed ? 280 : 130;
   const ORPHAN_BLOCK_GAP = 60;
-  const COMP_GAP = 80;
+  const COMP_GAP = isDetailed ? 200 : 80;
 
   // ── Orphan block: grid to the left ──
   let orphanBlockWidth = 0;
@@ -905,8 +927,9 @@ export function layoutStarGraph(nodes: Node[], edges: Edge[], connectedFields?: 
       const n = ids.length;
       const maxW = Math.max(...ids.map((id) => { const node = nodeById.get(id); return node ? nodeWidth(node) : NODE_WIDTH; }), NODE_WIDTH);
       const maxH = Math.max(...ids.map((id) => heights.get(id) ?? 90), 90);
-      const minR = (n * (maxW + 40)) / (2 * Math.PI);
-      const r = Math.max(BASE_RADIUS + l * RADIUS_STEP, minR, maxH / 2 + 60);
+      const minRWidth = (n * (maxW + 60)) / (2 * Math.PI);
+      const minRHeight = maxH / 2 + 40;
+      const r = Math.max(BASE_RADIUS + l * RADIUS_STEP, minRWidth, minRHeight);
       radii.set(l, r);
       if (r > compMaxR) compMaxR = r;
     }

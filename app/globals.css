@@ -697,6 +697,51 @@ a {
   background: rgba(249, 115, 22, 0.06);
 }
 
+/* ── Relations animated dots ── */
+@keyframes relation-dot-flow {
+  0% { left: 0; opacity: 0; }
+  8% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+
+.relation-connector__track {
+  position: relative;
+  overflow: hidden;
+  flex: 1;
+  height: 0;
+  border-top: 1.5px dashed #cbd5e1;
+}
+
+.relation-connector__dot {
+  position: absolute;
+  top: -3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ui-primary);
+  box-shadow: 0 0 6px rgba(249, 115, 22, 0.5);
+  animation: relation-dot-flow 2.8s linear infinite;
+  pointer-events: none;
+}
+
+.relation-connector__dot:nth-child(2) { animation-delay: -0.9s; }
+.relation-connector__dot:nth-child(3) { animation-delay: -1.8s; }
+
+.relation-connector__dot--reverse {
+  animation-direction: reverse;
+}
+
+.relation-connector__dot--blue {
+  background: #3b82f6;
+  box-shadow: 0 0 6px rgba(59, 130, 246, 0.5);
+}
+
+@keyframes relation-dot-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
 /* ── Admin KPI Grid ── */
 a:has(> .kpi-card) {
   text-decoration: none;
