@@ -583,10 +583,10 @@ export function layoutGraph(
     nodeSizes.set(dummyId, 0);
   }
 
-  // Dynamic column width: max node width + gap (never smaller than 320)
+  // Dynamic column width: max node width + 20px lateral gap
   let maxNodeW = 0;
   for (const n of connected) maxNodeW = Math.max(maxNodeW, nodeWidth(n));
-  const COLUMN_WIDTH = Math.max(maxNodeW + 60, 320);
+  const COLUMN_WIDTH = maxNodeW + 20;
   const NODE_GAP = 30;
   const rankPositions = new Map<string, { x: number; y: number }>();
 
@@ -744,7 +744,7 @@ export function layoutGraph(
 export function layoutLayerGraph(nodes: Node[], edges: Edge[], connectedFields?: Map<string, Map<string, number>>, viewMode?: "detailed" | "compact", collapsedTables?: Set<string>): { nodes: Node[]; edges: Edge[] } {
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
   const LAYER_ORDER = ["bronze", "silver", "gold"];
-  const LAYER_GAP = 80;
+  const LAYER_GAP = 20;
   const VERTICAL_GAP = 30;
 
   // Separate connected from orphan (isolated) nodes
@@ -819,7 +819,7 @@ export function layoutLayerGraph(nodes: Node[], edges: Edge[], connectedFields?:
 
   // --- Layout orphan tables in a grid to the right ---
   if (orphans.length > 0) {
-    const orphanGap = 30;
+    const orphanGap = 20;
     const { positions: orphanPositions, gridWidth } = layoutOrphanGrid(orphans, heights, orphanGap);
     const gridLeft = (connected.length > 0 ? cursorX + orphanGap : 0);
     for (const [id, pos] of orphanPositions) {
@@ -995,7 +995,7 @@ export function layoutStarGraph(nodes: Node[], edges: Edge[], connectedFields?: 
       const n = ids.length;
       const maxW = Math.max(...ids.map((id) => { const node = nodeById.get(id); return node ? nodeWidth(node) : NODE_WIDTH; }), NODE_WIDTH);
       const maxH = Math.max(...ids.map((id) => heights.get(id) ?? 90), 90);
-      const minRWidth = (n * (maxW + 60)) / (2 * Math.PI);
+      const minRWidth = (n * (maxW + 20)) / (2 * Math.PI);
       const minRHeight = maxH / 2 + 40;
       const r = Math.max(BASE_RADIUS + l * RADIUS_STEP, minRWidth, minRHeight);
       radii.set(l, r);
