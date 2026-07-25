@@ -142,8 +142,9 @@ function RelationRow({ rel, incoming }: { rel: { ref_name: string; ref: string }
   if (!parsed) {
     return <div className="text-sm text-gray-700">{ref}</div>;
   }
-  const leftRef = incoming ? parsed.right : parsed.left;
-  const rightRef = incoming ? parsed.left : parsed.right;
+  // declared: [current] --> [connected]   incoming: [declaring] --> [current]
+  const leftRef = incoming ? parsed.left : parsed.left;
+  const rightRef = incoming ? parsed.right : parsed.right;
   const leftSide = incoming ? "right" as const : "left" as const;
   const rightSide = incoming ? "left" as const : "right" as const;
   const connectorSign = incoming
