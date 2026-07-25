@@ -49,52 +49,53 @@ function Connector({ sign, label, incoming }: { sign: string; label: string; inc
   const isManyLeft = sign === ">";
   const isManyRight = sign === "<";
 
-  const leftMark = isManyLeft ? "M" : "1";
-  const rightMark = isManyRight ? "M" : "1";
-  const leftColor = isManyLeft ? "text-orange-600 bg-orange-50" : "text-blue-600 bg-blue-50";
-  const rightColor = isManyRight ? "text-orange-600 bg-orange-50" : "text-blue-600 bg-blue-50";
   const lineColor = "#cbd5e1";
-  const arrowColor = incoming ? "#8b5cf6" : (isManyLeft ? "#f97316" : "#3b82f6");
+  const strokeColor = incoming ? "#8b5cf6" : (isManyLeft ? "#f97316" : "#3b82f6");
+
+  function crowFoot(side: "left" | "right") {
+    const isMany = side === "left" ? isManyLeft : isManyRight;
+    if (isMany) {
+      // Crow's foot: 3 prongs
+      const dir = side === "left" ? -1 : 1;
+      return (
+        <g fill="none" stroke={strokeColor} strokeWidth="1.5" strokeLinecap="round">
+          <line x1={side === "left" ? 14 : 2} y1="10" x2={side === "left" ? 4 : 12} y2="3" />
+          <line x1={side === "left" ? 14 : 2} y1="10" x2={side === "left" ? 4 : 12} y2="10" />
+          <line x1={side === "left" ? 14 : 2} y1="10" x2={side === "left" ? 4 : 12} y2="17" />
+        </g>
+      );
+    }
+    // One: perpendicular bar
+    const x = side === "left" ? 8 : 8;
+    return (
+      <g fill="none" stroke={strokeColor} strokeWidth="1.5" strokeLinecap="round">
+        <line x1={x} y1="3" x2={x} y2="17" />
+      </g>
+    );
+  }
 
   return (
-    <div className="flex flex-col items-center shrink-0 mx-2" style={{ minWidth: 160 }}>
-      <div className="relative flex items-center w-full" style={{ height: 32 }}>
-        <svg className="absolute left-0 -translate-x-1/2" width="12" height="20" viewBox="0 0 12 20" style={{ color: arrowColor }}>
-          {isManyLeft ? (
-            <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <line x1="9" y1="10" x2="3" y2="4" />
-              <line x1="9" y1="10" x2="3" y2="10" />
-              <line x1="9" y1="10" x2="3" y2="16" />
-            </g>
-          ) : (
-            <line x1="8" y1="3" x2="8" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          )}
-        </svg>
-        <div className="flex-1 h-0" style={{ borderTop: `1.5px solid ${lineColor}` }} />
-        <span className="inline-flex items-center justify-center mx-1.5 rounded px-2 py-0.5 text-xs font-semibold bg-gray-100 text-gray-600 whitespace-nowrap">
-          {label}
-        </span>
-        <div className="flex-1 h-0" style={{ borderTop: `1.5px solid ${lineColor}` }} />
-        <svg className="absolute right-0 translate-x-1/2" width="12" height="20" viewBox="0 0 12 20" style={{ color: arrowColor }}>
-          {isManyRight ? (
-            <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <line x1="3" y1="10" x2="9" y2="4" />
-              <line x1="3" y1="10" x2="9" y2="10" />
-              <line x1="3" y1="10" x2="9" y2="16" />
-            </g>
-          ) : (
-            <line x1="4" y1="3" x2="4" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          )}
-        </svg>
-      </div>
-      <div className="flex items-center justify-between w-full px-0.5">
-        <span className={`inline-flex items-center justify-center w-4 h-4 rounded text-[10px] font-bold ${leftColor}`}>
-          {leftMark}
-        </span>
-        <span className={`inline-flex items-center justify-center w-4 h-4 rounded text-[10px] font-bold ${rightColor}`}>
-          {rightMark}
-        </span>
-      </div>
+    <div className="flex flex-col items-center shrink-0 mx-1" style={{ minWidth: 120 }}>
+      <svg width="120" height="20" viewBox="0 0 120 20" className="shrink-0">
+        <defs>
+          <style>{`
+            @keyframes dcc-flow-rel {
+              0% { stroke-dashoffset: 24; }
+              100% { stroke-dashoffset: 0; }
+            }
+          `}</style>
+        </defs>
+        {/* Left symbol */}
+        {crowFoot("left")}
+        {/* Line */}
+        <line x1="14" y1="10" x2="106" y2="10" stroke={lineColor} strokeWidth="1.5" />
+        <line x1="14" y1="10" x2="106" y2="10" stroke={strokeColor} strokeWidth="1.5" strokeDasharray="4 8" opacity="0.6" style={{ animation: "dcc-flow-rel 0.8s linear infinite" }} />
+        {/* Right symbol */}
+        {crowFoot("right")}
+        {/* Label in middle */}
+        <rect x="38" y="2" width="44" height="16" rx="4" fill="#f1f5f9" stroke="#e2e8f0" strokeWidth="0.5" />
+        <text x="60" y="11" textAnchor="middle" dominantBaseline="central" fill="#475569" fontSize="9" fontWeight="600" fontFamily="system-ui">{label}</text>
+      </svg>
     </div>
   );
 }
