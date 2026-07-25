@@ -20,6 +20,8 @@ function nodeData(n: Node): ContractTableNodeData {
   return n.data as ContractTableNodeData;
 }
 
+type CtxMenuState = { nodeId: string; top: number; left: number } | null;
+
 const TableListItem = memo(function TableListItem({
   node,
   isVisible,
@@ -27,6 +29,8 @@ const TableListItem = memo(function TableListItem({
   onToggleTable,
   edges,
   onShowConnected,
+  activeCtxMenu,
+  onOpenCtxMenu,
 }: {
   node: Node;
   isVisible: boolean;
@@ -34,11 +38,13 @@ const TableListItem = memo(function TableListItem({
   onToggleTable: (id: string) => void;
   edges: Edge[];
   onShowConnected: (nodeId: string) => void;
+  activeCtxMenu: CtxMenuState;
+  onOpenCtxMenu: (state: CtxMenuState) => void;
 }) {
   const d = nodeData(node);
   const [errHover, setErrHover] = useState(false);
   const [errPos, setErrPos] = useState<{ top: number; left: number } | null>(null);
-  const [ctxMenu, setCtxMenu] = useState<{ top: number; left: number } | null>(null);
+  const isOpen = activeCtxMenu?.nodeId === node.id;
   const handleCenter = useCallback(() => onCenterTable(node.id), [onCenterTable, node.id]);
   const handleToggle = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -47,19 +53,12 @@ const TableListItem = memo(function TableListItem({
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setCtxMenu({ top: e.clientY, left: e.clientX });
-  }, []);
+    onOpenCtxMenu({ nodeId: node.id, top: e.clientY, left: e.clientX });
+  }, [onOpenCtxMenu, node.id]);
   const handleShowConnected = useCallback(() => {
     onShowConnected(node.id);
-    setCtxMenu(null);
-  }, [onShowConnected, node.id]);
-  useEffect(() => {
-    if (!ctxMenu) return;
-    const close = () => setCtxMenu(null);
-    window.addEventListener("click", close);
-    window.addEventListener("contextmenu", close);
-    return () => { window.removeEventListener("click", close); window.removeEventListener("contextmenu", close); };
-  }, [ctxMenu]);
+    onOpenCtxMenu(null);
+  }, [onShowConnected, node.id, onOpenCtxMenu]);
   const connectedCount = useMemo(() => {
     let count = 0;
     for (const e of edges) {
@@ -71,7 +70,7 @@ const TableListItem = memo(function TableListItem({
     <div
       className={`flex items-center gap-2 border-b border-gray-100 px-3 py-1.5 text-xs ${isVisible ? "cursor-pointer hover:bg-gray-50" : "opacity-40"}`}
       onClick={isVisible ? handleCenter : undefined}
-      onContextMenu={isVisible ? handleContextMenu : undefined}
+      onContextMenu={handleContextMenu}
     >
       <div
         className="h-2 w-2 shrink-0 rounded-full"
@@ -115,10 +114,10 @@ const TableListItem = memo(function TableListItem({
       >
         {isVisible ? <Eye size={13} /> : <EyeOff size={13} />}
       </button>
-      {ctxMenu && connectedCount > 0 && createPortal(
+      {isOpen && connectedCount > 0 && createPortal(
         <div
           className="fixed z-[9999] min-w-[180px] rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
-          style={{ top: ctxMenu.top, left: ctxMenu.left }}
+          style={{ top: activeCtxMenu!.top, left: activeCtxMenu!.left }}
           onClick={(e) => e.stopPropagation()}
         >
           <button
@@ -166,8 +165,33 @@ export function FilterPanel({
   const [open, setOpen] = useState(true);
   const [width, setWidth] = useState(DEFAULT_WIDTH);
   const [resizing, setResizing] = useState(false);
+  const [ctxMenu, setCtxMenu] = useState<CtxMenuState>(null);
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
+
+  // Close context menu on any click/contextmenu outside
+  useEffect(() => {
+    if (!ctxMenu) return;
+    const close = () => setCtxMenu(null);
+    window.addEventListener("click", close);
+    window.addEventListener("contextmenu", close);
+    return () => {
+      window.removeEventListener("click", close);
+      window.removeEventListener("contextmenu", close);
+    };
+  }, [ctxMenu]);
+
+  // Close context menu on Escape key
+  useEffect(() => {
+    if (!ctxMenu) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setCtxMenu(null);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [ctxMenu]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -212,15 +236,19 @@ export function FilterPanel({
     });
   }, [nodes, layerFilter, query]);
 
-  const tableListMemoized = useMemo(() => {
-    if (filteredNodes.length === 0) {
-      return (
-        <div className="px-3 py-4 text-center text-xs text-gray-400">
-          No tables match the filter
-        </div>
-      );
+  // Split into visible + hidden
+  const { visibleNodes, hiddenNodes } = useMemo(() => {
+    const v: Node[] = [];
+    const h: Node[] = [];
+    for (const n of filteredNodes) {
+      if (visibleTables.has(n.id)) v.push(n);
+      else h.push(n);
     }
-    return filteredNodes.map((n) => (
+    return { visibleNodes: v, hiddenNodes: h };
+  }, [filteredNodes, visibleTables]);
+
+  const renderNodeList = useCallback((nodeList: Node[]) => {
+    return nodeList.map((n) => (
       <TableListItem
         key={n.id}
         node={n}
@@ -229,9 +257,11 @@ export function FilterPanel({
         onToggleTable={onToggleTable}
         edges={edges}
         onShowConnected={onShowConnected}
+        activeCtxMenu={ctxMenu}
+        onOpenCtxMenu={setCtxMenu}
       />
     ));
-  }, [filteredNodes, visibleTables, onCenterTable, onToggleTable, edges, onShowConnected]);
+  }, [visibleTables, onCenterTable, onToggleTable, edges, onShowConnected, ctxMenu]);
 
   return (
     <div
@@ -318,9 +348,29 @@ export function FilterPanel({
             </button>
           </div>
 
-          {/* Table list grouped by domain */}
+          {/* Table list — visible first, then hidden */}
           <div className="flex-1 overflow-y-auto">
-            {tableListMemoized}
+            {visibleNodes.length === 0 && hiddenNodes.length === 0 && (
+              <div className="px-3 py-4 text-center text-xs text-gray-400">
+                No tables match the filter
+              </div>
+            )}
+            {visibleNodes.length > 0 && (
+              <>
+                <div className="sticky top-0 z-10 border-b border-gray-100 bg-gray-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                  Visible ({visibleNodes.length})
+                </div>
+                {renderNodeList(visibleNodes)}
+              </>
+            )}
+            {hiddenNodes.length > 0 && (
+              <>
+                <div className="sticky top-0 z-10 border-b border-gray-100 bg-gray-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                  Hidden ({hiddenNodes.length})
+                </div>
+                {renderNodeList(hiddenNodes)}
+              </>
+            )}
           </div>
         </>
       )}
