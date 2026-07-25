@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useContext, useMemo, useState, useRef, useCallback, useEffect, useLayoutEffect } from "react";
+import { memo, useContext, useMemo, useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Handle, Position, NodeResizeControl, ResizeControlVariant, type NodeProps } from "@xyflow/react";
 import { Table, Key, ChevronUp, ChevronDown, Info } from "lucide-react";
@@ -38,37 +38,19 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
     return allFields.filter((f) => isConnected(f.name));
   }, [allFields, showingDetailed, connectedCount]);
 
-  const [fieldYMap, setFieldYMap] = useState<Map<string, number>>(new Map());
+  const HEADER_H = 38;
+  const FIELD_H = 33;
+  const SUMMARY_H = 26;
 
-  const measure = useCallback(() => {
-    const el = rootRef.current;
-    if (!el) return;
-    const nodeRect = el.getBoundingClientRect();
-    const fieldEls = el.querySelectorAll<HTMLElement>("[data-field]");
-    const next = new Map<string, number>();
-    fieldEls.forEach((f) => {
-      const name = f.getAttribute("data-field")!;
-      if (name === "__summary__") return;
-      const r = f.getBoundingClientRect();
-      next.set(name, r.top - nodeRect.top + r.height / 2);
+  const fieldYMap = useMemo(() => {
+    const map = new Map<string, number>();
+    const hasSummary = !showingDetailed && allFields.length > fields.length;
+    const offset = hasSummary ? SUMMARY_H : 0;
+    fields.forEach((f, i) => {
+      map.set(f.name, HEADER_H + offset + i * FIELD_H + FIELD_H / 2);
     });
-    setFieldYMap((prev) => {
-      if (prev.size === next.size && [...next.entries()].every(([k, v]) => prev.get(k) === v)) return prev;
-      return next;
-    });
-  }, []);
-
-  useLayoutEffect(() => {
-    measure();
-  }, [measure]);
-
-  useEffect(() => {
-    const el = rootRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() => measure());
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [measure]);
+    return map;
+  }, [fields, showingDetailed, allFields.length]);
 
   return (
     <div

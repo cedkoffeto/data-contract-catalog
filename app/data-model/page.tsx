@@ -16,16 +16,14 @@ export default async function DataModelPage(props: {
 
   return (
     <>
-      <style>{`html { overflow: hidden !important; }`}</style>
+      <style>{`html, body { overflow: hidden !important; }`}</style>
       <PageShell showFooter={false} scrollable={false}>
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <div className="relative min-h-0 flex-1">
-            <DataModelClient
-              focusSlug={focusSlug}
-              focusDomain={focusDomain}
-              focusContext={focusContext}
-            />
-          </div>
+        <div className="relative min-h-0 flex-1 overflow-hidden">
+          <DataModelClient
+            focusSlug={focusSlug}
+            focusDomain={focusDomain}
+            focusContext={focusContext}
+          />
         </div>
       </PageShell>
     </>
