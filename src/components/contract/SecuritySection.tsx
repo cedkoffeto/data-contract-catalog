@@ -132,15 +132,15 @@ export function SecuritySection({
               <table className="min-w-full">
                 <thead>
                   <tr>
-                    <th scope="col" className="pb-2 pr-3 text-left text-xs font-semibold text-gray-900">{t("sectionSecurityRole")}</th>
-                    <th scope="col" className="pb-2 px-3 text-left text-xs font-semibold text-gray-900">{t("sectionSecurityPermissions")}</th>
+                    <th scope="col" className="pb-2 pr-3 text-left text-sm font-semibold text-gray-900">{t("sectionSecurityRole")}</th>
+                    <th scope="col" className="pb-2 px-3 text-left text-sm font-semibold text-gray-900">{t("sectionSecurityPermissions")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {roles.map((role, index) => (
                     <tr key={`${role.name ?? "role"}-${index}`} className="hover:bg-gray-50">
                       <td className="py-2.5 pr-3">
-                        <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                        <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-sm font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
                           {role.name}
                         </span>
                       </td>
@@ -150,14 +150,14 @@ export function SecuritySection({
                             {(role.permissions ?? []).map((permission) => (
                               <span
                                 key={`${role.name}-${permission}`}
-                                className="inline-flex items-center rounded-md bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10"
+                                className="inline-flex items-center rounded-md bg-gray-50 px-2 py-0.5 text-sm font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10"
                               >
                                 {permission}
                               </span>
                             ))}
                           </div>
                         ) : (
-                          <span className="text-xs text-gray-400">—</span>
+                          <span className="text-sm text-gray-400">—</span>
                         )}
                       </td>
                     </tr>
