@@ -162,18 +162,21 @@ export function DataModelEditor({
   const customWidthsRef = useRef<Map<string, number>>(new Map());
   const resizeDebounceRef = useRef<ReturnType<typeof setTimeout>>();
 
-  function relayoutVisible(prev: FlowNode[]): FlowNode[] {
-    const ids = new Set(visibleTablesState);
+  function relayoutWithIds(prev: FlowNode[], visibleIds: Set<string>): FlowNode[] {
     const nodesWithWidths = rawNodes.map((n) => {
       const w = customWidthsRef.current.get(n.id);
       return typeof w === "number" ? { ...n, data: { ...n.data, _customWidth: w } } : n;
     });
-    const visibleNodes = nodesWithWidths.filter((n) => ids.has(n.id));
-    const visibleEdges = layoutEdges.filter((e) => ids.has(e.source) && ids.has(e.target));
+    const visibleNodes = nodesWithWidths.filter((n) => visibleIds.has(n.id));
+    const visibleEdges = layoutEdges.filter((e) => visibleIds.has(e.source) && visibleIds.has(e.target));
     const { nodes: laidOut } = layoutByMode(visibleNodes, visibleEdges, layoutMode, connectedFields, viewMode, layoutWidthRef.current, collapsedTables);
     const newPosMap = new Map(laidOut.map((n) => [n.id, n]));
     const prevMap = new Map(prev.map((n) => [n.id, n]));
     return rawNodes.map((n) => newPosMap.get(n.id) ?? prevMap.get(n.id) ?? n);
+  }
+
+  function relayoutVisible(prev: FlowNode[]): FlowNode[] {
+    return relayoutWithIds(prev, visibleTablesState);
   }
 
   const handleNodeResize = useCallback((nodeId: string, width: number) => {
@@ -305,17 +308,16 @@ export function DataModelEditor({
   }, []);
 
   const handleShowConnected = useCallback((nodeId: string) => {
-    setVisibleTablesState((prev) => {
-      const next = new Set(prev);
-      next.add(nodeId);
-      for (const e of edges) {
-        if (e.source === nodeId) next.add(e.target);
-        if (e.target === nodeId) next.add(e.source);
-      }
-      return next;
-    });
+    const connectedIds = new Set<string>();
+    connectedIds.add(nodeId);
+    for (const e of edges) {
+      if (e.source === nodeId) connectedIds.add(e.target);
+      if (e.target === nodeId) connectedIds.add(e.source);
+    }
+    setVisibleTablesState(connectedIds);
+    setLaidOutNodes((prev) => relayoutWithIds(prev, connectedIds));
     setFitKey((k) => k + 1);
-  }, [edges]);
+  }, [edges, rawNodes, layoutEdges, layoutMode, connectedFields, viewMode]);
 
   function handleFitViewVisible() {
     setLaidOutNodes(relayoutVisible);

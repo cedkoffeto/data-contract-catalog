@@ -593,21 +593,21 @@ export function layoutGraph(
   function stackRank(ids: string[], preferredPos: Map<string, number>) {
     ids.sort((a, b) => (preferredPos.get(a) ?? 0) - (preferredPos.get(b) ?? 0));
 
-    // Compute total stack size accounting for different node widths
+    // Compute total stack height from edges (not centers): sum of sizes + gaps between edges
     let totalSize = 0;
     for (let i = 0; i < ids.length; i++) {
-      const sz = nodeSizes.get(ids[i]) ?? 0;
-      totalSize += sz;
+      totalSize += nodeSizes.get(ids[i]) ?? 0;
       if (!dummyIds.has(ids[i]) && i < ids.length - 1) totalSize += NODE_GAP;
     }
 
+    // Position by edges: first node top at avgPP - totalSize/2
     const avgPP = ids.reduce((s, id) => s + (preferredPos.get(id) ?? 0), 0) / (ids.length || 1);
-    let pos = avgPP - totalSize / 2;
+    let edgePos = avgPP - totalSize / 2;
     for (const id of ids) {
       const sz = nodeSizes.get(id) ?? 0;
-      rankPositions.set(id, { x: 0, y: pos + sz / 2 });
-      pos += sz;
-      if (!dummyIds.has(id)) pos += NODE_GAP;
+      rankPositions.set(id, { x: 0, y: edgePos + sz / 2 });
+      edgePos += sz;
+      if (!dummyIds.has(id)) edgePos += NODE_GAP;
     }
   }
 
@@ -684,7 +684,7 @@ export function layoutGraph(
     });
   }
 
-  // ── Collision detection: push apart any overlapping nodes ──
+  // ── Collision detection: push apart along stacking axis first ──
   const nodeArr = Array.from(laidOut.values());
   for (let iter = 0; iter < 10; iter++) {
     let hasOverlap = false;
@@ -699,14 +699,16 @@ export function layoutGraph(
           hasOverlap = true;
           const overlapX = Math.min(aRight - b.position.x, bRight - a.position.x);
           const overlapY = Math.min(aBottom - b.position.y, bBottom - a.position.y);
-          if (overlapX < overlapY) {
-            const shift = overlapX / 2 + 1;
-            if (a.position.x < b.position.x) { a.position = { ...a.position, x: a.position.x - shift }; b.position = { ...b.position, x: b.position.x + shift }; }
-            else { a.position = { ...a.position, x: a.position.x + shift }; b.position = { ...b.position, x: b.position.x - shift }; }
+          // Prefer pushing apart along the stacking axis
+          const preferY = isLR;
+          if ((preferY && overlapY > 0) || overlapX <= 0) {
+            const s = overlapY / 2 + 1;
+            if (a.position.y < b.position.y) { a.position = { ...a.position, y: a.position.y - s }; b.position = { ...b.position, y: b.position.y + s }; }
+            else { a.position = { ...a.position, y: a.position.y + s }; b.position = { ...b.position, y: b.position.y - s }; }
           } else {
-            const shift = overlapY / 2 + 1;
-            if (a.position.y < b.position.y) { a.position = { ...a.position, y: a.position.y - shift }; b.position = { ...b.position, y: b.position.y + shift }; }
-            else { a.position = { ...a.position, y: a.position.y + shift }; b.position = { ...b.position, y: b.position.y - shift }; }
+            const s = overlapX / 2 + 1;
+            if (a.position.x < b.position.x) { a.position = { ...a.position, x: a.position.x - s }; b.position = { ...b.position, x: b.position.x + s }; }
+            else { a.position = { ...a.position, x: a.position.x + s }; b.position = { ...b.position, x: b.position.x - s }; }
           }
         }
       }
@@ -868,7 +870,7 @@ export function layoutLayerGraph(nodes: Node[], edges: Edge[], connectedFields?:
     return { ...n, position: { x: pos.x - w / 2, y: pos.y } };
   });
 
-  // ── Collision detection for layer layout ──
+  // ── Collision detection for layer layout — prefer vertical push ──
   for (let iter = 0; iter < 10; iter++) {
     let hasOverlap = false;
     for (let i = 0; i < laidOut.length; i++) {
@@ -883,14 +885,16 @@ export function layoutLayerGraph(nodes: Node[], edges: Edge[], connectedFields?:
           hasOverlap = true;
           const ox = Math.min(aR - b.position.x, bR - a.position.x);
           const oy = Math.min(aB - b.position.y, bB - a.position.y);
-          if (ox < oy) {
-            const s = ox / 2 + 1;
-            if (a.position.x < b.position.x) { a.position = { ...a.position, x: a.position.x - s }; b.position = { ...b.position, x: b.position.x + s }; }
-            else { a.position = { ...a.position, x: a.position.x + s }; b.position = { ...b.position, x: b.position.x - s }; }
-          } else {
+          // Same-layer nodes (similar x) → push vertically; different layers → push horizontally
+          const sameLayer = Math.abs(a.position.x - b.position.x) < aw / 2 + bw / 2;
+          if (sameLayer || oy <= ox) {
             const s = oy / 2 + 1;
             if (a.position.y < b.position.y) { a.position = { ...a.position, y: a.position.y - s }; b.position = { ...b.position, y: b.position.y + s }; }
             else { a.position = { ...a.position, y: a.position.y + s }; b.position = { ...b.position, y: b.position.y - s }; }
+          } else {
+            const s = ox / 2 + 1;
+            if (a.position.x < b.position.x) { a.position = { ...a.position, x: a.position.x - s }; b.position = { ...b.position, x: b.position.x + s }; }
+            else { a.position = { ...a.position, x: a.position.x + s }; b.position = { ...b.position, x: b.position.x - s }; }
           }
         }
       }
