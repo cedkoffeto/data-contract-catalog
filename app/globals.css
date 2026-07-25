@@ -2503,16 +2503,17 @@ body[data-ra-modal] [data-ra-overlay] {
 }
 
 .contract-models-cell--field {
-  width: 26%;
   white-space: nowrap;
+  width: 1%;
 }
 
 .contract-models-cell--type {
-  width: 15%;
+  white-space: nowrap;
+  width: 1%;
 }
 
 .contract-models-cell--details {
-  width: 59%;
+  width: 100%;
 }
 
 .contract-models-field {

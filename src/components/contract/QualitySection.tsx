@@ -63,14 +63,14 @@ export function QualitySection({
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead>
                     <tr>
-                      <th scope="col" className="py-3 pl-4 pr-2 text-left text-sm font-semibold text-gray-900 sm:pl-0">
+                      <th scope="col" className="py-3 pl-4 pr-2 text-left text-sm font-semibold text-gray-900 sm:pl-0 align-middle">
                         <span className="sr-only">{t("qualityCriticity")}</span>
                       </th>
-                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900">{t("qualityName")}</th>
-                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900">{t("qualityType")}</th>
-                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900">{t("qualityField")}</th>
-                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900">{t("qualityThreshold")}</th>
-                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900">{t("qualityExpression")}</th>
+                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900 align-middle">{t("qualityName")}</th>
+                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900 align-middle">{t("qualityType")}</th>
+                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900 align-middle">{t("qualityField")}</th>
+                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900 align-middle">{t("qualityThreshold")}</th>
+                      <th scope="col" className="px-2 py-3 text-left text-sm font-semibold text-gray-900 align-middle">{t("qualityExpression")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -81,7 +81,7 @@ export function QualitySection({
                           key={`${check.name ?? "check"}-${index}`}
                           className={`transition-colors hover:bg-gray-50 ${isCritical ? "border-l-4 border-l-red-500" : "border-l-4 border-l-amber-400"}`}
                         >
-                          <td className="whitespace-nowrap py-3 pl-4 pr-2 sm:pl-0">
+                          <td className="whitespace-nowrap py-3 pl-4 pr-2 sm:pl-0 align-middle">
                             {isCritical ? (
                               <span className="inline-flex items-center gap-1 rounded-md bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20">
                                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -96,11 +96,11 @@ export function QualitySection({
                               </span>
                             )}
                           </td>
-                          <td className="whitespace-nowrap px-2 py-3 text-sm font-medium text-gray-900">{check.name}</td>
-                          <td className="whitespace-nowrap px-2 py-3 text-sm text-gray-500">{check.type}</td>
-                          <td className="whitespace-nowrap px-2 py-3 text-sm text-gray-500">{check.field || "-"}</td>
-                          <td className="whitespace-nowrap px-2 py-3 text-sm text-gray-500">{check.threshold ?? "-"}</td>
-                          <td className="px-2 py-3 text-sm text-gray-500 max-w-[200px] truncate" title={check.expression}>{check.expression || "-"}</td>
+                          <td className="whitespace-nowrap px-2 py-3 text-sm font-medium text-gray-900 align-middle">{check.name}</td>
+                          <td className="whitespace-nowrap px-2 py-3 text-sm text-gray-500 align-middle">{check.type}</td>
+                          <td className="whitespace-nowrap px-2 py-3 text-sm text-gray-500 align-middle">{check.field || "-"}</td>
+                          <td className="whitespace-nowrap px-2 py-3 text-sm text-gray-500 align-middle">{check.threshold ?? "-"}</td>
+                          <td className="px-2 py-3 text-sm text-gray-500 break-words align-middle">{check.expression || "-"}</td>
                         </tr>
                       );
                     })}

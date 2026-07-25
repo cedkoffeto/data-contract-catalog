@@ -159,7 +159,7 @@ export function ModelFieldsTable({ fields, slug, userId, fieldAnnotations, onFie
                     ) : null}
                     <button
                       type="button"
-                      className="rounded-full bg-orange-50 px-2 py-1 text-[11px] font-bold text-orange-700 hover:bg-orange-100 cursor-pointer"
+                      className="rounded-full bg-gray-100 px-2 py-1 text-[11px] font-bold text-gray-600 hover:bg-gray-200 cursor-pointer"
                       onClick={() => openAnnotate(row)}
                     >
                       Annotate
