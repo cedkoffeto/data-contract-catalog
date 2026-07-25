@@ -904,8 +904,9 @@ export function layoutStarGraph(nodes: Node[], edges: Edge[], connectedFields?: 
     for (const [l, ids] of byLayer) {
       const n = ids.length;
       const maxW = Math.max(...ids.map((id) => { const node = nodeById.get(id); return node ? nodeWidth(node) : NODE_WIDTH; }), NODE_WIDTH);
-      const minR = (n * (maxW + 30)) / (2 * Math.PI);
-      const r = Math.max(BASE_RADIUS + l * RADIUS_STEP, minR);
+      const maxH = Math.max(...ids.map((id) => heights.get(id) ?? 90), 90);
+      const minR = (n * (maxW + 40)) / (2 * Math.PI);
+      const r = Math.max(BASE_RADIUS + l * RADIUS_STEP, minR, maxH / 2 + 60);
       radii.set(l, r);
       if (r > compMaxR) compMaxR = r;
     }
