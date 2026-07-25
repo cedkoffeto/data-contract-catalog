@@ -132,6 +132,7 @@ export function ModelGraph({
   onHeaderClick,
   onFitViewVisible,
   fitKey,
+  layoutFitKey,
   centerSlug,
   centerKey,
   searchMatchIds,
@@ -153,6 +154,7 @@ export function ModelGraph({
   onHeaderClick: (slug: string) => void;
   onFitViewVisible: () => void;
   fitKey: number;
+  layoutFitKey: number;
   centerSlug: string | null;
   centerKey: number;
   searchMatchIds: string[] | null;
@@ -170,8 +172,9 @@ export function ModelGraph({
   const edgeClickGuardRef = useRef(false);
   const [showGrid, setShowGrid] = useState(true);
 
-  const { setCenter, fitView } = useReactFlow();
+  const { setCenter, fitView, zoomTo } = useReactFlow();
   const fitKeyRef = useRef(0);
+  const layoutFitKeyRef = useRef(0);
 
   // Intercept resize events to persist _customWidth in node data
   const handleNodesChange = useCallback((changes: NodeChange[]) => {
@@ -319,16 +322,27 @@ export function ModelGraph({
     requestAnimationFrame(() => setCenter(x, y, { zoom: 1 }));
   }, [centerSlug, centerKey, nodes, setCenter]);
 
-  // Fit view after re-layout — ref-guarded so it only fires once per fitKey increment
+  // Fit view after re-layout (auto zoom) — ref-guarded so it only fires once per fitKey increment
   useLayoutEffect(() => {
     if (fitKey > fitKeyRef.current) {
       fitKeyRef.current = fitKey;
       const hasVisible = visibleTables.size > 0;
       requestAnimationFrame(() => {
-        if (hasVisible) fitView({ zoom: 1, padding: 0.1, duration: 0, includeHiddenNodes: false });
+        if (hasVisible) fitView({ padding: 0.2, includeHiddenNodes: false });
       });
     }
   }, [fitKey, fitView, visibleTables]);
+
+  // Layout mode change — fit then set zoom to exactly 1
+  useLayoutEffect(() => {
+    if (layoutFitKey > layoutFitKeyRef.current) {
+      layoutFitKeyRef.current = layoutFitKey;
+      requestAnimationFrame(async () => {
+        await fitView({ padding: 0.1, duration: 0, includeHiddenNodes: false });
+        zoomTo(1, { duration: 0 });
+      });
+    }
+  }, [layoutFitKey, fitView, zoomTo]);
 
   const fieldIndexMap = useMemo(() => {
     const map = new Map<string, Map<string, number>>();

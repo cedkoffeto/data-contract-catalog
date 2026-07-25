@@ -59,6 +59,7 @@ export function DataModelEditor({
   const [layoutMode, setLayoutMode] = useState<LayoutMode>("LR");
   const [viewMode, setViewMode] = useState<"detailed" | "compact">("detailed");
   const [fitKey, setFitKey] = useState(0);
+  const [layoutFitKey, setLayoutFitKey] = useState(0);
   const [centerSlug, setCenterSlug] = useState<string | null>(null);
   const [centerKey, setCenterKey] = useState(0);
   const [collapsedTables, setCollapsedTables] = useState<Set<string>>(new Set());
@@ -349,11 +350,12 @@ export function DataModelEditor({
               visibleTables={visibleTablesState}
               layoutMode={layoutMode}
               onViewModeChange={setViewMode}
-              onLayoutModeChange={setLayoutMode}
+              onLayoutModeChange={(mode) => { setLayoutMode(mode); setLayoutFitKey((k) => k + 1); }}
               onNodeClick={handleNodeClick}
               onHeaderClick={handleNodeClick}
               onFitViewVisible={handleFitViewVisible}
               fitKey={fitKey}
+              layoutFitKey={layoutFitKey}
               centerSlug={centerSlug}
               centerKey={centerKey}
               searchMatchIds={searchMatchIds}
