@@ -494,6 +494,26 @@ export function layoutGraph(
     }
   }
 
+  // ── Step 2: Insert dummy nodes for multi-rank edges ──
+  const dummyIds = new Set<string>();
+  const dummyPred = new Map<string, string>();
+
+  for (const e of edges) {
+    const srcRank = nodeRanks.get(e.source);
+    const tgtRank = nodeRanks.get(e.target);
+    if (srcRank === undefined || tgtRank === undefined) continue;
+    if (tgtRank - srcRank <= 1) continue;
+
+    let prevId = e.source;
+    for (let r = srcRank + 1; r < tgtRank; r++) {
+      const dummyId = `__d_${e.source}_${e.target}_${r}`;
+      nodeRanks.set(dummyId, r);
+      dummyIds.add(dummyId);
+      dummyPred.set(dummyId, prevId);
+      prevId = dummyId;
+    }
+  }
+
   // ── Step 3: group by rank ──
   const rankGroups = new Map<number, string[]>();
   for (const [id, rank] of nodeRanks) {
@@ -504,8 +524,10 @@ export function layoutGraph(
 
   const sortedRanks = Array.from(rankGroups.keys()).sort((a, b) => a - b);
 
-  // Upstream neighbor lookup: direct predecessors in the immediately preceding rank
+  // ── Step 4: Build upstream/downstream adjacency ──
   const upstreamByRank = new Map<string, string[]>();
+
+  // Direct edges between adjacent ranks
   for (const e of edges) {
     const srcRank = nodeRanks.get(e.source);
     const tgtRank = nodeRanks.get(e.target);
@@ -516,8 +538,37 @@ export function layoutGraph(
     }
   }
 
-  // ── Step 4: assign positions — sources alphabetical, targets centered on upstream block ──
-  // In LR mode nodes stack vertically  → spacing uses height; in TB mode → width
+  // Dummy node chain connections
+  for (const dummyId of dummyIds) {
+    const predId = dummyPred.get(dummyId);
+    if (predId) upstreamByRank.set(dummyId, [predId]);
+  }
+
+  // Multi-rank edge targets connect to last dummy
+  for (const e of edges) {
+    const srcRank = nodeRanks.get(e.source);
+    const tgtRank = nodeRanks.get(e.target);
+    if (srcRank === undefined || tgtRank === undefined) continue;
+    if (tgtRank - srcRank <= 1) continue;
+    const lastDummy = `__d_${e.source}_${e.target}_${tgtRank - 1}`;
+    if (dummyIds.has(lastDummy)) {
+      const arr = upstreamByRank.get(e.target);
+      if (arr) arr.push(lastDummy);
+      else upstreamByRank.set(e.target, [lastDummy]);
+    }
+  }
+
+  // Reverse: downstream adjacency
+  const downstreamByRank = new Map<string, string[]>();
+  for (const [targetId, sources] of upstreamByRank) {
+    for (const sourceId of sources) {
+      let arr = downstreamByRank.get(sourceId);
+      if (!arr) { arr = []; downstreamByRank.set(sourceId, arr); }
+      arr.push(targetId);
+    }
+  }
+
+  // ── Step 5: Positioning — Sugiyama with barycentric ordering ──
   const isLR = direction === "LR";
   const nodeSizes = new Map<string, number>();
   const heights = new Map<string, number>();
@@ -526,66 +577,82 @@ export function layoutGraph(
     heights.set(n.id, h);
     nodeSizes.set(n.id, isLR ? h : nodeWidth(n));
   }
-  const NODE_GAP = 30; // gap between adjacent nodes within the same rank
+  for (const dummyId of dummyIds) {
+    nodeSizes.set(dummyId, 0);
+  }
 
+  const NODE_GAP = 30;
   const rankPositions = new Map<string, { x: number; y: number }>();
 
+  function stackRank(ids: string[], preferredPos: Map<string, number>) {
+    ids.sort((a, b) => (preferredPos.get(a) ?? 0) - (preferredPos.get(b) ?? 0));
+    let totalSize = 0;
+    for (const id of ids) {
+      totalSize += nodeSizes.get(id) ?? 0;
+      if (!dummyIds.has(id)) totalSize += NODE_GAP;
+    }
+    if (ids.length > 0) totalSize -= NODE_GAP;
+    const avgPP = ids.reduce((s, id) => s + (preferredPos.get(id) ?? 0), 0) / (ids.length || 1);
+    let pos = avgPP - totalSize / 2;
+    for (const id of ids) {
+      const sz = nodeSizes.get(id) ?? 0;
+      rankPositions.set(id, { x: 0, y: pos + sz / 2 });
+      pos += sz;
+      if (!dummyIds.has(id)) pos += NODE_GAP;
+    }
+  }
+
+  // Top-down pass: position each rank based on upstream barycenter
   for (const rank of sortedRanks) {
     const ids = rankGroups.get(rank)!;
+    const preferredPos = new Map<string, number>();
 
     if (rank === 0) {
-      // Rank 0: sort alphabetically, stack along the stacking axis, centered at 0
+      // Rank 0: sort alphabetically, centered at 0
       ids.sort((a, b) => {
         const sa = (nodeById.get(a)?.data as ContractTableNodeData)?.slug || "";
         const sb = (nodeById.get(b)?.data as ContractTableNodeData)?.slug || "";
         return sa.localeCompare(sb);
       });
-      let totalSize = 0;
-      for (const id of ids) totalSize += nodeSizes.get(id) ?? 0;
-      totalSize += (ids.length - 1) * NODE_GAP;
-      let pos = -totalSize / 2;
-      for (const id of ids) {
-        const sz = nodeSizes.get(id) ?? 0;
-        rankPositions.set(id, { x: 0, y: pos + sz / 2 });
-        pos += sz + NODE_GAP;
-      }
+      for (const id of ids) preferredPos.set(id, 0);
     } else {
-      // Rank k > 0: compute preferred position for each node (center of upstream block)
-      const preferredPos = new Map<string, number>();
       for (const id of ids) {
         const upstream = upstreamByRank.get(id) ?? [];
-        if (upstream.length === 0) {
-          preferredPos.set(id, 0);
-        } else {
-          let minP = Infinity;
-          let maxP = -Infinity;
-          for (const nb of upstream) {
-            const pos = rankPositions.get(nb);
-            const sz = nodeSizes.get(nb) ?? 0;
-            if (pos) {
-              minP = Math.min(minP, pos.y - sz / 2);
-              maxP = Math.max(maxP, pos.y + sz / 2);
-            }
-          }
-          preferredPos.set(id, (minP + maxP) / 2);
+        if (upstream.length === 0) { preferredPos.set(id, 0); continue; }
+        let sum = 0, count = 0;
+        for (const nb of upstream) {
+          const pos = rankPositions.get(nb);
+          if (pos) { sum += pos.y; count++; }
         }
-      }
-
-      // Sort by preferred position
-      ids.sort((a, b) => (preferredPos.get(a) ?? 0) - (preferredPos.get(b) ?? 0));
-
-      // Stack with gap, centered on average preferred position
-      let totalSize = 0;
-      for (const id of ids) totalSize += nodeSizes.get(id) ?? 0;
-      totalSize += (ids.length - 1) * NODE_GAP;
-      const avgPP = ids.reduce((s, id) => s + (preferredPos.get(id) ?? 0), 0) / ids.length;
-      let pos = avgPP - totalSize / 2;
-      for (const id of ids) {
-        const sz = nodeSizes.get(id) ?? 0;
-        rankPositions.set(id, { x: 0, y: pos + sz / 2 });
-        pos += sz + NODE_GAP;
+        preferredPos.set(id, count > 0 ? sum / count : 0);
       }
     }
+
+    stackRank(ids, preferredPos);
+  }
+
+  // Bottom-up pass: reorder by downstream barycenter
+  for (let i = sortedRanks.length - 2; i >= 0; i--) {
+    const rank = sortedRanks[i];
+    const ids = rankGroups.get(rank)!;
+    const preferredPos = new Map<string, number>();
+
+    for (const id of ids) {
+      const downstream = downstreamByRank.get(id) ?? [];
+      if (downstream.length === 0) {
+        const current = rankPositions.get(id);
+        preferredPos.set(id, current?.y ?? 0);
+        continue;
+      }
+      let sum = 0, count = 0;
+      for (const nb of downstream) {
+        const pos = rankPositions.get(nb);
+        if (pos) { sum += pos.y; count++; }
+      }
+      preferredPos.set(id, count > 0 ? sum / count : 0);
+    }
+
+    stackRank(ids, preferredPos);
   }
 
   // Center the whole graph on the stacking axis
