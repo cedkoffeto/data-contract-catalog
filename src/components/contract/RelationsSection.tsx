@@ -54,22 +54,27 @@ function Connector({ sign, label, incoming }: { sign: string; label: string; inc
 
   function crowFoot(side: "left" | "right") {
     const isMany = side === "left" ? isManyLeft : isManyRight;
+    const cx = 8;
     if (isMany) {
-      // Crow's foot: 3 prongs
-      const dir = side === "left" ? -1 : 1;
+      // Crow's foot: 3 prongs + * label
       return (
-        <g fill="none" stroke={strokeColor} strokeWidth="1.5" strokeLinecap="round">
-          <line x1={side === "left" ? 14 : 2} y1="10" x2={side === "left" ? 4 : 12} y2="3" />
-          <line x1={side === "left" ? 14 : 2} y1="10" x2={side === "left" ? 4 : 12} y2="10" />
-          <line x1={side === "left" ? 14 : 2} y1="10" x2={side === "left" ? 4 : 12} y2="17" />
+        <g>
+          <g fill="none" stroke={strokeColor} strokeWidth="1.5" strokeLinecap="round">
+            <line x1={side === "left" ? 14 : 2} y1="10" x2={side === "left" ? 4 : 12} y2="3" />
+            <line x1={side === "left" ? 14 : 2} y1="10" x2={side === "left" ? 4 : 12} y2="10" />
+            <line x1={side === "left" ? 14 : 2} y1="10" x2={side === "left" ? 4 : 12} y2="17" />
+          </g>
+          <text x={cx} y="10" textAnchor="middle" dominantBaseline="central" fill={strokeColor} fontSize="12" fontWeight="700" fontFamily="monospace" pointerEvents="none">*</text>
         </g>
       );
     }
-    // One: perpendicular bar
-    const x = side === "left" ? 8 : 8;
+    // One: perpendicular bar + 1 label
     return (
-      <g fill="none" stroke={strokeColor} strokeWidth="1.5" strokeLinecap="round">
-        <line x1={x} y1="3" x2={x} y2="17" />
+      <g>
+        <g fill="none" stroke={strokeColor} strokeWidth="1.5" strokeLinecap="round">
+          <line x1={cx} y1="3" x2={cx} y2="17" />
+        </g>
+        <text x={cx} y="10" textAnchor="middle" dominantBaseline="central" fill={strokeColor} fontSize="10" fontWeight="700" fontFamily="monospace" pointerEvents="none">1</text>
       </g>
     );
   }
