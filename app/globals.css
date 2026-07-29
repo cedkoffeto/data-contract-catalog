@@ -4985,6 +4985,7 @@ body[data-ra-modal] [data-ra-overlay] {
 .ss-multi__trigger {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.4rem;
   padding: 0.4rem 0.55rem;
   border: 1px solid #d1d5db;
