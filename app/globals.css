@@ -1231,14 +1231,14 @@ a:has(> .kpi-card) {
 
 .catalog-searchbar__multi {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 0.4rem;
   align-items: center;
   overflow-x: clip;
 }
 
 .catalog-searchbar__multi .ss-multi {
-  flex: 1 1 0;
+  flex: 1 1 12rem;
   min-width: 12rem;
 }
 
