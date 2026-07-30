@@ -1,22 +1,31 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useToast } from "@/src/components/ui/ToastProvider";
 
 export function RateLimitWatcher() {
   const { showToast } = useToast();
+  const lastToastRef = useRef(0);
+
+  const toastOnce = useCallback(() => {
+    const now = Date.now();
+    if (now - lastToastRef.current > 10000) {
+      lastToastRef.current = now;
+      showToast("Trop de requêtes. Réessayez dans quelques secondes.", "error");
+    }
+  }, [showToast]);
 
   useEffect(() => {
     const originalFetch = window.fetch;
     window.fetch = async (...args) => {
       const res = await originalFetch(...args);
       if (res.status === 429) {
-        showToast("Trop de requêtes. Réessayez dans quelques secondes.", "error");
+        toastOnce();
       }
       return res;
     };
     return () => { window.fetch = originalFetch; };
-  }, [showToast]);
+  }, [toastOnce]);
 
   return null;
 }

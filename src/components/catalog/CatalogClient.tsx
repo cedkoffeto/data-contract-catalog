@@ -58,6 +58,10 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
     setRetrying(true);
     try {
       const res = await fetch("/api/contracts/retry-git", { method: "POST" });
+      if (res.status === 429) {
+        setShowGitError(false);
+        return;
+      }
       const data = await res.json();
       if (data.gitError) {
         setShowGitError(true);
