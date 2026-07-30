@@ -59,6 +59,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
     try {
       const res = await fetch("/api/contracts/retry-git", { method: "POST" });
       if (res.status === 429) {
+        console.warn("[retry-git] Rate limit hit (429) — stopping auto-retry");
         setShowGitError(false);
         return;
       }

@@ -20,6 +20,7 @@ export function RateLimitWatcher() {
     window.fetch = async (...args) => {
       const res = await originalFetch(...args);
       if (res.status === 429) {
+        console.warn(`[rate-limit] 429 on ${String(args[0])}`);
         toastOnce();
       }
       return res;

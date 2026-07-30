@@ -8,7 +8,8 @@ export async function POST() {
     resetGitLabTreeError();
     await getCatalogCards();
     return NextResponse.json({ ok: true, gitError: hasGitLabTreeError() });
-  } catch {
+  } catch (err) {
+    console.error("[retry-git]", err instanceof Error ? err.message : err);
     return NextResponse.json({ ok: false, gitError: true });
   }
 }
