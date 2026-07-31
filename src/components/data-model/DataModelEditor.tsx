@@ -56,8 +56,8 @@ export function DataModelEditor({
 }) {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   const [layerFilter, setLayerFilter] = useState<string | null>(null);
-  const [layoutMode, setLayoutMode] = useState<LayoutMode>("LR");
-  const [viewMode, setViewMode] = useState<"detailed" | "compact">("detailed");
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>("layer");
+  const [viewMode, setViewMode] = useState<"detailed" | "compact">("compact");
   const [fitKey, setFitKey] = useState(0);
   const [layoutFitKey, setLayoutFitKey] = useState(0);
   const [centerSlug, setCenterSlug] = useState<string | null>(null);
