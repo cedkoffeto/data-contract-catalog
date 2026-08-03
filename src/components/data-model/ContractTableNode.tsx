@@ -135,7 +135,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
                 onMouseEnter={(e) => { e.stopPropagation(); setErrorHover(true); setHeaderHover(false); setHeaderTooltipPos(null); const r = e.currentTarget.getBoundingClientRect(); setErrorTooltipPos({ top: r.top - 6, left: r.right + 4 }); }}
                 onMouseLeave={(e) => { e.stopPropagation(); setErrorHover(false); setErrorTooltipPos(null); }}
               >
-                <span className="h-3 w-3 rounded-full bg-red-500" />
+                <span className="h-2 w-2 rounded-full bg-red-500" />
               </span>
               {errorHover && errorTooltipPos && createPortal(
                 <div

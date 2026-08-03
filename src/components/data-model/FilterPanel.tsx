@@ -85,7 +85,7 @@ const TableListItem = memo(function TableListItem({
               onMouseEnter={(e) => { setErrHover(true); const r = e.currentTarget.getBoundingClientRect(); setErrPos({ top: r.top - 6, left: r.right + 4 }); }}
               onMouseLeave={() => { setErrHover(false); setErrPos(null); }}
             >
-              <span className="h-3 w-3 rounded-full bg-red-500" />
+              <span className="h-2 w-2 rounded-full bg-red-500" />
             </span>
             {errHover && errPos && createPortal(
               <div className="editor-error-popover fixed" style={{ left: errPos.left, top: errPos.top }}>

@@ -142,7 +142,7 @@ export function SidePanel({
               <span className="truncate">{contract.name}</span>
               {panelErrors.length > 0 && (
                 <span
-                  className="h-3 w-3 shrink-0 rounded-full bg-red-500"
+                  className="h-2 w-2 shrink-0 rounded-full bg-red-500"
                   title={panelErrors.map((e) => e.message).join("\n")}
                 />
               )}
