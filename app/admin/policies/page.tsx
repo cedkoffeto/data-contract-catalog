@@ -400,6 +400,8 @@ export default function PoliciesPage() {
         />
       </div>
 
+      <h2 className="text-lg font-semibold text-gray-900">{t("accessPolicies")}</h2>
+
       {loading ? (
         <div className="skeleton-pulse h-64 w-full rounded-lg" />
       ) : (
@@ -452,7 +454,7 @@ export default function PoliciesPage() {
                   {t("policiesForUser")} <span className="font-mono">{viewUserPolicies.userId}</span>
                 </h3>
                 <p className="text-[11px] text-gray-400">
-                  {tWith("policyCount", { count: String(viewUserPolicies.policies.length), y: viewUserPolicies.policies.length !== 1 ? "ies" : "y" })}
+                  {tWith(viewUserPolicies.policies.length === 1 ? "policyCountOne" : "policyCountMany", { count: String(viewUserPolicies.policies.length) })}
                 </p>
               </div>
               <button

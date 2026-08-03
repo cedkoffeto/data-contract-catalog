@@ -1,7 +1,37 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import type { Policy } from "./types";
 import { t, tWith } from "@/src/lib/i18n";
+
+type SortKey = "id" | "target" | "permission_name" | "scope";
+type SortDir = "asc" | "desc";
+
+const PERMISSION_RANK: Record<string, number> = { reader: 1, editor: 2, admin: 3 };
+
+function sortArrows(active: boolean, dir: SortDir) {
+  return (
+    <svg
+      className="h-3.5 w-3.5"
+      viewBox="0 0 20 20"
+      fill="none"
+      aria-hidden="true"
+      style={{ color: active ? "#2563eb" : "#9ca3af" }}
+    >
+      {active ? (
+        <path
+          d={dir === "asc" ? "M10 4l5 6H5l5-6z" : "M10 16l5-6H5l5 6z"}
+          fill="currentColor"
+          stroke="currentColor"
+          strokeWidth="1"
+          strokeLinejoin="round"
+        />
+      ) : (
+        <path d="M5 8l5-5 5 5M5 12l5 5 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      )}
+    </svg>
+  );
+}
 
 function EyeIcon() {
   return (
@@ -51,6 +81,45 @@ export default function PolicyTable({
   currentUserId: string | null;
   minAdminUserId: string | null;
 }) {
+  const [sortKey, setSortKey] = useState<SortKey>("id");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  function toggleSort(key: SortKey) {
+    if (key === sortKey) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  }
+
+  function scopeDepth(p: Policy): number {
+    if (p.domain_scope === null && p.context_scope === null && !p.data_contract_scope) return 0;
+    if (p.context_scope === null && !p.data_contract_scope) return 1;
+    if (!p.data_contract_scope) return 2;
+    return 3;
+  }
+
+  const sortedPolicies = useMemo(() => {
+    const rows = [...filteredPolicies];
+    rows.sort((a, b) => {
+      let cmp = 0;
+      if (sortKey === "id") {
+        cmp = a.id - b.id;
+      } else if (sortKey === "target") {
+        const av = (a.user_id ?? a.group_name ?? groupMap.get(a.group_id ?? -1) ?? "").toLowerCase();
+        const bv = (b.user_id ?? b.group_name ?? groupMap.get(b.group_id ?? -1) ?? "").toLowerCase();
+        cmp = av.localeCompare(bv);
+      } else if (sortKey === "permission_name") {
+        cmp = (PERMISSION_RANK[a.permission_name] ?? 0) - (PERMISSION_RANK[b.permission_name] ?? 0);
+      } else {
+        cmp = scopeDepth(a) - scopeDepth(b) || formatScope(a.domain_scope, a.context_scope, a.data_contract_scope).localeCompare(formatScope(b.domain_scope, b.context_scope, b.data_contract_scope));
+      }
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return rows;
+  }, [filteredPolicies, sortKey, sortDir, groupMap]);
+
   function isProtected(p: Policy): boolean {
     if (!currentUserId || !minAdminUserId) return false;
     return p.user_id === minAdminUserId && currentUserId !== minAdminUserId;
@@ -86,7 +155,15 @@ export default function PolicyTable({
                   const labels: Record<string, string> = { id: t("id"), target: t("target"), permission_name: t("permissionLabel"), scope: t("scope") };
                   return (
                     <th key={key} className="px-6 py-3 text-left font-medium text-gray-500">
-                      {labels[key]}
+                      <button
+                        type="button"
+                        onClick={() => toggleSort(key)}
+                        className="inline-flex items-center gap-1.5"
+                        title={tWith("sortBy", { column: labels[key] })}
+                      >
+                        {labels[key]}
+                        {sortArrows(sortKey === key, sortDir)}
+                      </button>
                     </th>
                   );
                 })}
@@ -94,7 +171,7 @@ export default function PolicyTable({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {filteredPolicies.map((p) => {
+              {sortedPolicies.map((p) => {
                 const groupName = p.group_name ?? groupMap.get(p.group_id ?? -1) ?? "";
                 return (
                   <tr key={p.id}>

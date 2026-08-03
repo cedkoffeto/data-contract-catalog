@@ -316,6 +316,7 @@ export const dictionaries = {
     groupLabel: "group:",
 
     // Admin — Policies
+    accessPolicies: "Access policies",
     createAccessPolicy: "Create access policy",
     editPolicy: "Edit policy #{id}",
     forAUser: "For a user",
@@ -344,6 +345,7 @@ export const dictionaries = {
     permissionLabel: "Permission",
     scope: "Scope",
     filterPolicies: "Filter policies\u2026",
+    sortBy: "Sort by {column}",
     xOfYPolicies: "{count} of {total} policies",
     noPoliciesYet: "No policies yet. Create one above.",
     noPoliciesMatch: "No policies match your filter.",
@@ -854,6 +856,7 @@ export const dictionaries = {
     groupLabel: "groupe :",
 
     // Admin — Policies
+    accessPolicies: "Politiques d'accès",
     createAccessPolicy: "Créer une politique d'accès",
     editPolicy: "Modifier la politique #{id}",
     forAUser: "Pour un utilisateur",
@@ -882,6 +885,7 @@ export const dictionaries = {
     permissionLabel: "Permission",
     scope: "Portée",
     filterPolicies: "Filtrer les politiques\u2026",
+    sortBy: "Trier par {column}",
     xOfYPolicies: "{count} sur {total} politiques",
     noPoliciesYet: "Aucune politique pour le moment. Créez-en une ci-dessus.",
     noPoliciesMatch: "Aucune politique ne correspond à votre filtre.",
