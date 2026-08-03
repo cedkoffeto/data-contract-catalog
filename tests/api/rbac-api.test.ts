@@ -1,4 +1,13 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+let logErrorSpy: ReturnType<typeof vi.fn>;
+
+beforeEach(() => {
+  logErrorSpy = vi.fn();
+  vi.doMock("@/src/lib/logger", () => ({
+    logger: { info: vi.fn(), warn: vi.fn(), error: logErrorSpy, debug: vi.fn() },
+  }));
+});
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -129,6 +138,7 @@ describe("RBAC admin policies API", () => {
 
     expect(response.status).toBe(400);
     expect(await readJson(response)).toEqual({ error: "Either userId or groupId is required" });
+    expect(logErrorSpy).toHaveBeenCalledWith("[api-error]:", "Either userId or groupId is required");
   });
 
   it("returns conflict details instead of creating a duplicate policy", async () => {
@@ -265,6 +275,7 @@ describe("RBAC admin policy by id API", () => {
 
     expect(response.status).toBe(400);
     expect(await readJson(response)).toEqual({ error: "Invalid policy id" });
+    expect(logErrorSpy).toHaveBeenCalledWith("[api-error]:", "Invalid policy id");
   });
 
   it("returns 404 when updating a missing policy", async () => {
@@ -282,6 +293,7 @@ describe("RBAC admin policy by id API", () => {
 
     expect(response.status).toBe(404);
     expect(await readJson(response)).toEqual({ error: "Policy not found" });
+    expect(logErrorSpy).toHaveBeenCalledWith("[api-error]:", "Policy not found");
   });
 
   it("updates a policy when no conflict exists", async () => {
@@ -520,6 +532,7 @@ describe("RBAC admin groups API", () => {
 
     expect(response.status).toBe(400);
     expect(await readJson(response)).toEqual({ error: "Invalid group id" });
+    expect(logErrorSpy).toHaveBeenCalledWith("[api-error]:", "Invalid group id");
   });
 
   it("lists all group memberships", async () => {
@@ -597,6 +610,7 @@ describe("RBAC admin lookup APIs", () => {
 
     expect(response.status).toBe(400);
     expect(await readJson(response)).toEqual({ error: "userId query parameter is required" });
+    expect(logErrorSpy).toHaveBeenCalledWith("[api-error]:", "userId query parameter is required");
   });
 
   it("returns distinct contract scopes", async () => {
@@ -693,6 +707,7 @@ describe("RBAC contract APIs", () => {
     expect(await readJson(response)).toEqual({
       error: 'Contract "crm-reclamation" not found'
     });
+    expect(logErrorSpy).toHaveBeenCalledWith("[api-error]:", 'Contract "crm-reclamation" not found');
   });
 
   it("returns a contract when scoped read access is granted", async () => {
