@@ -211,6 +211,9 @@ export const dictionaries = {
     noDomain: "no domain",
     subscribeTo: "Subscribe to {slug}",
     unsubscribeFrom: "Unsubscribe from {slug}",
+    searchContracts: "Search contracts...",
+    subscribedLabel: "subscribed{s}",
+    accessibleLabel: "accessible{s}",
 
     // Notification Preferences
     settingsEyebrow: "Settings",
@@ -756,6 +759,9 @@ export const dictionaries = {
     noDomain: "aucun domaine",
     subscribeTo: "S'abonner à {slug}",
     unsubscribeFrom: "Se désabonner de {slug}",
+    searchContracts: "Rechercher des contrats...",
+    subscribedLabel: "abonné{s}",
+    accessibleLabel: "accessible{s}",
 
     settingsEyebrow: "Paramètres",
     saving: "Enregistrement...",

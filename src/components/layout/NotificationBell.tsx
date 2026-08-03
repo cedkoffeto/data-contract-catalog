@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
 import { useT } from "@/src/lib/use-i18n";
 import { useToast } from "@/src/components/ui/ToastProvider";
+import { Input } from "@/src/components/ui/Input";
 
 type NotificationItem = {
   id: number;
@@ -29,6 +30,7 @@ type ContractItem = {
   title: string;
   domain: string;
   maturity: string;
+  context?: string;
 };
 
 export function NotificationBell() {
@@ -42,11 +44,29 @@ export function NotificationBell() {
   const [loading, setLoading] = useState(false);
   const [savingSlug, setSavingSlug] = useState<string | null>(null);
   const [showSubscriptions, setShowSubscriptions] = useState(false);
+  const [subSearch, setSubSearch] = useState("");
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const subsLoadedRef = useRef(false);
 
-  const subscribedSlugs = new Set(subscriptions.map((s) => s.contractSlug));
+  const subscribedSlugs = useMemo(() => new Set(subscriptions.map((s) => s.contractSlug)), [subscriptions]);
+
+  const filteredContracts = useMemo(() => {
+    const q = subSearch.trim().toLowerCase();
+    const list = q
+      ? contracts.filter((c) =>
+          [c.slug, c.title, c.domain, c.context ?? "", c.maturity].some((v) => v.toLowerCase().includes(q)),
+        )
+      : contracts;
+    const subscribed: ContractItem[] = [];
+    const others: ContractItem[] = [];
+    for (const c of list) {
+      (subscribedSlugs.has(c.slug) ? subscribed : others).push(c);
+    }
+    const byName = (a: ContractItem, b: ContractItem) =>
+      (a.title || a.slug).toLowerCase().localeCompare((b.title || b.slug).toLowerCase());
+    return [...subscribed.sort(byName), ...others.sort(byName)];
+  }, [contracts, subSearch, subscribedSlugs]);
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -154,6 +174,7 @@ export function NotificationBell() {
 
   async function handleOpenSubscriptions() {
     setShowSubscriptions(true);
+    setSubSearch("");
     if (subsLoadedRef.current) return;
     setLoading(true);
     try {
@@ -300,13 +321,56 @@ export function NotificationBell() {
                 <h3 className="notification-dropdown__title">{t("mySubscriptions")}</h3>
               </div>
 
+              {!loading && (
+                <div className="notification-dropdown__subs-stats">
+                  <span className="notification-dropdown__stat">
+                    <svg className="notification-dropdown__stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                      <path d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+                    </svg>
+                    <strong className="notification-dropdown__stat-count">{subscriptions.length}</strong>
+                    <span className="notification-dropdown__stat-label">
+                      {tWith("subscribedLabel", { s: subscriptions.length !== 1 ? "s" : "" })}
+                    </span>
+                  </span>
+                  <span className="notification-dropdown__stat">
+                    <svg className="notification-dropdown__stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                      <circle cx="12" cy="12" r="8.25" />
+                      <path d="M9 12.75L11.25 15 15 9.75" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <strong className="notification-dropdown__stat-count">{contracts.length}</strong>
+                    <span className="notification-dropdown__stat-label">
+                      {tWith("accessibleLabel", { s: contracts.length !== 1 ? "s" : "" })}
+                    </span>
+                  </span>
+                </div>
+              )}
+
               <div className="notification-dropdown__body">
+                <div className="notification-dropdown__search">
+                  <Input
+                    value={subSearch}
+                    onChange={(e) => setSubSearch(e.target.value)}
+                    placeholder={t("searchContracts")}
+                    aria-label={t("searchContracts")}
+                    icon={
+                      <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path
+                          fillRule="evenodd"
+                          d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    }
+                  />
+                </div>
                 {loading ? (
                   <p className="notification-dropdown__empty">{t("loading")}</p>
                 ) : contracts.length === 0 ? (
                   <p className="notification-dropdown__empty">{t("noAccessibleContracts")}</p>
+                ) : filteredContracts.length === 0 ? (
+                  <p className="notification-dropdown__empty">{t("noMatches")}</p>
                 ) : (
-                  contracts.map((c) => {
+                  filteredContracts.map((c) => {
                     const isSubscribed = subscribedSlugs.has(c.slug);
                     const isSaving = savingSlug === c.slug;
                     return (
@@ -317,7 +381,9 @@ export function NotificationBell() {
                           onClick={() => setIsOpen(false)}
                         >
                           <span className="notification-dropdown__item-title">{c.title || c.slug}</span>
-                          <span className="notification-dropdown__item-sub">{c.maturity} &middot; {c.domain || t("noDomain")}</span>
+                          <span className="notification-dropdown__item-sub">
+                            {[c.maturity, c.domain, c.context, c.slug].filter(Boolean).join(" - ")}
+                          </span>
                         </Link>
                         <button
                           className={`notification-dropdown__toggle${isSubscribed ? " is-on" : ""}`}
