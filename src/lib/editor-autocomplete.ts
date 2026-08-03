@@ -51,7 +51,7 @@ function isInStringValue(context: CompletionContext): boolean {
   return false;
 }
 
-function refAutocompleteSource(
+export function refAutocompleteSource(
   slugIndex: Map<string, SlugIndexEntry>,
 ): (context: CompletionContext) => CompletionResult | null {
   return (context: CompletionContext): CompletionResult | null => {
