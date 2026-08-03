@@ -204,12 +204,14 @@ async function getPermissionRank(id: number): Promise<number> {
 /**
  * Returns a list of existing policies that conflict with the proposed one.
  *
- * Scope comparison (new vs existing):
+ * Scope + permission comparison (new vs existing):
  *   - same scope + same permission  → duplicate   → refuse
  *   - same scope + new weaker       → weaker      → refuse
  *   - same scope + new stronger     → overlap     → confirm → update old
- *   - new broader scope             → broader     → confirm → extend old
- *   - new narrower scope            → narrower    → refuse
+ *   - new broader scope + new ≥ old → broader     → confirm → extend old
+ *   - new broader scope + new < old → allowed     (additive weaker access)
+ *   - new narrower scope + old ≥ new → narrower   → refuse
+ *   - new narrower scope + old < new → allowed    (upgrade on that scope)
  */
 export async function checkPolicyConflicts(params: {
   userId: string | null;
@@ -225,7 +227,10 @@ export async function checkPolicyConflicts(params: {
   const existing = (await prisma.accessPolicy.findMany({
     where: {
       AND: [
-        { OR: [{ userId }, { groupId }] },
+        // Compare only policies of the SAME entity (exactly one of userId/groupId).
+        // Using `OR: [{ userId }, { groupId }]` is wrong: with groupId === null Prisma
+        // matches every row where groupId IS NULL (all direct user policies).
+        ...(userId != null ? [{ userId }] : [{ groupId }]),
         ...(excludeId ? [{ id: { not: excludeId } }] : []),
       ],
     },
@@ -285,17 +290,29 @@ export async function checkPolicyConflicts(params: {
         };
       }
     } else if (scopeRel === "broader") {
-      return {
-        type: "broader",
-        message: `This policy covers a wider scope (${formatScope(newDomain, newContext, newDataContract)}) than the existing ${policy.permission_name} policy on ${formatScope(policy.domain_scope, policy.context_scope, policy.data_contract_scope)}. The existing policy will be extended.`,
-        existing: policy,
-      };
+      // New covers a wider scope. Only redundant if it is at least as strong:
+      // the existing narrower policy then becomes fully covered → extend it.
+      // A broader-but-weaker new policy is additive (grants weaker access on
+      // the extra scope) and leaves the narrower stronger policy useful.
+      if (newRank >= existingRank) {
+        return {
+          type: "broader",
+          message: `This policy covers a wider scope (${formatScope(newDomain, newContext, newDataContract)}) than the existing ${policy.permission_name} policy on ${formatScope(policy.domain_scope, policy.context_scope, policy.data_contract_scope)}. The existing policy will be extended.`,
+          existing: policy,
+        };
+      }
     } else if (scopeRel === "narrower") {
-      return {
-        type: "narrower",
-        message: `A broader policy (${policy.permission_name}) already exists on ${formatScope(policy.domain_scope, policy.context_scope, policy.data_contract_scope)} which already covers this narrower scope.`,
-        existing: policy,
-      };
+      // Existing covers the new scope. Only redundant if the existing policy
+      // is at least as strong. A narrower-but-stronger new policy (e.g.
+      // editor on one domain while a broader reader policy exists) upgrades
+      // access on that scope → must be allowed.
+      if (existingRank >= newRank) {
+        return {
+          type: "narrower",
+          message: `A broader policy (${policy.permission_name}) already exists on ${formatScope(policy.domain_scope, policy.context_scope, policy.data_contract_scope)} which already covers this narrower scope.`,
+          existing: policy,
+        };
+      }
     }
   }
 
@@ -318,7 +335,7 @@ export async function findNarrowerPolicies(
   const rows = await prisma.accessPolicy.findMany({
     where: {
       AND: [
-        { OR: [{ userId }, { groupId }] },
+        ...(userId != null ? [{ userId }] : [{ groupId }]),
         { id: { not: excludeId } },
       ],
     },
