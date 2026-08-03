@@ -496,9 +496,22 @@ export default function PolicyForm({
 
   return (
     <div className="rounded-lg border border-gray-300 bg-white p-6 shadow-lg mb-6">
-      <h2 className="mb-4 text-base font-semibold text-gray-900">
-        {editTarget ? tWith("editPolicy", { id: String(editTarget.id) }) : t("createAccessPolicy")}
-      </h2>
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-base font-semibold text-gray-900">
+          {editTarget ? tWith("editPolicy", { id: String(editTarget.id) }) : t("createAccessPolicy")}
+        </h2>
+        <button
+          onClick={onCancel}
+          className="editor-close-button"
+          aria-label={t("close")}
+          title={t("close")}
+          type="button"
+        >
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path d="M5.5 5.5l9 9m0-9l-9 9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      </div>
 
       <div className="mb-4 flex gap-2">
         <button

@@ -183,7 +183,7 @@ export function UserPoliciesDialog({
               {t("policiesForUser")} <span className="font-mono">{userId}</span>
             </h3>
             <p className="text-[11px] text-gray-400">
-              {tWith("policyCount", { count: String(policies.length), y: policies.length === 1 ? "y" : "ies", e: policies.length === 1 ? "e" : "es" })}
+              {tWith(policies.length === 1 ? "policyCountOne" : "policyCountMany", { count: String(policies.length) })}
             </p>
           </div>
           <button onClick={onClose} className="editor-close-button" aria-label="Close" type="button">

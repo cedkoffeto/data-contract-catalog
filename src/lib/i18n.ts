@@ -187,7 +187,8 @@ export const dictionaries = {
 
     // User Policies Dialog
     policiesForUser: "Policies for user:",
-    policyCount: "{count} polic{y}",
+    policyCountOne: "{count} policy",
+    policyCountMany: "{count} policies",
     direct: "direct",
     group: "group",
     allDomainsScope: "all domains",
@@ -732,7 +733,8 @@ export const dictionaries = {
     language: "Langue : {locale}",
 
     policiesForUser: "Politiques pour l'utilisateur :",
-    policyCount: "{count} politiqu{e}",
+    policyCountOne: "{count} politique",
+    policyCountMany: "{count} politiques",
     direct: "direct",
     group: "groupe",
     allDomainsScope: "tous les domaines",
