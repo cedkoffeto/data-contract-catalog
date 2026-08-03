@@ -5,6 +5,7 @@ import { Gitlab } from "@gitbeaker/rest";
 import { getContractBySlug } from "@/src/lib/contracts";
 import { getGitSourceRef } from "@/src/lib/git-source";
 import type { ContractHistoryEntry } from "@/src/lib/types";
+import { logger } from "@/src/lib/logger";
 
 type GitLabCommitResponse = {
   id: string;
@@ -92,13 +93,14 @@ function getGitLabConfig() {
   };
 }
 
-function getGitLabClient() {
+export function getGitLabClient() {
   const config = getGitLabConfig();
 
   return {
     api: new Gitlab({
       host: config.baseUrl,
-      token: config.token
+      token: config.token,
+      queryTimeout: 8000,
     }),
     config
   };
@@ -111,17 +113,72 @@ export function isGitLabConfigurationError(error: unknown) {
 export async function getGitLabContractFilePath(slug: string) {
   const contract = await getContractBySlug(slug);
   if (!contract) {
-    throw new Error("Contract not found");
+    throw new Error(`Contract "${slug}" not found`);
   }
 
   return contract.fullPath.replace(/\\/g, "/");
 }
 
-export async function getGitLabFileHistory(slug: string, limit = 10): Promise<ContractHistoryEntry[]> {
+export async function getGitLabMergeRequest(mrIid: number) {
+  const { api, config } = getGitLabClient();
+  return (await api.MergeRequests.show(config.projectId, mrIid)) as {
+    iid: number;
+    web_url: string;
+    state: string;
+    source_branch: string;
+    has_conflicts: boolean;
+    merge_status: string;
+    created_at: string;
+  };
+}
+
+export async function findGitLabMergeRequestByBranch(branchName: string) {
+  const { api, config } = getGitLabClient();
+  for (const state of ["opened", "merged", "closed"] as const) {
+    const mrs = (await api.MergeRequests.all({
+      projectId: config.projectId,
+      sourceBranch: branchName,
+      state,
+      perPage: 1,
+    })) as Array<{ iid: number; web_url: string; state: string; source_branch: string }>;
+    if (mrs[0]) return mrs[0];
+  }
+  return null;
+}
+
+export async function acceptMergeRequest(mrIid: number) {
+  const { api, config } = getGitLabClient();
+  const mr = await api.MergeRequests.accept(config.projectId, mrIid, {
+    shouldRemoveSourceBranch: true,
+  });
+  return mr as { web_url: string };
+}
+
+export async function closeMergeRequest(mrIid: number) {
+  const { api, config } = getGitLabClient();
+  await api.MergeRequests.edit(config.projectId, mrIid, { stateEvent: "close" });
+}
+
+export async function getGitLabFileLastCommitSha(slug: string): Promise<string> {
   const { api, config } = getGitLabClient();
   const filePath = await getGitLabContractFilePath(slug);
 
-  console.info("[gitlab.history] Request", {
+  const commits = (await api.Commits.all(config.projectId, {
+    path: filePath,
+    refName: config.ref,
+    perPage: 1,
+  })) as GitLabCommitResponse[];
+
+  return commits[0]?.id ?? "";
+}
+
+export async function getGitLabFileHistory(slug: string, limit = 10, filePath?: string): Promise<ContractHistoryEntry[]> {
+  const { api, config } = getGitLabClient();
+  if (!filePath) {
+    filePath = await getGitLabContractFilePath(slug);
+  }
+
+  logger.info("[gitlab.history] Request", {
     slug,
     projectId: config.projectId,
     ref: config.ref,
@@ -133,10 +190,10 @@ export async function getGitLabFileHistory(slug: string, limit = 10): Promise<Co
     const commits = (await api.Commits.all(config.projectId, {
       path: filePath,
       refName: config.ref,
-      perPage: Math.max(limit, 50)
+      perPage: Math.max(limit, 20)
     })) as GitLabCommitResponse[];
 
-    console.info("[gitlab.history] Success", {
+    logger.info("[gitlab.history] Success", {
       slug,
       projectId: config.projectId,
       ref: config.ref,
@@ -158,7 +215,7 @@ export async function getGitLabFileHistory(slug: string, limit = 10): Promise<Co
       };
     });
   } catch (error) {
-    console.error("[gitlab.history] Failed", {
+    logger.error("[gitlab.history] Failed", {
       slug,
       projectId: config.projectId,
       ref: config.ref,
@@ -210,7 +267,7 @@ export async function getGitLabFileContent(slug: string, ref?: string) {
   const filePath = await getGitLabContractFilePath(slug);
   const resolvedRef = ref || config.ref;
 
-  console.info("[gitlab.content] Request", {
+  logger.info("[gitlab.content] Request", {
     slug,
     projectId: config.projectId,
     ref: resolvedRef,
@@ -220,7 +277,7 @@ export async function getGitLabFileContent(slug: string, ref?: string) {
   try {
     const decodedContent = await readRepositoryFileAtRef(config.projectId, filePath, resolvedRef, api);
 
-    console.info("[gitlab.content] Success", {
+    logger.info("[gitlab.content] Success", {
       slug,
       projectId: config.projectId,
       ref: resolvedRef,
@@ -239,7 +296,7 @@ export async function getGitLabFileContent(slug: string, ref?: string) {
       try {
         const candidatePaths = await resolveHistoricalFilePath(api, config.projectId, filePath, resolvedRef);
 
-        console.info("[gitlab.content] Historical path fallback", {
+        logger.info("[gitlab.content] Historical path fallback", {
           slug,
           projectId: config.projectId,
           ref: resolvedRef,
@@ -251,7 +308,7 @@ export async function getGitLabFileContent(slug: string, ref?: string) {
           try {
             const decodedContent = await readRepositoryFileAtRef(config.projectId, candidatePath, resolvedRef, api);
 
-            console.info("[gitlab.content] Historical path success", {
+            logger.info("[gitlab.content] Historical path success", {
               slug,
               projectId: config.projectId,
               ref: resolvedRef,
@@ -270,7 +327,7 @@ export async function getGitLabFileContent(slug: string, ref?: string) {
           }
         }
       } catch (fallbackError) {
-        console.error("[gitlab.content] Historical path resolution failed", {
+        logger.error("[gitlab.content] Historical path resolution failed", {
           slug,
           projectId: config.projectId,
           ref: resolvedRef,
@@ -280,7 +337,7 @@ export async function getGitLabFileContent(slug: string, ref?: string) {
       }
     }
 
-    console.error("[gitlab.content] Failed", {
+    logger.error("[gitlab.content] Failed", {
       slug,
       projectId: config.projectId,
       ref: resolvedRef,

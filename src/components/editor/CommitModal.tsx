@@ -1,0 +1,193 @@
+"use client";
+
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+
+import { useT } from "@/src/lib/use-i18n";
+import { DiffView } from "@/src/components/contract/diff/DiffView";
+import type { DiffResult } from "@/src/lib/diff";
+
+export function CommitModal({
+  defaultMessage,
+  contractSlug,
+  contractName,
+  domain,
+  context,
+  userId,
+  diff,
+  onConfirm,
+  onClose,
+}: {
+  defaultMessage: string;
+  contractSlug: string;
+  contractName: string;
+  domain: string;
+  context: string;
+  userId: string;
+  diff: DiffResult;
+  onConfirm: (message: string) => Promise<void>;
+  onClose: () => void;
+}) {
+  const { t } = useT();
+  const id = useId().replace(/:/g, "");
+  const [message, setMessage] = useState(defaultMessage);
+  const suppressCloseRef = useRef(false);
+
+  const messageRows = Math.max(3, (message.match(/\n/g)?.length ?? 0) + 1);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function generateMessage() {
+    const date = new Date().toISOString().replace("T", " ").replace(/\.\d+Z$/, "");
+
+    const added = diff.structural.filter((c) => c.type === "added").length;
+    const removed = diff.structural.filter((c) => c.type === "removed").length;
+    const modified = diff.structural.filter((c) => c.type === "modified").length;
+    const total = added + removed + modified;
+    const counts = `${total} field${total > 1 ? "s" : ""} modified by user ${userId} in domain:${domain} / context:${context} / contrat:${contractSlug} - ${date}`;
+
+    const lines: string[] = [
+      `feat(${contractSlug}): update ${contractName}`,
+      "",
+      counts,
+    ];
+
+    if (diff.structural.length > 0) {
+      lines.push("");
+      for (const change of diff.structural) {
+        const icon = change.type === "added" ? "+" : change.type === "removed" ? "-" : "~";
+        lines.push(`${icon} ${change.path}`);
+      }
+    }
+
+    setMessage(lines.join("\n"));
+  }
+
+  const handleClose = useCallback(() => {
+    if (saving) return;
+    onClose();
+  }, [saving, onClose]);
+
+  async function handleConfirm() {
+    setSaving(true);
+    setError(null);
+
+    try {
+      await onConfirm(message);
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("somethingWrong"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const hasChanges = diff.unified.some((c) => c.type !== "unchanged");
+
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => setError(null), 15000);
+    return () => clearTimeout(timer);
+  }, [error]);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") handleClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [handleClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
+      onMouseDown={() => { suppressCloseRef.current = false; }}
+      onClick={() => { if (suppressCloseRef.current) return; handleClose(); }}
+    >
+      <div
+        className="flex max-h-[80vh] flex-col rounded-lg bg-white shadow-xl"
+        style={{ width: "min(60vw, 800px)" }}
+        id="commit-modal"
+        onMouseDownCapture={() => { suppressCloseRef.current = true; }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900">{t("submitContract")}</h3>
+            <p className="text-[11px] text-gray-400">{contractName}</p>
+          </div>
+          <button
+            onClick={handleClose}
+            className="editor-close-button"
+            aria-label={t("close")}
+            title={t("close")}
+            type="button"
+            disabled={saving}
+          >
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M5.5 5.5l9 9m0-9l-9 9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
+
+        {error ? (
+          <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-2 text-sm text-red-700">
+            <span className="flex-1">{error}</span>
+            <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600" type="button">&times;</button>
+          </div>
+        ) : null}
+
+        <div className="flex flex-1 flex-col min-h-0 px-4 py-3 gap-3">
+          {hasChanges ? (
+            <div className="flex flex-col flex-1 min-h-0 overflow-y-auto">
+              <DiffView
+                diff={diff}
+                fromLabel={t("currentVersion")}
+                toLabel={t("yourChanges")}
+              />
+            </div>
+          ) : (
+            <div className="py-6 text-center text-sm text-gray-400">{t("noChanges")}</div>
+          )}
+
+          <label className="flex items-center gap-2 text-xs font-medium text-gray-700 shrink-0" htmlFor={`commit-msg-${id}`}>
+            {t("commitMessage")}
+            <button className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs text-gray-500 hover:bg-gray-100" disabled={saving} onClick={generateMessage} type="button">
+              <svg viewBox="0 0 16 16" fill="currentColor" width="13" height="13" aria-hidden="true">
+                <path d="M8 1l1.5 3.5L13 6 9.5 7.5 8 11 6.5 7.5 3 6l3.5-1.5L8 1z"/>
+              </svg>
+              {t("generate")}
+            </button>
+          </label>
+          <textarea
+            className="w-full shrink-0 resize-y rounded-md border px-3 py-2 text-sm text-gray-900 outline-none"
+            style={{ borderColor: message.trim().length >= 3 ? "#22c55e" : message.trim() ? "#ef4444" : "#d1d5db" }}
+            id={`commit-msg-${id}`}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder={t("describeChanges")}
+            rows={messageRows}
+            value={message}
+          />
+        </div>
+
+        <div className="flex items-center justify-end gap-2 border-t border-gray-100 px-4 py-2">
+          <button
+            onClick={handleClose}
+            disabled={saving}
+            className="rounded px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100"
+          >
+            {t("cancel")}
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={saving || message.trim().length < 3}
+            className="rounded px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+            style={{ backgroundColor: "var(--ui-primary)" }}
+          >
+            {saving ? t("submitting") : t("submit")}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

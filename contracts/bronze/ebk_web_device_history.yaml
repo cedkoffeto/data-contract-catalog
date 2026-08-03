@@ -159,6 +159,7 @@ serving:
     enabled: true
     name: "ebk_web_device_history"
     notes: ""
+    query_url: "https://datalake.com/query/{tableName}"
 
 operations:
   airflow_dag_id: "dag_ebk_web_device_history"

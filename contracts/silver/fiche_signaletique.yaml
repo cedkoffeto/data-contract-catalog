@@ -277,6 +277,7 @@ serving:
     enabled: true
     name: "ext_FICHE_SIGNAL_product"
     notes: "External table for Oracle consumers with JSON column."
+    query_url: "https://datalake.com/query/{tableName}"
 
 operations:
   airflow_dag_id: "dp_FICHE_SIGNAL_product"

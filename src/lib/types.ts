@@ -37,6 +37,7 @@ export type ContractField = {
 
 export type QualityCheck = {
   name?: string;
+  description?: string;
   type?: string;
   field?: string;
   threshold?: number | string;
@@ -62,6 +63,7 @@ export type DataContract = {
   contract?: {
     schema?: {
       fields?: ContractField[];
+      relations?: Array<{ ref_name: string; ref: string }>;
     };
     primary_key?: string[] | string;
     grain?: string;
@@ -109,6 +111,7 @@ export type DataContract = {
       name?: string;
       type?: string;
       notes?: string;
+      query_url?: string;
     };
   };
   output?: {
@@ -169,8 +172,15 @@ export type CatalogCard = {
   description: string;
   maturity: string;
   domain: string;
+  context: string;
+  assetType: string;
   searchData: string;
   href: string;
+  accessible: boolean;
+  editable?: boolean;
+  accessRequestStatus?: "pending";
+  isFavorite?: boolean;
+  isPinned?: boolean;
 };
 
 export type ContractHistoryEntry = {
@@ -181,6 +191,51 @@ export type ContractHistoryEntry = {
   authoredDate: string;
   authorName: string;
   filePath: string;
+};
+
+export type ContractComment = {
+  id: number;
+  contractSlug: string;
+  userId: string;
+  body: string;
+  parentId: number | null;
+  targetFields: string[];
+  createdAt: string;
+  editedAt: string | null;
+};
+
+export type ContractIssue = {
+  id: number;
+  contractSlug: string;
+  userId: string;
+  body: string;
+  status: "open" | "fixed" | "false_alert";
+  createdAt: string;
+  resolvedAt: string | null;
+};
+
+export type UserProfile = {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  displayName: string;
+};
+
+export type ContractChangeRequest = {
+  id: number;
+  contractSlug: string;
+  editorId: string;
+  yamlContent: string;
+  originalSha: string;
+  status: "pending" | "approved" | "rejected" | "conflicted";
+  gitlabMrId: number | null;
+  gitlabMrUrl: string;
+  rejectionReason: string;
+  createdAt: string;
+  resolvedAt: string | null;
+  resolvedBy: string | null;
+  source: "app" | "external";
+  updatedAt: string;
 };
 
 export type EditorRepositoryFile = {

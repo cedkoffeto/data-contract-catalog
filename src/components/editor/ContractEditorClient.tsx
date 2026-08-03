@@ -1,23 +1,48 @@
 "use client";
 
-import { Fragment, type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { IChangeEvent } from "@rjsf/core";
 import { yaml as yamlLanguage } from "@codemirror/lang-yaml";
-import { foldGutter, indentUnit } from "@codemirror/language";
-import { RangeSetBuilder, StateField } from "@codemirror/state";
-import { EditorView } from "@codemirror/view";
-import { Decoration } from "@codemirror/view";
-import Form from "@rjsf/shadcn";
-import validator from "@rjsf/validator-ajv8";
-import type { RJSFSchema, RJSFValidationError, UiSchema } from "@rjsf/utils";
-import CodeMirror from "@uiw/react-codemirror";
+import { indentUnit } from "@codemirror/language";
+import { RangeSet, RangeSetBuilder, StateField } from "@codemirror/state";
+import { EditorView, keymap } from "@codemirror/view";
+import { Decoration, gutter, GutterMarker } from "@codemirror/view";
+
+import type { RJSFSchema, RJSFValidationError, UiSchema, ValidatorType } from "@rjsf/utils";
+
 import yaml from "js-yaml";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 
+import dynamic from "next/dynamic";
+import { buildSlugIndex, createRefAutocomplete } from "@/src/lib/editor-autocomplete";
+import { RelationRefWidget } from "@/src/components/editor/RelationRefWidget";
 import { ContractBody } from "@/src/components/contract/ContractBody";
 import { ContractHeader } from "@/src/components/contract/ContractHeader";
+import { useT } from "@/src/lib/use-i18n";
+import { logger } from "@/src/lib/logger";
+
+const CommitModal = dynamic(
+  () => import("@/src/components/editor/CommitModal").then((m) => m.CommitModal),
+  { ssr: false },
+);
+const CodeMirror = dynamic(
+  () => import("@uiw/react-codemirror").then((m) => m.default),
+  { ssr: false, loading: () => <div className="editor-code-loading">Loading editor…</div> },
+);
+const Form = dynamic(
+  () => import("@rjsf/shadcn").then((m) => m.default),
+  { ssr: false, loading: () => <div className="editor-form-loading">Loading form…</div> },
+);
+import { computeDiff, createUnifiedDiffText } from "@/src/lib/diff";
+import type { DiffResult } from "@/src/lib/diff";
 import type { DataContract, EditorRepositoryFile } from "@/src/lib/types";
+import { validatePrimaryKey } from "@/src/lib/contract-validation";
+
+const YAML_FORM_TABS = [
+  ["yaml", "YAML"],
+  ["form", "Form"],
+] as const;
 
 const uiSchema: UiSchema = {
   "ui:globalOptions": { copyable: false },
@@ -48,6 +73,13 @@ const uiSchema: UiSchema = {
         items: {
           description: { "ui:widget": "textarea" },
           example: { "ui:widget": "textarea" }
+        }
+      },
+      relations: {
+        items: {
+          ref: {
+            "ui:widget": "RelationRefWidget"
+          }
         }
       }
     }
@@ -150,8 +182,40 @@ function findYamlLineForPath(content: string, path: string) {
   return fallbackLine;
 }
 
+class ErrorDotGutterMarker extends GutterMarker {
+  constructor(readonly lineNumber: number) {
+    super();
+  }
+
+  toDOM() {
+    const el = document.createElement("div");
+    el.className = "cm-error-dot-gutter-marker";
+    el.dataset.errorLine = String(this.lineNumber);
+    return el;
+  }
+}
+
+function createErrorGutter(
+  errorMap: Map<number, string>,
+) {
+  return gutter({
+    class: "cm-error-dot-gutter",
+    markers: (view) => {
+      const result: { from: number; to: number; value: GutterMarker }[] = [];
+      for (const [lineNumber] of errorMap) {
+        if (lineNumber < 1 || lineNumber > view.state.doc.lines) continue;
+        const line = view.state.doc.line(lineNumber);
+        result.push({ from: line.from, to: line.from, value: new ErrorDotGutterMarker(lineNumber) });
+      }
+      return RangeSet.of(result, true);
+    },
+  });
+}
+
+
+
 function createValidationDecorations(lineNumbers: number[]) {
-  const uniqueLineNumbers = Array.from(new Set(lineNumbers.filter((lineNumber) => lineNumber > 0)));
+  const uniqueLineNumbers = Array.from(new Set(lineNumbers.filter((lineNumber) => lineNumber > 0))).sort((a, b) => a - b);
 
   return EditorView.decorations.of((view) => {
     const builder = new RangeSetBuilder<Decoration>();
@@ -167,6 +231,84 @@ function createValidationDecorations(lineNumbers: number[]) {
 
     return builder.finish();
   });
+}
+
+function ErrorPopover({ lineNumber, message, x, y, onClose, onHoverChange }: {
+  lineNumber: number;
+  message: string;
+  x: number;
+  y: number;
+  onClose: () => void;
+  onHoverChange?: (hovering: boolean) => void;
+}) {
+  const { t, tWith } = useT();
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      ref={ref}
+      className="editor-error-popover"
+      style={{ left: x + 20, top: y - 12 }}
+      onMouseEnter={() => onHoverChange?.(true)}
+      onMouseLeave={() => onHoverChange?.(false)}
+    >
+      <div className="editor-error-popover-arrow" />
+      <div className="editor-error-popover-header">
+        <span>{tWith("editorLineNumber", { lineNumber: String(lineNumber) })}</span>
+        <button className="editor-error-popover-close" onClick={onClose} aria-label={t("closeAlt")}>&times;</button>
+      </div>
+      <div className="editor-error-popover-body">
+        <pre>{message}</pre>
+      </div>
+    </div>
+  );
+}
+
+function findSchemaDescription(propertyPath: string | undefined, schema: RJSFSchema): string | undefined {
+  if (!propertyPath || !schema) return undefined;
+
+  const path = propertyPath.replace(/^root\.?/, "").replace(/^\./, "");
+  if (!path) return undefined;
+
+  const parts = path.split(".");
+  let current: Record<string, unknown> | undefined = schema;
+  for (const part of parts) {
+    if (!current || typeof current !== "object") return undefined;
+
+    if (/^\d+$/.test(part)) {
+      if ("items" in current && current.items) {
+        current = (current.items as Record<string, unknown>) ?? undefined;
+      }
+      continue;
+    }
+
+    if (!("properties" in current)) return undefined;
+    const props = (current as Record<string, unknown>).properties as Record<string, unknown> | undefined;
+    if (!props || !(part in props)) return undefined;
+    current = props[part] as Record<string, unknown> | undefined;
+  }
+
+  if (current && typeof current === "object" && "description" in current) {
+    return (current as Record<string, unknown>).description as string;
+  }
+  return undefined;
 }
 
 function createFileTree(files: WorkspaceDocument[], prefixToStrip: string) {
@@ -219,8 +361,95 @@ const rawEditorTheme = EditorView.theme({
   },
   ".cm-activeLine": { backgroundColor: "rgba(148, 163, 184, 0.08)" },
   ".cm-cursor": { borderLeftColor: "#f97316" },
-  ".cm-selectionBackground, ::selection": { backgroundColor: "rgba(249, 115, 22, 0.12) !important" },
-  ".cm-focused": { outline: "none" }
+  ".cm-selectionBackground, ::selection": { backgroundColor: "rgba(249, 115, 22, 0.30) !important" },
+  ".cm-focused": { outline: "none" },
+  ".cm-error-dot-gutter": { width: "20px" },
+  ".cm-error-dot-gutter .cm-gutterElement": {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "default"
+  },
+  ".cm-error-dot-gutter-marker": {
+    width: "8px",
+    height: "8px",
+    borderRadius: "50%",
+    backgroundColor: "#ef4444",
+    cursor: "pointer",
+    transition: "transform 0.15s"
+  },
+  ".cm-error-dot-gutter-marker:hover": {
+    transform: "scale(1.4)"
+  },
+  ".cm-tooltip.cm-tooltip-autocomplete": {
+    border: "1px solid #e2e8f0",
+    borderRadius: "0.5rem",
+    backgroundColor: "#ffffff",
+    boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
+    overflow: "hidden",
+    maxHeight: "min(240px, 40vh)",
+    minWidth: "16rem",
+    width: "18rem"
+  },
+  ".cm-tooltip.cm-tooltip-autocomplete .cm-completionList": {
+    padding: "0.25rem 0",
+    maxHeight: "inherit",
+    overflowY: "auto",
+    scrollbarWidth: "thin",
+    scrollbarColor: "#cbd5e1 transparent"
+  },
+  ".cm-tooltip.cm-tooltip-autocomplete .cm-completionList::-webkit-scrollbar": {
+    width: "4px"
+  },
+  ".cm-tooltip.cm-tooltip-autocomplete .cm-completionList::-webkit-scrollbar-track": {
+    background: "transparent"
+  },
+  ".cm-tooltip.cm-tooltip-autocomplete .cm-completionList::-webkit-scrollbar-thumb": {
+    background: "#cbd5e1",
+    borderRadius: "2px"
+  },
+  ".cm-tooltip.cm-tooltip-autocomplete .cm-completionItem": {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+    padding: "0.35rem 1rem",
+    fontSize: "0.8125rem",
+    lineHeight: "1.25rem",
+    color: "#1f2937",
+    borderBottom: "0",
+    transition: "background-color 0.1s"
+  },
+  ".cm-tooltip.cm-tooltip-autocomplete .cm-completionItem:hover": {
+    backgroundColor: "#fff7ed"
+  },
+  ".cm-tooltip.cm-tooltip-autocomplete .cm-completionItem.cm-completionSelected": {
+    backgroundColor: "#fff7ed",
+    color: "#1f2937"
+  },
+  ".cm-tooltip.cm-tooltip-autocomplete .cm-completionIcon": {
+    display: "none"
+  },
+  ".cm-tooltip.cm-tooltip-autocomplete .cm-completionLabel": {
+    flex: "1",
+    fontWeight: 500,
+    fontSize: "0.8125rem",
+    color: "#1f2937",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap"
+  },
+  ".cm-tooltip.cm-tooltip-autocomplete .cm-completionDetail": {
+    marginLeft: "auto",
+    fontSize: "0.68rem",
+    fontWeight: 500,
+    color: "#94a3b8",
+    textTransform: "uppercase",
+    letterSpacing: "0.025em",
+    whiteSpace: "nowrap"
+  },
+  ".cm-tooltip-arrow": {
+    display: "none"
+  }
 });
 
 const diffLineDecorations = StateField.define({
@@ -255,6 +484,12 @@ const diffLineDecorations = StateField.define({
   },
   provide: (field) => EditorView.decorations.from(field)
 });
+
+const STATIC_EDITOR_EXTENSIONS = [
+  indentUnit.of("  "),
+  yamlLanguage(),
+  rawEditorTheme,
+];
 
 function createDownload(filename: string, contents: string, contentType: string) {
   const blob = new Blob([contents], { type: contentType });
@@ -490,34 +725,6 @@ function createDraftDocument(initialData: DataContract, sequence: number): Works
   };
 }
 
-function createUnifiedDiff(base: string, next: string): string {
-  const left = base.split("\n");
-  const right = next.split("\n");
-  const max = Math.max(left.length, right.length);
-  const lines: string[] = [];
-
-  for (let index = 0; index < max; index += 1) {
-    const before = left[index];
-    const after = right[index];
-
-    if (before === after) {
-      if (before !== undefined) {
-        lines.push(`  ${before}`);
-      }
-      continue;
-    }
-
-    if (before !== undefined) {
-      lines.push(`- ${before}`);
-    }
-    if (after !== undefined) {
-      lines.push(`+ ${after}`);
-    }
-  }
-
-  return lines.join("\n");
-}
-
 function formatHistoryMeta(value: string) {
   if (!value) {
     return "Repository";
@@ -553,17 +760,20 @@ function FolderIcon() {
 }
 
 export function ContractEditorClient({
+  userId,
   initialContractSlug,
   initialData,
   repositoryFiles,
   schema
 }: {
+  userId: string;
   initialContractSlug?: string;
   initialData: DataContract;
   repositoryFiles: EditorRepositoryFile[];
   schema: RJSFSchema;
 }) {
   const [documents, setDocuments] = useState<WorkspaceDocument[]>(() => buildInitialDocuments(initialData, repositoryFiles));
+  const { t } = useT();
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("yaml");
   const [activeBottomTab, setActiveBottomTab] = useState<BottomTab>("validation");
   const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
@@ -574,12 +784,27 @@ export function ContractEditorClient({
   const [historyBySlug, setHistoryBySlug] = useState<Record<string, HistoryState>>({});
   const [historyVersionCache, setHistoryVersionCache] = useState<Record<string, string>>({});
   const [historyReloadToken, setHistoryReloadToken] = useState(0);
+  const [commitModal, setCommitModal] = useState<{ contractSlug: string; contractName: string; diff: DiffResult; domain: string; context: string; userId: string } | null>(null);
   const [historyActionState, setHistoryActionState] = useState<{ entryId: string | null; mode: "history" | "compare" | null }>({
     entryId: null,
     mode: null
   });
   const [isExplorerOpen, setIsExplorerOpen] = useState(true);
   const [isPreviewOpen, setIsPreviewOpen] = useState(true);
+  const [errorPopover, setErrorPopover] = useState<{
+    lineNumber: number;
+    message: string;
+    x: number;
+    y: number;
+  } | null>(null);
+  const closeErrorPopover = useCallback(() => setErrorPopover(null), []);
+  const errorPopoverHoverRef = useRef(false);
+  const [errorNavIndex, setErrorNavIndex] = useState<number>(-1);
+
+  const [isSaving, setIsSaving] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [validatorInstance, setValidatorInstance] = useState<ValidatorType | null>(null);
+
   const [isBottomPanelOpen, setIsBottomPanelOpen] = useState(false);
   const [openFolders, setOpenFolders] = useState<Record<ExplorerFolder, boolean>>({
     workspace: true,
@@ -604,6 +829,18 @@ export function ContractEditorClient({
     documents.find((document) => document.id === selectedDocumentId) ??
     documents.find((document) => document.id === "draft-contract-1")!;
 
+  const [debouncedContent, setDebouncedContent] = useState(selectedDocument.content);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedContent(selectedDocument.content), 300);
+    return () => clearTimeout(timer);
+  }, [selectedDocument.content]);
+
+  useEffect(() => {
+    import("@rjsf/validator-ajv8").then((m) => {
+      setValidatorInstance(() => m.default);
+    });
+  }, []);
+
   const selectedIndex = documents.findIndex((document) => document.id === selectedDocument.id);
   const selectedData = selectedDocument.data ?? initialData;
   const isContractDocument = selectedDocument.kind === "contract";
@@ -618,7 +855,7 @@ export function ContractEditorClient({
     }
 
     try {
-      const parsed = (yaml.load(selectedDocument.content) as DataContract) ?? {};
+      const parsed = (yaml.load(debouncedContent) as DataContract) ?? {};
       return {
         data: parsed,
         parseError: null as string | null,
@@ -632,7 +869,7 @@ export function ContractEditorClient({
         parseLineNumber: typeof markedError.mark?.line === "number" ? markedError.mark.line + 1 : null
       };
     }
-  }, [isContractDocument, selectedDocument.content]);
+  }, [isContractDocument, debouncedContent]);
 
   const validationResult = useMemo(() => {
     if (!isContractDocument) {
@@ -641,12 +878,47 @@ export function ContractEditorClient({
     if (!yamlValidationState.data) {
       return null;
     }
+    if (!validatorInstance) {
+      return null;
+    }
 
-    return validator.validateFormData(yamlValidationState.data, schema);
-  }, [isContractDocument, schema, yamlValidationState.data]);
+    return validatorInstance.validateFormData(yamlValidationState.data, schema);
+  }, [isContractDocument, schema, yamlValidationState.data, validatorInstance]);
 
-  const validationErrors = (validationResult?.errors ?? []) as RJSFValidationError[];
-  const validationIssueCount = yamlValidationState.parseError ? 1 : validationErrors.length;
+  const validationErrors = useMemo<RJSFValidationError[]>(() => {
+    const schemaErrors = (validationResult?.errors ?? []) as RJSFValidationError[];
+    if (!yamlValidationState.data) return schemaErrors;
+    return [
+      ...schemaErrors,
+      ...validatePrimaryKey(yamlValidationState.data).map((err) => ({
+        name: "primaryKey",
+        message: err.message,
+        property: "contract.primary_key",
+        schemaPath: "#/properties/contract/properties/primary_key",
+        stack: err.message,
+      })),
+    ];
+  }, [validationResult, yamlValidationState.data]);
+
+  const validationIssueCount = useMemo(() => {
+    if (yamlValidationState.parseError) return 1;
+    const uniqueFields = new Set(validationErrors.map(e => e.property ?? "schema"));
+    return uniqueFields.size;
+  }, [validationErrors, yamlValidationState.parseError]);
+  const hasBlockingErrors = isContractDocument && (!!yamlValidationState.parseError || validationErrors.length > 0);
+
+  const codeMirrorRef = useRef<{ view: EditorView } | null>(null);
+
+  const scrollToLine = useCallback((lineNumber: number | null) => {
+    if (!lineNumber || lineNumber < 1) return;
+    const view = codeMirrorRef.current?.view;
+    if (!view) return;
+    const line = view.state.doc.line(lineNumber);
+    view.dispatch({
+      selection: { anchor: line.from },
+      scrollIntoView: true,
+    });
+  }, []);
   const historyEntries = useMemo(() => {
     if (!isContractDocument || selectedDocument.isDraft || !selectedDocument.contractSlug) {
       return [];
@@ -662,7 +934,7 @@ export function ContractEditorClient({
       return selectedHistoryContent;
     }
     if (mainViewMode === "compare" && selectedHistoryContent) {
-      return createUnifiedDiff(selectedHistoryContent, selectedDocument.content);
+      return createUnifiedDiffText(selectedHistoryContent, selectedDocument.content);
     }
     return selectedDocument.content;
   }, [mainViewMode, selectedDocument.content, selectedHistoryContent]);
@@ -670,38 +942,150 @@ export function ContractEditorClient({
   const isCompareYamlView = mainViewMode === "compare" && !!selectedHistoryEntry && !!selectedHistoryContent;
   const activeHistoryState = selectedDocument.contractSlug ? historyBySlug[selectedDocument.contractSlug] : undefined;
   const activeHistoryStatus = activeHistoryState?.status ?? "idle";
+  const validationErrorLineMap = useMemo(() => {
+    const map = new Map<string, number | null>();
+    if (!isContractDocument || activeTab !== "yaml" || isHistoryYamlView || isCompareYamlView) return map;
+    if (yamlValidationState.parseLineNumber) return map;
+    for (const error of validationErrors) {
+      const prop = error.property ?? "";
+      if (!map.has(prop)) {
+        map.set(prop, findYamlLineForPath(selectedDocument.content, prop));
+      }
+    }
+    return map;
+  }, [activeTab, isCompareYamlView, isContractDocument, isHistoryYamlView, selectedDocument.content, validationErrors, yamlValidationState.parseLineNumber]);
+
   const validationIssueLines = useMemo(() => {
-    if (!isContractDocument || activeTab !== "yaml" || isHistoryYamlView || isCompareYamlView) {
-      return [];
+    if (yamlValidationState.parseLineNumber) return [yamlValidationState.parseLineNumber];
+    return Array.from(validationErrorLineMap.values()).filter((lineNumber): lineNumber is number => typeof lineNumber === "number");
+  }, [validationErrorLineMap, yamlValidationState.parseLineNumber]);
+
+  const validationErrorMap = useMemo(() => {
+    const map = new Map<number, string>();
+    if (!isContractDocument || activeTab !== "yaml" || isHistoryYamlView || isCompareYamlView) return map;
+
+    if (yamlValidationState.parseLineNumber && yamlValidationState.parseError) {
+      map.set(yamlValidationState.parseLineNumber, yamlValidationState.parseError);
+      return map;
     }
 
-    if (yamlValidationState.parseLineNumber) {
-      return [yamlValidationState.parseLineNumber];
+    for (const error of validationErrors) {
+      const line = validationErrorLineMap.get(error.property ?? "");
+      if (line != null) {
+        let msg = error.stack || error.message || "";
+        const ajvParams = error.params;
+        if (ajvParams?.allowedValues) {
+          msg += `\n${t("allowedValues")} ${ajvParams.allowedValues.join(", ")}`;
+        }
+        const desc = findSchemaDescription(error.property, schema);
+        if (desc) {
+          msg += `\n${desc}`;
+        }
+        map.set(line, map.has(line) ? `${map.get(line)}\n${msg}` : msg);
+      }
     }
+    return map;
+  }, [activeTab, isCompareYamlView, isContractDocument, isHistoryYamlView, validationErrors, yamlValidationState.parseLineNumber, yamlValidationState.parseError, schema, validationErrorLineMap, t]);
 
-    return validationErrors
-      .map((error) => findYamlLineForPath(selectedDocument.content, error.property ?? ""))
-      .filter((lineNumber): lineNumber is number => typeof lineNumber === "number");
-  }, [
-    activeTab,
-    isCompareYamlView,
-    isContractDocument,
-    isHistoryYamlView,
-    selectedDocument.content,
-    validationErrors,
-    yamlValidationState.parseLineNumber
-  ]);
+  const sortedErrorLines = useMemo(
+    () => Array.from(validationErrorMap.keys()).sort((a, b) => a - b),
+    [validationErrorMap],
+  );
+
+  const navigateError = useCallback((dir: -1 | 1) => {
+    if (sortedErrorLines.length === 0) return;
+    const nextIdx = ((errorNavIndex + dir) % sortedErrorLines.length + sortedErrorLines.length) % sortedErrorLines.length;
+    setErrorNavIndex(nextIdx);
+    const lineNumber = sortedErrorLines[nextIdx];
+    const msg = validationErrorMap.get(lineNumber);
+    if (!msg) return;
+    setErrorPopover({ lineNumber, message: msg, x: 0, y: 0 });
+    const view = codeMirrorRef.current?.view;
+    if (!view) return;
+    const line = view.state.doc.line(lineNumber);
+    view.dispatch({
+      effects: EditorView.scrollIntoView(line.from, { y: "center" }),
+      selection: { anchor: line.from, head: line.to },
+    });
+    view.focus();
+  }, [sortedErrorLines, validationErrorMap, errorNavIndex]);
+
+  const errorKeymap = useMemo(() => keymap.of([
+    { key: "Alt-ArrowUp", run: () => { navigateError(-1); return true; } },
+    { key: "Alt-ArrowDown", run: () => { navigateError(1); return true; } },
+  ]), [navigateError]);
   const normalizedExplorerQuery = explorerQuery.trim().toLowerCase();
+
+  useEffect(() => {
+    if (validationErrorMap.size === 0) return;
+
+    let hideTimer: ReturnType<typeof setTimeout>;
+
+    const handleMouseOver = (event: MouseEvent) => {
+      const marker = (event.target as HTMLElement).closest("[data-error-line]") as HTMLElement | null;
+      if (!marker) return;
+
+      clearTimeout(hideTimer);
+      const lineNumber = parseInt(marker.dataset.errorLine || "", 10);
+      const msg = validationErrorMap.get(lineNumber);
+      if (msg) {
+        setErrorPopover({ lineNumber, message: msg, x: event.clientX, y: event.clientY });
+      }
+    };
+
+    const handleMouseOut = (event: MouseEvent) => {
+      const marker = (event.target as HTMLElement).closest("[data-error-line]") as HTMLElement | null;
+      if (!marker) return;
+      hideTimer = setTimeout(() => {
+        if (!errorPopoverHoverRef.current) {
+          setErrorPopover(null);
+        }
+      }, 200);
+    };
+
+    document.addEventListener("mouseover", handleMouseOver);
+    document.addEventListener("mouseout", handleMouseOut);
+    return () => {
+      document.removeEventListener("mouseover", handleMouseOver);
+      document.removeEventListener("mouseout", handleMouseOut);
+      clearTimeout(hideTimer);
+    };
+  }, [validationErrorMap]);
+
+  const slugIndex = useMemo(
+    () => buildSlugIndex(repositoryFiles),
+    [repositoryFiles],
+  );
+
+  const codeMirrorExtensions = useMemo(() => [
+    ...STATIC_EDITOR_EXTENSIONS,
+    ...(validationIssueLines.length > 0 ? [createValidationDecorations(validationIssueLines)] : []),
+    ...(validationErrorMap.size > 0 ? [createErrorGutter(validationErrorMap)] : []),
+    ...(isCompareYamlView ? [diffLineDecorations] : []),
+    ...(sortedErrorLines.length > 0 ? [errorKeymap] : []),
+    createRefAutocomplete(slugIndex),
+  ], [validationIssueLines, validationErrorMap, isCompareYamlView, sortedErrorLines, errorKeymap, slugIndex]);
 
   const contractsByMaturity = useMemo(() => {
     const groups = new Map<string, WorkspaceDocument[]>();
     documents
       .filter((document) => document.kind === "contract" && !document.isDraft)
       .forEach((document) => {
-        const key = document.maturity ?? "draft";
-        groups.set(key, [...(groups.get(key) ?? []), document]);
+        const isDraftPath = document.path.startsWith("contracts/draft/");
+        const maturity = isDraftPath ? "draft" : document.maturity?.trim();
+        if (!maturity) return;
+        let arr = groups.get(maturity);
+        if (!arr) { arr = []; groups.set(maturity, arr); }
+        arr.push(document);
       });
-    return Array.from(groups.entries()).sort(([left], [right]) => left.localeCompare(right));
+    const entries = Array.from(groups.entries()).sort(([left], [right]) => left.localeCompare(right));
+    // Move "draft" to the end if it exists
+    const draftIdx = entries.findIndex(([k]) => k === "draft");
+    if (draftIdx > -1) {
+      const [draft] = entries.splice(draftIdx, 1);
+      entries.push(draft);
+    }
+    return entries;
   }, [documents]);
   const visibleSchemaDocuments = useMemo(
     () =>
@@ -773,6 +1157,10 @@ export function ContractEditorClient({
     if (!isContractDocument || selectedDocument.isDraft || !selectedDocument.contractSlug) {
       return;
     }
+    // Skip history for contracts not yet in the registry (newly created drafts)
+    if (selectedDocument.path.startsWith("contracts/draft/")) {
+      return;
+    }
 
     if (activeHistoryStatus !== "idle") {
       return;
@@ -790,7 +1178,7 @@ export function ContractEditorClient({
       }
     }));
 
-    console.info("[editor.history] Fetching contract history", {
+    logger.info("[editor.history] Fetching contract history", {
       slug,
       selectedDocumentId: selectedDocument.id,
       path: selectedDocument.path
@@ -799,7 +1187,7 @@ export function ContractEditorClient({
     void fetch(`/api/contracts/${slug}/history`, { cache: "no-store" })
       .then(async (response) => {
         const payload = (await response.json()) as RepositoryHistoryResponse | { error?: string };
-        console.info("[editor.history] History API response", {
+        logger.info("[editor.history] History API response", {
           slug,
           ok: response.ok,
           status: response.status,
@@ -827,7 +1215,7 @@ export function ContractEditorClient({
           author: entry.authorName
         }));
 
-        console.info("[editor.history] Mapped history items", {
+        logger.info("[editor.history] Mapped history items", {
           slug,
           count: mappedItems.length,
           firstItem: mappedItems[0] ?? null
@@ -847,17 +1235,18 @@ export function ContractEditorClient({
           return;
         }
 
-        console.error("[editor.history] Failed to load history", {
-          slug,
-          error
-        });
+        const msg = error instanceof Error ? error.message : "Unable to load repository history";
+        // 404 is expected for new contracts with no history yet
+        if (!msg.includes("not found")) {
+          logger.error("[editor.history] Failed to load history", { slug, error });
+        }
 
         setHistoryBySlug((current) => ({
           ...current,
           [slug]: {
             items: [],
-            status: "error",
-            error: error instanceof Error ? error.message : "Unable to load repository history"
+            status: msg.includes("not found") ? "ready" : "error",
+            error: msg.includes("not found") ? null : msg
           }
         }));
       });
@@ -865,14 +1254,14 @@ export function ContractEditorClient({
     return () => {
       isCancelled = true;
     };
-  }, [historyReloadToken, isContractDocument, selectedDocument.contractSlug, selectedDocument.id, selectedDocument.isDraft, selectedDocument.path]);
+  }, [historyReloadToken, isContractDocument, selectedDocument.contractSlug, selectedDocument.id, selectedDocument.isDraft, selectedDocument.path, activeHistoryStatus]);
 
   useEffect(() => {
     if (!isContractDocument || activeBottomTab !== "history") {
       return;
     }
 
-    console.info("[editor.history] Render state", {
+    logger.info("[editor.history] Render state", {
       selectedDocumentId: selectedDocument.id,
       slug: selectedDocument.contractSlug ?? null,
       isDraft: !!selectedDocument.isDraft,
@@ -1009,6 +1398,92 @@ export function ContractEditorClient({
     setWorkspaceMessage("New contract draft created");
   }
 
+  async function handleSaveDraft() {
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      const content = selectedDocument.content;
+      const path = selectedDocument.path;
+      if (!path.startsWith("contracts/draft/")) {
+        setWorkspaceMessage("Not a draft contract");
+        return;
+      }
+      const assetId = selectedData.asset?.id?.trim();
+      const computedSlug = assetId
+        ? assetId.toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "") || "new-contract"
+        : selectedDocument.name.replace(/\.(yaml|yml)$/i, "");
+
+      const res = await fetch("/api/editor/draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content, filePath: path, message: "Save draft contract" }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error ?? "Failed to save draft");
+      }
+      updateDocument((document) => ({
+        ...document,
+        isDraft: false,
+        contractSlug: computedSlug,
+        originalContent: content,
+      }));
+      setWorkspaceMessage(`Draft saved to ${path}`);
+    } catch (error) {
+      setWorkspaceMessage(error instanceof Error ? error.message : "Failed to save draft");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handlePublishDraft() {
+    if (isPublishing) return;
+    const maturity = selectedData.asset?.maturity?.trim().toLowerCase();
+    if (!maturity || !["bronze", "silver", "gold"].includes(maturity)) {
+      setWorkspaceMessage("Set maturity to bronze, silver, or gold before publishing");
+      return;
+    }
+    if (hasBlockingErrors) {
+      setWorkspaceMessage("Fix blocking errors before publishing");
+      return;
+    }
+    setIsPublishing(true);
+    try {
+      const content = selectedDocument.content;
+      const sourcePath = selectedDocument.isDraft ? undefined : selectedDocument.path;
+      const assetId = selectedData.asset?.id?.trim();
+      if (!assetId) {
+        setWorkspaceMessage("Set asset.id before publishing");
+        return;
+      }
+      const slug = assetId.toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "") || "new-contract";
+      const targetPath = `contracts/published/${maturity}/${slug}.yaml`;
+
+      const res = await fetch("/api/editor/publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content, targetPath, sourcePath, message: `Publish ${slug} as ${maturity}` }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error ?? "Failed to publish contract");
+      }
+      updateDocument((document) => ({
+        ...document,
+        path: targetPath,
+        maturity,
+        contractSlug: slug,
+        isDraft: false,
+        originalContent: content,
+      }));
+      setWorkspaceMessage(`Published to ${targetPath}`);
+    } catch (error) {
+      setWorkspaceMessage(error instanceof Error ? error.message : "Failed to publish contract");
+    } finally {
+      setIsPublishing(false);
+    }
+  }
+
   function toggleFolder(folder: ExplorerFolder) {
     setOpenFolders((current) => ({ ...current, [folder]: !current[folder] }));
   }
@@ -1023,8 +1498,10 @@ export function ContractEditorClient({
     }
 
     let syncedFileMetadata: Pick<WorkspaceDocument, "name" | "path"> | null = null;
+    let parsedData: DataContract | null = null;
     try {
       const parsed = (yaml.load(value) as DataContract) ?? {};
+      parsedData = parsed;
       syncedFileMetadata = syncDocumentFileMetadata(selectedDocument, parsed);
     } catch {
       syncedFileMetadata = null;
@@ -1033,6 +1510,7 @@ export function ContractEditorClient({
     updateDocument((document) => ({
       ...document,
       content: value,
+      data: parsedData ?? document.data,
       ...(syncedFileMetadata ?? {}),
       isDirty: value !== document.originalContent,
       parseError: undefined
@@ -1104,6 +1582,70 @@ export function ContractEditorClient({
       parseError: undefined
     }));
     setWorkspaceMessage("Form changes synchronized to YAML");
+  }
+
+  function handleSubmitContract() {
+    if (!isContractDocument || !selectedDocument.contractSlug) {
+      return;
+    }
+
+    const originalData = (yaml.load(selectedDocument.originalContent) as DataContract | null) ?? {};
+    const diff = computeDiff(
+      selectedDocument.originalContent,
+      selectedDocument.content,
+      originalData as Record<string, unknown>,
+      selectedDocument.data as unknown as Record<string, unknown>
+    );
+    setCommitModal({
+      contractSlug: selectedDocument.contractSlug,
+      contractName: selectedDocument.name,
+      diff,
+      domain: selectedData.asset?.domain ?? "",
+      context: selectedData.asset?.context ?? "",
+      userId,
+    });
+    setWorkspaceMessage("Review your changes before proposing");
+  }
+
+  async function handleCommitConfirm(message: string) {
+    if (!commitModal) return;
+
+    setWorkspaceMessage("Proposing change...");
+
+    const res = await fetch(`/api/contracts/${commitModal.contractSlug}/change-requests`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ yamlContent: selectedDocument.content, message }),
+    });
+
+    let payload: { error?: string; changeRequest?: { id: number; gitlabMrUrl: string; status: string; rejectionReason?: string } };
+    try {
+      payload = await res.json();
+    } catch {
+      throw new Error(`Server returned ${res.status} — unexpected response`);
+    }
+
+    if (!res.ok) {
+      throw new Error(payload.error ?? "Failed to create change request");
+    }
+
+    if (payload.changeRequest?.status === "rejected") {
+      throw new Error(payload.changeRequest.rejectionReason || "Failed to create MR on GitLab");
+    }
+
+    updateDocument((document) => ({
+      ...document,
+      originalContent: document.content,
+      isDirty: false,
+    }));
+
+    setWorkspaceMessage(
+      payload.changeRequest?.gitlabMrUrl
+        ? `Change request #${payload.changeRequest.id} submitted — MR: ${payload.changeRequest.gitlabMrUrl}`
+        : "Change request submitted, pending review",
+    );
+
+    setCommitModal(null);
   }
 
   async function handleCopy() {
@@ -1190,11 +1732,12 @@ export function ContractEditorClient({
   }
 
   return (
-    <PanelGroup
-      key={`explorer-${isExplorerOpen}-preview-${isPreviewOpen}`}
-      className="editor-workbench"
-      direction="horizontal"
-    >
+    <>
+      <PanelGroup
+        key={`explorer-${isExplorerOpen}-preview-${isPreviewOpen}`}
+        className="editor-workbench"
+        direction="horizontal"
+      >
       {isExplorerOpen ? (
         <>
           <Panel className="editor-panel" defaultSize={18} id="explorer" minSize={12}>
@@ -1367,7 +1910,10 @@ export function ContractEditorClient({
             </button>
 
             <div className="editor-topbar__title">
-              <div className="editor-breadcrumb">{selectedDocument.path}</div>
+              <div className="editor-breadcrumb-row">
+                <div className="editor-breadcrumb" title={selectedDocument.path}>{selectedDocument.path}</div>
+                {selectedDocument.isDirty ? <span className="editor-inline-tag">Unsaved</span> : null}
+              </div>
               <div className="editor-title-row">
                 {isContractDocument ? (
                   <input
@@ -1376,11 +1922,11 @@ export function ContractEditorClient({
                     onChange={(event) => handleContractNameChange(event.target.value)}
                     type="text"
                     value={selectedData.asset?.name ?? ""}
+                    title={selectedData.asset?.name ?? ""}
                   />
                 ) : (
-                  <h1 className="editor-title">{selectedDocument.name}</h1>
+                  <h1 className="editor-title" title={selectedDocument.name}>{selectedDocument.name}</h1>
                 )}
-                {selectedDocument.isDirty ? <span className="editor-inline-tag">Unsaved</span> : null}
               </div>
             </div>
 
@@ -1405,6 +1951,30 @@ export function ContractEditorClient({
                 Download
               </button>
 
+              {isEditable && selectedDocument.isDraft ? (
+                <button
+                  className="editor-primary-button"
+                  onClick={handleSaveDraft}
+                  disabled={isSaving}
+                  type="button"
+                  title="Save this draft to GitLab"
+                >
+                  {isSaving ? "Saving..." : "Save draft"}
+                </button>
+              ) : null}
+
+              {isEditable && (selectedDocument.isDraft || selectedDocument.path.startsWith("contracts/draft/")) ? (
+                <button
+                  className="editor-primary-button"
+                  onClick={handlePublishDraft}
+                  disabled={isPublishing}
+                  type="button"
+                  title="Publish this draft contract"
+                >
+                  {isPublishing ? "Publishing..." : "Publish"}
+                </button>
+              ) : null}
+
               <button
                 aria-label={isPreviewOpen ? "Hide preview" : "Show preview"}
                 className="editor-edge-toggle"
@@ -1422,6 +1992,24 @@ export function ContractEditorClient({
                   />
                 </svg>
               </button>
+
+              <button
+                aria-label="Close editor"
+                className="editor-close-button"
+                onClick={() => { window.location.href = selectedDocument.isDraft || !selectedDocument.contractSlug ? "/" : `/contracts/${selectedDocument.contractSlug}`; }}
+                title="Close editor"
+                type="button"
+              >
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path
+                    d="M5.5 5.5l9 9m0-9l-9 9"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
             </div>
           </div>
 
@@ -1429,20 +2017,42 @@ export function ContractEditorClient({
             {selectedDocument.parseError ? <div className="editor-status-pill is-warning">YAML error</div> : null}
           </div>
 
-          <div className="editor-tabs" role="tablist" aria-label="Workspace tabs">
-            {[
-              ["yaml", "YAML"],
-              ["form", "Form"]
-            ].map(([value, label]) => (
-              <button
-                key={value}
-                className={activeTab === value ? "editor-tabs__item is-active" : "editor-tabs__item"}
-                onClick={() => setActiveTab(value as WorkspaceTab)}
-                type="button"
-              >
-                {label}
-              </button>
-            ))}
+          <div className="flex items-center justify-between border-b border-gray-100">
+            <div className="editor-tabs" role="tablist" aria-label="Workspace tabs">
+              {YAML_FORM_TABS.map(([value, label]) => (
+                <button
+                  key={value}
+                  className={activeTab === value ? "editor-tabs__item is-active" : "editor-tabs__item"}
+                  onClick={() => setActiveTab(value as WorkspaceTab)}
+                  type="button"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {sortedErrorLines.length > 0 && (
+              <div className="flex items-center gap-0.5 pr-2 text-[11px] text-gray-400">
+                <span className="mr-1">{errorNavIndex + 1}/{sortedErrorLines.length}</span>
+                <button
+                  className="inline-flex items-center justify-center w-5 h-5 rounded hover:bg-gray-100 disabled:opacity-30"
+                  onClick={() => navigateError(-1)}
+                  disabled={sortedErrorLines.length === 0}
+                  type="button"
+                  title="Previous error"
+                >
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5"><path d="M10 11L6 8l4-3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </button>
+                <button
+                  className="inline-flex items-center justify-center w-5 h-5 rounded hover:bg-gray-100 disabled:opacity-30"
+                  onClick={() => navigateError(1)}
+                  disabled={sortedErrorLines.length === 0}
+                  type="button"
+                  title="Next error"
+                >
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5"><path d="M6 5l4 3-4 3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </button>
+              </div>
+            )}
           </div>
 
           <PanelGroup className="editor-main-stack" direction="vertical">
@@ -1452,6 +2062,7 @@ export function ContractEditorClient({
                   <div className="editor-code-shell">
                     <div className="editor-code-surface">
                       <CodeMirror
+                        ref={codeMirrorRef}
                         basicSetup={{
                           foldGutter: true,
                           highlightActiveLine: true,
@@ -1459,13 +2070,7 @@ export function ContractEditorClient({
                         }}
                         className="editor-codemirror"
                         editable={isEditable && !isHistoryYamlView && !isCompareYamlView}
-                        extensions={[
-                          indentUnit.of("  "),
-                          yamlLanguage(),
-                          rawEditorTheme,
-                          ...(validationIssueLines.length > 0 ? [createValidationDecorations(validationIssueLines)] : []),
-                          ...(isCompareYamlView ? [diffLineDecorations] : [])
-                        ]}
+                        extensions={codeMirrorExtensions}
                         onChange={handleContentChange}
                         value={displayedYaml}
                       />
@@ -1483,9 +2088,20 @@ export function ContractEditorClient({
                   </div>
                 ) : null}
 
+                {errorPopover && (
+                  <ErrorPopover
+                    lineNumber={errorPopover.lineNumber}
+                    message={errorPopover.message}
+                    x={errorPopover.x}
+                    y={errorPopover.y}
+                    onClose={closeErrorPopover}
+                    onHoverChange={(v) => { errorPopoverHoverRef.current = v; }}
+                  />
+                )}
+
                 {activeTab === "form" ? (
                   <div className="editor-form-surface">
-                    {isContractDocument ? (
+                    {isContractDocument && validatorInstance ? (
                       <Form
                         formData={selectedData}
                         noHtml5Validate
@@ -1493,7 +2109,9 @@ export function ContractEditorClient({
                         schema={schema}
                         showErrorList={false}
                         uiSchema={uiSchema}
-                        validator={validator}
+                        validator={validatorInstance}
+                        widgets={{ RelationRefWidget }}
+                        formContext={{ slugIndex }}
                         onChange={handleFormChange}
                       >
                         <div className="editor-submit-row">
@@ -1502,6 +2120,10 @@ export function ContractEditorClient({
                           </button>
                         </div>
                       </Form>
+                    ) : isContractDocument ? (
+                      <div className="editor-placeholder">
+                        <h3>Loading form…</h3>
+                      </div>
                     ) : (
                       <div className="editor-placeholder">
                         <h3>Form mode only for contract files.</h3>
@@ -1524,13 +2146,14 @@ export function ContractEditorClient({
                       {activeBottomTab === "validation" ? (
                         <div className="editor-panel-grid">
                           <article className="editor-info-card editor-info-card--validation">
-                            <h3>Validation</h3>
+                            <h3>{t("validationTab")}</h3>
                             {isContractDocument ? (
                               yamlValidationState.parseError ? (
                                 <ul className="editor-list editor-list--validation">
-                                  <li className="editor-list__item editor-list__item--error">
+                                  <li className="editor-list__item editor-list__item--error" style={{ cursor: "pointer" }} onClick={() => scrollToLine(yamlValidationState.parseLineNumber)}>
                                     <strong>yaml</strong>
-                                    <span>{yamlValidationState.parseError}</span>
+                                    {yamlValidationState.parseLineNumber != null && <span className="text-xs text-red-600 font-mono">L{yamlValidationState.parseLineNumber}</span>}
+                                    <span style={{ whiteSpace: "pre-wrap" }}>{yamlValidationState.parseError}</span>
                                   </li>
                                 </ul>
                               ) : validationErrors.length === 0 ? (
@@ -1542,12 +2165,33 @@ export function ContractEditorClient({
                                 </ul>
                               ) : (
                                 <ul className="editor-list editor-list--validation">
-                                  {validationErrors.map((error) => (
-                                    <li key={`${error.property}-${error.stack}`} className="editor-list__item editor-list__item--error">
-                                      <strong>{error.property || "schema"}</strong>
-                                      <span>{error.message}</span>
-                                    </li>
-                                  ))}
+                                                           {(() => {
+                                      const grouped = new Map<string, { property: string; messages: string[]; lineNumber: number | null }>();
+                                      for (const error of validationErrors) {
+                                        const property = error.property || "schema";
+                                        const msg = error.message ?? "";
+                                        const existing = grouped.get(property);
+                                        if (existing) {
+                                          existing.messages.push(msg);
+                                        } else {
+                                          const lineNumber = validationErrorLineMap.get(property) ?? null;
+                                          grouped.set(property, { property, messages: [msg], lineNumber });
+                                        }
+                                      }
+                                      const sorted = Array.from(grouped.values()).sort((a, b) => {
+                                        const la = a.lineNumber ?? Infinity;
+                                        const lb = b.lineNumber ?? Infinity;
+                                        if (la !== lb) return la - lb;
+                                        return a.property.localeCompare(b.property);
+                                      });
+                                      return sorted.map(({ property, messages, lineNumber }) => (
+                                        <li key={property} className="editor-list__item editor-list__item--error" style={{ cursor: lineNumber ? "pointer" : "default" }} onClick={() => scrollToLine(lineNumber)}>
+                                          {lineNumber != null && <span className="text-xs text-red-600 font-mono">L{lineNumber}</span>}
+                                          <strong>{property}</strong>
+                                          {messages.map((msg, i) => <span key={i}>– {msg}</span>)}
+                                        </li>
+                                      ));
+                                  })()}
                                 </ul>
                               )
                             ) : (
@@ -1725,8 +2369,14 @@ export function ContractEditorClient({
                   <button className="editor-soft-button" onClick={applyYamlDraft} type="button">
                     Apply YAML
                   </button>
-                  <button className="editor-primary-button" onClick={() => setWorkspaceMessage("Submission flow ready")} type="button">
-                    Submit contract
+                  <button
+                    className="editor-primary-button"
+                    onClick={handleSubmitContract}
+                    type="button"
+                    disabled={hasBlockingErrors}
+                    title={hasBlockingErrors ? t("submitBlocked") : t("submitTitle")}
+                  >
+                    {t("submitModification")}
                   </button>
                 </>
               ) : (
@@ -1784,5 +2434,20 @@ export function ContractEditorClient({
         </>
       ) : null}
     </PanelGroup>
+
+    {commitModal ? (
+      <CommitModal
+        contractSlug={commitModal.contractSlug}
+        contractName={commitModal.contractName}
+        domain={commitModal.domain}
+        context={commitModal.context}
+        userId={commitModal.userId}
+        diff={commitModal.diff}
+        defaultMessage={`feat: update ${commitModal.contractName}`}
+        onClose={() => setCommitModal(null)}
+        onConfirm={handleCommitConfirm}
+      />
+    ) : null}
+    </>
   );
 }

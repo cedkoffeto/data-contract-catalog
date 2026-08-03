@@ -201,6 +201,17 @@ export async function getEditorSchema(): Promise<RJSFSchema> {
   schemaContainer.properties = schemaContainer.properties ?? {};
   const fieldsSchema = schemaContainer.properties.fields as RJSFSchema;
   fieldsSchema.items = { $ref: "#/definitions/contractField" };
+  schemaContainer.properties.relations = {
+    type: "array",
+    title: "Relations",
+    items: {
+      type: "object",
+      properties: {
+        ref_name: { type: "string", title: "Reference name" },
+        ref: { type: "string", title: "Reference" },
+      },
+    },
+  };
 
   const qualitySchema = schema.properties.quality as RJSFSchema;
   const checksSchema = (((qualitySchema.properties ?? {}).checks as RJSFSchema)?.items ?? {}) as RJSFSchema;

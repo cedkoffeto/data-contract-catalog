@@ -1,4 +1,11 @@
-import { SwaggerDocsClient } from "./SwaggerDocsClient";
+"use client";
+
+import dynamic from "next/dynamic";
+
+const SwaggerDocsClient = dynamic(
+  () => import("./SwaggerDocsClient").then((m) => m.SwaggerDocsClient),
+  { ssr: false },
+);
 
 export default function DocsPage() {
   return (

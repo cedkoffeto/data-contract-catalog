@@ -1,0 +1,15 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Data Contract Catalog",
+      "Group": "Servers",
+      "Host": "${PG_SERVER_HOST}",
+      "Port": ${PG_SERVER_PORT},
+      "MaintenanceDB": "postgres",
+      "Username": "${PG_SERVER_USER}",
+      "Password": "${PG_SERVER_PASSWORD}",
+      "UseSSHTunnel": 0,
+      "SavePassword": true
+    }
+  }
+}

@@ -137,6 +137,9 @@ contract:
         description: "Périodicité éventuelle (dividende, coupon, etc.)"
         required: false
         pii_classification: "none"
+    relations:
+      - ref_name: "personne_host"
+        ref: "@titres.numero_personne_host > @personne_host.numero_personne_host"
 
 quality:
   checks:
@@ -228,6 +231,7 @@ serving:
     enabled: true
     name: "gold_titres_job"
     notes: "Spark job consuming the silver titres table to build gold portfolio aggregates."
+    query_url: "https://datalake.com/query/{tableName}"
 
 operations:
   airflow_dag_id: "dp_titres"

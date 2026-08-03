@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Manrope } from "next/font/google";
 
+import { ensureStartup } from "@/src/lib/startup";
+import { Providers } from "@/src/components/Providers";
+import { auth } from "@/src/auth";
 import "./globals.css";
+
+ensureStartup();
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -19,10 +24,14 @@ export const metadata: Metadata = {
   description: "Catalog, review and edit enterprise data contracts in one unified workspace."
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const session = await auth();
+
   return (
-    <html className="h-full" lang="en">
-      <body className={`${manrope.variable} ${ibmPlexMono.variable} app-body h-full`}>{children}</body>
+    <html lang="en">
+      <body className={`${manrope.variable} ${ibmPlexMono.variable} app-body h-screen overflow-hidden`}>
+        <Providers session={session}>{children}</Providers>
+      </body>
     </html>
   );
 }

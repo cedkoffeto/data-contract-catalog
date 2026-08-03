@@ -1,9 +1,11 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 
 import type { ContractField } from "@/src/lib/types";
+import { useT } from "@/src/lib/use-i18n";
 
 type FlatField = {
   id: string;
@@ -49,25 +51,52 @@ function flattenFields(fields: ContractField[], depth = 0, parentId: string | nu
   return rows;
 }
 
-export function ModelFieldsTable({ fields }: { fields: ContractField[] }) {
+export function ModelFieldsTable({ fields, slug, userId, fieldAnnotations, onFieldClick, onAnnotationPosted, searchQuery, expanded, onExpandedChange, onExpandableIdsChange }: { fields: ContractField[]; slug?: string; userId?: string; fieldAnnotations?: Record<string, number>; onFieldClick?: (fieldName: string) => void; onAnnotationPosted?: () => void; searchQuery?: string; expanded: Set<string>; onExpandedChange: (updater: (prev: Set<string>) => Set<string>) => void; onExpandableIdsChange: (ids: string[]) => void }) {
   const rows = useMemo(() => flattenFields(fields), [fields]);
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const { t } = useT();
+  const [annotating, setAnnotating] = useState<FlatField | null>(null);
+  const [annotationText, setAnnotationText] = useState("");
+
+  const expandableIds = useMemo(() => rows.filter((row) => row.hasChildren).map((row) => row.id), [rows]);
+
+  useEffect(() => {
+    onExpandableIdsChange(expandableIds);
+  }, [expandableIds, onExpandableIdsChange]);
 
   const rowMap = useMemo(() => new Map(rows.map((row) => [row.id, row])), [rows]);
 
-  function isVisible(row: FlatField): boolean {
-    let parentId = row.parentId;
-    while (parentId) {
-      if (!expanded.has(parentId)) {
-        return false;
-      }
-      parentId = rowMap.get(parentId)?.parentId ?? null;
+  const searchTerm = (searchQuery ?? "").trim().toLowerCase();
+
+  const visibleRows = useMemo(() => {
+    if (!searchTerm) {
+      return rows.filter((row) => {
+        let parentId = row.parentId;
+        while (parentId) {
+          if (!expanded.has(parentId)) {
+            return false;
+          }
+          parentId = rowMap.get(parentId)?.parentId ?? null;
+        }
+        return true;
+      });
     }
-    return true;
-  }
+    const matchIds = new Set<string>();
+    for (const r of rows) {
+      if (r.name.toLowerCase().includes(searchTerm)) matchIds.add(r.id);
+    }
+    const showSet = new Set<string>(matchIds);
+    for (const id of matchIds) {
+      let parentId = rowMap.get(id)?.parentId ?? null;
+      while (parentId) {
+        showSet.add(parentId);
+        parentId = rowMap.get(parentId)?.parentId ?? null;
+      }
+    }
+    return rows.filter((r) => showSet.has(r.id));
+  }, [searchTerm, rows, rowMap, expanded]);
 
   function toggle(id: string) {
-    setExpanded((prev) => {
+    onExpandedChange((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
@@ -78,14 +107,46 @@ export function ModelFieldsTable({ fields }: { fields: ContractField[] }) {
     });
   }
 
+  async function handleAnnotate() {
+    if (!userId || !slug || !annotating) return;
+    const text = annotationText.trim();
+    if (!text) return;
+
+    await fetch(`/api/contracts/${encodeURIComponent(slug)}/comments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ body: `[${annotating.name}] — ${text}`, targetFields: [annotating.name] }),
+    });
+
+    setAnnotating(null);
+    setAnnotationText("");
+    onAnnotationPosted?.();
+  }
+
+  function openAnnotate(row: FlatField) {
+    setAnnotating(row);
+    setAnnotationText("");
+  }
+
   return (
+    <>
     <tbody className="divide-y divide-gray-200 bg-white">
-      {rows.filter(isVisible).map((row) => {
+      {visibleRows.length === 0 && searchTerm ? (
+        <tr>
+          <td colSpan={4} className="contract-models-cell text-center text-gray-400">
+            {t("noFieldsFound")}
+          </td>
+        </tr>
+      ) : null}
+      {visibleRows.map((row) => {
         const isExpanded = expanded.has(row.id);
-        const piiClassName =
-          ["direct", "sensitive"].includes(row.piiClassification)
-            ? "contract-models-pill contract-models-pill--pii-alert"
-            : "contract-models-pill contract-models-pill--pii";
+        const piiValue = (row.piiClassification ?? "").toLowerCase();
+        const piiStyle =
+          piiValue === "none"
+            ? { backgroundColor: "rgba(34, 197, 94, 0.12)", color: "#15803d" }
+            : piiValue === "direct"
+              ? { backgroundColor: "rgba(239, 68, 68, 0.12)", color: "#dc2626" }
+              : { backgroundColor: "rgba(245, 158, 11, 0.14)", color: "#b45309" };
 
         return (
           <tr
@@ -119,15 +180,56 @@ export function ModelFieldsTable({ fields }: { fields: ContractField[] }) {
                 ) : null}
                 {!row.hasChildren ? <span className="contract-models-field__leaf" aria-hidden="true" /> : null}
                 <span className="contract-models-field__name">{row.name}</span>
+                {row.required ? (
+                  <span className="contract-models-pill" style={{ marginLeft: "0.45rem" }}>
+                    requis
+                  </span>
+                ) : null}
+                {userId && slug ? (
+                  <div className="ml-auto flex items-center justify-end gap-1">
+                    {fieldAnnotations?.[row.name] ? (
+                      <button
+                        type="button"
+                        className="rounded-full bg-orange-500 px-2 py-1 text-[11px] font-bold text-white hover:bg-orange-600 cursor-pointer"
+                        onClick={() => onFieldClick?.(row.name)}
+                      >
+                        {fieldAnnotations[row.name]}
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="rounded-full bg-gray-100 px-2 py-1 text-[11px] font-bold text-gray-600 hover:bg-gray-200 cursor-pointer"
+                      onClick={() => openAnnotate(row)}
+                    >
+                      Annotate
+                    </button>
+                  </div>
+                ) : null}
               </div>
             </td>
 
             <td className="contract-models-cell contract-models-cell--type">
-              <span className="contract-models-type">{row.type}</span>
+              <div className="flex items-center" style={{ minHeight: "1.9rem" }}>
+                <span className="contract-models-type">{row.type}</span>
+              </div>
+            </td>
+
+            <td className="contract-models-cell contract-models-cell--pii">
+              <div className="flex items-center" style={{ minHeight: "1.9rem" }}>
+                {row.piiClassification ? (
+                  <span className="contract-models-pill" style={piiStyle}>
+                    {row.piiClassification}
+                  </span>
+                ) : (
+                  <span className="text-gray-300" aria-hidden="true">—</span>
+                )}
+              </div>
             </td>
 
             <td className="contract-models-cell contract-models-cell--details">
-              <div>{row.description}</div>
+              <div className="flex items-center" style={{ minHeight: "1.9rem" }}>
+                <div>{row.description}</div>
+              </div>
 
               {row.businessRules.length > 0 ? (
                 <div className="contract-models-details__meta">Rules: {row.businessRules.join(", ")}</div>
@@ -138,24 +240,45 @@ export function ModelFieldsTable({ fields }: { fields: ContractField[] }) {
                   Exemple : <span className="font-mono">{String(row.example)}</span>
                 </div>
               ) : null}
-
-              <div className="contract-models-details__pills">
-                {row.required ? (
-                  <span className="contract-models-pill">
-                    requis
-                  </span>
-                ) : null}
-
-                {row.piiClassification ? (
-                  <span className={piiClassName}>
-                    PII : {row.piiClassification}
-                  </span>
-                ) : null}
-              </div>
             </td>
           </tr>
         );
       })}
     </tbody>
+    {annotating && userId ? createPortal(
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50" onClick={() => { setAnnotating(null); setAnnotationText(""); }} />
+        <div className="relative z-10 w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
+          <h3 className="text-base font-semibold text-gray-900">{t("annotate")} pour {annotating.name}</h3>
+          <textarea
+            className="mt-4 w-full rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-orange-500"
+            rows={4}
+            placeholder={t("annotatePlaceholder")}
+            value={annotationText}
+            onChange={(e) => setAnnotationText(e.target.value)}
+            autoFocus
+          />
+          <div className="mt-5 flex items-center justify-end gap-2 border-t border-gray-100 pt-3">
+            <button
+              type="button"
+              onClick={() => { setAnnotating(null); setAnnotationText(""); }}
+              className="rounded-md px-4 py-2 text-sm text-gray-600 hover:bg-gray-100"
+            >
+              {t("close")}
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleAnnotate()}
+              disabled={!annotationText.trim()}
+              className="catalog-primary-link"
+            >
+              {t("annotate")}
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    ) : null}
+    </>
   );
 }

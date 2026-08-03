@@ -1,0 +1,295 @@
+---
+asset:
+  id: "silver/personne_host"
+  name: "PERSONNE HOST"
+  maturity: "silver"
+  domain: "FICHE_SIGNAL"
+  context: "PERSONNE"
+  type: "data_product"
+  description: >
+    Vue consolidée des personnes côté système central (Host), regroupant
+    les informations d'identité, profil, segmentation, données corporatives,
+    adresses, contacts et documents d'identité. Clé unique: numero_personne_host.
+  version: "1.0.0"
+  owners:
+    business_owner:
+      name: "FINANCE GROUP"
+      team: "FINANCE GROUP"
+      email: "business.team@attijariwafa.com"
+    technical_owner:
+      name: "DATALAKE"
+      team: "DATALAKE"
+      email: "m.mouatacim@attijariwafa.com"
+  status: "active"
+  tags:
+    - customer360
+    - personne
+    - fiche_signaletique
+    - silver
+    - data-product
+
+contract:
+  primary_key:
+    - "numero_personne_host"
+  grain: "Une ligne par personne dans le système Host"
+  refresh:
+    frequency: "daily"
+  sla:
+    availability: "99.0"
+    ready_by: "Le 05 de chaque mois a 10h"
+    max_delay_minutes: 60
+  schema:
+    fields:
+      - name: "numero_personne_host"
+        type: "integer"
+        description: "Identifiant unique de la personne dans le système central (Host)"
+        required: true
+        pii_classification: "indirect"
+        business_rules:
+          - "Must exist"
+          - "Must be unique"
+      - name: "raison_sociale_1"
+        type: "string"
+        description: "Nom principal de la personne (raison sociale ou nom complet)"
+        required: false
+        pii_classification: "direct"
+        business_rules:
+          - "Can be null"
+      - name: "raison_sociale_2"
+        type: "string"
+        description: "Nom secondaire de la personne (complément de raison sociale)"
+        required: false
+        pii_classification: "direct"
+        business_rules:
+          - "Can be null"
+      - name: "profil"
+        type: "json"
+        description: >
+          Informations de profil incluant le titre civil, le type de personne,
+          le sexe, la date de naissance, etc.
+        required: true
+        pii_classification: "direct"
+        business_rules:
+          - "Must be valid JSON object"
+      - name: "segmentation"
+        type: "json"
+        description: >
+          Informations de segmentation incluant segment, sous-segment,
+          niveau de service, marché, segment comportemental
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - "Must be valid JSON object"
+      - name: "corporate"
+        type: "json"
+        description: >
+          Informations corporatives incluant profession, secteur, statut,
+          employeur, forme juridique, capital, revenus, effectifs
+        required: true
+        pii_classification: "sensitive"
+        business_rules:
+          - "Must be valid JSON object"
+      - name: "addresses"
+        type: "json"
+        description: "Tableau d'objets adresse (type, ligne1, ligne2, ville, pays, etc.)"
+        required: true
+        pii_classification: "direct"
+        business_rules:
+          - "Must be valid JSON array"
+      - name: "contacts"
+        type: "json"
+        description: >
+          Tableau d'objets contact avec type, valeur, catégorie et pays
+          (téléphone, email, etc.)
+        required: true
+        pii_classification: "direct"
+        business_rules:
+          - "Must be valid JSON array"
+      - name: "identityDocuments"
+        type: "json"
+        description: >
+          Tableau d'objets document d'identité avec numéro, date d'expiration,
+          lieu de délivrance
+        required: true
+        pii_classification: "sensitive"
+        business_rules:
+          - "Must be valid JSON array"
+      - name: "nationalities"
+        type: "json"
+        description: "Tableau d'objets nationalité avec pays, code et type"
+        required: true
+        pii_classification: "direct"
+        business_rules:
+          - "Must be valid JSON array"
+      - name: "contactPersons"
+        type: "json"
+        description: "Tableau d'objets personne de contact"
+        required: true
+        pii_classification: "direct"
+        business_rules:
+          - "Must be valid JSON array"
+      - name: "risque"
+        type: "json"
+        description: >
+          Informations de risque incluant notation, date de notation,
+          incidents
+        required: true
+        pii_classification: "sensitive"
+        business_rules:
+          - "Must be valid JSON object"
+      - name: "gestionnaire"
+        type: "json"
+        description: >
+          Informations du gestionnaire principal incluant nom, prénom,
+          code agence
+        required: true
+        pii_classification: "indirect"
+        business_rules:
+          - "Must be valid JSON object"
+      - name: "run_date"
+        type: "date"
+        description: "Date d'exécution du build du data product"
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - "date of data product build"
+      - name: "version"
+        type: "string"
+        description: "Version de la logique de production"
+        required: true
+        pii_classification: "none"
+
+quality:
+  checks:
+    - name: "completeness_numero_personne_host"
+      type: "completeness"
+      field: "numero_personne_host"
+      threshold: 1.0
+      critical: true
+    - name: "uniqueness_numero_personne_host"
+      type: "uniqueness"
+      field: "numero_personne_host"
+      threshold: 1.0
+      critical: true
+    - name: "completeness_profil"
+      type: "completeness"
+      field: "profil"
+      threshold: 1.0
+      critical: true
+    - name: "completeness_segmentation"
+      type: "completeness"
+      field: "segmentation"
+      threshold: 1.0
+      critical: true
+    - name: "completeness_run_date"
+      type: "completeness"
+      field: "run_date"
+      threshold: 1.0
+      critical: true
+    - name: "valid_json_fields"
+      type: "rule"
+      expression: >
+        profil IS NOT NULL AND segmentation IS NOT NULL
+        AND corporate IS NOT NULL AND addresses IS NOT NULL
+      critical: true
+    - name: "freshness_check"
+      type: "freshness"
+      field: "run_date"
+      threshold: 1
+      critical: true
+  on_failure:
+    action: "block_publication"
+    notify:
+      - "m.mouatacim@attijariwafa.com"
+      - "business.team@attijariwafa.com"
+
+security:
+  classification: "confidential"
+  pii:
+    contains_pii: true
+    notes: >
+      Contient des données PII directes: noms, adresses, contacts,
+      documents d'identité, et informations corporatives sensibles.
+  access_policies:
+    roles:
+      - name: "data_management"
+        permissions:
+          - "read"
+      - name: "data_eng"
+        permissions:
+          - "read"
+      - name: "datalake"
+        permissions:
+          - "read"
+          - "write"
+    row_level_filters:
+      enabled: false
+      rules: []
+    column_masking:
+      - field: "numero_personne_host"
+        policy: "mask_partial"
+      - field: "raison_sociale_1"
+        policy: "mask_partial"
+      - field: "raison_sociale_2"
+        policy: "mask_partial"
+
+inputs:
+  sources:
+    - name: "silver_fiche_signaletique"
+      type: "ICEBERG"
+      description: "Fiche signalétique personne_host (silver)"
+      owner: "DATALAKE"
+      ready_by: "22h"
+  transformations:
+    - step: "deduplication"
+      description: "Dédoublonnage par numero_personne_host en gardant le dernier run_date"
+    - step: "field_extraction"
+      description: "Sélection et renommage des champs personne depuis la fiche signalétique"
+    - step: "metadata_enrichment"
+      description: "Ajout des métadonnées run_date et version"
+
+output:
+  table_name: "personne_host"
+  storage_format: "ICEBERG"
+  location: >
+    /warehouse/tablespace/managed/hive/awb_silver.db/personne_host
+  partitioning:
+    - "run_date"
+  retention:
+    type: "time_based"
+    value: "365d"
+
+serving:
+  technology:
+    type: "HIVE"
+    enabled: true
+    tables:
+      - name: "view_personne_host"
+        source_table: "personne_host"
+    notes: "Vue Hive pour les consommateurs"
+    query_url: "https://datalake.com/query/{tableName}"
+
+operations:
+  airflow_dag_id: "dp_silver_personne_host"
+  schedule_cron: "0 4 * * *"
+  expected_runtime_minutes: 30
+  alerts_channel: "#alerts-personne-host-dp"
+  dependencies:
+    - "fiche_signaletique_silver_SUCCESS.txt"
+  retries:
+    max_retries: 2
+    backoff_minutes: 10
+  logging:
+    level: "INFO"
+    log_retention_days: 30
+
+lineage:
+  upstream:
+    - "silver/fiche_signaletique"
+  downstream:
+    - "gold/crm"
+    - "gold/dat"
+    - "gold/gestionnaire2"
+    - "customer360_product"
+  documentation_links:
+    - "https://gitlab.udd.attijariwafa.net/datalake/data-product-contract"

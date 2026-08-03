@@ -1,0 +1,159 @@
+asset:
+  id: agriculture_snapshot
+  name: AGRICULTURE AGRICULTURE SNAPSHOT
+  maturity: bronze
+  domain: agriculture
+  context: agriculture_snapshot
+  type: dataset
+  description: Dataset for agriculture agriculture_snapshot including relevant fields,
+    metrics and tracking data for contract 15.
+  version: 1.0.15
+  owners:
+    business_owner:
+      name: Customer Success
+      team: AGRICU
+      email: agriculture@attijariwafa.com
+    technical_owner:
+      name: QUALITY
+      team: DATALAKE
+      email: datalake@attijariwafa.com
+  status: active
+  tags:
+  - bronze
+  - daily
+  - agriculture
+contract:
+  primary_key:
+  - ID
+  grain: One record per event
+  refresh:
+    frequency: daily
+  sla:
+    availability: '99.5'
+    ready_by: '45:00'
+    max_delay_minutes: 60
+  schema:
+    fields:
+    - name: ID
+      type: string
+      description: Primary identifier for agriculture agriculture_snapshot
+      required: true
+      pii_classification: restricted
+      business_rules:
+      - ''
+    - name: NUM_ENR
+      type: string
+      description: Record number for agriculture agriculture_snapshot
+      required: true
+      pii_classification: none
+      business_rules:
+      - ''
+    - name: SOURCE
+      type: string
+      description: Source system for agriculture agriculture_snapshot
+      required: true
+      pii_classification: none
+      business_rules:
+      - ''
+    - name: STATUS
+      type: string
+      description: Record status
+      required: true
+      pii_classification: none
+      business_rules:
+      - ''
+    - name: CREATED_AT
+      type: timestamp
+      description: Creation timestamp for agriculture agriculture_snapshot
+      required: true
+      pii_classification: none
+      business_rules:
+      - ''
+      extra_properties:
+        sql_expression: FROM_UNIXTIME(UNIX_TIMESTAMP(CREATED_AT, 'yyyyMMdd'), 'yyyy-MM-dd')
+    - name: UPDATED_AT
+      type: timestamp
+      description: Last update timestamp
+      required: true
+      pii_classification: none
+      business_rules:
+      - ''
+    - name: AGRICULTURE_ID
+      type: string
+      description: agriculture agriculture_snapshot identifier
+      required: true
+      pii_classification: none
+      business_rules:
+      - ''
+    relations:
+    - ref_name: "stream_snapshots"
+      ref: "@agriculture_snapshot.ID > @agriculture_stream.ID"
+quality:
+  checks: []
+  on_failure:
+    action: warn
+    notify:
+    - data.engineering@attijariwafa.com
+security:
+  classification: public
+  pii:
+    contains_pii: true
+    notes: no PII mentioned
+  access_policies:
+    roles: []
+    row_level_filters:
+      enabled: false
+      rules: []
+    column_masking: []
+inputs:
+  sources:
+  - name: agriculture_agriculture_snapshot_source
+    type: FILE
+    description: Source file for agriculture agriculture_snapshot
+    owner: AGRICU
+    ready_by: '45:00'
+  transformations:
+  - step: ingest
+    description: ingest file
+output:
+  table_name: awb_rec.orc_agriculture_agriculture_snapshot_015
+  storage_format: ORC
+  location: hdfs://nameservice1/awb_filiale_rec/awb_ingestion/data/agriculture/agriculture_snapshot
+  partitioning:
+  - date_technique
+  retention:
+    type: time_based
+    value: 365 days
+serving:
+  technology:
+    type: ORC
+    enabled: true
+    name: agriculture_agriculture_snapshot
+    notes: ''
+    query_url: "https://datalake.com/query/{tableName}"
+operations:
+  airflow_dag_id: dag_agriculture_agriculture_snapshot_015
+  schedule_cron: 15 3 * * *
+  expected_runtime_minutes: 30
+  alerts_channel: email
+  dependencies:
+  - file arrival
+  retries:
+    max_retries: 1
+    backoff_minutes: 5
+  logging:
+    level: INFO
+    log_retention_days: 30
+lineage:
+  upstream:
+  - AGRICULTURE SOURCE
+  downstream: []
+  documentation_links: []
+extra_properties:
+  header_contains_date: false
+  date_position: -1
+  number_header: 1
+  number_footer: 1
+  separator: \x02
+  queue: launcher
+  env: rec

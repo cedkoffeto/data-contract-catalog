@@ -1,0 +1,281 @@
+"use client";
+
+import { memo, useContext, useMemo, useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { Handle, Position, NodeResizeControl, ResizeControlVariant, type NodeProps } from "@xyflow/react";
+import { Table, Key, ChevronUp, ChevronDown, Info } from "lucide-react";
+import { ViewModeCtx } from "./ModelGraph";
+import type { ContractTableNodeData } from "@/src/lib/data-model";
+
+const layerBorderColor: Record<string, string> = {
+  bronze: "#d97706",
+  silver: "#64748b",
+  gold:   "#ca8a04",
+};
+
+export const ContractTableNode = memo(function ContractTableNode({ selected, id, data }: NodeProps) {
+  const d = data as ContractTableNodeData;
+  const { viewMode, connectedFields, onHeaderClick, onFieldClick, searchMatchIds, collapsedTables, onToggleCollapse, connectedTableCount, onShowConnected } = useContext(ViewModeCtx);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const isSearchMatch = searchMatchIds?.has(id) ?? false;
+  const allFields = d.fields;
+  const nodeConnected = connectedFields.get(id);
+  const connectedCount = useMemo(() => nodeConnected ?? new Map<string, number>(), [nodeConnected]);
+  const connectedEdgeCount = connectedTableCount.get(id) ?? 0;
+  const [hoveredField, setHoveredField] = useState<string | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
+  const [errorHover, setErrorHover] = useState(false);
+  const [errorTooltipPos, setErrorTooltipPos] = useState<{ top: number; left: number } | null>(null);
+  const [headerHover, setHeaderHover] = useState(false);
+  const [headerTooltipPos, setHeaderTooltipPos] = useState<{ top: number; left: number } | null>(null);
+  const [ctxMenu, setCtxMenu] = useState<{ top: number; left: number } | null>(null);
+  const errors = useMemo(
+    () => [...(d.relationErrors ?? []), ...(d.primaryKeyErrors ?? [])],
+    [d.relationErrors, d.primaryKeyErrors],
+  );
+
+  useEffect(() => {
+    if (!ctxMenu) return;
+    const close = () => setCtxMenu(null);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setCtxMenu(null);
+    };
+    window.addEventListener("click", close);
+    window.addEventListener("contextmenu", close);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("click", close);
+      window.removeEventListener("contextmenu", close);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [ctxMenu]);
+
+  const collapsed = collapsedTables.has(id);
+  const showingDetailed = viewMode === "detailed" ? !collapsed : collapsed;
+
+  const fields = useMemo(() => {
+    if (showingDetailed) return allFields;
+    return allFields.filter((f) => (connectedCount.get(f.name) ?? 0) > 0);
+  }, [allFields, showingDetailed, connectedCount]);
+
+  const HEADER_H = 38;
+  const FIELD_H = 33;
+  const SUMMARY_H = 26;
+
+  const fieldYMap = useMemo(() => {
+    const map = new Map<string, number>();
+    const hasSummary = !showingDetailed && allFields.length > fields.length;
+    const offset = hasSummary ? SUMMARY_H : 0;
+    fields.forEach((f, i) => {
+      map.set(f.name, HEADER_H + offset + i * FIELD_H + FIELD_H / 2);
+    });
+    return map;
+  }, [fields, showingDetailed, allFields.length]);
+
+  return (
+    <div
+      ref={rootRef}
+      className={`rounded-xl border-2 transition-shadow ${
+        selected ? "border-blue-500 shadow-[0_4px_16px_rgba(0,0,0,0.1)]" : isSearchMatch ? "border-green-500 shadow-[0_4px_16px_rgba(0,0,0,0.1)]" : "border-gray-200 shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.1)]"
+      }`}
+      style={{ position: "relative" }}
+    >
+      <NodeResizeControl
+        position="left"
+        variant={ResizeControlVariant.Line}
+        className="!bg-transparent !opacity-0 hover:!opacity-100 !w-[6px] !left-[-3px] !border-0"
+        minWidth={180}
+        maxWidth={600}
+      />
+      <NodeResizeControl
+        position="right"
+        variant={ResizeControlVariant.Line}
+        className="!bg-transparent !opacity-0 hover:!opacity-100 !w-[6px] !right-[-3px] !border-0"
+        minWidth={180}
+        maxWidth={600}
+      />
+      {fields.map((f) => (
+        <Handle key={`h-src-${f.name}`} type="source" id={`${f.name}-right`} position={Position.Right}
+          style={{ top: fieldYMap.get(f.name) ?? 0, right: -2, opacity: 0, width: 1, height: 1 }} />
+      ))}
+      {fields.map((f) => (
+        <Handle key={`h-tgt-${f.name}`} type="target" id={`${f.name}-left`} position={Position.Left}
+          style={{ top: fieldYMap.get(f.name) ?? 0, left: -2, opacity: 0, width: 1, height: 1 }} />
+      ))}
+      {fields.map((f) => (
+        <Handle key={`h-out-l-${f.name}`} type="source" id={`${f.name}-left-out`} position={Position.Left}
+          style={{ top: fieldYMap.get(f.name) ?? 0, left: -2, opacity: 0, width: 1, height: 1 }} />
+      ))}
+      {fields.map((f) => (
+        <Handle key={`h-in-r-${f.name}`} type="target" id={`${f.name}-right-in`} position={Position.Right}
+          style={{ top: fieldYMap.get(f.name) ?? 0, right: -2, opacity: 0, width: 1, height: 1 }} />
+      ))}
+      <div className="relative overflow-hidden rounded-xl bg-white">
+        {/* Header */}
+        <div className="flex min-w-0 cursor-grab active:cursor-grabbing items-center gap-2 py-2 pl-4 pr-3" style={{ background: d.color.replace("hsl(", "hsla(").replace(")", ", 0.1)"), borderBottom: `2px solid ${d.color}40`, borderLeft: `4px solid ${layerBorderColor[d.maturity as string] || layerBorderColor.bronze}` }}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setCtxMenu({ top: e.clientY, left: e.clientX });
+          }}
+        >
+          <span className="flex h-5 cursor-pointer items-center" onClick={(e) => { e.stopPropagation(); window.open(`/contracts/${d.slug}`, "_blank", "noopener,noreferrer"); }} title="Open contract detail"><Table size={14} style={{ color: d.color }} /></span>
+          <span className="flex h-5 min-w-0 items-center text-xs font-semibold tracking-tight text-gray-900"
+            onClick={(e) => {
+              if (e.ctrlKey || e.metaKey) { e.stopPropagation(); window.open(`/contracts/${d.slug}`, "_blank", "noopener,noreferrer"); }
+              else onHeaderClick(d.slug);
+            }}
+            onMouseEnter={(e) => { setHeaderHover(true); const r = e.currentTarget.getBoundingClientRect(); setHeaderTooltipPos({ top: r.top - 6, left: r.right + 8 }); }}
+            onMouseLeave={() => { setHeaderHover(false); setHeaderTooltipPos(null); }}
+          ><span className="break-all leading-snug">{d.slug}</span>
+          {errors && errors.length > 0 && (
+            <>
+              <span
+                className="relative inline-flex h-5 w-5 shrink-0 items-center justify-center cursor-pointer"
+                onMouseEnter={(e) => { e.stopPropagation(); setErrorHover(true); setHeaderHover(false); setHeaderTooltipPos(null); const r = e.currentTarget.getBoundingClientRect(); setErrorTooltipPos({ top: r.top - 6, left: r.right + 4 }); }}
+                onMouseLeave={(e) => { e.stopPropagation(); setErrorHover(false); setErrorTooltipPos(null); }}
+              >
+                <span className="h-2 w-2 rounded-full bg-red-500" />
+              </span>
+              {errorHover && errorTooltipPos && createPortal(
+                <div
+                  className="editor-error-popover fixed"
+                  style={{ left: errorTooltipPos.left, top: errorTooltipPos.top }}
+                >
+                  <div className="editor-error-popover-arrow" />
+                  <div className="editor-error-popover-header">
+                    <span>Errors ({errors.length})</span>
+                    <button className="editor-error-popover-close" onClick={() => { setErrorHover(false); setErrorTooltipPos(null); }}>&times;</button>
+                  </div>
+                  <div className="editor-error-popover-body">
+                    {errors.map((e, i) => (
+                      <div key={i} className={i < errors.length - 1 ? "border-b border-gray-100 pb-2 mb-2" : ""}>
+                        <div className="text-[11px] font-semibold text-red-600">{e.message}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>,
+                document.body,
+              )}
+            </>
+          )}
+          </span>
+          <button
+            className="ml-auto flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded text-gray-400 transition-colors"
+            style={{ ["--btn-hover-bg" as string]: d.color.replace("hsl(", "hsla(").replace(")", ", 0.2)") }}
+            onClick={(e) => { e.stopPropagation(); onToggleCollapse(id); }}
+            title={showingDetailed ? "Collapse table" : "Expand table"}
+            onMouseEnter={(e) => { e.currentTarget.style.background = e.currentTarget.style.getPropertyValue("--btn-hover-bg"); e.currentTarget.style.color = d.color; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = ""; e.currentTarget.style.color = ""; }}
+          >
+            {showingDetailed ? <ChevronUp size={12} strokeWidth={1.5} /> : <ChevronDown size={12} strokeWidth={1.5} />}
+          </button>
+        </div>
+
+
+
+        {/* Fields */}
+        <div>
+          {fields.length === 0 && (
+            <div className="px-3 py-2 text-xs italic text-gray-400">No fields</div>
+          )}
+          {!showingDetailed && allFields.length > fields.length && (
+            <div
+              data-field="__summary__"
+              className="group flex h-[26px] items-center gap-2 px-3 text-[10px] text-gray-400 border-t border-gray-50 cursor-pointer hover:bg-gray-50 hover:text-gray-500"
+              onClick={(e) => {
+                if (e.ctrlKey || e.metaKey) { e.stopPropagation(); window.open(`/contracts/${d.slug}`, "_blank", "noopener,noreferrer"); }
+                else onFieldClick?.(d.slug);
+              }}
+            >
+              <span>{fields.length} connected · {allFields.length - fields.length} hidden</span>
+            </div>
+          )}
+          {fields.map((f) => {
+            const c = connectedCount.get(f.name) ?? 0;
+            const edgeCount = c > 0 ? c : 0;
+            return (
+              <div key={f.name} data-field={f.name} className="group relative flex h-[33px] min-w-0 cursor-pointer items-center gap-2 border-t border-gray-50 px-3 text-xs text-gray-700 hover:bg-gray-50" onClick={(e) => {
+                if (e.ctrlKey || e.metaKey) { e.stopPropagation(); window.open(`/contracts/${d.slug}`, "_blank", "noopener,noreferrer"); }
+                else onFieldClick?.(d.slug);
+              }}>
+                <span className={`min-w-0 font-mono text-[12px] leading-none break-all ${edgeCount > 0 ? "font-bold text-gray-900" : "text-gray-600"}`}>{f.name}</span>
+                {edgeCount > 0 ? (
+                  <Key size={10} className="shrink-0 text-amber-500" />
+                ) : (
+                  <span className="w-[10px] shrink-0" />
+                )}
+                <span className="w-4 shrink-0 flex items-center justify-center">
+                  {f.description && (
+                    <Info
+                      size={11}
+                      className="invisible group-hover:visible cursor-pointer text-gray-400 hover:text-blue-500 transition-colors"
+                      onMouseEnter={(e) => {
+                        setHoveredField(f.name);
+                        const rect = (e.currentTarget as unknown as HTMLElement).getBoundingClientRect();
+                        setTooltipPos({ top: rect.top - 6, left: rect.right + 8 });
+                      }}
+                      onMouseLeave={() => { setHoveredField(null); setTooltipPos(null); }}
+                    />
+                  )}
+                </span>
+                <span className="ml-auto whitespace-nowrap text-[11px] leading-none text-gray-400">{f.type}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      {hoveredField && tooltipPos && createPortal(
+        <div
+          className="editor-error-popover fixed"
+          style={{ left: tooltipPos.left, top: tooltipPos.top }}
+        >
+          <div className="editor-error-popover-arrow" />
+          <div className="editor-error-popover-header">
+            <span>{hoveredField}</span>
+            <span className="ml-auto font-mono text-[10px] text-gray-400">{allFields.find((f) => f.name === hoveredField)?.type}</span>
+          </div>
+          <div className="editor-error-popover-body">
+            <pre>{allFields.find((f) => f.name === hoveredField)?.description}</pre>
+          </div>
+        </div>,
+        document.body,
+      )}
+      {headerHover && headerTooltipPos && createPortal(
+        <div
+          className="editor-error-popover fixed"
+          style={{ left: headerTooltipPos.left, top: headerTooltipPos.top }}
+        >
+          <div className="editor-error-popover-arrow" />
+          <div className="editor-error-popover-header">
+            <span>{d.slug}</span>
+          </div>
+          <div className="editor-error-popover-body">
+            <pre>{d.label}{'\n'}layer: {d.maturity}{'\n'}domain: {d.domain}{'\n'}context: {d.context ?? ''}{'\n'}id: {id}</pre>
+          </div>
+        </div>,
+        document.body,
+      )}
+      {ctxMenu && connectedEdgeCount > 0 && createPortal(
+        <div
+          className="fixed z-[9999] min-w-[180px] rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
+          style={{ top: ctxMenu.top, left: ctxMenu.left }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"
+            onClick={() => { onShowConnected(id); setCtxMenu(null); }}
+          >
+            <span className="text-gray-400">🔗</span>
+            Show connected tables
+            <span className="ml-auto text-[10px] text-gray-400">{connectedEdgeCount}</span>
+          </button>
+        </div>,
+        document.body,
+      )}
+    </div>
+  );
+}, (prev, next) => {
+  return prev.selected === next.selected && prev.id === next.id && prev.data === next.data;
+});

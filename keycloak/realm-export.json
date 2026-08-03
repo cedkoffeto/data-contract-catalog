@@ -63,6 +63,141 @@
           "temporary": false
         }
       ]
+    },
+    {
+      "username": "admin.user",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Admin",
+      "lastName": "User",
+      "email": "admin.user@example.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "editor.user",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Editor",
+      "lastName": "User",
+      "email": "editor.user@example.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "reader.user",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Reader",
+      "lastName": "User",
+      "email": "reader.user@example.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "data_owner.user",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Data Owner",
+      "lastName": "User",
+      "email": "data_owner.user@example.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "de1",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Data Engineer",
+      "lastName": "User1",
+      "email": "de1.user@example.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "de2",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Data Engineer",
+      "lastName": "User2",
+      "email": "de2.user@example.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "de3",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Data Engineer",
+      "lastName": "User3",
+      "email": "de3.user@example.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "de4",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Data Engineer",
+      "lastName": "User4",
+      "email": "de4.user@example.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "de5",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Data Engineer",
+      "lastName": "User5",
+      "email": "de5.user@example.com",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ]
     }
   ]
 }

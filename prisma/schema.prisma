@@ -1,0 +1,241 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model UserProfile {
+  userId    String   @id @map("user_id")
+  firstName String   @default("") @map("first_name")
+  lastName  String   @default("") @map("last_name")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("user_profiles")
+}
+
+model UserContractPreference {
+  userId        String    @map("user_id")
+  contractSlug  String    @map("contract_slug")
+  isFavorite    Boolean   @default(false) @map("is_favorite")
+  isPinned      Boolean   @default(false) @map("is_pinned")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@id([userId, contractSlug])
+  @@index([userId])
+  @@index([userId, isPinned], map: "idx_user_contract_preferences_pinned")
+  @@map("user_contract_preferences")
+}
+
+model UserPreference {
+  userId             String   @id @map("user_id")
+  notificationChannel String   @default("in_app") @map("notification_channel")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@map("user_preferences")
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  action     String
+  actorId    String   @map("actor_id")
+  targetType String   @map("target_type")
+  targetId   String   @map("target_id")
+  details    String   @default("{}")
+  sessionId  String   @default("") @map("session_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([actorId])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+  @@map("audit_log")
+}
+
+model Subscription {
+  userId       String   @map("user_id")
+  contractSlug String   @map("contract_slug")
+  channel      String   @default("in_app")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@id([userId, contractSlug])
+  @@index([userId])
+  @@index([contractSlug])
+  @@map("subscriptions")
+}
+
+model Notification {
+  id           Int      @id @default(autoincrement())
+  userId       String   @map("user_id")
+  contractSlug String   @map("contract_slug")
+  type         String   @default("info")
+  title        String
+  message      String   @default("")
+  metadata     String   @default("{}")
+  isRead       Boolean  @default(false) @map("is_read")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+model Permission {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+
+  policies AccessPolicy[]
+
+  @@map("permissions")
+}
+
+model Group {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+
+  members     UserGroup[]
+  policies    AccessPolicy[]
+
+  @@map("groups")
+}
+
+model UserGroup {
+  userId  String @map("user_id")
+  groupId Int    @map("group_id")
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@id([userId, groupId])
+  @@index([userId])
+  @@index([groupId])
+  @@map("user_group")
+}
+
+model ContractIssue {
+  id          Int       @id @default(autoincrement())
+  contractSlug String   @map("contract_slug")
+  userId      String    @map("user_id")
+  body        String
+  status      String    @default("open")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  resolvedAt  DateTime? @map("resolved_at")
+
+  @@index([contractSlug, createdAt, id])
+  @@index([status])
+  @@map("contract_issues")
+}
+
+model ContractComment {
+  id            Int          @id @default(autoincrement())
+  contractSlug  String       @map("contract_slug")
+  userId        String       @map("user_id")
+  body          String
+  parentId      Int?         @map("parent_id")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  editedAt      DateTime?    @map("edited_at")
+
+  parent        ContractComment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: SetNull)
+  replies       ContractComment[] @relation("CommentReplies")
+  mentions      CommentMention[]
+  fieldRefs     CommentFieldReference[]
+
+  @@index([contractSlug, createdAt, id])
+  @@index([parentId])
+  @@index([parentId, id], map: "idx_contract_comments_parent_id_id")
+  @@map("contract_comments")
+}
+
+model CommentMention {
+  id        Int      @id @default(autoincrement())
+  commentId Int      @map("comment_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  comment ContractComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId])
+  @@index([userId])
+  @@index([commentId])
+  @@map("comment_mentions")
+}
+
+model CommentFieldReference {
+  id        Int      @id @default(autoincrement())
+  commentId Int      @map("comment_id")
+  fieldName String   @map("field_name")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  comment ContractComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, fieldName])
+  @@index([fieldName])
+  @@map("comment_field_references")
+}
+
+model ContractChangeRequest {
+  id              Int       @id @default(autoincrement())
+  contractSlug    String    @map("contract_slug")
+  editorId        String    @map("editor_id")
+  yamlContent     String    @map("yaml_content")
+  originalSha     String    @default("") @map("original_sha")
+  status          String    @default("pending")
+  gitlabMrId      Int?      @map("gitlab_mr_id")
+  gitlabMrUrl     String    @default("") @map("gitlab_mr_url")
+  rejectionReason String    @default("") @map("rejection_reason")
+  source          String    @default("app")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime? @map("updated_at")
+  resolvedAt      DateTime? @map("resolved_at")
+  resolvedBy      String?   @map("resolved_by")
+
+  @@index([status], map: "idx_change_requests_status")
+  @@index([contractSlug], map: "idx_change_requests_slug")
+  @@index([editorId], map: "idx_change_requests_editor")
+  @@map("contract_change_requests")
+}
+
+model AccessRequest {
+  id                  Int       @id @default(autoincrement())
+  userId              String    @map("user_id")
+  domain              String    @default("")
+  context             String    @default("")
+  dataContract        String    @default("") @map("data_contract")
+  requestedPermission String    @default("reader") @map("requested_permission")
+  message             String    @default("")
+  status              String    @default("pending")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime? @map("updated_at")
+
+  @@index([status])
+  @@index([userId])
+  @@index([requestedPermission])
+  @@map("access_requests")
+}
+
+model AccessPolicy {
+  id                Int      @id @default(autoincrement())
+  userId            String?  @map("user_id")
+  groupId           Int?     @map("group_id")
+  permissionId      Int      @map("permission_id")
+  domainScope       String?  @map("domain_scope")
+  contextScope      String?  @map("context_scope")
+  dataContractScope String?  @map("data_contract_scope")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  group      Group?     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([groupId])
+  @@index([permissionId])
+  @@index([domainScope])
+  @@index([contextScope])
+  @@index([dataContractScope])
+  @@index([domainScope, contextScope, dataContractScope, permissionId])
+  @@map("access_policies")
+}
+

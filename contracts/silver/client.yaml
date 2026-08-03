@@ -1,0 +1,250 @@
+---
+asset:
+  id: "silver/client"
+  name: "CLIENT"
+  maturity: "silver"
+  domain: "FICHE_SIGNAL"
+  context: "CLIENT"
+  type: "data_product"
+  description: >
+    Vue consolidée des clients du système central (Host), regroupant
+    les attributs de niveau client. Clé unique: numero_client_host.
+    Ce contrat est alimenté par la fiche signalétique client.
+  version: "1.0.0"
+  owners:
+    business_owner:
+      name: "FINANCE GROUP"
+      team: "FINANCE GROUP"
+      email: "business.team@attijariwafa.com"
+    technical_owner:
+      name: "DATALAKE"
+      team: "DATALAKE"
+      email: "m.mouatacim@attijariwafa.com"
+  status: "active"
+  tags:
+    - customer360
+    - client
+    - fiche_signaletique
+    - silver
+    - data-product
+
+contract:
+  primary_key:
+    - "numero_client_host"
+  grain: "Une ligne par client dans le système Host"
+  refresh:
+    frequency: "daily"
+  sla:
+    availability: "99.0"
+    ready_by: "Le 05 de chaque mois a 10h"
+    max_delay_minutes: 60
+  schema:
+    fields:
+      - name: "numero_client_host"
+        type: "integer"
+        description: "Identifiant unique du client dans le système central (Host)"
+        required: true
+        pii_classification: "indirect"
+        business_rules:
+          - "Must exist"
+          - "Must be unique"
+      - name: "raison_sociale_1"
+        type: "string"
+        description: "Raison sociale principale du client"
+        required: false
+        pii_classification: "direct"
+        business_rules:
+          - "Can be null"
+      - name: "raison_sociale_2"
+        type: "string"
+        description: "Raison sociale secondaire du client"
+        required: false
+        pii_classification: "direct"
+        business_rules:
+          - "Can be null"
+      - name: "profil"
+        type: "json"
+        description: >
+          Informations de profil client incluant le type de client,
+          le segment, le statut, etc.
+        required: true
+        pii_classification: "direct"
+        business_rules:
+          - "Must be valid JSON object"
+      - name: "segmentation"
+        type: "json"
+        description: >
+          Segmentation client incluant segment, sous-segment,
+          niveau de service, marché, segment comportemental
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - "Must be valid JSON object"
+      - name: "corporate"
+        type: "json"
+        description: >
+          Informations corporatives incluant forme juridique, secteur,
+          activité, capital, effectifs
+        required: true
+        pii_classification: "sensitive"
+        business_rules:
+          - "Must be valid JSON object"
+      - name: "risque"
+        type: "json"
+        description: >
+          Informations de risque client incluant notation, date de notation,
+          incidents, scoring
+        required: true
+        pii_classification: "sensitive"
+        business_rules:
+          - "Must be valid JSON object"
+      - name: "run_date"
+        type: "date"
+        description: "Date d'exécution du build du data product"
+        required: true
+        pii_classification: "none"
+        business_rules:
+          - "date of data product build"
+      - name: "version"
+        type: "string"
+        description: "Version de la logique de production"
+        required: true
+        pii_classification: "none"
+
+quality:
+  checks:
+    - name: "completeness_numero_client_host"
+      type: "completeness"
+      field: "numero_client_host"
+      threshold: 1.0
+      critical: true
+    - name: "uniqueness_numero_client_host"
+      type: "uniqueness"
+      field: "numero_client_host"
+      threshold: 1.0
+      critical: true
+    - name: "completeness_profil"
+      type: "completeness"
+      field: "profil"
+      threshold: 1.0
+      critical: true
+    - name: "completeness_segmentation"
+      type: "completeness"
+      field: "segmentation"
+      threshold: 1.0
+      critical: true
+    - name: "completeness_run_date"
+      type: "completeness"
+      field: "run_date"
+      threshold: 1.0
+      critical: true
+    - name: "valid_json_fields"
+      type: "rule"
+      expression: >
+        profil IS NOT NULL AND segmentation IS NOT NULL
+        AND corporate IS NOT NULL
+      critical: true
+    - name: "freshness_check"
+      type: "freshness"
+      field: "run_date"
+      threshold: 1
+      critical: true
+  on_failure:
+    action: "block_publication"
+    notify:
+      - "m.mouatacim@attijariwafa.com"
+      - "business.team@attijariwafa.com"
+
+security:
+  classification: "confidential"
+  pii:
+    contains_pii: true
+    notes: >
+      Contient des données PII directes: raisons sociales, profil,
+      et informations corporatives sensibles.
+  access_policies:
+    roles:
+      - name: "data_management"
+        permissions:
+          - "read"
+      - name: "data_eng"
+        permissions:
+          - "read"
+      - name: "datalake"
+        permissions:
+          - "read"
+          - "write"
+    row_level_filters:
+      enabled: false
+      rules: []
+    column_masking:
+      - field: "numero_client_host"
+        policy: "mask_partial"
+      - field: "raison_sociale_1"
+        policy: "mask_partial"
+      - field: "raison_sociale_2"
+        policy: "mask_partial"
+
+inputs:
+  sources:
+    - name: "silver_fiche_signaletique"
+      type: "ICEBERG"
+      description: "Fiche signalétique client (silver)"
+      owner: "DATALAKE"
+      ready_by: "22h"
+  transformations:
+    - step: "deduplication"
+      description: "Dédoublonnage par numero_client_host en gardant le dernier run_date"
+    - step: "client_level_extraction"
+      description: >
+        Extraction des attributs de niveau client depuis la fiche signalétique:
+        raison_sociale, profil, segmentation, corporate, risque
+    - step: "metadata_enrichment"
+      description: "Ajout des métadonnées run_date et version"
+
+output:
+  table_name: "client"
+  storage_format: "ICEBERG"
+  location: >
+    /warehouse/tablespace/managed/hive/awb_silver.db/client
+  partitioning:
+    - "run_date"
+  retention:
+    type: "time_based"
+    value: "365d"
+
+serving:
+  technology:
+    type: "HIVE"
+    enabled: true
+    tables:
+      - name: "view_client"
+        source_table: "client"
+    notes: "Vue Hive pour les consommateurs"
+    query_url: "https://datalake.com/query/{tableName}"
+
+operations:
+  airflow_dag_id: "dp_silver_client"
+  schedule_cron: "0 4 * * *"
+  expected_runtime_minutes: 30
+  alerts_channel: "#alerts-client-dp"
+  dependencies:
+    - "fiche_signaletique_silver_SUCCESS.txt"
+  retries:
+    max_retries: 2
+    backoff_minutes: 10
+  logging:
+    level: "INFO"
+    log_retention_days: 30
+
+lineage:
+  upstream:
+    - "silver/fiche_signaletique"
+  downstream:
+    - "silver/client_personne"
+    - "gold/crm"
+    - "gold/dat"
+    - "gold/gestionnaire2"
+    - "customer360_product"
+  documentation_links:
+    - "https://gitlab.udd.attijariwafa.net/datalake/data-product-contract"

@@ -228,6 +228,7 @@ serving:
       - name: "view_crm_reclamation"
         source_table: "crm_reclamation"
     notes: "Vue Hive pour les consommateurs des réclamations CRM"
+    query_url: "https://datalake.com/query/{tableName}"
 
 operations:
   airflow_dag_id: "dp_silver_crm_reclamation"

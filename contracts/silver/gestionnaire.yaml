@@ -98,6 +98,9 @@ contract:
         description: "Libellé de l'agence (division)"
         required: false
         pii_classification: "none"
+    relations:
+      - ref_name: "personne_host"
+        ref: "@gestionnaire.numero_personne_host > @personne_host.numero_personne_host"
 
 quality:
   checks:
@@ -227,6 +230,7 @@ serving:
       - name: "view_gestionnaire"
         source_table: "gestionnaire"
     notes: "Vue Hive pour les consommateurs avec la table gestionnaire enrichie"
+    query_url: "https://datalake.com/query/{tableName}"
 
 operations:
   airflow_dag_id: "dp_silver_gestionnaire"

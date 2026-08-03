@@ -6,16 +6,20 @@ import { Navbar } from "@/src/components/layout/Navbar";
 export function PageShell({
   children,
   footerVersion,
-  showFooter = true
+  showFooter = true,
+  scrollable = true,
 }: {
   children: ReactNode;
   footerVersion?: string;
   showFooter?: boolean;
+  scrollable?: boolean;
 }) {
   return (
-    <div className="app-shell min-h-full flex flex-col">
+    <div className="app-shell h-full flex flex-col">
       <Navbar />
-      {children}
+      <div className={`flex-1 min-h-0 flex flex-col ${scrollable ? "overflow-x-hidden overflow-y-auto" : "overflow-hidden"}`}>
+        {children}
+      </div>
       {showFooter ? <Footer version={footerVersion} /> : null}
     </div>
   );

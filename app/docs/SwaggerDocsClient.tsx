@@ -20,6 +20,7 @@ function ensureStylesheet(href: string) {
   const link = document.createElement("link");
   link.rel = "stylesheet";
   link.href = href;
+  link.crossOrigin = "anonymous";
   document.head.appendChild(link);
 }
 

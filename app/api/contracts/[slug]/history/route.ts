@@ -1,8 +1,13 @@
+export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
-
+import { apiError } from "@/src/lib/api-error";
+ 
 import { getContractBySlug } from "@/src/lib/contracts";
 import { getGitLabContractFilePath, getGitLabFileHistory, isGitLabConfigurationError } from "@/src/lib/gitlab";
-import { requireApiAuth } from "@/src/lib/require-auth";
+import { requireApiAuth, getGlobalPermissions } from "@/src/lib/require-auth";
+import { authorize } from "@/src/lib/access-control";
+import { withErrorHandling } from "@/src/lib/with-error-handling";
+import { logger } from "@/src/lib/logger";
 
 function toErrorLogPayload(error: unknown) {
   if (error instanceof Error) {
@@ -19,22 +24,34 @@ function toErrorLogPayload(error: unknown) {
   };
 }
 
-export async function GET(_request: Request, context: { params: { slug: string } }) {
-  const unauthorized = await requireApiAuth();
-  if (unauthorized) {
-    return unauthorized;
-  }
+async function GET(_request: Request, context: { params: Promise<{ slug: string }> }) {
+  const session = await requireApiAuth();
+  if (session instanceof Response) return session;
 
-  const slug = context.params.slug;
+  const { slug } = await context.params;
   const contract = await getContractBySlug(slug);
 
   if (!contract) {
-    return NextResponse.json({ error: "Contract not found" }, { status: 404 });
+    return apiError(`Contract "${slug}" not found`, 404);
+  }
+  const userId = session?.user?.name;
+  if (!userId) {
+    return apiError("Authentication required", 401);
+  }
+
+  const contractDomain = contract.data.asset?.domain ?? "";
+  const contractCtx = contract.data.asset?.context ?? "";
+  const permissions = await getGlobalPermissions(session);
+  if (!permissions.includes("admin")) {
+    const allowed = await authorize(userId, contractDomain, contractCtx, "read", slug);
+    if (!allowed) {
+      return apiError("Forbidden: insufficient permissions on this contract", 403);
+    }
   }
 
   try {
     const items = await getGitLabFileHistory(slug);
-    console.info("[contracts.history] Loaded contract history", {
+    logger.info("[contracts.history] Loaded contract history", {
       slug,
       count: items.length,
       firstItem: items[0] ?? null
@@ -50,20 +67,16 @@ export async function GET(_request: Request, context: { params: { slug: string }
       contractPath = null;
     }
 
-    console.error("[contracts.history] Git history lookup failed", {
+    logger.error("[contracts.history] Git history lookup failed", {
       slug,
       filePath,
       contractPath,
       ...toErrorLogPayload(error)
     });
 
-    const message = error instanceof Error ? error.message : "Failed to load repository history";
-
-    return NextResponse.json(
-      { error: message },
-      {
-        status: isGitLabConfigurationError(error) ? 503 : 500
-      }
-    );
+    return apiError(error instanceof Error ? error.message : "Internal server error", isGitLabConfigurationError(error) ? 503 : 500);
   }
 }
+
+export const GET_handler = withErrorHandling(GET);
+export { GET_handler as GET };

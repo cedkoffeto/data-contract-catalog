@@ -1,6 +1,11 @@
 import { getServerSession, type NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import KeycloakProvider from "next-auth/providers/keycloak";
+import { getUserPermissions } from "@/src/lib/rbac";
+import { getPinnedSlugs, getUserFavoriteSlugs } from "@/src/lib/preferences";
+import { getUserSubscriptions } from "@/src/lib/subscriptions";
+import { writeAuditLog } from "@/src/lib/audit";
+import { logger } from "@/src/lib/logger";
 
 type KeycloakTokenResponse = {
   access_token?: string;
@@ -73,6 +78,8 @@ async function authenticateWithKeycloak(username: string, password: string) {
     id: userInfo.sub ?? userInfo.preferred_username ?? username,
     name: userInfo.preferred_username ?? userInfo.name ?? username,
     email: userInfo.email ?? null,
+    givenName: userInfo.given_name ?? null,
+    familyName: userInfo.family_name ?? null,
     accessToken: tokenPayload.access_token,
     refreshToken: tokenPayload.refresh_token ?? null
   };
@@ -105,9 +112,16 @@ export const authOptions: NextAuthOptions = {
         try {
           return await authenticateWithKeycloak(username, password);
         } catch (error) {
-          console.error("[auth.credentials] Keycloak login failed", {
+          logger.error("[auth.credentials] Keycloak login failed", {
             message: error instanceof Error ? error.message : "Unknown authentication error"
           });
+          writeAuditLog({
+            action: "auth.login_failed",
+            actorId: username,
+            targetType: "user",
+            targetId: username,
+            details: { error: error instanceof Error ? error.message : "Unknown" },
+          }).catch(() => {});
           return null;
         }
       }
@@ -129,10 +143,47 @@ export const authOptions: NextAuthOptions = {
         if (preferredUsername) {
           token.preferredUsername = preferredUsername;
         }
+
+        const givenName =
+          "given_name" in profile && typeof profile.given_name === "string"
+            ? profile.given_name
+            : undefined;
+
+        const familyName =
+          "family_name" in profile && typeof profile.family_name === "string"
+            ? profile.family_name
+            : undefined;
+
+        if (givenName) token.givenName = givenName;
+        if (familyName) token.familyName = familyName;
       }
 
       if (user) {
-        token.preferredUsername = user.name;
+        if (typeof user.name === "string") token.preferredUsername = user.name;
+        if ("givenName" in user && typeof user.givenName === "string") token.givenName = user.givenName;
+        if ("familyName" in user && typeof user.familyName === "string") token.familyName = user.familyName;
+      }
+
+      // Enrich JWT with global role-based permissions on login/refresh
+      const userId = token.preferredUsername as string | undefined;
+      if (userId && !token.permissions) {
+        try {
+          const [perms, pinnedSlugs, favoriteSlugs, subscriptions] = await Promise.all([
+            getUserPermissions(userId),
+            getPinnedSlugs(userId),
+            getUserFavoriteSlugs(userId),
+            getUserSubscriptions(userId),
+          ]);
+          token.permissions = perms;
+          token.pinnedSlugs = pinnedSlugs;
+          token.favoriteSlugs = favoriteSlugs;
+          token.subscriptionSlugs = subscriptions.map((s) => s.contract_slug);
+        } catch (error) {
+          logger.error("[auth.jwt] Failed to fetch user data:", error);
+          token.permissions = [];
+          token.pinnedSlugs = [];
+          token.subscriptionSlugs = [];
+        }
       }
 
       return token;
@@ -142,9 +193,44 @@ export const authOptions: NextAuthOptions = {
         session.user.name = token.preferredUsername;
       }
 
+      if (session.user) {
+        const extra = session.user as Record<string, unknown>;
+        if (typeof token.givenName === "string") extra.givenName = token.givenName;
+        if (typeof token.familyName === "string") extra.familyName = token.familyName;
+        if (Array.isArray(token.permissions)) extra.permissions = token.permissions;
+        if (Array.isArray(token.pinnedSlugs)) extra.pinnedSlugs = token.pinnedSlugs;
+        if (Array.isArray(token.favoriteSlugs)) extra.favoriteSlugs = token.favoriteSlugs;
+        if (Array.isArray(token.subscriptionSlugs)) extra.subscriptionSlugs = token.subscriptionSlugs;
+      }
+
       return session;
     }
-  }
+  },
+  events: {
+    async signIn({ user }) {
+      if (!user?.name) return;
+      try {
+        await writeAuditLog({
+          action: "auth.login",
+          actorId: user.name,
+          targetType: "user",
+          targetId: user.name,
+        });
+      } catch { logger.warn("[auth] Failed to write audit log (signIn)"); }
+    },
+    async signOut({ session }) {
+      const userId = session?.user?.name;
+      if (!userId) return;
+      try {
+        await writeAuditLog({
+          action: "auth.logout",
+          actorId: userId,
+          targetType: "user",
+          targetId: userId,
+        });
+      } catch { logger.warn("[auth] Failed to write audit log (signOut)"); }
+    },
+  },
 };
 
 export function auth() {

@@ -7,7 +7,7 @@ asset:
   context: "EQUIPEMENT"
   type: "dataset"
   description: >
-    Vue consolidée du parc de cartes monétiques, incluant les caractéristiques des contrats, 
+    aaa Vue consolidée du parc de cartes , incluant les caractéristiques des contrats, 
     les statuts d'activation, les plafonds de paiement/retrait et les indicateurs d'usage.
   version: "1.0.0"
   owners:
@@ -39,7 +39,7 @@ contract:
     fields:
       - name: "numero_contrat"
         type: "string"
-        description: "Identifiant unique du contrat d'adhésion au service"
+        description: "aaa Identifiant unique du contrat d'adhésion au service"
         required: true
         pii_classification: "none"
         business_rules: [ ]
@@ -51,7 +51,7 @@ contract:
         business_rules: [ ]
       - name: "compte_support"
         type: "string"
-        description: "Compte technique sur lequel sont imputées les opérations de la carte"
+        description: "aaa Compte technique sur lequel sont imputées les opérations de la carte"
         required: false
         pii_classification: "none"
         business_rules: [ ]
@@ -283,7 +283,9 @@ contract:
         required: false
         pii_classification: "none"
         business_rules: [ ]
-
+    relations:
+      - ref_name: "personne_host"
+        ref: "@carte.numero_personne_host > @personne_host.numero_personne_host"
 
 quality:
   checks:
@@ -359,6 +361,12 @@ output:
     value: "365d"
 
 serving:
+  technology:
+    type: "ICEBERG"
+    enabled: true
+    name: "awb_prd.carte"
+    notes: ""
+    query_url: "https://datalake.com/query/{tableName}"
 
 operations:
   airflow_dag_id: "dp_carte"

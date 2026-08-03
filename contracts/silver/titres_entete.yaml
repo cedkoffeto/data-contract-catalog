@@ -89,6 +89,9 @@ contract:
         description: "Statut du compte titre"
         required: false
         pii_classification: "none"
+    relations:
+      - ref_name: "personne_host"
+        ref: "@titres_entete.numero_personne_host > @personne_host.numero_personne_host"
 
 quality:
   checks:
@@ -171,6 +174,7 @@ serving:
     enabled: true
     name: "gold_titres_entete_job"
     notes: "Spark job consuming the titres_entete silver table to enrich gold layer."
+    query_url: "https://datalake.com/query/{tableName}"
 
 operations:
   airflow_dag_id: "dp_titres_entete"

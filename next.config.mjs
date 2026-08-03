@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  turbopack: {
+    root: ".",
+  },
   async redirects() {
     return [
       {
@@ -9,7 +12,7 @@ const nextConfig = {
       },
       {
         source: '/:slug.html',
-        destination: '/:slug',
+        destination: '/contracts/:slug',
         permanent: true
       }
     ];

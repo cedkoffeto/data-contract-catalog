@@ -158,6 +158,9 @@ contract:
         description: "Commentaire"
         required: false
         pii_classification: "sensitive"
+    relations:
+      - ref_name: "personne_host"
+        ref: "@crm_comptes_rendu.numero_personne_host > @personne_host.numero_personne_host"
 
 quality:
   checks:
@@ -260,6 +263,7 @@ serving:
       - name: "view_crm_comptes_rendu"
         source_table: "crm_comptes_rendu"
     notes: "Vue Hive pour les consommateurs des comptes rendus CRM"
+    query_url: "https://datalake.com/query/{tableName}"
 
 operations:
   airflow_dag_id: "dp_silver_crm_comptes_rendu"
