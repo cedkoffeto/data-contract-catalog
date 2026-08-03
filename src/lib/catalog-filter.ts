@@ -32,7 +32,7 @@ export async function canEditContract(
   return authorize(userId, domain, context, "write", dataContract);
 }
 
-type PolicyRow = {
+export type PolicyRow = {
   domain_scope: string | null;
   context_scope: string | null;
   data_contract_scope: string | null;
@@ -44,7 +44,9 @@ type NormalizedPolicy = {
   slug: string;
 };
 
-function normalizePolicies(policies: PolicyRow[]): {
+export type NormalizedPolicies = ReturnType<typeof normalizePolicies>;
+
+export function normalizePolicies(policies: PolicyRow[]): {
   hasWildcard: boolean;
   bySlug: Map<string, NormalizedPolicy[]>;   // slug → policies referencing it
   byDomain: Map<string, NormalizedPolicy[]>;  // domain → policies
@@ -95,7 +97,7 @@ function addToMap<K, V>(map: Map<K, V[]>, key: K, value: V): void {
   arr.push(value);
 }
 
-function policyMatches(np: NormalizedPolicy, domain: string, context: string, slug: string): boolean {
+export function policyMatches(np: NormalizedPolicy, domain: string, context: string, slug: string): boolean {
   if (np.slug && np.slug !== slug) return false;
   if (np.domain && np.domain !== domain) return false;
   if (np.context && np.context !== context) return false;
@@ -228,7 +230,7 @@ export async function getAccessibleAndEditableSlugs(
   return { accessible, editable };
 }
 
-function matchCardsToPolicies(cards: CatalogCard[], policies: PolicyRow[]): Set<string> {
+export function matchCardsToPolicies(cards: CatalogCard[], policies: PolicyRow[]): Set<string> {
   if (policies.length === 0) return new Set();
   const lookup = normalizePolicies(policies);
   if (lookup.hasWildcard) return new Set(cards.map((c) => c.slug));
