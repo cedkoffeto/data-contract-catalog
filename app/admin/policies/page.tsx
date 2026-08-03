@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { t, tWith } from "@/src/lib/i18n";
 
-import { Button } from "@/src/components/ui/Button";
 import { ConfirmDialog } from "@/src/components/ui/ConfirmDialog";
 import { Toast } from "@/src/components/ui/Toast";
 import PolicyForm from "./PolicyForm";
@@ -71,7 +70,6 @@ export default function PoliciesPage() {
 
   const [assignMode, setAssignMode] = useState<"user" | "group">("user");
   const [allUsers, setAllUsers] = useState<Array<{ userId: string; email?: string | null }>>([]);
-  const [formKey, setFormKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [viewUserPolicies, setViewUserPolicies] = useState<ViewUserPolicies | null>(null);
   const [viewGroupMembers, setViewGroupMembers] = useState<ViewGroupMembers | null>(null);
@@ -134,7 +132,6 @@ export default function PoliciesPage() {
   async function handleCreate() {
     setError("");
     setSaving(true);
-    let conflictId: number | null = null;
     const permissionId = parseInt(newPermissionId, 10);
     if (isNaN(permissionId)) {
       setError(t("permissionRequired"));
@@ -176,7 +173,6 @@ export default function PoliciesPage() {
       const data = await safeJson(res);
       const info = getConflictInfo(data);
       if (info && (info.type === "overlap" || info.type === "broader")) {
-        conflictId = info.id as number | null;
         setConflictDialog({ body, message: info.message, mode: "create", type: info.type, affectedPolicies: info.affectedPolicies as ConflictDialogType["affectedPolicies"], newPolicy: info.newPolicy as ConflictDialogType["newPolicy"] });
       } else {
         setError((data?.conflict as Record<string, unknown>)?.message as string ?? t("conflictingPolicy"));

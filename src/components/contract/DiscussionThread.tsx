@@ -50,34 +50,6 @@ function renderBody(body: string, userMap?: Map<string, UserProfile>) {
   });
 }
 
-const USER_COLORS = [
-  "bg-purple-50", "bg-green-50", "bg-yellow-50", "bg-pink-50",
-  "bg-indigo-50", "bg-teal-50", "bg-rose-50", "bg-cyan-50",
-  "bg-lime-50", "bg-amber-50", "bg-violet-50", "bg-emerald-50",
-];
-
-const USER_COLORS_HEX = [
-  "#faf5ff", "#f0fdf4", "#fefce8", "#fdf2f8",
-  "#eef2ff", "#f0fdfa", "#fff1f2", "#ecfeff",
-  "#f7fee7", "#fffbeb", "#f5f3ff", "#ecfdf5",
-];
-
-function getUserBgColor(userId: string): string {
-  let hash = 0;
-  for (let i = 0; i < userId.length; i++) {
-    hash = ((hash << 5) - hash) + userId.charCodeAt(i);
-  }
-  return USER_COLORS[Math.abs(hash) % USER_COLORS.length];
-}
-
-function getUserBgHex(userId: string): string {
-  let hash = 0;
-  for (let i = 0; i < userId.length; i++) {
-    hash = ((hash << 5) - hash) + userId.charCodeAt(i);
-  }
-  return USER_COLORS_HEX[Math.abs(hash) % USER_COLORS_HEX.length];
-}
-
 type CommentNode = ContractComment & { replies: CommentNode[] };
 
 function parseCommentsToTree(flatComments: ContractComment[]): CommentNode[] {
@@ -319,7 +291,7 @@ function InlineReplyForm({
     position();
     window.addEventListener("scroll", position, { passive: true });
     return () => window.removeEventListener("scroll", position);
-  }, [replyShowMention]);
+  }, [replyShowMention, replyShowField]);
 
   async function handlePost() {
     if (!body.trim() || !userId) return;

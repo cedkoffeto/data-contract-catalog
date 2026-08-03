@@ -5,7 +5,7 @@ import Link from "next/link";
 import { GoBackButton } from "@/src/components/ui/GoBackButton";
 
 export default function GlobalError({
-  error,
+  error: _error,
   reset,
 }: {
   error: Error & { digest?: string };

@@ -31,10 +31,6 @@ function clearPermissionsCache(): void {
   effectivePermissionsCache.clear();
 }
 
-type AccessPolicyRow = {
-  permission_name: string;
-};
-
 type PermissionRow = {
   id: number;
   name: string;

@@ -2,8 +2,6 @@
 
 import { useEffect, useRef, type RefObject } from "react";
 
-type Handler = (event: MouseEvent | KeyboardEvent) => void;
-
 export function useClickOutside<T extends HTMLElement = HTMLElement>(
   ref: RefObject<T | null>,
   onClose: () => void,

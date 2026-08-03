@@ -1,6 +1,22 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import type { DataContract } from "@/src/lib/types";
+
+function useRailInset() {
+  const ref = useRef<SVGSVGElement | null>(null);
+  const [inset, setInset] = useState(6);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const update = () => setInset(Math.max(3, Math.min(14, Math.ceil(175 / Math.max(el.clientHeight, 1)) + 1)));
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return { ref, inset };
+}
 
 function nodes(values: string[] | undefined) {
   return (values ?? []).filter(Boolean);
@@ -26,6 +42,7 @@ function ConsumerIcon() {
 export function LineageGraph({ data, slug }: { data: DataContract; slug?: string }) {
   const upstream = nodes(data.lineage?.upstream);
   const downstream = nodes(data.lineage?.downstream);
+  const { ref: railRef, inset: i } = useRailInset();
 
   if (upstream.length === 0 && downstream.length === 0) {
     return null;
@@ -64,7 +81,7 @@ export function LineageGraph({ data, slug }: { data: DataContract; slug?: string
             <div className="flex w-20 shrink-0 flex-col items-center justify-center px-2">
               <svg className="w-full flex-1" viewBox="0 0 80 100" preserveAspectRatio="none" aria-hidden="true">
                 <path d="M 0 2 H 40 V 100" stroke="#cbd5e1" strokeWidth="1.5" fill="none" vectorEffect="non-scaling-stroke" />
-                <path d="M 0 2 H 40 V 100" stroke="#fb923c" strokeWidth="3.5" strokeLinecap="round" strokeDasharray="0 14" fill="none" vectorEffect="non-scaling-stroke" style={{ animation: "dcc-lineage-dot 1.2s linear infinite" }} />
+                <path d={`M ${i} ${Math.max(i, 2)} H ${40 - i} V ${100 - i}`} stroke="#fb923c" strokeWidth="3.5" strokeLinecap="round" strokeDasharray="0 14" fill="none" vectorEffect="non-scaling-stroke" style={{ animation: "dcc-lineage-dot 1.2s linear infinite" }} />
               </svg>
               <svg width="14" height="9" viewBox="0 0 14 9" className="mb-0.5 shrink-0" aria-hidden="true">
                 <polygon points="0,0 14,0 7,9" fill="#fb923c" />
@@ -72,9 +89,9 @@ export function LineageGraph({ data, slug }: { data: DataContract; slug?: string
               <span className="relative max-w-[96px] truncate rounded-md border border-gray-200 bg-white px-2 py-1 text-center font-mono text-[11px] font-semibold text-gray-800" title={slug ?? ""}>
                 {slug}
               </span>
-              <svg className="mt-0.5 w-full flex-1" viewBox="0 0 80 100" preserveAspectRatio="none" aria-hidden="true">
+              <svg ref={railRef} className="mt-0.5 w-full flex-1" viewBox="0 0 80 100" preserveAspectRatio="none" aria-hidden="true">
                 <path d="M 40 0 V 100 H 80" stroke="#cbd5e1" strokeWidth="1.5" fill="none" vectorEffect="non-scaling-stroke" />
-                <path d="M 40 0 V 100 H 80" stroke="#60a5fa" strokeWidth="3.5" strokeLinecap="round" strokeDasharray="0 14" fill="none" vectorEffect="non-scaling-stroke" style={{ animation: "dcc-lineage-dot 1.2s linear infinite" }} />
+                <path d={`M 40 ${i} V ${100 - i} H ${80 - i}`} stroke="#60a5fa" strokeWidth="3.5" strokeLinecap="round" strokeDasharray="0 14" fill="none" vectorEffect="non-scaling-stroke" style={{ animation: "dcc-lineage-dot 1.2s linear infinite" }} />
               </svg>
               <svg width="9" height="14" viewBox="0 0 9 14" className="-mt-[7px] self-end shrink-0" aria-hidden="true">
                 <polygon points="0,0 0,14 9,7" fill="#60a5fa" />

@@ -172,7 +172,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
     return Array.from(unique).sort((a, b) => a.localeCompare(b));
   }, [cards]);
 
-  const [domainCounts, contextCounts, maturityCounts, contextCountsFiltered] = useMemo(() => {
+  const [domainCounts, contextCounts, maturityCounts] = useMemo(() => {
     const ft = debouncedFreeText.trim().toLowerCase();
     const mfEntries = Object.entries(multiFilters);
 
@@ -187,7 +187,6 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
     const dc: Record<string, number> = {};
     const cc: Record<string, number> = {};
     const mc: Record<string, number> = {};
-    const ccf: Record<string, number> = {};
 
     for (const card of cards) {
       if (ft && !card.searchData.includes(ft)) continue;
@@ -220,18 +219,9 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
           }
         }
       }
-
-      if (matchMultiSkip(card, null)) {
-        if (selectedDomain === ALL_DOMAINS || card.domain.trim() === selectedDomain) {
-          if (selectedMaturities.size === 0 || selectedMaturities.has(card.maturity.trim())) {
-            const c2 = card.context.trim();
-            if (c2) ccf[c2] = (ccf[c2] ?? 0) + 1;
-          }
-        }
-      }
     }
 
-    return [dc, cc, mc, ccf];
+    return [dc, cc, mc];
   }, [cards, debouncedFreeText, multiFilters, selectedDomain, selectedContexts, selectedMaturities, showOnlyAccessible, showFavoritesOnly]);
 
   const visibleCards = useMemo(() => {
@@ -307,7 +297,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
     });
     window.dispatchEvent(new CustomEvent("subscription-changed", { detail: { slug, subscribed: !currentlySubscribed } }));
     showToast(currentlySubscribed ? t("subscriptionRemoved") : t("subscriptionActivated"));
-  }, [showToast]);
+  }, [showToast, t]);
 
   const accessibleCount = useMemo(() => cards.filter((c) => c.accessible).length, [cards]);
   const favoriteCount = useMemo(() => cards.filter((c) => c.isFavorite).length, [cards]);
@@ -319,7 +309,7 @@ export function CatalogClient({ cards: initialCards, canRequestUpgrade, gitError
       { label: t("contexts"), value: contexts.length.toString().padStart(2, "0") },
       { label: t("maturityTiers"), value: maturities.length.toString().padStart(2, "0") }
     ],
-    [cards.length, domains.length, contexts.length, maturities.length]
+    [cards.length, domains.length, contexts.length, maturities.length, t]
   );
 
   const multiOptions = useMemo(() => {

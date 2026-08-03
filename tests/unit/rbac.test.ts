@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { hasPermission, canWrite, canAdmin } from "@/src/lib/rbac";
-import type { Permission } from "@/src/lib/rbac";
 
 describe("hasPermission", () => {
   it("returns true when admin is in the permission set regardless of required level", () => {

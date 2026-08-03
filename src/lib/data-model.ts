@@ -1,4 +1,4 @@
-import { Position, type Node, type Edge } from "@xyflow/react";
+import { type Node, type Edge } from "@xyflow/react";
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -115,17 +115,6 @@ export type LoadedModel = {
   relations: { ref_name: string; ref: string }[];
   sourceFile: string;
   layer: string;
-};
-
-const layerStroke: Record<string, string> = {
-  bronze: "#b45309",
-  silver: "#475569",
-  gold: "#a16207",
-};
-const layerStrokeLight: Record<string, string> = {
-  bronze: "#d97706",
-  silver: "#64748b",
-  gold: "#ca8a04",
 };
 
 function domainColor(domain: string): string {
@@ -310,11 +299,11 @@ export function parseContractsToGraph(
   // Merge edges by table pair + cardinality direction (one edge per direction)
   const mergeMap = new Map<string, Edge>();
   for (const e of edges) {
-    const ed = e.data as { cardSource?: string; cardTarget?: string; ref_name?: string; ref?: string; parsed?: any };
+    const ed = e.data as { cardSource?: string; cardTarget?: string; ref_name?: string; ref?: string; parsed?: unknown };
     const mergeKey = `${e.source}|${e.target}|${ed.cardSource}|${ed.cardTarget}`;
     const existing = mergeMap.get(mergeKey);
     if (existing) {
-      const existingEd = existing.data as { refs?: string[]; parsed?: any[] };
+      const existingEd = existing.data as { refs?: string[]; parsed?: unknown[] };
       existingEd.refs = [...(existingEd.refs ?? []), ed.ref_name ?? ed.ref ?? ""];
       existingEd.parsed = [...(existingEd.parsed ?? []), ed.parsed];
       existing.label = [existing.label, e.label].filter(Boolean).join(", ");
@@ -466,7 +455,6 @@ export function layoutGraph(
   connectedFields?: Map<string, Map<string, number>>,
   viewMode?: "detailed" | "compact",
   containerWidth?: number,
-  visualGap = 30,
   collapsedTables?: Set<string>,
 ): { nodes: Node[]; edges: Edge[] } {
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
@@ -488,7 +476,6 @@ export function layoutGraph(
       const pos = positions.get(n.id);
       if (!pos) return n;
       const h = nodeHeight(n, connectedFields, viewMode, collapsedTables?.has(n.id));
-      const w = nodeWidth(n);
       return { ...n, position: { x: pos.x - gridWidth / 2, y: pos.y - h / 2 } };
     });
     return { nodes: laidOut, edges };
@@ -769,7 +756,6 @@ export function layoutGraph(
 
 
 export function layoutLayerGraph(nodes: Node[], edges: Edge[], connectedFields?: Map<string, Map<string, number>>, viewMode?: "detailed" | "compact", collapsedTables?: Set<string>): { nodes: Node[]; edges: Edge[] } {
-  const nodeById = new Map(nodes.map((n) => [n.id, n]));
   const LAYER_ORDER = ["bronze", "silver", "gold"];
   const LAYER_GAP = 20;
   const VERTICAL_GAP = 30;
@@ -847,7 +833,7 @@ export function layoutLayerGraph(nodes: Node[], edges: Edge[], connectedFields?:
   // --- Layout orphan tables in a grid to the right ---
   if (orphans.length > 0) {
     const orphanGap = 20;
-    const { positions: orphanPositions, gridWidth } = layoutOrphanGrid(orphans, heights, orphanGap);
+    const { positions: orphanPositions } = layoutOrphanGrid(orphans, heights, orphanGap);
     const gridLeft = (connected.length > 0 ? cursorX + orphanGap : 0);
     for (const [id, pos] of orphanPositions) {
       positions.set(id, { x: pos.x + gridLeft, y: pos.y });
@@ -1092,7 +1078,7 @@ export function layoutByMode(nodes: Node[], edges: Edge[], mode: LayoutMode, con
     switch (mode) {
       case "LR":
       case "TB":
-        return layoutGraph(nodes, edges, mode, connectedFields, viewMode, containerWidth, 30, collapsedTables);
+        return layoutGraph(nodes, edges, mode, connectedFields, viewMode, containerWidth, collapsedTables);
       case "layer":
         return layoutLayerGraph(nodes, edges, connectedFields, viewMode, collapsedTables);
       case "star":
@@ -1103,16 +1089,15 @@ export function layoutByMode(nodes: Node[], edges: Edge[], mode: LayoutMode, con
 }
 
 // ── Port side assignment (G/D) after layout ─────────────────────────
-// Picks, for each edge, the pair of handles whose anchors are closest in 2D:
+// Picks, for each edge, the pair of field handles whose anchors are closest
+// in 2D. Edges only ever attach to the LEFT/RIGHT field handles of a table —
+// never to the top/bottom edges — regardless of layout direction:
 //   right→left  (source right field handle → target left field handle)
 //   left→right  (reversed)
-//   bottom→top  (only when the source table sits above the target)
-//   top→bottom  (only when the source table sits below the target)
 // Anchor positions use the real handle coordinates: field rows come from
-// fieldYMapOf (same formula as ContractTableNode), table edges from nodeHeight.
+// fieldYMapOf (same formula as ContractTableNode).
 // The directional rule (based on center-X distance) is kept as a tie-break so
 // that near-equal candidates keep the classic look.
-const PORT_STACK_THRESHOLD = 40;
 const PORT_TIE_EPSILON = 30;
 
 function shownFields(node: Node, connectedFields?: Map<string, Map<string, number>>, viewMode?: "detailed" | "compact", collapsed?: boolean): ContractField[] {
@@ -1146,13 +1131,7 @@ function edgeFields(e: Edge): { srcField?: string; tgtField?: string } {
 function directionalHandles(src: Node, tgt: Node, srcField: string, tgtField: string): { sourceHandle: string; targetHandle: string } {
   const srcCx = src.position.x + nodeWidth(src) / 2;
   const tgtCx = tgt.position.x + nodeWidth(tgt) / 2;
-  const dx = tgtCx - srcCx;
-  if (Math.abs(dx) <= PORT_STACK_THRESHOLD) {
-    return src.position.y < tgt.position.y
-      ? { sourceHandle: "bottom", targetHandle: "top" }
-      : { sourceHandle: "top-out", targetHandle: "bottom-in" };
-  }
-  if (dx > 0) return { sourceHandle: `${srcField}-right`, targetHandle: `${tgtField}-left` };
+  if (tgtCx - srcCx >= 0) return { sourceHandle: `${srcField}-right`, targetHandle: `${tgtField}-left` };
   return { sourceHandle: `${srcField}-left-out`, targetHandle: `${tgtField}-right-in` };
 }
 
@@ -1164,11 +1143,9 @@ export function assignPortSides(
   collapsedTables?: Set<string>,
 ): Edge[] {
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
-  const heights = new Map<string, number>();
   const fieldMaps = new Map<string, Map<string, number>>();
   for (const n of nodes) {
     const collapsed = collapsedTables?.has(n.id) ?? false;
-    heights.set(n.id, nodeHeight(n, connectedFields, viewMode, collapsed));
     fieldMaps.set(n.id, fieldYMapOf(n, connectedFields, viewMode, collapsed));
   }
 
@@ -1186,8 +1163,6 @@ export function assignPortSides(
     const tgtW = nodeWidth(tgt);
     const srcY = src.position.y;
     const tgtY = tgt.position.y;
-    const srcH = heights.get(src.id) ?? 0;
-    const tgtH = heights.get(tgt.id) ?? 0;
     const srcFieldY = fieldMaps.get(src.id)?.get(srcField);
     const tgtFieldY = fieldMaps.get(tgt.id)?.get(tgtField);
     if (srcFieldY === undefined || tgtFieldY === undefined) return null;
@@ -1203,20 +1178,6 @@ export function assignPortSides(
       sourceHandle: `${srcField}-left-out`,
       targetHandle: `${tgtField}-right-in`,
     });
-    if (srcY + srcH <= tgtY) {
-      c.push({
-        dist: dist(src.position.x + srcW / 2, srcY + srcH, tgt.position.x + tgtW / 2, tgtY),
-        sourceHandle: "bottom",
-        targetHandle: "top",
-      });
-    }
-    if (srcY >= tgtY + tgtH) {
-      c.push({
-        dist: dist(src.position.x + srcW / 2, srcY, tgt.position.x + tgtW / 2, tgtY + tgtH),
-        sourceHandle: "top-out",
-        targetHandle: "bottom-in",
-      });
-    }
     return c;
   }
 

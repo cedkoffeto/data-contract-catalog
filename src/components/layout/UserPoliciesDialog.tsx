@@ -8,8 +8,8 @@ import { SearchableSelect } from "@/src/components/ui/SearchableSelect";
 
 import { useT } from "@/src/lib/use-i18n";
 
-function RequestEditorForm({ onDone }: { onDone: () => void }) {
-  const { t, tWith } = useT();
+function RequestEditorForm() {
+  const { t } = useT();
   const [slug, setSlug] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
@@ -251,7 +251,7 @@ export function UserPoliciesDialog({
               )}
             </>
           )}
-          {showRequest ? <RequestEditorForm onDone={() => setShowRequest(false)} /> : null}
+          {showRequest ? <RequestEditorForm /> : null}
         </div>
 
         <div className="flex items-center justify-end border-t border-gray-100 px-4 py-2">

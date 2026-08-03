@@ -8,11 +8,11 @@ export function QualitySection({
   checks: QualityCheck[];
   onFailure?: { action?: string; notify?: string[] };
 }) {
+  const { t, tWith } = useT();
+
   if ((!checks || checks.length === 0) && !onFailure) {
     return null;
   }
-
-  const { t, tWith } = useT();
 
   const total = checks.length;
   const criticalCount = checks.filter((c) => c.critical).length;

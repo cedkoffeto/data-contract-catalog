@@ -51,7 +51,7 @@ type DashboardData = {
 };
 
 export default function AdminDashboard() {
-  const { t, tWith } = useT();
+  const { t } = useT();
   const searchParams = useSearchParams();
   const [data, setData] = useState<DashboardData | null>(null);
   const [activeTab, setActiveTab] = useState<"access" | "changes" | "audit">(() => {

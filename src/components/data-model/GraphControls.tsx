@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useReactFlow, useViewport } from "@xyflow/react";
-import { ZoomIn, ZoomOut, Maximize2, Eye, LayoutTemplate, LayoutList, AlignEndHorizontal, AlignEndVertical, Layers, LayoutGrid, Grid3x3, Check, Download, Star } from "lucide-react";
+import { ZoomIn, ZoomOut, Maximize2, Eye, LayoutTemplate, LayoutList, AlignEndHorizontal, AlignEndVertical, Layers, Grid3x3, Check, Download, Star } from "lucide-react";
 import type { LayoutMode } from "@/src/lib/data-model";
 import { useT } from "@/src/lib/use-i18n";
 

@@ -20,8 +20,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
   const isSearchMatch = searchMatchIds?.has(id) ?? false;
   const allFields = d.fields;
   const nodeConnected = connectedFields.get(id);
-  const connectedCount = nodeConnected ?? new Map<string, number>();
-  const isConnected = (name: string) => (connectedCount.get(name) ?? 0) > 0;
+  const connectedCount = useMemo(() => nodeConnected ?? new Map<string, number>(), [nodeConnected]);
   const connectedEdgeCount = connectedTableCount.get(id) ?? 0;
   const [hoveredField, setHoveredField] = useState<string | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
@@ -95,25 +94,21 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
         minWidth={180}
         maxWidth={600}
       />
-      <Handle type="source" position={Position.Bottom} id="bottom" className="!w-0 !h-0 !border-0 !bg-transparent !opacity-0" />
-      <Handle type="target" position={Position.Top} id="top" className="!w-0 !h-0 !border-0 !bg-transparent !opacity-0" />
-      <Handle type="source" position={Position.Top} id="top-out" className="!w-0 !h-0 !border-0 !bg-transparent !opacity-0" />
-      <Handle type="target" position={Position.Bottom} id="bottom-in" className="!w-0 !h-0 !border-0 !bg-transparent !opacity-0" />
       {fields.map((f) => (
         <Handle key={`h-src-${f.name}`} type="source" id={`${f.name}-right`} position={Position.Right}
-          style={{ top: fieldYMap.get(f.name) ?? 0, opacity: 0, width: 1, height: 1 }} />
+          style={{ top: fieldYMap.get(f.name) ?? 0, right: -2, opacity: 0, width: 1, height: 1 }} />
       ))}
       {fields.map((f) => (
         <Handle key={`h-tgt-${f.name}`} type="target" id={`${f.name}-left`} position={Position.Left}
-          style={{ top: fieldYMap.get(f.name) ?? 0, opacity: 0, width: 1, height: 1 }} />
+          style={{ top: fieldYMap.get(f.name) ?? 0, left: -2, opacity: 0, width: 1, height: 1 }} />
       ))}
       {fields.map((f) => (
         <Handle key={`h-out-l-${f.name}`} type="source" id={`${f.name}-left-out`} position={Position.Left}
-          style={{ top: fieldYMap.get(f.name) ?? 0, opacity: 0, width: 1, height: 1 }} />
+          style={{ top: fieldYMap.get(f.name) ?? 0, left: -2, opacity: 0, width: 1, height: 1 }} />
       ))}
       {fields.map((f) => (
         <Handle key={`h-in-r-${f.name}`} type="target" id={`${f.name}-right-in`} position={Position.Right}
-          style={{ top: fieldYMap.get(f.name) ?? 0, opacity: 0, width: 1, height: 1 }} />
+          style={{ top: fieldYMap.get(f.name) ?? 0, right: -2, opacity: 0, width: 1, height: 1 }} />
       ))}
       <div className="relative overflow-hidden rounded-xl bg-white">
         {/* Header */}
@@ -187,7 +182,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
           {!showingDetailed && allFields.length > fields.length && (
             <div
               data-field="__summary__"
-              className="group flex items-center gap-2 px-3 py-1.5 text-[10px] text-gray-400 border-t border-gray-50 cursor-pointer hover:bg-gray-50 hover:text-gray-500"
+              className="group flex h-[26px] items-center gap-2 px-3 text-[10px] text-gray-400 border-t border-gray-50 cursor-pointer hover:bg-gray-50 hover:text-gray-500"
               onClick={(e) => {
                 if (e.ctrlKey || e.metaKey) { e.stopPropagation(); window.open(`/contracts/${d.slug}`, "_blank", "noopener,noreferrer"); }
                 else onFieldClick?.(d.slug);
@@ -200,7 +195,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
             const c = connectedCount.get(f.name) ?? 0;
             const edgeCount = c > 0 ? c : 0;
             return (
-              <div key={f.name} data-field={f.name} className="group relative flex min-w-0 cursor-pointer items-center gap-2 border-t border-gray-50 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50" onClick={(e) => {
+              <div key={f.name} data-field={f.name} className="group relative flex h-[33px] min-w-0 cursor-pointer items-center gap-2 border-t border-gray-50 px-3 text-xs text-gray-700 hover:bg-gray-50" onClick={(e) => {
                 if (e.ctrlKey || e.metaKey) { e.stopPropagation(); window.open(`/contracts/${d.slug}`, "_blank", "noopener,noreferrer"); }
                 else onFieldClick?.(d.slug);
               }}>

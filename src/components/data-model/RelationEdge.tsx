@@ -50,16 +50,23 @@ function edgeOffset(position: Position, side: "source" | "target", distance: num
   return { dx: d, dy: 0 };
 }
 
+function handleSide(handle: string | null | undefined, fallback: Position): Position {
+  if (!handle) return fallback;
+  if (handle.endsWith("-right") || handle.endsWith("-right-in")) return Position.Right;
+  if (handle.endsWith("-left") || handle.endsWith("-left-out")) return Position.Left;
+  return fallback;
+}
+
 export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
   const [hovered, setHovered] = useState(false);
   const { highlightedNode, highlightedNeighbors, selectedEdge, onHoveredEdgeChange } = useContext(HighlightCtx);
 
-  const { source, target, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style, label, data, animated, id } = props;
+  const { source, target, sourceX, sourceY, targetX, targetY, sourceHandleId, targetHandleId, style, label, data, animated, id } = props;
 
-  const edgeData = (data ?? {}) as { cardSource?: string; cardTarget?: string; parsed?: any };
+  const edgeData = (data ?? {}) as { cardSource?: string; cardTarget?: string };
 
-  const sp = sourcePosition ?? Position.Right;
-  const tp = targetPosition ?? Position.Left;
+  const sp = handleSide(sourceHandleId, Position.Right);
+  const tp = handleSide(targetHandleId, Position.Left);
 
   const [edgePath, labelX, labelY] = getSmoothStepPath({
     sourceX,
@@ -114,9 +121,9 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
     animation: isAnimated
       ? `dcc-flow ${edgeActive ? "0.3s" : "0.8s"} linear infinite`
       : undefined,
-    opacity: isEdgeHighlighted ? 1 : 0.15,
+    opacity: edgeActive || isEdgeHighlighted ? 1 : 0.15,
     transition: "stroke 0.2s, filter 0.2s, opacity 0.2s",
-  }), [style, isAnimated, edgeActive, isEdgeHighlighted]);
+  }), [style, isAnimated, edgeActive, isEdgeHighlighted, edgeColor]);
 
   const cardPad = 4;
   const spDx = sp === Position.Left ? -cardPad : sp === Position.Right ? cardPad : 0;
@@ -173,7 +180,7 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
         fontWeight={edgeActive ? 800 : 600}
         fontFamily="monospace"
         pointerEvents="none"
-        opacity={isEdgeHighlighted ? 1 : 0.15}
+        opacity={edgeActive || isEdgeHighlighted ? 1 : 0.15}
         style={{ transition: "fill 0.2s, font-size 0.2s, font-weight 0.2s, opacity 0.2s" }}
       >
         {cardSource === "many" ? "*" : "1"}
@@ -189,7 +196,7 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
         strokeWidth={edgeActive ? 2 : 1.5}
         strokeLinecap="round"
         pointerEvents="none"
-        opacity={isEdgeHighlighted ? 1 : 0.15}
+        opacity={edgeActive || isEdgeHighlighted ? 1 : 0.15}
         style={{ transition: "stroke 0.2s, stroke-width 0.2s, opacity 0.2s" }}
       />
 
@@ -203,7 +210,7 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
         fontWeight={edgeActive ? 800 : 600}
         fontFamily="monospace"
         pointerEvents="none"
-        opacity={isEdgeHighlighted ? 1 : 0.15}
+        opacity={edgeActive || isEdgeHighlighted ? 1 : 0.15}
         style={{ transition: "fill 0.2s, font-size 0.2s, font-weight 0.2s, opacity 0.2s" }}
       >
         {cardTarget === "many" ? "*" : "1"}
@@ -219,7 +226,7 @@ export const RelationEdge = memo(function RelationEdge(props: EdgeProps) {
         strokeWidth={edgeActive ? 2 : 1.5}
         strokeLinecap="round"
         pointerEvents="none"
-        opacity={isEdgeHighlighted ? 1 : 0.15}
+        opacity={edgeActive || isEdgeHighlighted ? 1 : 0.15}
         style={{ transition: "stroke 0.2s, stroke-width 0.2s, opacity 0.2s" }}
       />
 

@@ -1,10 +1,10 @@
 "use client";
 
-import { Fragment, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { IChangeEvent } from "@rjsf/core";
 import { yaml as yamlLanguage } from "@codemirror/lang-yaml";
-import { foldGutter, indentUnit } from "@codemirror/language";
+import { indentUnit } from "@codemirror/language";
 import { RangeSet, RangeSetBuilder, StateField } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import { Decoration, gutter, GutterMarker } from "@codemirror/view";
@@ -42,10 +42,6 @@ import { validatePrimaryKey } from "@/src/lib/contract-validation";
 const YAML_FORM_TABS = [
   ["yaml", "YAML"],
   ["form", "Form"],
-] as const;
-const BOTTOM_TABS = [
-  ["validation", "Validation"],
-  ["history", "History"],
 ] as const;
 
 const uiSchema: UiSchema = {
@@ -206,7 +202,7 @@ function createErrorGutter(
     class: "cm-error-dot-gutter",
     markers: (view) => {
       const result: { from: number; to: number; value: GutterMarker }[] = [];
-      for (const [lineNumber, msg] of errorMap) {
+      for (const [lineNumber] of errorMap) {
         if (lineNumber < 1 || lineNumber > view.state.doc.lines) continue;
         const line = view.state.doc.line(lineNumber);
         result.push({ from: line.from, to: line.from, value: new ErrorDotGutterMarker(lineNumber) });
@@ -989,7 +985,7 @@ export function ContractEditorClient({
       }
     }
     return map;
-  }, [activeTab, isCompareYamlView, isContractDocument, isHistoryYamlView, selectedDocument.content, validationErrors, yamlValidationState.parseLineNumber, yamlValidationState.parseError, schema, validationErrorLineMap]);
+  }, [activeTab, isCompareYamlView, isContractDocument, isHistoryYamlView, validationErrors, yamlValidationState.parseLineNumber, yamlValidationState.parseError, schema, validationErrorLineMap, t]);
 
   const sortedErrorLines = useMemo(
     () => Array.from(validationErrorMap.keys()).sort((a, b) => a - b),
@@ -1258,7 +1254,7 @@ export function ContractEditorClient({
     return () => {
       isCancelled = true;
     };
-  }, [historyReloadToken, isContractDocument, selectedDocument.contractSlug, selectedDocument.id, selectedDocument.isDraft, selectedDocument.path]);
+  }, [historyReloadToken, isContractDocument, selectedDocument.contractSlug, selectedDocument.id, selectedDocument.isDraft, selectedDocument.path, activeHistoryStatus]);
 
   useEffect(() => {
     if (!isContractDocument || activeBottomTab !== "history") {

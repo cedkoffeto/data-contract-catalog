@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Search, ExternalLink, Key } from "lucide-react";
 import type { Edge } from "@xyflow/react";
 import type { DataModelContract } from "@/src/lib/data-model";

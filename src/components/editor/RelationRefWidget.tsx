@@ -11,7 +11,11 @@ function parseRef(ref: string) {
 }
 
 export function RelationRefWidget(props: WidgetProps) {
-  const slugIndex = (props.formContext?.slugIndex ?? new Map()) as Map<string, SlugIndexEntry>;
+  const { onChange } = props;
+  const slugIndex = useMemo(
+    () => (props.formContext?.slugIndex ?? new Map()) as Map<string, SlugIndexEntry>,
+    [props.formContext],
+  );
 
   const parsed = useMemo(() => parseRef(props.value ?? ""), [props.value]);
 
@@ -34,9 +38,9 @@ export function RelationRefWidget(props: WidgetProps) {
 
   const setValue = useCallback(
     (sourceSlug: string, sourceField: string, targetSlug: string, targetField: string) => {
-      props.onChange(`@${sourceSlug}.${sourceField} > @${targetSlug}.${targetField}`);
+      onChange(`@${sourceSlug}.${sourceField} > @${targetSlug}.${targetField}`);
     },
-    [props.onChange],
+    [onChange],
   );
 
   const sourceSlug = parsed?.sourceSlug ?? "";

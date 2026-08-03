@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 import { useT } from "@/src/lib/use-i18n";
 import { DiffView } from "@/src/components/contract/diff/DiffView";
@@ -27,7 +27,7 @@ export function CommitModal({
   onConfirm: (message: string) => Promise<void>;
   onClose: () => void;
 }) {
-  const { t, tWith } = useT();
+  const { t } = useT();
   const id = useId().replace(/:/g, "");
   const [message, setMessage] = useState(defaultMessage);
   const suppressCloseRef = useRef(false);
@@ -62,10 +62,10 @@ export function CommitModal({
     setMessage(lines.join("\n"));
   }
 
-  function handleClose() {
+  const handleClose = useCallback(() => {
     if (saving) return;
     onClose();
-  }
+  }, [saving, onClose]);
 
   async function handleConfirm() {
     setSaving(true);

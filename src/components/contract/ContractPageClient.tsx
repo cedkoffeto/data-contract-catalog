@@ -13,7 +13,6 @@ import { DiscussionThread } from "@/src/components/contract/DiscussionThread";
 import { ContractHeader } from "@/src/components/contract/ContractHeader";
 import { RequestEditorUpgrade } from "@/src/components/contract/RequestEditorUpgrade";
 import { SubscribeButton } from "@/src/components/contract/SubscribeModal";
-import { YamlDialogButton } from "@/src/components/contract/YamlDialogButton";
 import type { ContractComment, ContractHistoryEntry, DataContract } from "@/src/lib/types";
 import type { Subscription } from "@/src/lib/subscriptions";
 
@@ -253,7 +252,7 @@ export function ContractPageClient({
     loadFieldAnnotations();
   }, [loadFieldAnnotations]);
 
-  function handleFieldClick(fieldName: string) {
+  function handleFieldClick(_fieldName: string) {
     setActiveTab("discussion");
   }
 

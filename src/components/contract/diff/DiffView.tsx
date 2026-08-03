@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import type { DiffResult, SideBySideLine, WordDiffSegment } from "@/src/lib/diff";
+import type { DiffResult, WordDiffSegment } from "@/src/lib/diff";
 import { computeWordDiff } from "@/src/lib/diff";
 
 import { DiffSideBySide } from "./DiffSideBySide";
@@ -194,7 +194,6 @@ function DiffUnified({
           <tbody>
             {changes.map((change, index) => {
               const isHunkActive = activeHunk ? index >= activeHunk[0] && index <= activeHunk[1] : false;
-              const rowClass = change.type === "modified" ? "modified" : change.type;
               return (
                 <tr
                   key={index}

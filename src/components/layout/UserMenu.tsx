@@ -32,7 +32,7 @@ export function UserMenu({
   const [isOpen, setIsOpen] = useState(false);
   const [showPolicies, setShowPolicies] = useState(false);
   const [showNotificationPrefs, setShowNotificationPrefs] = useState(false);
-  const [currentLocale, setCurrentLocale] = useState<"en" | "fr">(() => {
+  const [currentLocale] = useState<"en" | "fr">(() => {
     if (typeof window === "undefined") return "en";
     const stored = localStorage.getItem("opencode_locale");
     if (stored === "en" || stored === "fr") return stored;

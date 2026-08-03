@@ -44,11 +44,12 @@ export function ServiceLevelsSection({
   frequency?: string;
   maxDelayMinutes?: number;
 }) {
+  const { t, tWith } = useT();
+
   if (!availability && !readyBy && !frequency && !maxDelayMinutes) {
     return null;
   }
 
-  const { t, tWith } = useT();
   const availabilityNum = typeof availability === "number" ? availability : Number(availability);
 
   return (

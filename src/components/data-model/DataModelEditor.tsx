@@ -16,7 +16,7 @@ import dynamic from "next/dynamic";
 const ModelGraph = dynamic(() => import("./ModelGraph").then((m) => m.ModelGraph), { ssr: false });
 import { FilterPanel } from "./FilterPanel";
 import { SidePanel } from "./SidePanel";
-import { Position, type Edge, type Node as FlowNode } from "@xyflow/react";
+import { type Edge, type Node as FlowNode } from "@xyflow/react";
 
 type ParsedRelation = { left?: { field?: string }; right?: { field?: string } };
 
@@ -142,16 +142,8 @@ export function DataModelEditor({
   );
 
   const layoutEdges = useMemo(() => {
-    const isTB = layoutMode === "TB";
-    return edges.map((e) => {
-      const ew = e as unknown as { sourcePosition?: Position; targetPosition?: Position };
-      return {
-        ...e,
-        sourcePosition: ew.sourcePosition ?? (isTB ? Position.Bottom : Position.Right),
-        targetPosition: ew.targetPosition ?? (isTB ? Position.Top : Position.Left),
-      };
-    });
-  }, [edges, layoutMode]);
+    return edges.map((e) => ({ ...e }));
+  }, [edges]);
 
   const [layoutResult, setLayoutResult] = useState<{ nodes: FlowNode[]; edges: Edge[] }>(() => {
     const nodes = layoutByMode(rawNodes, layoutEdges, layoutMode, connectedFields, viewMode, 0, collapsedTables).nodes;
@@ -168,7 +160,7 @@ export function DataModelEditor({
   const customWidthsRef = useRef<Map<string, number>>(new Map());
   const resizeDebounceRef = useRef<ReturnType<typeof setTimeout>>();
 
-  function relayoutWithIds(prev: FlowNode[], visibleIds: Set<string>): { nodes: FlowNode[]; edges: Edge[] } {
+  const relayoutWithIds = useCallback((prev: FlowNode[], visibleIds: Set<string>): { nodes: FlowNode[]; edges: Edge[] } => {
     const nodesWithWidths = rawNodes.map((n) => {
       const w = customWidthsRef.current.get(n.id);
       return typeof w === "number" ? { ...n, data: { ...n.data, _customWidth: w } } : n;
@@ -180,19 +172,11 @@ export function DataModelEditor({
     const prevMap = new Map(prev.map((n) => [n.id, n]));
     const nodes = rawNodes.map((n) => newPosMap.get(n.id) ?? prevMap.get(n.id) ?? n);
     return { nodes, edges: assignPortSides(nodes, layoutEdges, connectedFields, viewMode, collapsedTables) };
-  }
+  }, [rawNodes, layoutEdges, layoutMode, connectedFields, viewMode, collapsedTables]);
 
-  function relayoutVisible(prev: FlowNode[]): { nodes: FlowNode[]; edges: Edge[] } {
+  const relayoutVisible = useCallback((prev: FlowNode[]): { nodes: FlowNode[]; edges: Edge[] } => {
     return relayoutWithIds(prev, visibleTablesState);
-  }
-
-  const handleNodeResize = useCallback((nodeId: string, width: number) => {
-    customWidthsRef.current.set(nodeId, width);
-    clearTimeout(resizeDebounceRef.current);
-    resizeDebounceRef.current = setTimeout(() => {
-      setLayoutResult((prev) => relayoutVisible(prev.nodes));
-    }, 300);
-  }, [rawNodes, layoutEdges, layoutMode, connectedFields, viewMode, visibleTablesState]);
+  }, [relayoutWithIds, visibleTablesState]);
 
   useEffect(() => { savePrefs({ layoutMode }); }, [layoutMode]);
   useEffect(() => { savePrefs({ viewMode }); }, [viewMode]);
@@ -203,7 +187,7 @@ export function DataModelEditor({
   // Only re-layout when layout-critical props change (NOT on every resize or collapse)
   useEffect(() => {
     setLayoutResult((prev) => relayoutVisible(prev.nodes));
-  }, [rawNodes, layoutEdges, layoutMode, connectedFields, viewMode]);
+  }, [relayoutVisible]);
 
   // On collapse/expand: only recreate the changed node objects (no flicker)
   const prevCollapsedRef = useRef<Set<string>>(collapsedTables);
@@ -230,7 +214,7 @@ export function DataModelEditor({
     if (layoutMode !== "TB" || containerWidth === layoutWidthRef.current) return;
     layoutWidthRef.current = containerWidth;
     setLayoutResult((prev) => relayoutVisible(prev.nodes));
-  }, [layoutMode, containerWidth]);
+  }, [layoutMode, containerWidth, relayoutVisible]);
 
   // Center view after mode switch — relayout already ran via the effect above
   useEffect(() => { setFitKey((k) => k + 1); }, [viewMode]);
@@ -325,7 +309,7 @@ export function DataModelEditor({
     setVisibleTablesState(connectedIds);
     setLayoutResult((prev) => relayoutWithIds(prev.nodes, connectedIds));
     setFitKey((k) => k + 1);
-  }, [edges, rawNodes, layoutEdges, layoutMode, connectedFields, viewMode]);
+  }, [edges, relayoutWithIds]);
 
   function handleFitViewVisible() {
     setLayoutResult((prev) => relayoutVisible(prev.nodes));

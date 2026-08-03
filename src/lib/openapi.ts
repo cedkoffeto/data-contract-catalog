@@ -4,7 +4,6 @@ import { z } from "zod";
 extendZodWithOpenApi(z);
 
 const registry = new OpenAPIRegistry();
-const msg = z.string().openapi({ example: "Sample message" });
 
 // ── Catalog schemas ────────────────────────────────────────────────────
 
@@ -307,16 +306,6 @@ const ContractPreferencesSchema = registry.register(
 );
 
 // ── Error schemas ────────────────────────────────────────────────────────
-
-const ErrorResponseSchema = registry.register(
-  "ErrorResponse",
-  z.object({ error: z.string() })
-);
-
-const SuccessResponseSchema = registry.register(
-  "SuccessResponse",
-  z.object({ success: z.boolean() })
-);
 
 const HealthResponseSchema = registry.register(
   "HealthResponse",

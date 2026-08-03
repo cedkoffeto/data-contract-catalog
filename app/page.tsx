@@ -1,7 +1,7 @@
 import { prisma } from "@/src/lib/prisma";
 import { CatalogPage } from "@/src/components/catalog/CatalogPage";
 import { getCatalogCards, hasGitLabTreeError, resetGitLabTreeError } from "@/src/lib/contracts";
-import { getAccessibleSlugs, getEditableSlugs, getAccessibleAndEditableSlugs } from "@/src/lib/catalog-filter";
+import { getAccessibleAndEditableSlugs } from "@/src/lib/catalog-filter";
 import { canWrite, type Permission } from "@/src/lib/rbac";
 import type { CatalogCard } from "@/src/lib/types";
 import { auth } from "@/src/auth";
