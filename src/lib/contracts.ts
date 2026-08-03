@@ -31,6 +31,7 @@ export function safeYamlLoad<T = unknown>(raw: string): T | null {
 import { Gitlab } from "@gitbeaker/rest";
 import { hasGitLabConfig, getGitLabClient, downloadGitLabArchive, retryOnTimeout } from "@/src/lib/git-sync";
 import type { CatalogCard, ContractFile, DataContract, EditorRepositoryFile } from "@/src/lib/types";
+import { validatePrimaryKey } from "@/src/lib/contract-validation";
 
 const contractsRoot = process.env.CONTRACTS_PATH ?? path.join(process.cwd(), "contracts");
 const contractsCache: { expiresAt: number; value: ContractFile[]; commitSha: string } = { expiresAt: 0, value: [], commitSha: "" };
@@ -467,7 +468,7 @@ async function buildContractsFromRecords(
 
   const seen = new Map<string, number>();
 
-  return contracts.map((contract) => {
+  const finalContracts = contracts.map((contract) => {
     const count = slugCount.get(contract.slug) ?? 1;
     if (count === 1) return contract;
 
@@ -475,6 +476,14 @@ async function buildContractsFromRecords(
     seen.set(contract.slug, idx);
     return idx === 1 ? contract : { ...contract, slug: `${contract.slug}-${idx}` };
   }).sort((left, right) => left.slug.localeCompare(right.slug));
+
+  for (const contract of finalContracts) {
+    for (const err of validatePrimaryKey(contract.data)) {
+      logger.warn(`[contracts] ${contract.fullPath}: ${err.message}`);
+    }
+  }
+
+  return finalContracts;
 }
 
 async function readLocalContracts(): Promise<ContractFile[]> {

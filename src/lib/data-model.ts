@@ -17,6 +17,8 @@ export type DataModelContract = {
   description?: string;
   fields: ContractField[];
   relations?: DataModelRelation[];
+  primaryKeyErrors?: { field: string; message: string }[];
+  relationErrors?: { field: string; targetSlug: string; ref: string; message: string }[];
 };
 
 export type DataModelRelation = {
@@ -103,6 +105,7 @@ export type ContractTableNodeData = Record<string, unknown> & {
   fields: { name: string; type: string; description?: string }[];
   color: string;
   relationErrors?: { field: string; targetSlug: string; ref: string; message: string }[];
+  primaryKeyErrors?: { field: string; message: string }[];
   _customWidth?: number;
 };
 
@@ -149,6 +152,7 @@ function createNode(c: DataModelContract): Node {
       context: c.context,
       fields: c.fields,
       color: domainColor(c.domain),
+      primaryKeyErrors: c.primaryKeyErrors,
     },
   };
 }
@@ -192,6 +196,7 @@ export function parseContractsToGraph(
     refStr: string,
     refName: string,
     defaults: { layer: string; domain: string; context: string },
+    declaredBy?: { slug: string; maturity: string },
   ): Edge | null {
     const parsed = parseRef(refStr, defaults);
     if (!parsed) return null;
@@ -206,6 +211,20 @@ export function parseContractsToGraph(
     const tgtContract = contractMap.get(tgtKey) ?? slugMap.get(tgt.slug);
     if (!srcContract || !tgtContract) {
       orphanRefs.push(refStr);
+      if (declaredBy) {
+        const declaredId = slugToId(declaredBy.slug, declaredBy.maturity);
+        if (nodeMap.has(declaredId)) {
+          const missingSlug = !srcContract ? src.slug : tgt.slug;
+          const missingSide = !srcContract ? "Source" : "Target";
+          const badField = !srcContract ? src.field : tgt.field;
+          addRelationError(declaredId, {
+            field: badField,
+            targetSlug: missingSlug,
+            ref: refStr,
+            message: `${missingSide} contract "${missingSlug}" not found for field "${badField}"`,
+          });
+        }
+      }
       return null;
     }
 
@@ -273,7 +292,7 @@ export function parseContractsToGraph(
     if (!contract.relations || contract.relations.length === 0) continue;
     const defaults = { layer: contract.maturity, domain: contract.domain, context: contract.context };
     for (const rel of contract.relations) {
-      const edge = resolveRelation(rel.ref, rel.ref_name, defaults);
+      const edge = resolveRelation(rel.ref, rel.ref_name, defaults, { slug: contract.slug, maturity: contract.maturity });
       if (edge) edges.push(edge);
     }
   }
@@ -321,6 +340,12 @@ export function parseContractsToGraph(
     const node = nodeMap.get(nodeId);
     if (node) {
       node.data = { ...node.data, relationErrors: errors };
+    }
+    for (const c of contracts) {
+      if (slugToId(c.slug, c.maturity) === nodeId) {
+        c.relationErrors = errors;
+        break;
+      }
     }
   }
 

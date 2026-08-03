@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
 import type { ContractField } from "@/src/lib/types";
@@ -51,28 +51,52 @@ function flattenFields(fields: ContractField[], depth = 0, parentId: string | nu
   return rows;
 }
 
-export function ModelFieldsTable({ fields, slug, userId, fieldAnnotations, onFieldClick, onAnnotationPosted }: { fields: ContractField[]; slug?: string; userId?: string; fieldAnnotations?: Record<string, number>; onFieldClick?: (fieldName: string) => void; onAnnotationPosted?: () => void }) {
+export function ModelFieldsTable({ fields, slug, userId, fieldAnnotations, onFieldClick, onAnnotationPosted, searchQuery, expanded, onExpandedChange, onExpandableIdsChange }: { fields: ContractField[]; slug?: string; userId?: string; fieldAnnotations?: Record<string, number>; onFieldClick?: (fieldName: string) => void; onAnnotationPosted?: () => void; searchQuery?: string; expanded: Set<string>; onExpandedChange: (updater: (prev: Set<string>) => Set<string>) => void; onExpandableIdsChange: (ids: string[]) => void }) {
   const rows = useMemo(() => flattenFields(fields), [fields]);
   const { t } = useT();
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [annotating, setAnnotating] = useState<FlatField | null>(null);
   const [annotationText, setAnnotationText] = useState("");
 
+  const expandableIds = useMemo(() => rows.filter((row) => row.hasChildren).map((row) => row.id), [rows]);
+
+  useEffect(() => {
+    onExpandableIdsChange(expandableIds);
+  }, [expandableIds, onExpandableIdsChange]);
+
   const rowMap = useMemo(() => new Map(rows.map((row) => [row.id, row])), [rows]);
 
-  function isVisible(row: FlatField): boolean {
-    let parentId = row.parentId;
-    while (parentId) {
-      if (!expanded.has(parentId)) {
-        return false;
-      }
-      parentId = rowMap.get(parentId)?.parentId ?? null;
+  const searchTerm = (searchQuery ?? "").trim().toLowerCase();
+
+  const visibleRows = useMemo(() => {
+    if (!searchTerm) {
+      return rows.filter((row) => {
+        let parentId = row.parentId;
+        while (parentId) {
+          if (!expanded.has(parentId)) {
+            return false;
+          }
+          parentId = rowMap.get(parentId)?.parentId ?? null;
+        }
+        return true;
+      });
     }
-    return true;
-  }
+    const matchIds = new Set<string>();
+    for (const r of rows) {
+      if (r.name.toLowerCase().includes(searchTerm)) matchIds.add(r.id);
+    }
+    const showSet = new Set<string>(matchIds);
+    for (const id of matchIds) {
+      let parentId = rowMap.get(id)?.parentId ?? null;
+      while (parentId) {
+        showSet.add(parentId);
+        parentId = rowMap.get(parentId)?.parentId ?? null;
+      }
+    }
+    return rows.filter((r) => showSet.has(r.id));
+  }, [searchTerm, rows, rowMap, expanded]);
 
   function toggle(id: string) {
-    setExpanded((prev) => {
+    onExpandedChange((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
@@ -107,12 +131,22 @@ export function ModelFieldsTable({ fields, slug, userId, fieldAnnotations, onFie
   return (
     <>
     <tbody className="divide-y divide-gray-200 bg-white">
-      {rows.filter(isVisible).map((row) => {
+      {visibleRows.length === 0 && searchTerm ? (
+        <tr>
+          <td colSpan={4} className="contract-models-cell text-center text-gray-400">
+            {t("noFieldsFound")}
+          </td>
+        </tr>
+      ) : null}
+      {visibleRows.map((row) => {
         const isExpanded = expanded.has(row.id);
-        const piiClassName =
-          ["direct", "sensitive"].includes(row.piiClassification)
-            ? "contract-models-pill contract-models-pill--pii-alert"
-            : "contract-models-pill contract-models-pill--pii";
+        const piiValue = (row.piiClassification ?? "").toLowerCase();
+        const piiStyle =
+          piiValue === "none"
+            ? { backgroundColor: "rgba(34, 197, 94, 0.12)", color: "#15803d" }
+            : piiValue === "direct"
+              ? { backgroundColor: "rgba(239, 68, 68, 0.12)", color: "#dc2626" }
+              : { backgroundColor: "rgba(245, 158, 11, 0.14)", color: "#b45309" };
 
         return (
           <tr
@@ -146,6 +180,11 @@ export function ModelFieldsTable({ fields, slug, userId, fieldAnnotations, onFie
                 ) : null}
                 {!row.hasChildren ? <span className="contract-models-field__leaf" aria-hidden="true" /> : null}
                 <span className="contract-models-field__name">{row.name}</span>
+                {row.required ? (
+                  <span className="contract-models-pill" style={{ marginLeft: "0.45rem" }}>
+                    requis
+                  </span>
+                ) : null}
                 {userId && slug ? (
                   <div className="ml-auto flex items-center justify-end gap-1">
                     {fieldAnnotations?.[row.name] ? (
@@ -175,8 +214,22 @@ export function ModelFieldsTable({ fields, slug, userId, fieldAnnotations, onFie
               </div>
             </td>
 
+            <td className="contract-models-cell contract-models-cell--pii">
+              <div className="flex items-center" style={{ minHeight: "1.9rem" }}>
+                {row.piiClassification ? (
+                  <span className="contract-models-pill" style={piiStyle}>
+                    {row.piiClassification}
+                  </span>
+                ) : (
+                  <span className="text-gray-300" aria-hidden="true">—</span>
+                )}
+              </div>
+            </td>
+
             <td className="contract-models-cell contract-models-cell--details">
-              <div>{row.description}</div>
+              <div className="flex items-center" style={{ minHeight: "1.9rem" }}>
+                <div>{row.description}</div>
+              </div>
 
               {row.businessRules.length > 0 ? (
                 <div className="contract-models-details__meta">Rules: {row.businessRules.join(", ")}</div>
@@ -187,20 +240,6 @@ export function ModelFieldsTable({ fields, slug, userId, fieldAnnotations, onFie
                   Exemple : <span className="font-mono">{String(row.example)}</span>
                 </div>
               ) : null}
-
-              <div className="contract-models-details__pills">
-                {row.required ? (
-                  <span className="contract-models-pill">
-                    requis
-                  </span>
-                ) : null}
-
-                {row.piiClassification ? (
-                  <span className={piiClassName}>
-                    {t("sectionSecurityPii")} : {row.piiClassification}
-                  </span>
-                ) : null}
-              </div>
             </td>
           </tr>
         );

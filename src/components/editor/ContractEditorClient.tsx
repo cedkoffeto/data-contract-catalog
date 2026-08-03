@@ -37,6 +37,7 @@ const Form = dynamic(
 import { computeDiff, createUnifiedDiffText } from "@/src/lib/diff";
 import type { DiffResult } from "@/src/lib/diff";
 import type { DataContract, EditorRepositoryFile } from "@/src/lib/types";
+import { validatePrimaryKey } from "@/src/lib/contract-validation";
 
 const YAML_FORM_TABS = [
   ["yaml", "YAML"],
@@ -888,7 +889,20 @@ export function ContractEditorClient({
     return validatorInstance.validateFormData(yamlValidationState.data, schema);
   }, [isContractDocument, schema, yamlValidationState.data, validatorInstance]);
 
-  const validationErrors = (validationResult?.errors ?? []) as RJSFValidationError[];
+  const validationErrors = useMemo<RJSFValidationError[]>(() => {
+    const schemaErrors = (validationResult?.errors ?? []) as RJSFValidationError[];
+    if (!yamlValidationState.data) return schemaErrors;
+    return [
+      ...schemaErrors,
+      ...validatePrimaryKey(yamlValidationState.data).map((err) => ({
+        name: "primaryKey",
+        message: err.message,
+        property: "contract.primary_key",
+        schemaPath: "#/properties/contract/properties/primary_key",
+        stack: err.message,
+      })),
+    ];
+  }, [validationResult, yamlValidationState.data]);
 
   const validationIssueCount = useMemo(() => {
     if (yamlValidationState.parseError) return 1;

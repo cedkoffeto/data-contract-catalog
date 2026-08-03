@@ -2308,7 +2308,7 @@ body[data-ra-modal] [data-ra-overlay] {
   position: absolute;
   top: 2.1rem;
   bottom: 0.5rem;
-  left: 0.95rem;
+  left: calc(1.2rem - 1px);
   width: 2px;
   border-radius: 999px;
   background: linear-gradient(180deg, rgba(226, 232, 240, 0.95), rgba(249, 115, 22, 0.08));
@@ -2484,7 +2484,16 @@ body[data-ra-modal] [data-ra-overlay] {
   }
 
   .contract-flow__pipeline-rail {
-    left: 0.95rem;
+    left: calc(0.95rem - 1px);
+  }
+}
+
+@keyframes dcc-lineage-dot {
+  0% {
+    stroke-dashoffset: 28;
+  }
+  100% {
+    stroke-dashoffset: 0;
   }
 }
 
@@ -2524,6 +2533,17 @@ body[data-ra-modal] [data-ra-overlay] {
   color: var(--ui-text-soft);
 }
 
+.contract-models-table__header-cell {
+  padding: 0.5rem 1rem;
+  text-align: left;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ui-text-soft);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.75);
+}
+
 .contract-models-row {
   transition: background 160ms ease;
 }
@@ -2552,6 +2572,12 @@ body[data-ra-modal] [data-ra-overlay] {
 .contract-models-cell--type {
   white-space: nowrap;
   width: 1%;
+}
+
+.contract-models-cell--pii {
+  white-space: nowrap;
+  width: 1%;
+  vertical-align: top;
 }
 
 .contract-models-cell--details {
@@ -3951,6 +3977,13 @@ body[data-ra-modal] [data-ra-overlay] {
   height: 0;
   border: 6px solid transparent;
   border-right-color: #fff;
+}
+
+.editor-error-popover--flipped .editor-error-popover-arrow {
+  left: auto;
+  right: -6px;
+  border-right-color: transparent;
+  border-left-color: #fff;
 }
 
 .editor-error-popover-header {

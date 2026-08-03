@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { useT } from "@/src/lib/use-i18n";
 import { DiffView } from "@/src/components/contract/diff/DiffView";
@@ -30,6 +30,7 @@ export function CommitModal({
   const { t, tWith } = useT();
   const id = useId().replace(/:/g, "");
   const [message, setMessage] = useState(defaultMessage);
+  const suppressCloseRef = useRef(false);
 
   const messageRows = Math.max(3, (message.match(/\n/g)?.length ?? 0) + 1);
   const [saving, setSaving] = useState(false);
@@ -100,12 +101,14 @@ export function CommitModal({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
       style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
-      onClick={handleClose}
+      onMouseDown={() => { suppressCloseRef.current = false; }}
+      onClick={() => { if (suppressCloseRef.current) return; handleClose(); }}
     >
       <div
         className="flex max-h-[80vh] flex-col rounded-lg bg-white shadow-xl"
         style={{ width: "min(60vw, 800px)" }}
         id="commit-modal"
+        onMouseDownCapture={() => { suppressCloseRef.current = true; }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
@@ -157,7 +160,7 @@ export function CommitModal({
             </button>
           </label>
           <textarea
-            className="w-full rounded-md border px-3 py-2 text-sm text-gray-900 outline-none"
+            className="w-full shrink-0 resize-y rounded-md border px-3 py-2 text-sm text-gray-900 outline-none"
             style={{ borderColor: message.trim().length >= 3 ? "#22c55e" : message.trim() ? "#ef4444" : "#d1d5db" }}
             id={`commit-msg-${id}`}
             onChange={(e) => setMessage(e.target.value)}

@@ -4,6 +4,7 @@ import path from "node:path";
 import yaml from "js-yaml";
 
 import type { DataModelContract, LoadedModel, ContractField } from "@/src/lib/data-model";
+import { validatePrimaryKey } from "@/src/lib/contract-validation";
 import { hasGitLabConfig, getGitLabClient, downloadGitLabArchive, getBranchSha } from "@/src/lib/git-sync";
 
 const YAML_MAX_DEPTH = 50;
@@ -87,6 +88,8 @@ function parseContractFromRaw(
     }
   }
 
+  const primaryKeyErrors = validatePrimaryKey(doc);
+
   return {
     slug,
     maturity: maturity as "bronze" | "silver" | "gold",
@@ -96,6 +99,7 @@ function parseContractFromRaw(
     description: asset.description as string | undefined,
     fields,
     relations: relations.length > 0 ? relations : undefined,
+    primaryKeyErrors: primaryKeyErrors.length > 0 ? primaryKeyErrors : undefined,
   };
 }
 

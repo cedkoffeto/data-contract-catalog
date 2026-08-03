@@ -15,27 +15,48 @@ const layerBorderColor: Record<string, string> = {
 
 export const ContractTableNode = memo(function ContractTableNode({ selected, id, data }: NodeProps) {
   const d = data as ContractTableNodeData;
-  const { viewMode, connectedFields, onHeaderClick, onFieldClick, searchMatchIds, collapsedTables, onToggleCollapse } = useContext(ViewModeCtx);
+  const { viewMode, connectedFields, onHeaderClick, onFieldClick, searchMatchIds, collapsedTables, onToggleCollapse, connectedTableCount, onShowConnected } = useContext(ViewModeCtx);
   const rootRef = useRef<HTMLDivElement>(null);
   const isSearchMatch = searchMatchIds?.has(id) ?? false;
   const allFields = d.fields;
   const nodeConnected = connectedFields.get(id);
   const connectedCount = nodeConnected ?? new Map<string, number>();
   const isConnected = (name: string) => (connectedCount.get(name) ?? 0) > 0;
+  const connectedEdgeCount = connectedTableCount.get(id) ?? 0;
   const [hoveredField, setHoveredField] = useState<string | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
   const [errorHover, setErrorHover] = useState(false);
   const [errorTooltipPos, setErrorTooltipPos] = useState<{ top: number; left: number } | null>(null);
   const [headerHover, setHeaderHover] = useState(false);
   const [headerTooltipPos, setHeaderTooltipPos] = useState<{ top: number; left: number } | null>(null);
-  const errors = d.relationErrors;
+  const [ctxMenu, setCtxMenu] = useState<{ top: number; left: number } | null>(null);
+  const errors = useMemo(
+    () => [...(d.relationErrors ?? []), ...(d.primaryKeyErrors ?? [])],
+    [d.relationErrors, d.primaryKeyErrors],
+  );
+
+  useEffect(() => {
+    if (!ctxMenu) return;
+    const close = () => setCtxMenu(null);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setCtxMenu(null);
+    };
+    window.addEventListener("click", close);
+    window.addEventListener("contextmenu", close);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("click", close);
+      window.removeEventListener("contextmenu", close);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [ctxMenu]);
 
   const collapsed = collapsedTables.has(id);
   const showingDetailed = viewMode === "detailed" ? !collapsed : collapsed;
 
   const fields = useMemo(() => {
     if (showingDetailed) return allFields;
-    return allFields.filter((f) => isConnected(f.name));
+    return allFields.filter((f) => (connectedCount.get(f.name) ?? 0) > 0);
   }, [allFields, showingDetailed, connectedCount]);
 
   const HEADER_H = 38;
@@ -96,7 +117,13 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
       ))}
       <div className="relative overflow-hidden rounded-xl bg-white">
         {/* Header */}
-        <div className="flex min-w-0 cursor-grab active:cursor-grabbing items-center gap-2 py-2 pl-4 pr-3" style={{ background: d.color.replace("hsl(", "hsla(").replace(")", ", 0.1)"), borderBottom: `2px solid ${d.color}40`, borderLeft: `4px solid ${layerBorderColor[d.maturity as string] || layerBorderColor.bronze}` }}>
+        <div className="flex min-w-0 cursor-grab active:cursor-grabbing items-center gap-2 py-2 pl-4 pr-3" style={{ background: d.color.replace("hsl(", "hsla(").replace(")", ", 0.1)"), borderBottom: `2px solid ${d.color}40`, borderLeft: `4px solid ${layerBorderColor[d.maturity as string] || layerBorderColor.bronze}` }}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setCtxMenu({ top: e.clientY, left: e.clientX });
+          }}
+        >
           <span className="flex h-5 cursor-pointer items-center" onClick={(e) => { e.stopPropagation(); window.open(`/contracts/${d.slug}`, "_blank", "noopener,noreferrer"); }} title="Open contract detail"><Table size={14} style={{ color: d.color }} /></span>
           <span className="flex h-5 min-w-0 items-center text-xs font-semibold tracking-tight text-gray-900"
             onClick={(e) => {
@@ -122,7 +149,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
                 >
                   <div className="editor-error-popover-arrow" />
                   <div className="editor-error-popover-header">
-                    <span>Relation errors</span>
+                    <span>Errors ({errors.length})</span>
                     <button className="editor-error-popover-close" onClick={() => { setErrorHover(false); setErrorTooltipPos(null); }}>&times;</button>
                   </div>
                   <div className="editor-error-popover-body">
@@ -177,7 +204,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
                 if (e.ctrlKey || e.metaKey) { e.stopPropagation(); window.open(`/contracts/${d.slug}`, "_blank", "noopener,noreferrer"); }
                 else onFieldClick?.(d.slug);
               }}>
-                <span className={`min-w-0 font-mono text-[11px] leading-none break-all ${edgeCount > 0 ? "font-bold text-gray-900" : "text-gray-600"}`}>{f.name}</span>
+                <span className={`min-w-0 font-mono text-[12px] leading-none break-all ${edgeCount > 0 ? "font-bold text-gray-900" : "text-gray-600"}`}>{f.name}</span>
                 {edgeCount > 0 ? (
                   <Key size={10} className="shrink-0 text-amber-500" />
                 ) : (
@@ -197,7 +224,7 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
                     />
                   )}
                 </span>
-                <span className="ml-auto whitespace-nowrap text-[10px] leading-none text-gray-400">{f.type}</span>
+                <span className="ml-auto whitespace-nowrap text-[11px] leading-none text-gray-400">{f.type}</span>
               </div>
             );
           })}
@@ -231,6 +258,24 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
           <div className="editor-error-popover-body">
             <pre>{d.label}{'\n'}layer: {d.maturity}{'\n'}domain: {d.domain}{'\n'}context: {d.context ?? ''}{'\n'}id: {id}</pre>
           </div>
+        </div>,
+        document.body,
+      )}
+      {ctxMenu && connectedEdgeCount > 0 && createPortal(
+        <div
+          className="fixed z-[9999] min-w-[180px] rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
+          style={{ top: ctxMenu.top, left: ctxMenu.left }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"
+            onClick={() => { onShowConnected(id); setCtxMenu(null); }}
+          >
+            <span className="text-gray-400">🔗</span>
+            Show connected tables
+            <span className="ml-auto text-[10px] text-gray-400">{connectedEdgeCount}</span>
+          </button>
         </div>,
         document.body,
       )}

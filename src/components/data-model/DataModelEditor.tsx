@@ -384,6 +384,7 @@ export function DataModelEditor({
               collapsedTables={collapsedTables}
               onToggleCollapse={handleToggleCollapse}
               onNodesDragStop={handleNodesDragStop}
+              onShowConnected={handleShowConnected}
             />
           </div>
         </div>

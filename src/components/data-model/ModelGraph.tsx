@@ -31,18 +31,42 @@ const layerColors: Record<string, { bg: string; border: string; text: string }> 
 
 function BrokenRefBadge({ orphanRefs }: { orphanRefs: string[] }) {
   const [hover, setHover] = useState(false);
+  const [anchor, setAnchor] = useState<{ top: number; left: number; right: number; bottom: number } | null>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const [flipped, setFlipped] = useState(false);
+  const popRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!hover || !anchor || !popRef.current) return;
+    const rect = popRef.current.getBoundingClientRect();
+    const m = 8;
+    let top = anchor.bottom + 6;
+    let left = anchor.left;
+    let isFlipped = false;
+    if (left + rect.width > window.innerWidth - m) {
+      left = anchor.right - rect.width;
+      isFlipped = true;
+    }
+    if (top + rect.height > window.innerHeight - m) {
+      top = anchor.top - rect.height - 6;
+    }
+    left = Math.max(m, Math.min(left, window.innerWidth - rect.width - m));
+    top = Math.max(m, Math.min(top, window.innerHeight - rect.height - m));
+    setPos({ top, left });
+    setFlipped(isFlipped);
+  }, [hover, anchor]);
+
   return (
     <>
       <div
         className="relative inline-flex h-5 cursor-pointer items-center rounded-md bg-amber-50 border border-amber-200 px-3 text-xs text-amber-700 shadow-sm"
-        onMouseEnter={(e) => { setHover(true); const r = e.currentTarget.getBoundingClientRect(); setPos({ top: r.bottom + 6, left: r.left }); }}
-        onMouseLeave={() => { setHover(false); setPos(null); }}
+        onMouseEnter={(e) => { setHover(true); const r = e.currentTarget.getBoundingClientRect(); setAnchor({ top: r.top, left: r.left, right: r.right, bottom: r.bottom }); }}
+        onMouseLeave={() => { setHover(false); setPos(null); setAnchor(null); setFlipped(false); }}
       >
         {orphanRefs.length} broken reference{orphanRefs.length !== 1 ? "s" : ""}
       </div>
-      {hover && pos && createPortal(
-        <div className="editor-error-popover fixed" style={{ left: pos.left, top: pos.top }}>
+      {hover && anchor && createPortal(
+        <div ref={popRef} className={`editor-error-popover fixed${flipped ? " editor-error-popover--flipped" : ""}`} style={{ left: pos?.left ?? -9999, top: pos?.top ?? -9999 }}>
           <div className="editor-error-popover-arrow" />
           <div className="editor-error-popover-header">
             <span>Broken references</span>
@@ -87,6 +111,8 @@ type ViewModeValue = {
   searchMatchIds: Set<string> | null;
   collapsedTables: Set<string>;
   onToggleCollapse: (nodeId: string) => void;
+  connectedTableCount: Map<string, number>;
+  onShowConnected: (nodeId: string) => void;
   fieldIndexMap: Map<string, Map<string, number>>;
   nodesWithSummaryRow: Set<string>;
 };
@@ -99,6 +125,8 @@ export const ViewModeCtx = createContext<ViewModeValue>({
   searchMatchIds: null,
   collapsedTables: new Set(),
   onToggleCollapse: () => {},
+  connectedTableCount: new Map(),
+  onShowConnected: () => {},
   fieldIndexMap: new Map(),
   nodesWithSummaryRow: new Set(),
 });
@@ -142,6 +170,7 @@ export function ModelGraph({
   collapsedTables,
   onToggleCollapse,
   onNodesDragStop,
+  onShowConnected,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
@@ -165,6 +194,7 @@ export function ModelGraph({
   collapsedTables: Set<string>;
   onToggleCollapse: (nodeId: string) => void;
   onNodesDragStop?: (nodes: Node[]) => void;
+  onShowConnected: (nodeId: string) => void;
 }) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -283,6 +313,16 @@ export function ModelGraph({
     return map;
   }, [edges]);
 
+  // Edge count per node (number of connected tables)
+  const connectedTableCount = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const e of edges) {
+      map.set(e.source, (map.get(e.source) ?? 0) + 1);
+      map.set(e.target, (map.get(e.target) ?? 0) + 1);
+    }
+    return map;
+  }, [edges]);
+
   const highlightedNeighbors = useMemo(() => {
     if (!highlightedNode) return null;
     return adjacencyMap.get(highlightedNode) ?? null;
@@ -396,9 +436,11 @@ export function ModelGraph({
     searchMatchIds: searchMatchSet,
     collapsedTables,
     onToggleCollapse,
+    connectedTableCount,
+    onShowConnected,
     fieldIndexMap,
     nodesWithSummaryRow,
-  }), [viewMode, connectedFields, onHeaderClick, onNodeClick, searchMatchSet, collapsedTables, onToggleCollapse, fieldIndexMap, nodesWithSummaryRow]);
+  }), [viewMode, connectedFields, onHeaderClick, onNodeClick, searchMatchSet, collapsedTables, onToggleCollapse, connectedTableCount, onShowConnected, fieldIndexMap, nodesWithSummaryRow]);
 
   const highlightCtxValue = useMemo<HighlightValue>(() => ({
     highlightedNode,

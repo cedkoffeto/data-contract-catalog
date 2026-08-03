@@ -23,7 +23,7 @@ function ConsumerIcon() {
   );
 }
 
-export function LineageGraph({ data }: { data: DataContract }) {
+export function LineageGraph({ data, slug }: { data: DataContract; slug?: string }) {
   const upstream = nodes(data.lineage?.upstream);
   const downstream = nodes(data.lineage?.downstream);
 
@@ -60,20 +60,24 @@ export function LineageGraph({ data }: { data: DataContract }) {
               </div>
             </div>
 
-            {/* Arrow */}
-            <div className="flex w-12 shrink-0 flex-col items-center justify-center">
-              <svg width="48" height="24" viewBox="0 0 48 24">
-                <defs>
-                  <style>{`
-                    @keyframes dcc-flow-lin {
-                      0% { stroke-dashoffset: 16; }
-                      100% { stroke-dashoffset: 0; }
-                    }
-                  `}</style>
-                </defs>
-                <line x1="0" y1="12" x2="36" y2="12" stroke="#cbd5e1" strokeWidth="1.5" />
-                <line x1="0" y1="12" x2="36" y2="12" stroke="#f97316" strokeWidth="1.5" strokeDasharray="4 8" opacity="0.5" style={{ animation: "dcc-flow-lin 0.8s linear infinite" }} />
-                <polygon points="36,6 48,12 36,18" fill="#f97316" />
+            {/* Contract slug */}
+            <div className="flex w-20 shrink-0 flex-col items-center justify-center px-2">
+              <svg className="w-full flex-1" viewBox="0 0 80 100" preserveAspectRatio="none" aria-hidden="true">
+                <path d="M 0 2 H 40 V 100" stroke="#cbd5e1" strokeWidth="1.5" fill="none" vectorEffect="non-scaling-stroke" />
+                <path d="M 0 2 H 40 V 100" stroke="#fb923c" strokeWidth="3.5" strokeLinecap="round" strokeDasharray="0 14" fill="none" vectorEffect="non-scaling-stroke" style={{ animation: "dcc-lineage-dot 1.2s linear infinite" }} />
+              </svg>
+              <svg width="14" height="9" viewBox="0 0 14 9" className="mb-0.5 shrink-0" aria-hidden="true">
+                <polygon points="0,0 14,0 7,9" fill="#fb923c" />
+              </svg>
+              <span className="relative max-w-[96px] truncate rounded-md border border-gray-200 bg-white px-2 py-1 text-center font-mono text-[11px] font-semibold text-gray-800" title={slug ?? ""}>
+                {slug}
+              </span>
+              <svg className="mt-0.5 w-full flex-1" viewBox="0 0 80 100" preserveAspectRatio="none" aria-hidden="true">
+                <path d="M 40 0 V 100 H 80" stroke="#cbd5e1" strokeWidth="1.5" fill="none" vectorEffect="non-scaling-stroke" />
+                <path d="M 40 0 V 100 H 80" stroke="#60a5fa" strokeWidth="3.5" strokeLinecap="round" strokeDasharray="0 14" fill="none" vectorEffect="non-scaling-stroke" style={{ animation: "dcc-lineage-dot 1.2s linear infinite" }} />
+              </svg>
+              <svg width="9" height="14" viewBox="0 0 9 14" className="-mt-[7px] self-end shrink-0" aria-hidden="true">
+                <polygon points="0,0 0,14 9,7" fill="#60a5fa" />
               </svg>
             </div>
 

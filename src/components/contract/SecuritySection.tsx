@@ -12,27 +12,39 @@ function classificationBadge(classification?: string) {
   return { bg: "bg-green-50", text: "text-green-700", ring: "ring-green-600/20", icon: "text-green-500", label: classification };
 }
 
+function piiLevelBadge(level: "none" | "indirect" | "direct") {
+  if (level === "direct") {
+    return { bg: "bg-red-50", text: "text-red-700", ring: "ring-red-600/20", icon: "text-red-500" };
+  }
+  if (level === "indirect") {
+    return { bg: "bg-amber-50", text: "text-amber-700", ring: "ring-amber-600/20", icon: "text-amber-500" };
+  }
+  return { bg: "bg-green-50", text: "text-green-700", ring: "ring-green-600/20", icon: "text-green-500" };
+}
+
 export function SecuritySection({
   classification,
-  containsPii,
+  piiLevel,
+  hasPiiAnnotations,
   piiNotes,
   roles,
   columnMasking,
 }: {
   classification?: string;
-  containsPii?: boolean;
+  piiLevel: "none" | "indirect" | "direct";
+  hasPiiAnnotations: boolean;
   piiNotes?: string;
   roles: RolePolicy[];
   columnMasking?: Array<{ field?: string; policy?: string }>;
 }) {
   const { t } = useT();
 
-  if (!classification && containsPii === undefined && !piiNotes && roles.length === 0 && (!columnMasking || columnMasking.length === 0)) {
+  if (!classification && !hasPiiAnnotations && !piiNotes && roles.length === 0 && (!columnMasking || columnMasking.length === 0)) {
     return null;
   }
 
   const badge = classificationBadge(classification);
-  const hasPii = containsPii === true;
+  const piiBadge = piiLevelBadge(piiLevel);
   const hasAccessControl = roles.length > 0;
 
   return (
@@ -45,7 +57,7 @@ export function SecuritySection({
       <div className="mt-2 overflow-hidden rounded-lg bg-white shadow sm:rounded-lg">
         <div className="px-4 py-5 sm:px-6">
 
-          {(classification || containsPii !== undefined || piiNotes) && (
+          {(classification || hasPiiAnnotations || piiNotes) && (
             <div className="flex flex-wrap items-center gap-2 mb-4">
               {classification ? (
                 <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${badge.bg} ${badge.text} ${badge.ring}`}>
@@ -55,16 +67,12 @@ export function SecuritySection({
                   {badge.label}
                 </span>
               ) : null}
-              {containsPii !== undefined && (
-                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${hasPii ? "bg-amber-50 text-amber-700 ring-amber-600/20" : "bg-green-50 text-green-700 ring-green-600/20"}`}>
-                  <svg className={`h-3.5 w-3.5 ${hasPii ? "text-amber-500" : "text-green-500"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    {hasPii ? (
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-                    ) : (
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                    )}
+              {hasPiiAnnotations && (
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${piiBadge.bg} ${piiBadge.text} ${piiBadge.ring}`}>
+                  <svg className={`h-3.5 w-3.5 ${piiBadge.icon}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
                   </svg>
-                  PII: {hasPii ? "Oui" : "Non"}
+                  {t("sectionSecurityPii")} : {piiLevel}
                 </span>
               )}
             </div>
@@ -82,7 +90,7 @@ export function SecuritySection({
           {hasAccessControl && (() => {
             const allPerms = [...new Set(roles.flatMap((r) => r.permissions ?? []))].sort();
             return (
-              <div className={classification || containsPii !== undefined || piiNotes ? "border-t border-gray-100 pt-4" : ""}>
+              <div className={classification || hasPiiAnnotations || piiNotes ? "border-t border-gray-100 pt-4" : ""}>
                 <div className="flex items-center gap-1.5 mb-3">
                   <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
@@ -131,7 +139,7 @@ export function SecuritySection({
           })()}
 
           {columnMasking && columnMasking.length > 0 && (() => {
-            const prevContent = classification || containsPii !== undefined || piiNotes || roles.length > 0;
+            const prevContent = classification || hasPiiAnnotations || piiNotes || roles.length > 0;
             return (
               <div className={prevContent ? "border-t border-gray-100 pt-4 mt-4" : ""}>
                 <div className="flex items-center gap-1.5 mb-3">

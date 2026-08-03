@@ -96,7 +96,7 @@ export function QualitySection({
                               </span>
                             )}
                           </td>
-                          <td className="whitespace-nowrap px-2 py-2.5 text-sm font-medium text-gray-900 align-middle">
+                          <td className="whitespace-nowrap px-2 py-2.5 text-xs font-medium text-gray-900 align-middle">
                             <span className="inline-flex items-center gap-1">
                               {check.name}
                               {check.description ? (
@@ -114,7 +114,7 @@ export function QualitySection({
                           <td className="whitespace-nowrap px-2 py-2.5 align-middle">
                             <span className="inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 text-xs font-mono font-medium text-gray-600">{check.type}</span>
                           </td>
-                          <td className="whitespace-nowrap px-2 py-2.5 text-sm text-gray-500 align-middle font-mono">{check.field || "-"}</td>
+                          <td className="whitespace-nowrap px-2 py-2.5 text-xs text-gray-500 align-middle font-mono">{check.field || "-"}</td>
                           <td className="whitespace-nowrap px-2 py-2.5 align-middle">
                             {check.threshold != null ? (
                               <span className="inline-flex items-center rounded bg-blue-50 px-1.5 py-0.5 text-xs font-semibold text-blue-700">{check.threshold}</span>
