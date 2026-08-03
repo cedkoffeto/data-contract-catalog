@@ -223,26 +223,17 @@ function flattenObjectKeys(obj: unknown, prefix = ""): string[] {
   return keys;
 }
 
+function isDescendantPath(path: string, ancestor: string): boolean {
+  return path.startsWith(`${ancestor}.`) || path.startsWith(`${ancestor}[`);
+}
+
 function filterStructuralChanges(changes: StructuralChange[]): StructuralChange[] {
   const sorted = [...changes].sort((a, b) => a.path.length - b.path.length || a.path.localeCompare(b.path));
-
-  const modifiedPrefixes = new Set<string>();
-  const addedRemovedPrefixes = new Set<string>();
   const kept: StructuralChange[] = [];
 
   for (const c of sorted) {
-    if (c.type === "modified") {
-      if (modifiedPrefixes.has(c.path)) continue;
-      kept.push(c);
-      modifiedPrefixes.add(c.path);
-      addedRemovedPrefixes.add(c.path);
-    } else if (c.type === "added" || c.type === "removed") {
-      if (addedRemovedPrefixes.has(c.path)) continue;
-      kept.push(c);
-      addedRemovedPrefixes.add(c.path);
-    } else {
-      kept.push(c);
-    }
+    const suppressed = kept.some((k) => isDescendantPath(c.path, k.path));
+    if (!suppressed) kept.push(c);
   }
 
   return kept;
