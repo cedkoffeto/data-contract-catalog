@@ -5,6 +5,7 @@ import { ReactFlowProvider } from "@xyflow/react";
 import {
   parseContractsToGraph,
   layoutByMode,
+  assignPortSides,
   type DataModelContract,
   type LoadedModel,
   type LayoutMode,
@@ -152,7 +153,12 @@ export function DataModelEditor({
     });
   }, [edges, layoutMode]);
 
-  const [laidOutNodes, setLaidOutNodes] = useState<FlowNode[]>(() => layoutByMode(rawNodes, layoutEdges, layoutMode, connectedFields, viewMode, 0, collapsedTables).nodes);
+  const [layoutResult, setLayoutResult] = useState<{ nodes: FlowNode[]; edges: Edge[] }>(() => {
+    const nodes = layoutByMode(rawNodes, layoutEdges, layoutMode, connectedFields, viewMode, 0, collapsedTables).nodes;
+    return { nodes, edges: assignPortSides(nodes, layoutEdges, connectedFields, viewMode, collapsedTables) };
+  });
+  const laidOutNodes = layoutResult.nodes;
+  const laidOutEdges = layoutResult.edges;
   const layoutWidthRef = useRef(0);
 
   const [visibleTablesState, setVisibleTablesState] = useState<Set<string>>(() =>
@@ -162,7 +168,7 @@ export function DataModelEditor({
   const customWidthsRef = useRef<Map<string, number>>(new Map());
   const resizeDebounceRef = useRef<ReturnType<typeof setTimeout>>();
 
-  function relayoutWithIds(prev: FlowNode[], visibleIds: Set<string>): FlowNode[] {
+  function relayoutWithIds(prev: FlowNode[], visibleIds: Set<string>): { nodes: FlowNode[]; edges: Edge[] } {
     const nodesWithWidths = rawNodes.map((n) => {
       const w = customWidthsRef.current.get(n.id);
       return typeof w === "number" ? { ...n, data: { ...n.data, _customWidth: w } } : n;
@@ -172,10 +178,11 @@ export function DataModelEditor({
     const { nodes: laidOut } = layoutByMode(visibleNodes, visibleEdges, layoutMode, connectedFields, viewMode, layoutWidthRef.current, collapsedTables);
     const newPosMap = new Map(laidOut.map((n) => [n.id, n]));
     const prevMap = new Map(prev.map((n) => [n.id, n]));
-    return rawNodes.map((n) => newPosMap.get(n.id) ?? prevMap.get(n.id) ?? n);
+    const nodes = rawNodes.map((n) => newPosMap.get(n.id) ?? prevMap.get(n.id) ?? n);
+    return { nodes, edges: assignPortSides(nodes, layoutEdges, connectedFields, viewMode, collapsedTables) };
   }
 
-  function relayoutVisible(prev: FlowNode[]): FlowNode[] {
+  function relayoutVisible(prev: FlowNode[]): { nodes: FlowNode[]; edges: Edge[] } {
     return relayoutWithIds(prev, visibleTablesState);
   }
 
@@ -183,7 +190,7 @@ export function DataModelEditor({
     customWidthsRef.current.set(nodeId, width);
     clearTimeout(resizeDebounceRef.current);
     resizeDebounceRef.current = setTimeout(() => {
-      setLaidOutNodes((prev) => relayoutVisible(prev));
+      setLayoutResult((prev) => relayoutVisible(prev.nodes));
     }, 300);
   }, [rawNodes, layoutEdges, layoutMode, connectedFields, viewMode, visibleTablesState]);
 
@@ -195,7 +202,7 @@ export function DataModelEditor({
 
   // Only re-layout when layout-critical props change (NOT on every resize or collapse)
   useEffect(() => {
-    setLaidOutNodes(relayoutVisible);
+    setLayoutResult((prev) => relayoutVisible(prev.nodes));
   }, [rawNodes, layoutEdges, layoutMode, connectedFields, viewMode]);
 
   // On collapse/expand: only recreate the changed node objects (no flicker)
@@ -208,20 +215,21 @@ export function DataModelEditor({
     const removed = [...prev].filter((id) => !collapsedTables.has(id));
     const changedIds = new Set([...added, ...removed]);
     if (changedIds.size === 0) return;
-    setLaidOutNodes((prevNodes) =>
-      prevNodes.map((n) => {
+    setLayoutResult((prevResult) => ({
+      nodes: prevResult.nodes.map((n) => {
         if (!changedIds.has(n.id)) return n;
         // New data ref → ContractTableNode memo detects change → re-renders → ResizeObserver fires
         return { ...n, data: { ...n.data } };
       }),
-    );
+      edges: prevResult.edges,
+    }));
   }, [collapsedTables]);
 
   // In TB mode, also re-layout when containerWidth changes (affects isolated grid)
   useEffect(() => {
     if (layoutMode !== "TB" || containerWidth === layoutWidthRef.current) return;
     layoutWidthRef.current = containerWidth;
-    setLaidOutNodes(relayoutVisible);
+    setLayoutResult((prev) => relayoutVisible(prev.nodes));
   }, [layoutMode, containerWidth]);
 
   // Center view after mode switch — relayout already ran via the effect above
@@ -315,14 +323,23 @@ export function DataModelEditor({
       if (e.target === nodeId) connectedIds.add(e.source);
     }
     setVisibleTablesState(connectedIds);
-    setLaidOutNodes((prev) => relayoutWithIds(prev, connectedIds));
+    setLayoutResult((prev) => relayoutWithIds(prev.nodes, connectedIds));
     setFitKey((k) => k + 1);
   }, [edges, rawNodes, layoutEdges, layoutMode, connectedFields, viewMode]);
 
   function handleFitViewVisible() {
-    setLaidOutNodes(relayoutVisible);
+    setLayoutResult((prev) => relayoutVisible(prev.nodes));
     setFitKey((k) => k + 1);
   }
+
+  // After a manual drag the positions are owned by React Flow; recompute only
+  // the edge handles from the current node positions (no re-layout of nodes).
+  const handleNodesDragStop = useCallback((nodes: FlowNode[]) => {
+    setLayoutResult((prev) => ({
+      nodes: prev.nodes,
+      edges: assignPortSides(nodes, layoutEdges, connectedFields, viewMode, collapsedTables),
+    }));
+  }, [layoutEdges, connectedFields, viewMode, collapsedTables]);
 
   return (
     <ReactFlowProvider>
@@ -346,7 +363,7 @@ export function DataModelEditor({
           <div className="min-h-0 flex-1">
             <ModelGraph
               initialNodes={laidOutNodes}
-              initialEdges={layoutEdges}
+              initialEdges={laidOutEdges}
               connectedFields={connectedFields}
               viewMode={viewMode}
               visibleTables={visibleTablesState}
@@ -366,6 +383,7 @@ export function DataModelEditor({
               orphanRefs={orphanRefs}
               collapsedTables={collapsedTables}
               onToggleCollapse={handleToggleCollapse}
+              onNodesDragStop={handleNodesDragStop}
             />
           </div>
         </div>

@@ -76,12 +76,22 @@ export const ContractTableNode = memo(function ContractTableNode({ selected, id,
       />
       <Handle type="source" position={Position.Bottom} id="bottom" className="!w-0 !h-0 !border-0 !bg-transparent !opacity-0" />
       <Handle type="target" position={Position.Top} id="top" className="!w-0 !h-0 !border-0 !bg-transparent !opacity-0" />
+      <Handle type="source" position={Position.Top} id="top-out" className="!w-0 !h-0 !border-0 !bg-transparent !opacity-0" />
+      <Handle type="target" position={Position.Bottom} id="bottom-in" className="!w-0 !h-0 !border-0 !bg-transparent !opacity-0" />
       {fields.map((f) => (
         <Handle key={`h-src-${f.name}`} type="source" id={`${f.name}-right`} position={Position.Right}
           style={{ top: fieldYMap.get(f.name) ?? 0, opacity: 0, width: 1, height: 1 }} />
       ))}
       {fields.map((f) => (
         <Handle key={`h-tgt-${f.name}`} type="target" id={`${f.name}-left`} position={Position.Left}
+          style={{ top: fieldYMap.get(f.name) ?? 0, opacity: 0, width: 1, height: 1 }} />
+      ))}
+      {fields.map((f) => (
+        <Handle key={`h-out-l-${f.name}`} type="source" id={`${f.name}-left-out`} position={Position.Left}
+          style={{ top: fieldYMap.get(f.name) ?? 0, opacity: 0, width: 1, height: 1 }} />
+      ))}
+      {fields.map((f) => (
+        <Handle key={`h-in-r-${f.name}`} type="target" id={`${f.name}-right-in`} position={Position.Right}
           style={{ top: fieldYMap.get(f.name) ?? 0, opacity: 0, width: 1, height: 1 }} />
       ))}
       <div className="relative overflow-hidden rounded-xl bg-white">

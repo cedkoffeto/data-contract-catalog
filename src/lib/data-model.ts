@@ -1063,13 +1063,151 @@ export function layoutStarGraph(nodes: Node[], edges: Edge[], connectedFields?: 
 }
 
 export function layoutByMode(nodes: Node[], edges: Edge[], mode: LayoutMode, connectedFields?: Map<string, Map<string, number>>, viewMode?: "detailed" | "compact", containerWidth?: number, collapsedTables?: Set<string>): { nodes: Node[]; edges: Edge[] } {
-  switch (mode) {
-    case "LR":
-    case "TB":
-      return layoutGraph(nodes, edges, mode, connectedFields, viewMode, containerWidth, 30, collapsedTables);
-    case "layer":
-      return layoutLayerGraph(nodes, edges, connectedFields, viewMode, collapsedTables);
-    case "star":
-      return layoutStarGraph(nodes, edges, connectedFields, viewMode, collapsedTables);
+  const result = (() => {
+    switch (mode) {
+      case "LR":
+      case "TB":
+        return layoutGraph(nodes, edges, mode, connectedFields, viewMode, containerWidth, 30, collapsedTables);
+      case "layer":
+        return layoutLayerGraph(nodes, edges, connectedFields, viewMode, collapsedTables);
+      case "star":
+        return layoutStarGraph(nodes, edges, connectedFields, viewMode, collapsedTables);
+    }
+  })();
+  return { nodes: result.nodes, edges: assignPortSides(result.nodes, result.edges, connectedFields, viewMode, collapsedTables) };
+}
+
+// ── Port side assignment (G/D) after layout ─────────────────────────
+// Picks, for each edge, the pair of handles whose anchors are closest in 2D:
+//   right→left  (source right field handle → target left field handle)
+//   left→right  (reversed)
+//   bottom→top  (only when the source table sits above the target)
+//   top→bottom  (only when the source table sits below the target)
+// Anchor positions use the real handle coordinates: field rows come from
+// fieldYMapOf (same formula as ContractTableNode), table edges from nodeHeight.
+// The directional rule (based on center-X distance) is kept as a tie-break so
+// that near-equal candidates keep the classic look.
+const PORT_STACK_THRESHOLD = 40;
+const PORT_TIE_EPSILON = 30;
+
+function shownFields(node: Node, connectedFields?: Map<string, Map<string, number>>, viewMode?: "detailed" | "compact", collapsed?: boolean): ContractField[] {
+  const data = node.data as ContractTableNodeData;
+  const allFields = data.fields ?? [];
+  const showingDetailed = viewMode === "detailed" ? !collapsed : collapsed;
+  if (showingDetailed) return allFields;
+  const nodeConnected = connectedFields?.get(node.id);
+  return allFields.filter((f) => (nodeConnected?.get(f.name) ?? 0) > 0);
+}
+
+function fieldYMapOf(node: Node, connectedFields?: Map<string, Map<string, number>>, viewMode?: "detailed" | "compact", collapsed?: boolean): Map<string, number> {
+  const data = node.data as ContractTableNodeData;
+  const allFields = data.fields ?? [];
+  const fields = shownFields(node, connectedFields, viewMode, collapsed);
+  const showingDetailed = viewMode === "detailed" ? !collapsed : collapsed;
+  const hasSummary = !showingDetailed && allFields.length > fields.length;
+  const offset = hasSummary ? 26 : 0;
+  const map = new Map<string, number>();
+  fields.forEach((f, i) => {
+    map.set(f.name, 38 + offset + i * 33 + 33 / 2);
+  });
+  return map;
+}
+
+function edgeFields(e: Edge): { srcField?: string; tgtField?: string } {
+  const parsed = (e.data as { parsed?: { left?: { field?: string }; right?: { field?: string } }[] })?.parsed;
+  return { srcField: parsed?.[0]?.left?.field, tgtField: parsed?.[0]?.right?.field };
+}
+
+function directionalHandles(src: Node, tgt: Node, srcField: string, tgtField: string): { sourceHandle: string; targetHandle: string } {
+  const srcCx = src.position.x + nodeWidth(src) / 2;
+  const tgtCx = tgt.position.x + nodeWidth(tgt) / 2;
+  const dx = tgtCx - srcCx;
+  if (Math.abs(dx) <= PORT_STACK_THRESHOLD) {
+    return src.position.y < tgt.position.y
+      ? { sourceHandle: "bottom", targetHandle: "top" }
+      : { sourceHandle: "top-out", targetHandle: "bottom-in" };
   }
+  if (dx > 0) return { sourceHandle: `${srcField}-right`, targetHandle: `${tgtField}-left` };
+  return { sourceHandle: `${srcField}-left-out`, targetHandle: `${tgtField}-right-in` };
+}
+
+export function assignPortSides(
+  nodes: Node[],
+  edges: Edge[],
+  connectedFields?: Map<string, Map<string, number>>,
+  viewMode?: "detailed" | "compact",
+  collapsedTables?: Set<string>,
+): Edge[] {
+  const nodeById = new Map(nodes.map((n) => [n.id, n]));
+  const heights = new Map<string, number>();
+  const fieldMaps = new Map<string, Map<string, number>>();
+  for (const n of nodes) {
+    const collapsed = collapsedTables?.has(n.id) ?? false;
+    heights.set(n.id, nodeHeight(n, connectedFields, viewMode, collapsed));
+    fieldMaps.set(n.id, fieldYMapOf(n, connectedFields, viewMode, collapsed));
+  }
+
+  const dist = (ax: number, ay: number, bx: number, by: number) => Math.hypot(ax - bx, ay - by);
+
+  function candidatesFor(e: Edge): { dist: number; sourceHandle: string; targetHandle: string }[] | null {
+    const src = nodeById.get(e.source);
+    const tgt = nodeById.get(e.target);
+    if (!src || !tgt) return null;
+
+    const { srcField, tgtField } = edgeFields(e);
+    if (!srcField || !tgtField) return null;
+
+    const srcW = nodeWidth(src);
+    const tgtW = nodeWidth(tgt);
+    const srcY = src.position.y;
+    const tgtY = tgt.position.y;
+    const srcH = heights.get(src.id) ?? 0;
+    const tgtH = heights.get(tgt.id) ?? 0;
+    const srcFieldY = fieldMaps.get(src.id)?.get(srcField);
+    const tgtFieldY = fieldMaps.get(tgt.id)?.get(tgtField);
+    if (srcFieldY === undefined || tgtFieldY === undefined) return null;
+
+    const c: { dist: number; sourceHandle: string; targetHandle: string }[] = [];
+    c.push({
+      dist: dist(src.position.x + srcW, srcY + srcFieldY, tgt.position.x, tgtY + tgtFieldY),
+      sourceHandle: `${srcField}-right`,
+      targetHandle: `${tgtField}-left`,
+    });
+    c.push({
+      dist: dist(src.position.x, srcY + srcFieldY, tgt.position.x + tgtW, tgtY + tgtFieldY),
+      sourceHandle: `${srcField}-left-out`,
+      targetHandle: `${tgtField}-right-in`,
+    });
+    if (srcY + srcH <= tgtY) {
+      c.push({
+        dist: dist(src.position.x + srcW / 2, srcY + srcH, tgt.position.x + tgtW / 2, tgtY),
+        sourceHandle: "bottom",
+        targetHandle: "top",
+      });
+    }
+    if (srcY >= tgtY + tgtH) {
+      c.push({
+        dist: dist(src.position.x + srcW / 2, srcY, tgt.position.x + tgtW / 2, tgtY + tgtH),
+        sourceHandle: "top-out",
+        targetHandle: "bottom-in",
+      });
+    }
+    return c;
+  }
+
+  return edges.map((e) => {
+    const cands = candidatesFor(e);
+    if (!cands || cands.length === 0) return e;
+
+    cands.sort((a, b) => a.dist - b.dist);
+    const best = cands[0];
+
+    const { srcField, tgtField } = edgeFields(e);
+    const directional = directionalHandles(nodeById.get(e.source)!, nodeById.get(e.target)!, srcField!, tgtField!);
+    const directionalCand = cands.find((c) => c.sourceHandle === directional.sourceHandle && c.targetHandle === directional.targetHandle);
+    if (directionalCand && directionalCand.dist - best.dist <= PORT_TIE_EPSILON) {
+      return { ...e, sourceHandle: directionalCand.sourceHandle, targetHandle: directionalCand.targetHandle };
+    }
+    return { ...e, sourceHandle: best.sourceHandle, targetHandle: best.targetHandle };
+  });
 }

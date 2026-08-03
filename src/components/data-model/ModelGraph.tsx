@@ -141,6 +141,7 @@ export function ModelGraph({
   orphanRefs,
   collapsedTables,
   onToggleCollapse,
+  onNodesDragStop,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
@@ -163,6 +164,7 @@ export function ModelGraph({
   orphanRefs?: string[];
   collapsedTables: Set<string>;
   onToggleCollapse: (nodeId: string) => void;
+  onNodesDragStop?: (nodes: Node[]) => void;
 }) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -370,6 +372,7 @@ export function ModelGraph({
     const set = new Set<string>();
     for (const node of nodes) {
       const allFields = (node.data as ContractTableNodeData).fields;
+      if (!allFields) continue;
       const collapsed = collapsedTables.has(node.id);
       const showingDetailed = viewMode === "detailed" ? !collapsed : collapsed;
       if (showingDetailed) continue;
@@ -416,6 +419,7 @@ export function ModelGraph({
           onEdgesChange={onEdgesChange}
           onNodeMouseEnter={handleMouseEnter}
           onNodeMouseLeave={handleMouseLeave}
+          onNodeDragStop={(_event, _node, dragNodes) => onNodesDragStop?.(dragNodes)}
           onEdgeClick={handleEdgeClick}
           onClick={handlePaneClick}
           nodeTypes={nodeTypes}
