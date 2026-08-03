@@ -667,7 +667,7 @@ describe("RBAC admin lookup APIs", () => {
 });
 
 describe("RBAC contract APIs", () => {
-  it("forbids reading a contract when the user lacks scoped access", async () => {
+  it("returns 404 (hides existence) when the user lacks scoped access", async () => {
     mockApiGate({ user: { name: "reader.user", email: "reader.user@example.com" } });
 
     vi.doMock("@/src/lib/contracts", () => ({
@@ -689,9 +689,9 @@ describe("RBAC contract APIs", () => {
       params: Promise.resolve({ slug: "crm-reclamation" })
     });
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(404);
     expect(await readJson(response)).toEqual({
-      error: "Forbidden: insufficient permissions on this contract"
+      error: 'Contract "crm-reclamation" not found'
     });
   });
 
@@ -720,6 +720,13 @@ describe("RBAC contract APIs", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(await readJson(response)).toEqual(contract);
+    // fullPath is intentionally excluded from the public payload
+    expect(await readJson(response)).toEqual({
+      slug: "crm-reclamation",
+      stem: "crm_reclamation",
+      maturity: "silver",
+      yamlRaw: "asset:\n  name: CRM",
+      data: { asset: { domain: "crm", context: "claims" } }
+    });
   });
 });
