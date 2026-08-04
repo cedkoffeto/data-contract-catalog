@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useT } from "@/src/lib/use-i18n";
 
@@ -24,6 +24,7 @@ export function RequestEditorUpgrade({
   compact?: boolean;
 }) {
   const { t } = useT();
+  const dragOriginRef = useRef(false);
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
@@ -133,7 +134,8 @@ export function RequestEditorUpgrade({
                 </div>
                 <button
                   type="button"
-                  onClick={() => { setOpen(false); setMessage(""); }}
+                  onClick={() => { if (dragOriginRef.current) return; setOpen(false); setMessage(""); }}
+                  onMouseDown={(e) => { dragOriginRef.current = e.target !== e.currentTarget; }}
                   className="mt-3 rounded-md px-4 py-2 text-xs text-gray-600 hover:bg-gray-100"
                 >
 {t("close")}

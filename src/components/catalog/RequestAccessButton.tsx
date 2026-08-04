@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useT } from "@/src/lib/use-i18n";
 
@@ -36,6 +36,7 @@ export function RequestAccessButton({
   accessRequestStatus?: "pending";
 }) {
   const { t } = useT();
+  const dragOriginRef = useRef(false);
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [requestedPermission, setRequestedPermission] = useState<AccessRequestPermission>("reader");
@@ -130,7 +131,8 @@ export function RequestAccessButton({
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center"
           style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
-          onClick={handleClose}
+          onClick={() => { if (dragOriginRef.current) return; handleClose(); }}
+          onMouseDown={(e) => { dragOriginRef.current = e.target !== e.currentTarget; }}
         >
           <div
             className="flex max-h-[60vh] flex-col rounded-lg bg-white shadow-xl"
