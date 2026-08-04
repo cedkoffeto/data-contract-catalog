@@ -233,13 +233,12 @@ function createValidationDecorations(lineNumbers: number[]) {
   });
 }
 
-function ErrorPopover({ lineNumber, message, x, y, onClose, onHoverChange }: {
+function ErrorPopover({ lineNumber, message, x, y, onClose }: {
   lineNumber: number;
   message: string;
   x: number;
   y: number;
   onClose: () => void;
-  onHoverChange?: (hovering: boolean) => void;
 }) {
   const { t, tWith } = useT();
   const ref = useRef<HTMLDivElement>(null);
@@ -266,8 +265,6 @@ function ErrorPopover({ lineNumber, message, x, y, onClose, onHoverChange }: {
       ref={ref}
       className="editor-error-popover"
       style={{ left: x + 20, top: y - 12 }}
-      onMouseEnter={() => onHoverChange?.(true)}
-      onMouseLeave={() => onHoverChange?.(false)}
     >
       <div className="editor-error-popover-arrow" />
       <div className="editor-error-popover-header">
@@ -798,7 +795,6 @@ export function ContractEditorClient({
     y: number;
   } | null>(null);
   const closeErrorPopover = useCallback(() => setErrorPopover(null), []);
-  const errorPopoverHoverRef = useRef(false);
   const [errorNavIndex, setErrorNavIndex] = useState<number>(-1);
 
   const [isSaving, setIsSaving] = useState(false);
@@ -1037,9 +1033,7 @@ export function ContractEditorClient({
       const marker = (event.target as HTMLElement).closest("[data-error-line]") as HTMLElement | null;
       if (!marker) return;
       hideTimer = setTimeout(() => {
-        if (!errorPopoverHoverRef.current) {
-          setErrorPopover(null);
-        }
+        setErrorPopover(null);
       }, 200);
     };
 
@@ -2095,7 +2089,6 @@ export function ContractEditorClient({
                     x={errorPopover.x}
                     y={errorPopover.y}
                     onClose={closeErrorPopover}
-                    onHoverChange={(v) => { errorPopoverHoverRef.current = v; }}
                   />
                 )}
 
